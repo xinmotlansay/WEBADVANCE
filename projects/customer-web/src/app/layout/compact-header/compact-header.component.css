@@ -1,0 +1,83 @@
+:host {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: block;
+  padding: 16px var(--page-gutter) 0;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+/* Ẩn khi cuộn (hideOnScroll). Người dùng Tab vào header thì vẫn hiện để thấy được tiêu điểm. */
+:host(.hidden:not(:focus-within)) {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: calc(var(--page-max) - 2 * var(--layout-margin));
+  min-height: 72px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2.2vw, 32px);
+  border-radius: 999px;
+  background: var(--color-white);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-black) 10%, transparent);
+}
+
+.logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-logo);
+  font-size: clamp(28px, 2.8vw, var(--font-size-logo));
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.icons {
+  display: flex;
+  gap: 20px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-black);
+}
+.back {
+  color: var(--color-primary);
+}
+.icon-btn:focus-visible,
+.logo:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  :host {
+    padding-top: 12px;
+  }
+  .bar {
+    min-height: 56px;
+  }
+  .icons {
+    gap: 12px;
+  }
+}

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { validateQuery } from '../../middlewares/validate.middleware.js';
 import { asyncHandler } from '../../utils/async-handler.js';
-import { sendPage } from '../../utils/response.js';
-import { listProducts } from './product.service.js';
+import { sendData, sendPage } from '../../utils/response.js';
+import { getProductDetail, listProducts } from './product.service.js';
 import { productListQuerySchema, type ProductListQuery } from './product.schema.js';
 
 export const productRoutes = Router();
@@ -19,5 +19,12 @@ productRoutes.get(
       total,
       totalPages: Math.ceil(total / query.limit),
     });
+  }),
+);
+
+productRoutes.get(
+  '/:slug',
+  asyncHandler(async (req, res) => {
+    sendData(res, await getProductDetail(String(req.params['slug'])));
   }),
 );

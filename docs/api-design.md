@@ -458,6 +458,7 @@ Response `200`:
 | GET | `/categories/:slug` | P | | Chi tiết danh mục |
 | POST | `/view-room/suggestions` | P | FR-23 | Gợi ý tương tự và còn thiếu trong phòng |
 | POST | `/fit-your-home/check` | P | FR-24 | Kiểm tra vận chuyển vào nhà |
+| POST | `/fit-your-home/similar` | P | FR-24 | Sản phẩm tương tự qua được lối đi của khách |
 
 ### 5.1. `GET /products` – query
 
@@ -555,12 +556,27 @@ Dùng `walkwayProfileId` (cần đăng nhập) hoặc `passages` nhập trực t
   "data": {
     "verdict": "FITS_AS_PACKAGE",
     "disclaimer": "Kết quả chỉ mang tính tham khảo",
-    "packageCheck": { "fits": true, "details": [ { "passageLabel": "Cửa chính", "fits": true } ] },
+    "status": "PASS",
+    "packageCheck": { "fits": true, "details": [
+      { "index": 1, "passageLabel": "Cửa chính", "type": "DOOR", "status": "PASS",
+        "posture": "FLAT", "minClearanceCm": 60, "note": null }
+    ] },
     "partCheck": null,
-    "elevatorLoadCheck": { "fits": true, "totalWeightKg": 120, "capacityKg": 600 }
+    "elevatorLoadCheck": { "fits": true, "totalWeightKg": 120, "capacityKg": 600 },
+    "usedDimensions": { "packageCount": 2, "largest": { "length": 205, "width": 60, "height": 30 } }
   }
 }
 ```
+
+- `status` (tổng) và `details[].status`: `PASS` (Qua được) | `CAUTION` (Cần lưu ý) | `FAIL` (Không vừa). Tổng lấy mức xấu nhất. `FITS_BY_PARTS` luôn là `CAUTION`, `DOES_NOT_FIT` là `FAIL`.
+- `CAUTION` khi: chỉ vừa lúc đặt nghiêng trong cabin, khe hở nhỏ nhất dưới 5 cm, hoặc tổng cân nặng vượt tải trọng thang máy nhưng từng kiện vẫn chở được (chia chuyến). Kiện nặng hơn tải trọng: `FAIL`.
+- `posture`: `FLAT` (nằm ngang) | `UPRIGHT` (dựng đứng) | `TILT` (đặt nghiêng), `null` khi `FAIL`. `minClearanceCm` là khe hở nhỏ nhất qua mọi kiện, `null` khi `FAIL`.
+- Passage: `width`, `height` (20–1000 cm) bắt buộc. `ELEVATOR` bắt buộc `cabinLength`, `cabinWidth`, `cabinHeight`, `loadCapacityKg` tùy chọn. Tối đa 10 lối đi.
+- Bỏ `variantId` thì dùng biến thể đang bán đầu tiên. `walkwayProfileId` chưa hỗ trợ (chờ module đăng nhập).
+
+### 5.6. `POST /fit-your-home/similar` (FR-24)
+
+Body như 5.5, thêm `"includeCaution": false`. Trả tối đa 6 `ProductListItem` kèm `fitStatus`, sắp theo độ chênh giá tăng dần. Điều kiện: cùng ít nhất một danh mục loại `PRODUCT_CATEGORY`, `priceFrom` trong ±20% giá cuối (sau khuyến mãi) của biến thể đang xem, và `fitStatus` là `PASS` (thêm `CAUTION` khi `includeCaution = true`). Sản phẩm nhiều biến thể lấy kết quả tốt nhất.
 
 `verdict`: `FITS_AS_PACKAGE | FITS_BY_PARTS | DOES_NOT_FIT`. Thứ tự kiểm: (1) từng kiện nguyên (`packages`) qua mọi lối đi, qua hết thì `FITS_AS_PACKAGE`. (2) Nếu không qua: kiểm từng bộ phận (`partDimensions`) kèm `moveHints` (`TILT`, `UPRIGHT`, `PERPENDICULAR`) và tải trọng thang máy. Biện pháp cần ròng rọc/cẩu: ngoài phạm vi. Thiếu `packages` trả `409 PRODUCT_MISSING_PACKAGE_DATA`.
 
@@ -1295,6 +1311,7 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 | FR-04 | `/auth/otp/send` (FORGOT_PASSWORD), `/auth/forgot-password/reset` |
 | FR-05 | `/auth/change-password` |
 | FR-06 | `/users/me` |
+| 1.6 | 2026-10-21 | Fit your home: mở rộng response `POST /fit-your-home/check` (`status`, `details[]` có `posture`, `minClearanceCm`, `note`, `usedDimensions`), thêm `POST /fit-your-home/similar` |
 | FR-07 | `/users/me/contact` |
 | FR-08 | `/users/me/addresses*` |
 | FR-09, FR-22 | `/users/me/wishlist*` |

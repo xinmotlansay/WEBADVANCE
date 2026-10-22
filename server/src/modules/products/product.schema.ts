@@ -12,6 +12,7 @@ const objectIdCsv = csv.refine((ids) => ids.every((id) => /^[0-9a-f]{24}$/i.test
 });
 
 export const productListQuerySchema = z.object({
+  q: z.string().trim().min(1).max(100).optional(),
   categoryIds: objectIdCsv.optional(),
   badge: z.enum(['NEW', 'BEST_SELLER']).optional(),
   hasPromotion: z.stringbool().optional(),

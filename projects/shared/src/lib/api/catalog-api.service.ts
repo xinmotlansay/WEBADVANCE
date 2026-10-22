@@ -6,7 +6,7 @@ import type { Banner } from '../models/banner.model';
 import type { Category, CategoryType } from '../models/category.model';
 import type { CollectionSummary } from '../models/collection.model';
 import type { InspirationDetail, InspirationSummary } from '../models/inspiration.model';
-import type { ProductListItem, ProductListQuery } from '../models/product.model';
+import type { ProductDetail, ProductListItem, ProductListQuery } from '../models/product.model';
 import type { FlashSale } from '../models/promotion.model';
 import type { PublicConfig } from '../models/public-config.model';
 import type { Showroom, ShowroomRegion } from '../models/showroom.model';
@@ -32,6 +32,7 @@ export class CatalogApiService {
     query: ProductListQuery = {},
   ): Observable<{ items: ProductListItem[]; meta: PageMeta }> {
     let params = new HttpParams();
+    if (query.q) params = params.set('q', query.q);
     if (query.categoryIds?.length) params = params.set('categoryIds', query.categoryIds.join(','));
     if (query.badge) params = params.set('badge', query.badge);
     if (query.hasPromotion) params = params.set('hasPromotion', true);
@@ -45,6 +46,12 @@ export class CatalogApiService {
     return this.http
       .get<ApiPageResponse<ProductListItem>>(`${API_BASE}/products`, { params })
       .pipe(map((r) => ({ items: r.data, meta: r.meta })));
+  }
+
+  getProduct(slug: string): Observable<ProductDetail> {
+    return this.http
+      .get<ApiResponse<ProductDetail>>(`${API_BASE}/products/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
   }
 
   getCollections(): Observable<CollectionSummary[]> {
