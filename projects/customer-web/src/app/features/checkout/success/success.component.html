@@ -1,0 +1,80 @@
+<app-compact-header />
+
+<section class="page">
+  <div class="container">
+    @if (order(); as o) {
+      <div class="card">
+        @if (o.status === 'CANCELLED') {
+          <h1 class="title">Đơn hàng {{ o.orderCode }} đã bị hủy</h1>
+        } @else {
+          <span class="check" aria-hidden="true"><app-icon name="lucide:check" [size]="32" /></span>
+          <h1 class="title">{{ paidNow() ? 'Thanh toán thành công!' : 'Đặt hàng thành công!' }}</h1>
+          <p class="code">
+            Mã đơn: <strong>{{ o.orderCode }}</strong>
+          </p>
+
+          <dl class="rows">
+            <div>
+              <dt>Thanh toán</dt>
+              <dd>
+                @if (paidNow(); as paid) {
+                  Đã thanh toán {{ paid | vnd }}
+                  @if (o.payment.codAmount) {
+                    <span class="muted block"
+                      >(còn {{ o.payment.codAmount | vnd }} khi nhận hàng)</span
+                    >
+                  }
+                } @else {
+                  Thanh toán {{ o.payment.codAmount || o.totalAmount | vnd }} khi nhận hàng
+                }
+              </dd>
+            </div>
+            @if (delivery(); as d) {
+              <div>
+                <dt>Giao hàng</dt>
+                <dd>{{ d }}</dd>
+              </div>
+            }
+            <div>
+              <dt>Giao đến</dt>
+              <dd>
+                {{ o.shippingAddress.recipientName }} · {{ o.shippingAddress.recipientPhone }}
+                <span class="muted block">{{ addressText() }}</span>
+              </dd>
+            </div>
+            @if (o.invoiceInfo.type !== 'NONE') {
+              <div>
+                <dt>Hóa đơn</dt>
+                <dd>
+                  {{ o.invoiceInfo.buyerName }}
+                  @if (o.invoiceInfo.sendEmail) {
+                    <span class="muted block">
+                      Gửi tới {{ o.invoiceInfo.email }} sau khi giao hàng
+                    </span>
+                  }
+                </dd>
+              </div>
+            }
+          </dl>
+          <p class="muted">Đơn đang chờ CaraVeso xác nhận.</p>
+        }
+
+        <div class="actions">
+          <!-- Trang đơn hàng của tôi (FR-10) làm sau; route chưa có sẽ về trang chủ. -->
+          <a class="btn" [routerLink]="['/account/orders', o.id]">Xem đơn hàng</a>
+          <a class="btn btn--primary" routerLink="/">Tiếp tục mua sắm</a>
+        </div>
+      </div>
+    } @else if (error()) {
+      <div class="card">
+        <h1 class="title">Không tải được đơn hàng</h1>
+        <p class="muted">{{ error() }}</p>
+        <div class="actions">
+          <a class="btn btn--primary" routerLink="/">Về trang chủ</a>
+        </div>
+      </div>
+    } @else {
+      <div class="card skeleton" aria-busy="true"></div>
+    }
+  </div>
+</section>

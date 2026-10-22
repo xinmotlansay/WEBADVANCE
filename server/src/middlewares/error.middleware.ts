@@ -13,6 +13,14 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next
     });
     return;
   }
+  // Body không phải JSON hợp lệ (express.json).
+  if ((err as { type?: string }).type === 'entity.parse.failed') {
+    res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Body không phải JSON hợp lệ' },
+    });
+    return;
+  }
 
   console.warn('Lỗi không xác định:', err);
   res.status(500).json({

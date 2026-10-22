@@ -1,0 +1,121 @@
+<section class="page">
+  <div class="container">
+    <h1 class="title">
+      Giỏ hàng
+      @if (items().length) {
+        <span class="title__count">({{ items().length }})</span>
+      }
+    </h1>
+
+    @if (store.cart(); as cart) {
+      @if (cart.items.length) {
+        <div class="layout">
+          <div class="card list">
+            <div class="toolbar">
+              <label class="toolbar__all">
+                <input
+                  #allBox
+                  type="checkbox"
+                  [checked]="allSelected()"
+                  [disabled]="busy()"
+                  (change)="toggleAll(allBox)"
+                />
+                <!-- Dòng hết hàng/ngừng bán/vượt tồn không chọn được nên chỉ đếm số đang chọn. -->
+                Chọn tất cả ({{ selected().length }})
+              </label>
+              <button
+                type="button"
+                class="toolbar__remove"
+                [disabled]="!selected().length || busy()"
+                (click)="removeSelected()"
+              >
+                Xóa đã chọn
+              </button>
+            </div>
+
+            @for (item of cart.items; track item.id) {
+              <app-cart-line [item]="item" />
+            }
+          </div>
+
+          <aside class="card summary" aria-label="Tóm tắt đơn hàng">
+            @if (summary(); as s) {
+              <dl class="rows">
+                <div>
+                  <dt>Tạm tính</dt>
+                  <dd>{{ s.subtotal | vnd }}</dd>
+                </div>
+                @if (s.promotionDiscount) {
+                  <div>
+                    <dt>Khuyến mãi</dt>
+                    <dd class="discount">−{{ s.promotionDiscount | vnd }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>Phí vận chuyển</dt>
+                  <dd>{{ s.shippingFee | vnd }}</dd>
+                </div>
+                @if (s.installationFee) {
+                  <div>
+                    <dt>Phí lắp đặt</dt>
+                    <dd>{{ s.installationFee | vnd }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="total">
+                <span>Tổng cộng</span>
+                <strong>{{ s.totalAmount | vnd }}</strong>
+              </div>
+              <p class="hint">Giá đã bao gồm VAT. Phí tạm tính theo sản phẩm đã chọn.</p>
+              @if (depositNote(); as note) {
+                <p class="hint hint--deposit">{{ note }}</p>
+              }
+            }
+            <button
+              type="button"
+              class="btn btn--primary checkout"
+              [disabled]="!selected().length || busy()"
+              (click)="checkout()"
+            >
+              Thanh toán ({{ selected().length }})
+            </button>
+          </aside>
+        </div>
+
+        <!-- Điện thoại: thanh tổng tiền dính đáy màn hình. -->
+        <div class="bottom-bar">
+          <div>
+            <span class="bottom-bar__label">Tổng cộng</span>
+            <strong>{{ summary()?.totalAmount | vnd }}</strong>
+          </div>
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="!selected().length || busy()"
+            (click)="checkout()"
+          >
+            Thanh toán ({{ selected().length }})
+          </button>
+        </div>
+      } @else {
+        <div class="card empty">
+          <h2>Giỏ hàng của bạn đang trống</h2>
+          <p>Khám phá các sản phẩm nội thất và thêm vào giỏ để đặt hàng.</p>
+          <a class="btn btn--primary" routerLink="/">Tiếp tục mua sắm</a>
+        </div>
+      }
+    } @else if (store.status() === 'error') {
+      <div class="card empty">
+        <h2>Không tải được giỏ hàng</h2>
+        <p>Vui lòng kiểm tra kết nối và thử lại.</p>
+        <button type="button" class="btn btn--outline" (click)="store.load()">Thử lại</button>
+      </div>
+    } @else {
+      <div class="card list" aria-busy="true">
+        @for (n of [1, 2, 3]; track n) {
+          <div class="skeleton"></div>
+        }
+      </div>
+    }
+  </div>
+</section>

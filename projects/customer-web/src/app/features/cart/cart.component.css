@@ -1,0 +1,194 @@
+:host {
+  display: block;
+  min-height: 100svh;
+  background: var(--color-surface);
+}
+
+.page {
+  padding-block: 40px 96px;
+}
+
+.title {
+  margin-bottom: 24px;
+}
+.title__count {
+  color: var(--color-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.card {
+  padding: 8px 24px 4px;
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+/* Lưới 12 cột: danh sách 8 cột, tóm tắt 4 cột. */
+.layout {
+  display: grid;
+  grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
+  gap: var(--grid-gutter);
+  align-items: start;
+}
+.list {
+  grid-column: span 8;
+}
+.summary {
+  grid-column: span 4;
+  position: sticky;
+  top: 112px;
+  padding: 24px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+.toolbar__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--font-size-h5);
+  cursor: pointer;
+}
+.toolbar__all input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+.toolbar__remove {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--font-size-h5);
+  color: var(--color-muted);
+}
+.toolbar__remove:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+.toolbar__remove:disabled {
+  cursor: not-allowed;
+  color: var(--color-gray);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+.rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: var(--font-size-h5);
+}
+.rows dt {
+  color: var(--color-muted);
+}
+.rows dd {
+  margin: 0;
+}
+.discount {
+  color: var(--color-accent);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-gray-light);
+}
+.total strong {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.hint--deposit {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.checkout {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+}
+.empty p {
+  color: var(--color-muted);
+}
+.empty .btn {
+  margin-top: 12px;
+}
+
+.skeleton {
+  height: 104px;
+  margin: 20px 0;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.bottom-bar {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .list,
+  .summary {
+    grid-column: 1 / -1;
+  }
+  .summary {
+    position: static;
+  }
+}
+
+/* Điện thoại: khối tóm tắt vẫn ở cuối trang, thêm thanh dính đáy để luôn thấy tổng tiền. */
+@media (max-width: 640px) {
+  .page {
+    padding-block: 24px 120px;
+  }
+  .card {
+    padding-inline: 16px;
+  }
+  .summary .checkout {
+    display: none;
+  }
+  .bottom-bar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px var(--page-gutter) calc(12px + env(safe-area-inset-bottom));
+    background: var(--color-white);
+    box-shadow: 0 -4px 16px color-mix(in srgb, var(--color-black) 8%, transparent);
+  }
+  .bottom-bar__label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-muted);
+  }
+  .bottom-bar strong {
+    color: var(--color-primary);
+  }
+}

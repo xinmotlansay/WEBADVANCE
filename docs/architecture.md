@@ -73,7 +73,7 @@ Toàn bộ nằm trong **một Angular workspace, một `package.json`**. Expres
 | Tìm bằng AI | Gemini API | Xem mục 5.7 |
 | Cache, hàng đợi | Redis + BullMQ | Xem mục 5.8 |
 | Realtime | Socket.IO | Chat CSKH, cập nhật thanh toán và trạng thái đơn |
-| Email | Resend | OTP email, liên kết đặt mật khẩu Admin, tóm tắt tồn kho |
+| Email | Resend | OTP email, liên kết đặt mật khẩu Admin, tóm tắt tồn kho, hóa đơn điện tử (khi khách chọn) |
 | OTP số điện thoại | Mô phỏng | Mã OTP ghi ra log backend ở môi trường dev |
 | Đăng nhập Google | Google Identity Services | Client gửi `idToken`, backend xác minh |
 | Thanh toán QR | Mô phỏng webhook ngân hàng | Xem mục 5.2 |
@@ -265,7 +265,8 @@ React Three Fiber là thư viện của React nên **không dùng được trự
 ### 5.10. Hóa đơn điện tử (PDF)
 
 - Khi đơn chuyển sang `DELIVERED`, hệ thống đưa một job vào BullMQ để tạo hóa đơn, đúng quy định FR (chỉ phát hành sau khi giao thành công, không xuất thủ công).
-- Job render mẫu HTML bằng **Puppeteer** thành PDF, lưu ở `uploads/invoices/`, ghi `invoices.fileUrl` và `invoiceNumber`.
+- Job render mẫu HTML bằng **Puppeteer** thành PDF, lưu ở `uploads/invoices/`, ghi `invoices.fileUrl` và `invoiceNumber`. Thông tin người mua lấy từ `orders.invoiceInfo` (FR-45).
+- Nếu khách chọn nhận hóa đơn qua email (`invoiceInfo.sendEmail`), job gửi email kèm PDF qua Resend, ghi `invoices.emailSentAt`. Gửi lỗi thì BullMQ thử lại, hết lượt chỉ ghi log.
 - Puppeteer cần Chromium. Khi deploy lên Render phải dùng Docker image có Chromium. Nếu quá nặng, thay bằng thư viện nhẹ hơn (PDFKit).
 
 ### 5.11. Realtime (Socket.IO)

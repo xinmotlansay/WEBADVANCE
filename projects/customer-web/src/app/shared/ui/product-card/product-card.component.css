@@ -110,10 +110,16 @@
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.02em;
 }
-.buy:hover,
-.cart:hover {
+.buy:hover:not(:disabled),
+.cart:hover:not(:disabled) {
   background: var(--color-black);
   color: var(--color-white);
+}
+.buy:disabled,
+.cart:disabled {
+  cursor: not-allowed;
+  border-color: var(--color-gray-light);
+  color: var(--color-muted);
 }
 
 .buy {
