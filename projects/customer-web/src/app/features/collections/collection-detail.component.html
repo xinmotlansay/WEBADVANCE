@@ -1,0 +1,40 @@
+<section class="feature-page container">
+    <p class="eyebrow">CARAVESO / COLLECTION</p>
+    @let collection = detail();
+    @if (collection === undefined) {
+      <div class="state" role="status">Đang tải bộ sưu tập…</div>
+    } @else if (collection) {
+      <h1>{{ collection.name }}</h1>
+      <p>{{ collection.slogan }}</p>
+      <p>{{ collection.description }}</p>
+      <p class="muted">Chạm hoặc dùng Tab và Enter trên các điểm để khám phá sản phẩm.</p>
+      @for (image of collection.images; track image.id) {
+        <div class="panel">
+          <h2>{{ image.title }}</h2>
+          <app-hotspot-image [image]="image" [(active)]="active" />
+          <div class="hotspot-list">
+            @for (h of image.hotspots; track $index) {
+              <button
+                [class.primary]="active() === h.product.id"
+                (focus)="active.set(h.product.id)"
+                (mouseenter)="active.set(h.product.id)"
+                (click)="active.set(h.product.id)"
+              >
+                {{ $index + 1 }}. {{ h.product.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+      <div class="product-grid">
+        @for (product of collection.products; track product.id) {
+          <app-product-card [product]="product" />
+        }
+      </div>
+    } @else {
+      <div class="state" role="alert">
+        Không tìm thấy bộ sưu tập hoặc kết nối gián đoạn.
+        <button (click)="retry.next(0)">Thử lại</button>
+      </div>
+    }
+  </section>

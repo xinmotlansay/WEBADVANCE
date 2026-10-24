@@ -4,9 +4,9 @@ import { Observable, map } from 'rxjs';
 import type { ApiPageResponse, ApiResponse, PageMeta } from '../models/api-response.model';
 import type { Banner } from '../models/banner.model';
 import type { Category, CategoryType } from '../models/category.model';
-import type { CollectionSummary } from '../models/collection.model';
+import type { CollectionSummary, CollectionDetail } from '../models/collection.model';
 import type { InspirationDetail, InspirationSummary } from '../models/inspiration.model';
-import type { ProductListItem, ProductListQuery } from '../models/product.model';
+import type { ProductListItem, ProductListQuery, ProductDetail } from '../models/product.model';
 import type { FlashSale } from '../models/promotion.model';
 import type { PublicConfig } from '../models/public-config.model';
 import type { Showroom, ShowroomRegion } from '../models/showroom.model';
@@ -15,6 +15,16 @@ const API_BASE = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
 export class CatalogApiService {
+  getCollection(slug: string) {
+    return this.http
+      .get<ApiResponse<CollectionDetail>>(`${API_BASE}/collections/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
+  }
+  getProduct(slug: string) {
+    return this.http
+      .get<ApiResponse<ProductDetail>>(`${API_BASE}/products/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
+  }
   private readonly http = inject(HttpClient);
 
   getBanners(): Observable<Banner[]> {
@@ -32,6 +42,19 @@ export class CatalogApiService {
     query: ProductListQuery = {},
   ): Observable<{ items: ProductListItem[]; meta: PageMeta }> {
     let params = new HttpParams();
+    if (query.q) params = params.set('q', query.q);
+    if (query.color?.length) params = params.set('color', query.color.join(','));
+    if (query.material?.length) params = params.set('material', query.material.join(','));
+    for (const key of [
+      'minLength',
+      'maxLength',
+      'minWidth',
+      'maxWidth',
+      'minHeight',
+      'maxHeight',
+    ] as const) {
+      if (query[key] !== undefined) params = params.set(key, query[key]);
+    }
     if (query.categoryIds?.length) params = params.set('categoryIds', query.categoryIds.join(','));
     if (query.badge) params = params.set('badge', query.badge);
     if (query.hasPromotion) params = params.set('hasPromotion', true);

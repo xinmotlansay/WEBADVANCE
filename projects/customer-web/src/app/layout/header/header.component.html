@@ -1,10 +1,13 @@
 <div class="topbar">
   <div class="container topbar__inner">
+    <a class="topbar__support" routerLink="/support">Đổi trả &amp; Bảo hành</a>
     <p class="topbar__promo">
       Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso
     </p>
     <!-- TODO(FR-02): hiển thị tên khách khi có đăng nhập -->
-    <a class="topbar__account" routerLink="/login">Đăng nhập</a>
+    <a class="topbar__account" [routerLink]="auth.user() ? '/account' : '/login'">{{
+      auth.user()?.fullName || 'Đăng nhập'
+    }}</a>
   </div>
 </div>
 
@@ -58,6 +61,7 @@
       </div>
 
       <a class="nav__link" routerLink="/inspirations" (click)="closeMenu()">Nguồn cảm hứng</a>
+      <a class="nav__link nav__link--support" routerLink="/support" (click)="closeMenu()">Đổi trả &amp; Bảo hành</a>
       <a class="nav__link nav__link--sale" routerLink="/promotions" (click)="closeMenu()">
         Khuyến mãi
       </a>
@@ -71,18 +75,34 @@
         #searchForm
         class="search"
         role="search"
-        (submit)="$event.preventDefault()"
+        (submit)="$event.preventDefault(); submitSearch()"
         (focusout)="onSearchFocusOut($event, searchForm)"
         (keydown.escape)="closeSearch()"
       >
         <app-icon name="lucide:search" [size]="20" />
         <input
           #searchInput
+          [formControl]="searchControl"
+          maxlength="120"
           type="search"
           placeholder="Nhập sản phẩm, chất liệu, phong cách,..."
           aria-label="Tìm kiếm"
           (focus)="search.openSearch()"
         />
+        @if (search.open()) {
+          <div class="search__suggestions" aria-label="Gợi ý tìm kiếm">
+            @if (!searchControl.value && searchData.history().length) {
+              <p>
+                Tìm kiếm gần đây
+                <button type="button" (click)="searchData.clear()">Xóa lịch sử</button>
+              </p>
+            }
+            @for (item of searchControl.value ? suggestions() : searchData.history(); track item) {
+              <button type="button" (click)="submitSearch(item)">{{ item }}</button>
+            }
+            <a routerLink="/search/image" (click)="closeSearch()">Tìm sản phẩm bằng hình ảnh</a>
+          </div>
+        }
         @if (search.open()) {
           <button
             type="button"
@@ -93,7 +113,12 @@
             <app-icon name="lucide:x" [size]="20" />
           </button>
         } @else {
-          <button type="button" class="search__action" aria-label="Tìm bằng hình ảnh">
+          <button
+            type="button"
+            class="search__action"
+            aria-label="Tìm bằng hình ảnh"
+            routerLink="/search/image"
+          >
             <app-icon name="lucide:camera" [size]="20" />
           </button>
         }

@@ -1,0 +1,47 @@
+<div class="scene" (keydown.escape)="active.set(null)">
+  <img [src]="image().url" [alt]="image().title || 'Không gian nội thất'" />
+  @for (hotspot of image().hotspots; track $index; let i = $index) {
+    <button
+      #point
+      type="button"
+      class="point"
+      [style.left.%]="hotspot.x * 100"
+      [style.top.%]="hotspot.y * 100"
+      [class.selected]="active() === hotspot.product.id"
+      [attr.aria-label]="'Xem ' + hotspot.product.name"
+      [attr.aria-expanded]="active() === hotspot.product.id"
+      [attr.aria-controls]="'hotspot-' + image().id + '-' + i"
+      (mouseenter)="active.set(hotspot.product.id)"
+      (focus)="active.set(hotspot.product.id)"
+      (keydown.enter)="$event.preventDefault(); active.set(hotspot.product.id)"
+      (click)="active.set(hotspot.product.id)"
+      (keydown.escape)="$event.stopPropagation(); active.set(null)"
+    >
+      {{ i + 1 }}
+    </button>
+    @if (active() === hotspot.product.id) {
+      <div
+        class="popover"
+        role="region"
+        [attr.aria-label]="hotspot.product.name"
+        (keydown.escape)="
+          $event.stopPropagation(); active.set(null); point.focus(); active.set(null)
+        "
+        [id]="'hotspot-' + image().id + '-' + i"
+        [style.left.%]="hotspot.x * 60"
+        [style.top.%]="hotspot.y > 0.5 ? 10 : 55"
+      >
+        <button
+          type="button"
+          aria-label="Đóng thông tin sản phẩm"
+          (click)="active.set(null); point.focus(); active.set(null)"
+        >
+          ×</button
+        ><img [src]="hotspot.product.thumbnail" [alt]="hotspot.product.name" loading="lazy" />
+        <p>{{ hotspot.product.name }}</p>
+        <p>{{ hotspot.product.priceFrom | vnd }}</p>
+        <a [routerLink]="['/products', hotspot.product.slug]">Xem chi tiết →</a>
+      </div>
+    }
+  }
+</div>

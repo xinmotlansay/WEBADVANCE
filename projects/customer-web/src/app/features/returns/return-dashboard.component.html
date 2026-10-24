@@ -1,0 +1,41 @@
+<section class="feature-page container">
+  <p class="eyebrow">CARAVESO / HẬU MÃI</p>
+  <h1>Đổi trả của tôi</h1>
+  <nav class="toolbar">
+    <a class="button primary" routerLink="new">Tạo yêu cầu đổi trả</a
+    ><a routerLink="/policies/returns">Chính sách đổi trả</a
+    ><a routerLink="/account/warranty">Bảo hành</a>
+  </nav>
+  @let requests = list();
+  @if (requests === undefined) {
+    <div class="state" role="status">Đang tải yêu cầu…</div>
+  } @else if (requests === null) {
+    <div class="state" role="alert">
+      Không tải được yêu cầu. <button (click)="retry.next(0)">Thử lại</button>
+    </div>
+  } @else {
+    @for (request of requests.data; track request.id) {
+      <a class="panel request-link" [routerLink]="[request.id]"
+        ><h2>{{ request.productName }}</h2>
+        <p>
+          {{ request.type === 'EXCHANGE' ? 'Đổi hàng' : 'Trả hàng' }} · {{ request.quantity }} sản
+          phẩm · {{ labels[request.status] || request.status }}
+        </p>
+        <p>{{ request.requestedAt | date: 'dd/MM/yyyy' : '+0700' }}</p></a
+      >
+    } @empty {
+      <div class="state">Bạn chưa có yêu cầu đổi trả.</div>
+    }
+    <nav class="pagination" aria-label="Phân trang yêu cầu">
+      <button [disabled]="requests.meta.page <= 1" (click)="page(requests.meta.page - 1)">
+        Trang trước</button
+      ><span>{{ requests.meta.page }} / {{ requests.meta.totalPages || 1 }}</span
+      ><button
+        [disabled]="requests.meta.page >= requests.meta.totalPages"
+        (click)="page(requests.meta.page + 1)"
+      >
+        Trang sau
+      </button>
+    </nav>
+  }
+</section>

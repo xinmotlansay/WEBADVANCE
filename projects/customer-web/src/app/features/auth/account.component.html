@@ -1,0 +1,11 @@
+<section class="feature-page container">
+    <p class="eyebrow">CARAVESO / TÀI KHOẢN</p>
+    <h1>Xin chào, {{ auth.user()?.fullName }}</h1>
+    <nav class="toolbar" aria-label="Tài khoản">
+      <a class="button" routerLink="/support">Đổi trả &amp; Bảo hành</a
+      ><button (click)="logout()" [disabled]="loading()">Đăng xuất</button>
+    </nav>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </section>

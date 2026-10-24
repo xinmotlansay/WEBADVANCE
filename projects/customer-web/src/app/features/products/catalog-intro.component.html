@@ -1,0 +1,41 @@
+<header class="catalog-intro">
+  <div class="intro-copy">
+    <span class="section-kicker">NỘI THẤT CHO KHÔNG GIAN SỐNG</span>
+    <h1>{{ keyword() ? 'Kết quả cho “' + keyword() + '”' : 'Tìm món đồ dành cho bạn' }}</h1>
+    <p>Khám phá sản phẩm phù hợp với không gian và phong cách của bạn.</p>
+    <form
+      class="intro-search"
+      role="search"
+      (submit)="$event.preventDefault(); searchRequested.emit(query.value.trim())"
+    >
+      <app-icon name="lucide:search" [size]="20" />
+      <input
+        #query
+        type="search"
+        [value]="keyword()"
+        maxlength="120"
+        placeholder="Tìm sofa, giường, bàn…"
+        aria-label="Tìm kiếm sản phẩm"
+      />
+      <button type="submit">Tìm kiếm <span aria-hidden="true">→</span></button>
+    </form>
+  </div>
+  <aside class="intro-note" aria-label="Khám phá theo không gian">
+    <span class="section-kicker">BẮT ĐẦU TỪ KHÔNG GIAN</span>
+    <h2>Mỗi căn phòng, một cảm hứng.</h2>
+    @if (rooms().length) {
+      <div class="room-links">
+        @for (room of rooms(); track room.id) {
+          <button type="button" (click)="roomSelected.emit(room.id)">
+            {{ room.name }} <span aria-hidden="true">↗</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p>Dùng danh mục và khoảng giá bên dưới để thu hẹp lựa chọn.</p>
+    }
+    <a routerLink="/support" class="support-link"
+      >Đổi trả &amp; Bảo hành <span aria-hidden="true">→</span></a
+    >
+  </aside>
+</header>

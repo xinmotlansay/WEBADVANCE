@@ -10,6 +10,7 @@ import {
 import { ProductModel, type ProductDoc } from './product.model.js';
 import { VariantModel, type VariantDoc } from './variant.model.js';
 import type { ProductListQuery } from './product.schema.js';
+import { matchesSearch } from './search.service.js';
 
 export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
 export type Badge = 'NEW' | 'BEST_SELLER';
@@ -33,6 +34,8 @@ export interface ProductListItem {
 /** Số ngày nhãn Mới (system_configs `labels.newDays`, mặc định 30). */
 const NEW_BADGE_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_PRODUCT_THUMBNAIL =
+  'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80';
 
 function variantStockStatus(variant: VariantDoc): StockStatus {
   if (variant.stockQuantity <= 0) return 'OUT_OF_STOCK';
@@ -64,7 +67,7 @@ function pickThumbnail(product: ProductDoc): string {
   const images = product.media
     .filter((m) => m.type === 'IMAGE')
     .sort((a, b) => a.displayOrder - b.displayOrder);
-  return (images.find((m) => !m.variantId) ?? images[0])?.url ?? '';
+  return (images.find((m) => !m.variantId) ?? images[0])?.url ?? DEFAULT_PRODUCT_THUMBNAIL;
 }
 
 function toListItem(
@@ -153,11 +156,21 @@ function matchesList(item: ProductListItem, variants: VariantDoc[], q: ProductLi
   if (q.inStock && item.stockStatus === 'OUT_OF_STOCK') return false;
   if (q.minPrice !== undefined && item.priceFrom < q.minPrice) return false;
   if (q.maxPrice !== undefined && item.priceFrom > q.maxPrice) return false;
-  if (q.color && !variants.some((v) => v.color && q.color?.includes(v.color))) return false;
-  if (q.material && !variants.some((v) => v.material && q.material?.includes(v.material))) {
-    return false;
-  }
-  return true;
+  return variants.some(
+    (v) =>
+      v.status === 'ACTIVE' &&
+      (!q.color || (!!v.color && q.color.includes(v.color))) &&
+      (!q.material || (!!v.material && q.material.includes(v.material))) &&
+      (['Length', 'Width', 'Height'] as const).every((axis) => {
+        const min = q[`min${axis}`],
+          max = q[`max${axis}`];
+        const value = v.dimensions?.[axis.toLowerCase() as 'length' | 'width' | 'height'];
+        return (
+          (min === undefined || (value !== undefined && value >= min)) &&
+          (max === undefined || (value !== undefined && value <= max))
+        );
+      }),
+  );
 }
 
 interface ListEntry {
@@ -170,10 +183,37 @@ export async function listProducts(
   q: ProductListQuery,
 ): Promise<{ items: ProductListItem[]; total: number }> {
   const categoryFilter = await buildCategoryFilter(q.categoryIds ?? []);
-  const products = await ProductModel.find({
+  let products = await ProductModel.find({
     status: 'ACTIVE',
     ...(categoryFilter.length > 0 ? { $and: categoryFilter } : {}),
   }).lean();
+
+  if (q.q) {
+    const variants = await VariantModel.find(
+      { status: 'ACTIVE' },
+      { productId: 1, sku: 1, color: 1, material: 1 },
+    ).lean();
+    const texts = new Map(
+      products.map((product) => [
+        product._id.toString(),
+        [
+          product.name,
+          product.productCode,
+          product.searchKeywords ?? '',
+          product.shortDescription ?? '',
+          ...variants
+            .filter((v) => v.productId.equals(product._id))
+            .flatMap((v) => [v.sku, v.color ?? '', v.material ?? '']),
+        ].join(' '),
+      ]),
+    );
+    const exact = products.filter((product) =>
+      matchesSearch(q.q!, texts.get(product._id.toString())!, false),
+    );
+    products = exact.length
+      ? exact
+      : products.filter((product) => matchesSearch(q.q!, texts.get(product._id.toString())!));
+  }
 
   // Quy mô đồ án (≤ 2.000 sản phẩm): lọc theo giá, nhãn, khuyến mãi và sắp xếp ở bộ nhớ vì giá
   // cuối cùng phụ thuộc khuyến mãi đang chạy.
@@ -200,5 +240,38 @@ export async function listProducts(
   return {
     items: filtered.slice(start, start + q.limit).map((e) => e.item),
     total: filtered.length,
+  };
+}
+
+export async function getProductDetail(slug: string) {
+  const product = await ProductModel.findOne({ slug, status: 'ACTIVE' }).lean();
+  if (!product) return null;
+  const now = new Date();
+  const { variantsByProduct, promotionIndex } = await loadPricingContext([product], now);
+  const variants = (variantsByProduct.get(product._id.toString()) ?? []).filter(
+    (v) => v.status === 'ACTIVE',
+  );
+  const item = toListItem(product, variants, promotionIndex, now);
+  if (!item) return null;
+  const promotion = resolvePromotion(product._id, product.categoryIds, promotionIndex);
+  return {
+    ...item,
+    productCode: product.productCode,
+    description: product.description ?? '',
+    warranty: { months: product.warrantyMonths, terms: product.warrantyTerms ?? '' },
+    media: product.media.map((m) => ({ type: m.type, url: m.url, displayOrder: m.displayOrder })),
+    variants: variants.map((v) => ({
+      id: v._id.toString(),
+      sku: v.sku,
+      color: v.color ?? '',
+      material: v.material ?? '',
+      dimensions: v.dimensions,
+      stockStatus: variantStockStatus(v),
+      price: {
+        original: v.originalPrice,
+        sale: v.salePrice,
+        final: v.salePrice - (promotion ? calcPromotionDiscount(v.salePrice, promotion) : 0),
+      },
+    })),
   };
 }

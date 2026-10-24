@@ -43,6 +43,7 @@ export class FooterComponent {
   ];
 
   protected readonly brandLinks: FooterLink[] = [
+    { label: 'Đổi trả & Bảo hành', path: '/support' },
     { label: 'Về chúng tôi', path: '/about' },
     { label: 'Liên hệ', path: '/contact' },
     { label: 'Hệ thống showroom', path: '/showrooms' },

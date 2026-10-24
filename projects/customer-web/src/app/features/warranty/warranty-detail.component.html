@@ -1,0 +1,45 @@
+<section class="feature-page container">
+    <p class="eyebrow">CARAVESO / BẢO HÀNH</p>
+    <h1>Chi tiết yêu cầu</h1>
+    <a routerLink="/account/warranty">← Danh sách yêu cầu</a>
+    @let request = detail();
+    @if (request === undefined) {
+      <div class="state" role="status">Đang tải…</div>
+    } @else if (request) {
+      <article class="panel">
+        <h2>{{ request.productName }}</h2>
+        <p>{{ labels[request.status] || request.status }}</p>
+        <p>{{ request.defectDescription }}</p>
+        <p>
+          Liên hệ: {{ request.contact.name }} · {{ request.contact.phone }} ·
+          {{ request.contact.address }}
+        </p>
+        @if (request.rejectReason) {
+          <p class="error">Lý do từ chối: {{ request.rejectReason }}</p>
+        }
+        @if (request.inspectionResult) {
+          <p>Kết quả kiểm tra: {{ request.inspectionResult }}</p>
+        }
+        @if (request.resolution) {
+          <p>Kết quả xử lý: {{ request.resolution }}</p>
+        }
+        <div class="evidence-list">
+          @for (url of request.evidence; track url) {
+            @if (isVideo(url)) {
+              <video [src]="url" controls preload="metadata"></video>
+            } @else {
+              <a [href]="url" target="_blank" rel="noopener"
+                ><img [src]="url" alt="Minh chứng bảo hành" loading="lazy"
+              /></a>
+            }
+          }
+        </div>
+        <app-request-timeline [entries]="request.timeline" />
+      </article>
+    } @else {
+      <div class="state" role="alert">
+        Không tìm thấy yêu cầu hoặc kết nối gián đoạn.
+        <button (click)="retry.next(0)">Thử lại</button>
+      </div>
+    }
+  </section>

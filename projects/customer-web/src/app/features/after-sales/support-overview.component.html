@@ -1,0 +1,123 @@
+<div class="support-overview">
+  <section class="warranty-products" aria-label="Sản phẩm bảo hành">
+    <div class="section-heading">
+      <h2>Sản phẩm bảo hành</h2>
+      <button type="button" class="text-link" (click)="viewRequests.emit()">
+        Yêu cầu của tôi →
+      </button>
+    </div>
+    @if (loggedIn()) {
+      <form
+        class="product-search"
+        (submit)="$event.preventDefault(); searchCards(order.value, product.value)"
+      >
+        <label
+          >Mã đơn hàng<input #order type="search" maxlength="100" placeholder="Nhập mã đơn hàng"
+        /></label>
+        <span class="search-or">Hoặc</span>
+        <label
+          >Tên sản phẩm<input
+            #product
+            type="search"
+            maxlength="200"
+            placeholder="Nhập tên sản phẩm"
+        /></label>
+        <button type="submit">Tìm kiếm</button>
+      </form>
+      <div class="products-heading">
+        <span>{{
+          search().order || search().product ? 'Kết quả tìm kiếm' : 'Sản phẩm đã mua gần đây'
+        }}</span>
+        @if (search().order || search().product) {
+          <button
+            type="button"
+            class="text-link"
+            (click)="order.value = ''; product.value = ''; searchCards('', '')"
+          >
+            Xóa tìm kiếm
+          </button>
+        }
+      </div>
+    }
+    @if (!loggedIn()) {
+      <div class="product-state signin-prompt">
+        <h3>Tra cứu sản phẩm và phiếu bảo hành</h3>
+        <p>
+          Đăng nhập để tìm theo mã đơn hàng hoặc tên sản phẩm, gửi yêu cầu và theo dõi tiến trình xử
+          lý.
+        </p>
+        <a class="button primary" routerLink="/login" [queryParams]="{ returnUrl: '/support' }"
+          >Đăng nhập</a
+        >
+      </div>
+    } @else if (loading()) {
+      <p class="product-state" role="status">Đang tải sản phẩm của bạn…</p>
+    } @else if (cards() === null || cards() === undefined) {
+      <div class="product-state" role="alert">
+        Chưa tải được sản phẩm bảo hành.
+        <button type="button" class="text-link" (click)="reload.emit()">Thử lại</button>
+      </div>
+    } @else {
+      <div class="warranty-card-list">
+        @for (card of filteredCards(); track card.id) {
+          <article class="warranty-product">
+            <div>
+              <h3>{{ card.productName }}</h3>
+              <p>Đơn hàng {{ card.orderCode }} · Số lượng {{ card.quantity }}</p>
+              <small>Hạn bảo hành: {{ card.expiresAt | date: 'dd/MM/yyyy' : '+0700' }}</small>
+            </div>
+            <div class="product-action">
+              <span [class.expired]="card.status !== 'VALID'" class="card-status">{{
+                card.status === 'VALID'
+                  ? 'Còn ' + card.remainingDays + ' ngày bảo hành'
+                  : card.status === 'EXPIRED'
+                    ? 'Đã hết hạn bảo hành'
+                    : 'Phiếu không còn hiệu lực'
+              }}</span
+              ><button
+                type="button"
+                [disabled]="card.status !== 'VALID'"
+                (click)="cardSelected.emit(card.id)"
+              >
+                Yêu cầu bảo hành
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="product-state">
+            <p>
+              {{
+                search().order || search().product
+                  ? 'Không tìm thấy sản phẩm phù hợp. Hãy kiểm tra mã đơn hoặc thử tên sản phẩm khác.'
+                  : 'Bạn chưa có sản phẩm được cấp phiếu bảo hành.'
+              }}
+            </p>
+          </div>
+        }
+      </div>
+    }
+  </section>
+  @if (loggedIn() && recentRequests().length) {
+    <section class="recent-section">
+      <div class="section-heading">
+        <h2>Yêu cầu gần đây</h2>
+        <button type="button" class="text-link" (click)="viewRequests.emit()">Xem tất cả →</button>
+      </div>
+      @for (request of recentRequests(); track request.kind + request.id) {
+        <button
+          type="button"
+          class="recent-row"
+          (click)="requestSelected.emit({ kind: request.kind, id: request.id })"
+        >
+          <span
+            ><strong>{{ request.productName }}</strong
+            ><small
+              >{{ request.kind === 'warranty' ? 'Bảo hành' : 'Đổi trả' }} ·
+              {{ request.requestedAt | date: 'dd/MM/yyyy' : '+0700' }}</small
+            ></span
+          ><span class="card-status">{{ labels[request.status] || request.status }}</span>
+        </button>
+      }
+    </section>
+  }
+</div>

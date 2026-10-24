@@ -22,6 +22,12 @@ app.use('/uploads', express.static(path.resolve('uploads')));
 app.use('/admin', express.static(path.resolve('dist/admin-web/browser')));
 app.use(express.static(path.resolve('dist/customer-web/browser')));
 
+// Angular owns client routes; direct links and reloads must reach its router.
+app.get(/^\/(?!api(?:\/|$)|uploads(?:\/|$)|admin(?:\/|$)).*/, (req, res, next) => {
+  if (path.extname(req.path)) { next(); return; }
+  res.sendFile(path.resolve('dist/customer-web/browser/index.html'));
+});
+
 app.use(errorHandler);
 
 async function start(): Promise<void> {

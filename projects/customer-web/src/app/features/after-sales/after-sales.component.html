@@ -1,0 +1,337 @@
+<section class="feature-page container support-page">
+  <p class="eyebrow"><a routerLink="/">Trang chủ</a><span>/</span>Đổi trả &amp; Bảo hành</p>
+  @if (view() === 'overview') {
+    <app-support-intro
+      [config]="config()"
+      [view]="view()"
+      [totalRequests]="totalRequests()"
+      (viewSelected)="selectView($event)"
+    />
+  } @else {
+    <header class="compact-heading">
+      <h1>Đổi trả &amp; Bảo hành</h1>
+      <p>Gửi yêu cầu và theo dõi hỗ trợ cho sản phẩm của bạn.</p>
+    </header>
+  }
+  @if (view() !== 'overview') {
+    <nav #contentNav class="support-tabs" aria-label="Nội dung hỗ trợ">
+      <button
+        type="button"
+        [class.active]="view() === 'overview'"
+        [attr.aria-current]="view() === 'overview' ? 'page' : null"
+        (click)="selectView('overview')"
+      >
+        Hướng dẫn chung
+      </button>
+      <button
+        type="button"
+        [class.active]="view() === 'warranty'"
+        [attr.aria-current]="view() === 'warranty' ? 'page' : null"
+        (click)="selectView('warranty')"
+      >
+        Bảo hành
+      </button>
+      <button
+        type="button"
+        [class.active]="view() === 'return'"
+        [attr.aria-current]="view() === 'return' ? 'page' : null"
+        (click)="selectView('return')"
+      >
+        Đổi trả
+      </button>
+      <button
+        type="button"
+        [class.active]="view() === 'requests'"
+        [attr.aria-current]="view() === 'requests' ? 'page' : null"
+        (click)="selectView('requests')"
+      >
+        Yêu cầu của tôi
+      </button>
+    </nav>
+  }
+
+  @if (view() === 'overview') {
+    <app-support-overview
+      [config]="config()"
+      [loggedIn]="!!auth.user()"
+      [loading]="summary() === undefined"
+      [failed]="!summary()?.warranty || !summary()?.returns"
+      [recentRequests]="recentRequests()"
+      [cards]="summary()?.cards"
+      (cardSelected)="openWarrantyCard($event)"
+      (viewRequests)="selectView('requests')"
+      (requestSelected)="openRequest($event.kind, $event.id)"
+      (reload)="refresh.next(0)"
+    />
+  } @else {
+    <div class="workspace-layout">
+      <section class="content-card workspace">
+        <div class="card-heading">
+          <span class="section-kicker">{{
+            view() === 'requests' ? 'THEO DÕI HỖ TRỢ' : 'GỬI YÊU CẦU'
+          }}</span>
+          <h2>
+            {{
+              view() === 'warranty'
+                ? 'Bảo hành sản phẩm'
+                : view() === 'return'
+                  ? 'Đổi trả sản phẩm'
+                  : 'Yêu cầu của tôi'
+            }}
+          </h2>
+          <p>
+            {{
+              view() === 'warranty'
+                ? 'Chọn phiếu bảo hành và cho chúng tôi biết tình trạng sản phẩm.'
+                : view() === 'return'
+                  ? 'Chọn đơn đã nhận để kiểm tra điều kiện đổi trả.'
+                  : 'Mọi cập nhật cho các yêu cầu của bạn, tại một nơi.'
+            }}
+          </p>
+        </div>
+        @if (!auth.user()) {
+          <div class="signin-note">
+            <span class="signin-icon"><app-icon name="lucide:user" [size]="28" /></span>
+            <h3>Đăng nhập để tiếp tục</h3>
+            <p>Kết nối với đơn hàng và phiếu bảo hành của bạn để gửi hoặc theo dõi yêu cầu.</p>
+            <a class="button primary" routerLink="/login" [queryParams]="{ returnUrl: router.url }"
+              >Đăng nhập tài khoản</a
+            ><button type="button" class="text-link" (click)="selectView('overview')">
+              Xem hướng dẫn trước
+            </button>
+          </div>
+        } @else if (view() === 'warranty') {
+          @defer {
+            <app-warranty-form
+              [embedded]="true"
+              (requestCreated)="openRequest('warranty', $event)"
+            />
+          } @placeholder {
+            <p class="inline-state" role="status">Đang mở form bảo hành…</p>
+          }
+        } @else if (view() === 'return') {
+          @defer {
+            <app-return-form [embedded]="true" (requestCreated)="openRequest('return', $event)" />
+          } @placeholder {
+            <p class="inline-state" role="status">Đang mở form đổi trả…</p>
+          }
+        } @else if (requestId()) {
+          <button type="button" class="text-link back-link" (click)="closeDetail()">
+            ← Danh sách yêu cầu
+          </button>
+          @let request = detail();
+          @if (request === undefined) {
+            <p class="inline-state" role="status">Đang tải chi tiết…</p>
+          } @else if (!request) {
+            <div class="inline-state" role="alert">
+              Không tìm thấy yêu cầu hoặc kết nối bị gián đoạn.
+              <button type="button" class="text-link" (click)="refresh.next(0)">Thử lại</button>
+            </div>
+          } @else {
+            <article class="request-detail">
+              <div class="detail-heading">
+                <div>
+                  <span class="section-kicker">{{
+                    kind() === 'warranty' ? 'BẢO HÀNH' : 'ĐỔI TRẢ'
+                  }}</span>
+                  <h3>{{ request.productName }}</h3>
+                </div>
+                <span [class]="'status ' + statusClass(request.status)">{{
+                  labels[request.status] || request.status
+                }}</span>
+              </div>
+              <p>{{ request.defectDescription || request.description }}</p>
+              <dl>
+                <div>
+                  <dt>Ngày gửi</dt>
+                  <dd>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd>
+                </div>
+                <div>
+                  <dt>Liên hệ</dt>
+                  <dd>{{ request.contact.name }} · {{ request.contact.phone }}</dd>
+                </div>
+                <div>
+                  <dt>Địa chỉ</dt>
+                  <dd>{{ request.contact.address }}</dd>
+                </div>
+                @if (request.refundAccount) {
+                  <div>
+                    <dt>Tài khoản hoàn tiền</dt>
+                    <dd>
+                      {{ request.refundAccount.bankName }} ·
+                      {{ request.refundAccount.accountNumber }}
+                    </dd>
+                  </div>
+                }
+                @if (request.refundAmount !== undefined) {
+                  <div>
+                    <dt>Số tiền hoàn</dt>
+                    <dd>{{ request.refundAmount | vnd }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (request.rejectReason) {
+                <p class="error">Lý do từ chối: {{ request.rejectReason }}</p>
+              }
+              @if (request.inspectionResult) {
+                <p>Kết quả kiểm tra: {{ request.inspectionResult }}</p>
+              }
+              <div class="evidence-list">
+                @for (url of request.evidence; track url) {
+                  @if (isVideo(url)) {
+                    <video [src]="url" controls preload="metadata"></video>
+                  } @else {
+                    <a [href]="url" target="_blank" rel="noopener"
+                      ><img [src]="url" alt="Minh chứng đã gửi" loading="lazy"
+                    /></a>
+                  }
+                }
+              </div>
+              <h3 class="timeline-title">Tiến trình xử lý</h3>
+              <app-request-timeline [entries]="request.timeline" />
+              @if (kind() === 'return' && request.canCancel) {
+                @if (confirming()) {
+                  <div class="cancel-box">
+                    <p>Bạn muốn hủy yêu cầu đang chờ xử lý này?</p>
+                    <button
+                      type="button"
+                      [disabled]="cancelling()"
+                      (click)="cancelRequest(request.id)"
+                    >
+                      Xác nhận hủy</button
+                    ><button
+                      type="button"
+                      [disabled]="cancelling()"
+                      (click)="confirming.set(false)"
+                    >
+                      Giữ yêu cầu
+                    </button>
+                  </div>
+                } @else {
+                  <button type="button" (click)="confirming.set(true)">Hủy yêu cầu</button>
+                }
+              }
+              @if (actionError()) {
+                <p role="alert" class="error">{{ actionError() }}</p>
+              }
+            </article>
+          }
+        } @else {
+          <div class="request-controls">
+            <div class="kind-switch" aria-label="Loại yêu cầu">
+              <button
+                type="button"
+                [class.selected]="kind() === 'warranty'"
+                [attr.aria-pressed]="kind() === 'warranty'"
+                (click)="selectKind('warranty')"
+              >
+                Bảo hành</button
+              ><button
+                type="button"
+                [class.selected]="kind() === 'return'"
+                [attr.aria-pressed]="kind() === 'return'"
+                (click)="selectKind('return')"
+              >
+                Đổi trả
+              </button>
+            </div>
+            <label class="status-filter"
+              >Trạng thái<select
+                #status
+                [value]="params().get('status') || ''"
+                (change)="filterStatus(status.value)"
+              >
+                <option value="">Tất cả trạng thái</option>
+                @for (option of statusOptions(); track option) {
+                  <option [value]="option">{{ labels[option] }}</option>
+                }
+              </select></label
+            >
+          </div>
+          @let requests = list();
+          @if (requests === undefined) {
+            <p class="inline-state" role="status">Đang tải yêu cầu…</p>
+          } @else if (!requests) {
+            <div class="inline-state" role="alert">
+              Không tải được danh sách.
+              <button type="button" class="text-link" (click)="refresh.next(0)">Thử lại</button>
+            </div>
+          } @else {
+            @for (request of requests.data; track request.id) {
+              <button type="button" class="request-row" (click)="openRequest(kind(), request.id)">
+                <span class="request-row-main"
+                  ><strong>{{ request.productName }}</strong
+                  ><small
+                    >{{ request.requestedAt | date: 'dd/MM/yyyy' : '+0700' }} ·
+                    {{
+                      kind() === 'warranty'
+                        ? 'Bảo hành'
+                        : request.type === 'EXCHANGE'
+                          ? 'Đổi sản phẩm'
+                          : 'Trả hàng'
+                    }}</small
+                  ></span
+                ><span [class]="'status ' + statusClass(request.status)">{{
+                  labels[request.status] || request.status
+                }}</span
+                ><span class="row-arrow" aria-hidden="true">→</span>
+              </button>
+            } @empty {
+              <div class="inline-state empty-requests">
+                <h3>Chưa có yêu cầu phù hợp</h3>
+                <p>Các yêu cầu đã gửi sẽ được cập nhật tại đây.</p>
+                <button
+                  type="button"
+                  class="text-link"
+                  (click)="selectView(kind() === 'warranty' ? 'warranty' : 'return')"
+                >
+                  Tạo yêu cầu mới →
+                </button>
+              </div>
+            }
+            @if (requests.meta.totalPages > 1) {
+              <nav class="pagination" aria-label="Phân trang yêu cầu">
+                <button [disabled]="requests.meta.page <= 1" (click)="page(requests.meta.page - 1)">
+                  Trang trước</button
+                ><span>{{ requests.meta.page }} / {{ requests.meta.totalPages }}</span
+                ><button
+                  [disabled]="requests.meta.page >= requests.meta.totalPages"
+                  (click)="page(requests.meta.page + 1)"
+                >
+                  Trang sau
+                </button>
+              </nav>
+            }
+          }
+        }
+      </section>
+      <aside class="help-column">
+        <div class="preparation-card">
+          <span class="section-kicker">TRƯỚC KHI BẮT ĐẦU</span>
+          <h2>Chuẩn bị một chút,<br />hỗ trợ nhanh hơn.</h2>
+          <ul>
+            <li>Đơn hàng hoặc phiếu bảo hành.</li>
+            <li>Hình ảnh rõ tình trạng sản phẩm.</li>
+            <li>Video mở hàng nếu sản phẩm lỗi, giao sai hoặc hư hại vận chuyển.</li>
+            <li>Thông tin liên hệ và địa chỉ nhận hàng.</li>
+          </ul>
+          <div class="policy-reminder">
+            <strong>{{
+              view() === 'return' ? 'Lưu ý thời hạn đổi trả' : 'Thông tin luôn được cập nhật'
+            }}</strong>
+            <p>
+              {{
+                view() === 'return'
+                  ? 'Gửi yêu cầu trong thời hạn được ghi ở đơn hàng. Hệ thống sẽ kiểm tra điều kiện của từng sản phẩm.'
+                  : 'Bạn có thể quay lại mục Yêu cầu của tôi bất cứ lúc nào để xem tiến trình.'
+              }}
+            </p>
+          </div>
+        </div>
+        <button type="button" class="text-link overview-back" (click)="selectView('overview')">
+          ← Hướng dẫn &amp; chính sách chung
+        </button>
+      </aside>
+    </div>
+  }
+</section>

@@ -1,0 +1,64 @@
+<section class="feature-page container">
+  <p class="eyebrow">CARAVESO / ĐỔI TRẢ</p>
+  <h1>Chi tiết yêu cầu</h1>
+  <a routerLink="/account/returns">← Danh sách yêu cầu</a>
+  @let request = detail();
+  @if (request === undefined) {
+    <div class="state" role="status">Đang tải yêu cầu…</div>
+  } @else if (request) {
+    <article class="panel">
+      <h2>{{ request.productName }}</h2>
+      <p>
+        {{ request.type === 'EXCHANGE' ? 'Đổi hàng' : 'Trả hàng' }} · {{ request.quantity }} sản
+        phẩm · {{ labels[request.status] || request.status }}
+      </p>
+      <p>{{ request.description }}</p>
+      <p>
+        {{ request.contact.name }} · {{ request.contact.phone }} · {{ request.contact.address }}
+      </p>
+      @if (request.rejectReason) {
+        <p class="error">Lý do từ chối: {{ request.rejectReason }}</p>
+      }
+      @if (request.refundAccount) {
+        <p>
+          Tài khoản hoàn tiền: {{ request.refundAccount.bankName }} ·
+          {{ request.refundAccount.accountNumber }}
+        </p>
+      }
+      @if (request.refundAmount !== undefined) {
+        <p>Số tiền hoàn: {{ request.refundAmount | vnd }}</p>
+      }
+      <div class="evidence-list">
+        @for (url of request.evidence; track url) {
+          @if (isVideo(url)) {
+            <video [src]="url" controls preload="metadata"></video>
+          } @else {
+            <a [href]="url" target="_blank" rel="noopener"
+              ><img [src]="url" alt="Minh chứng đổi trả" loading="lazy"
+            /></a>
+          }
+        }
+      </div>
+      <app-request-timeline [entries]="request.timeline" />
+      @if (request.canCancel) {
+        @if (confirming()) {
+          <div class="panel">
+            <p>Bạn muốn hủy yêu cầu đang chờ xử lý này?</p>
+            <button [disabled]="loading()" (click)="cancel(request.id)">Xác nhận hủy</button
+            ><button [disabled]="loading()" (click)="confirming.set(false)">Giữ yêu cầu</button>
+          </div>
+        } @else {
+          <button (click)="confirming.set(true)">Hủy yêu cầu</button>
+        }
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+    </article>
+  } @else {
+    <div class="state" role="alert">
+      Không tìm thấy yêu cầu hoặc kết nối gián đoạn.
+      <button (click)="retry.next(0)">Thử lại</button>
+    </div>
+  }
+</section>

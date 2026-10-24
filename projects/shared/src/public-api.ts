@@ -3,6 +3,11 @@
  */
 
 export * from './lib/api/catalog-api.service';
+export * from './lib/api/image-search.service';
+export * from './lib/api/warranty.service';
+export * from './lib/api/return-exchange.service';
+export * from './lib/api/evidence-upload.service';
+export * from './lib/models/after-sales.model';
 export * from './lib/models/api-response.model';
 export * from './lib/models/banner.model';
 export * from './lib/models/category.model';

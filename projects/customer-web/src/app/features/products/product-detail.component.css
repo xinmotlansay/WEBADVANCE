@@ -1,0 +1,13 @@
+.detail-layout {
+  display: grid;
+  gap: var(--grid-gutter);
+}
+.detail-layout img {
+  width: 100%;
+  margin-bottom: var(--space-md);
+}
+@media (min-width: 760px) {
+  .detail-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}

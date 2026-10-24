@@ -1,0 +1,8 @@
+ol {
+      padding-left: var(--space-lg);
+    }
+    li {
+      margin-block: var(--space-lg);
+      padding-left: var(--space-md);
+      border-left: 2px solid var(--color-primary);
+    }

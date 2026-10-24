@@ -1,0 +1,39 @@
+.scene {
+  position: relative;
+}
+.scene > img {
+  width: 100%;
+  height: auto;
+}
+.scene .point {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
+  color: var(--color-primary);
+  background: var(--color-white);
+  border: 2px solid var(--color-primary);
+}
+.point.selected {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+.popover {
+  position: absolute;
+  z-index: 2;
+  width: min(240px, 80%);
+  background: var(--color-white);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-gray);
+  box-shadow: 0 0 var(--space-lg) var(--color-gray);
+}
+.popover img {
+  height: 100px;
+  width: 100%;
+  object-fit: cover;
+}
+.popover button {
+  float: right;
+}
