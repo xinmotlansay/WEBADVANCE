@@ -1,0 +1,71 @@
+<section class="account-screen profile-screen">
+  <div class="profile-header">
+    <h1>Thông tin cá nhân</h1>
+    <button class="collapse-control" type="button" aria-label="Chọn tài khoản demo" (click)="toggleAccountPicker()">⌄</button>
+  </div>
+  @if (!profileLoaded() || accountPickerOpen) {
+    <section class="database-preview">
+      <p>Nhập MongoDB _id của tài khoản để tải hồ sơ thật ở chế độ demo localhost chỉ đọc.</p>
+      <form class="preview-id-form" (ngSubmit)="loadProfile()">
+        <label for="preview-user-id">MongoDB _id</label>
+        <input id="preview-user-id" [(ngModel)]="customerId" name="customerId" placeholder="24 ký tự hexadecimal" autocomplete="off" />
+        <button class="outline-button" type="submit" [disabled]="loadingProfile()">{{ loadingProfile() ? 'Đang tải...' : 'Tải hồ sơ' }}</button>
+      </form>
+      @if (loadError()) { <p class="api-error" role="alert">{{ loadError() }}</p> }
+    </section>
+  }
+
+  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  @if (profileLoaded()) {
+    <div class="profile-edit">
+      <div class="avatar-field">
+        <div class="avatar-preview">
+          @if (avatarPreview) { <img [src]="avatarPreview" alt="Ảnh đại diện" /> } @else { <span>{{ profile.name.slice(0, 1) || '?' }}</span> }
+        </div>
+      </div>
+      <form class="profile-form" (ngSubmit)="saveProfile()">
+        <label class="profile-name-field">Họ và tên<input [(ngModel)]="profile.name" name="name" readonly /></label>
+        <div class="birthday-row">
+          <label>Ngày sinh <span class="info-mark" title="Ngày sinh được tải từ hồ sơ MongoDB.">i</span>
+            <input type="date" [(ngModel)]="profile.birthday" name="birthday" disabled />
+          </label>
+          <label>Giới tính
+            <select [(ngModel)]="profile.gender" name="gender" disabled><option value="">Chưa cập nhật</option><option>Nam</option><option>Nữ</option><option>Khác</option></select>
+          </label>
+        </div>
+        <label>Số điện thoại
+          <div class="phone-control"><span>+84</span><input [(ngModel)]="profile.phone" name="phone" readonly /><button type="button" (click)="notice = 'API hiện tại chưa hỗ trợ đổi số điện thoại.'">Thay đổi</button></div>
+        </label>
+        <button class="primary-button save-profile" type="submit">Lưu thông tin cá nhân</button>
+      </form>
+    </div>
+
+    <section class="profile-setting">
+      <h2>Email và mật khẩu</h2>
+      <p><strong>Email:</strong> <span>{{ profile.email || 'Chưa cập nhật' }}</span><button class="link-button" type="button" (click)="notice = 'API hiện tại chưa hỗ trợ đổi email.'">Thay đổi</button></p>
+      <button class="outline-button" type="button" (click)="passwordFormOpen = !passwordFormOpen">Đổi mật khẩu</button>
+      @if (passwordFormOpen) {
+        <form class="password-form" (ngSubmit)="changePassword()">
+          <label>Mật khẩu hiện tại<input type="password" [(ngModel)]="currentPassword" name="currentPassword" autocomplete="current-password" /></label>
+          <label>Mật khẩu mới<input type="password" [(ngModel)]="newPassword" name="newPassword" autocomplete="new-password" /></label>
+          <label>Nhập lại mật khẩu mới<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" /></label>
+          <button class="primary-button" type="submit">Lưu mật khẩu mới</button>
+        </form>
+      }
+    </section>
+
+    <section class="profile-setting delete-setting">
+      <h2>Xóa tài khoản</h2>
+      <p class="delete-explanation">Xóa tài khoản đồng nghĩa với việc xóa vĩnh viễn thông tin cá nhân và lịch sử đặt hàng. Tính năng xóa cần API xác thực nên chưa được bật trong chế độ chỉ đọc.</p>
+      <button class="outline-button" type="button" (click)="deleteConfirmationOpen = !deleteConfirmationOpen">Xóa tài khoản</button>
+      @if (deleteConfirmationOpen) {
+        <div class="delete-confirmation">
+          <p>API hiện tại chưa hỗ trợ yêu cầu xóa tài khoản. Không có dữ liệu nào bị thay đổi.</p>
+          <button class="link-button" type="button" (click)="deleteConfirmationOpen = false">Đóng</button>
+        </div>
+      }
+    </section>
+  } @else if (!loadingProfile() && !profileLoaded()) {
+    <div class="empty-state"><span>♙</span><h2>Chưa tải hồ sơ</h2><p>Nhập MongoDB _id ở trên để xem dữ liệu khách hàng.</p></div>
+  }
+</section>

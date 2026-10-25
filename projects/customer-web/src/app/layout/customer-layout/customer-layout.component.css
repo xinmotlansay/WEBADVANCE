@@ -1,0 +1,17 @@
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.site-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-content {
+  width: 100%;
+  flex: 1;
+}

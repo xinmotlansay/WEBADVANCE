@@ -1,0 +1,42 @@
+:host { display: block; }
+.addresses-screen { max-width: 100%; }
+.address-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.address-toolbar p { margin: 0; color: #737b7e; font-size: 10px; }
+.add-address { min-height: 32px; }
+.address-list { display: grid; gap: 12px; }
+.address-card { padding: 16px; border: 1px solid var(--line); }
+.address-card-heading { display: flex; align-items: center; gap: 10px; }
+.address-card-heading h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.address-card > p { margin: 9px 0; font-size: 10px; }
+.address-separator { margin: 0 8px; color: #c1c5c6; }
+.address-card .address-detail-text { max-width: 500px; color: #70787b; line-height: 1.6; }
+.address-actions { display: flex; justify-content: flex-end; gap: 16px; padding-top: 10px; border-top: 1px solid #eff0f0; }
+.delete-address { color: #a84c45; }
+.address-form, .home-profile-form { margin: 12px 0 17px; padding: 16px; border: 1px solid #dfe3e4; }
+.address-form h2, .home-profile-form h2 { margin: 0 0 14px; font-size: 14px; }
+.address-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.address-fields label { display: grid; gap: 6px; color: #50575a; font-size: 10px; }
+.address-fields input, .address-fields select, .address-fields textarea { width: 100%; min-height: 35px; padding: 8px 9px; border: 1px solid #dfe2e3; border-radius: 2px; background: #fff; font-size: 10px; }
+.address-fields textarea { resize: vertical; }
+.address-fields .address-detail { grid-column: 1 / -1; }
+.default-checkbox { display: flex; align-items: center; gap: 7px; margin-top: 12px; color: #50575a; font-size: 10px; }
+.form-actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+.address-list { display: block; margin-top: 18px; }
+.address-table { width: 100%; border: 1px solid #e4e6e7; }
+.address-table-head, .address-table-row { display: grid; grid-template-columns: 1fr 2fr 1.15fr .8fr; align-items: start; gap: 12px; padding: 11px 13px; font-size: 10px; }
+.address-table-head { align-items: center; border-bottom: 1px solid #e4e6e7; background: #fafafa; }
+.address-table-row { min-height: 82px; align-items: start; border-bottom: 1px solid #eceeee; }
+.address-table-row > span, .address-table-row > button { padding-top: 3px; }
+.address-type { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
+.address-type > strong { font-weight: 600; white-space: nowrap; }
+.address-type small { flex-basis: 100%; color: #4f575a; line-height: 1.5; }
+.address-table .default-badge { padding: 3px 6px; border: 1px solid #b9cad4; background: white; font-size: 8px; }
+.address-empty { grid-column: 1 / -1; padding: 24px; color: var(--muted); text-align: center; }
+.add-address { margin-top: 16px; min-height: 33px; }
+@media (max-width: 620px) {
+  .address-table-head { display: none; }
+  .address-table-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .address-table-row > span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .address-table-row > span:nth-child(3) { grid-column: 1; grid-row: 3; }
+  .address-table-row > button { grid-column: 2; grid-row: 1 / 4; }
+}

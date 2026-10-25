@@ -1,0 +1,52 @@
+<section class="account-screen orders-screen">
+  <div class="screen-heading"><h1>Đơn hàng</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
+  <p class="screen-intro">Dữ liệu được tải ở chế độ chỉ đọc từ MongoDB.</p>
+  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  @if (needsAccountId()) {
+    <p class="empty-state">Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem đơn hàng.</p>
+  } @else if (loading()) {
+    <p role="status">Đang tải đơn hàng từ MongoDB...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+  <nav class="order-filters" aria-label="Lọc đơn hàng">
+    @for (item of filters; track item) { <button type="button" [class.active]="filter === item" (click)="filter = item">{{ item }}</button> }
+  </nav>
+  @for (order of filteredOrders(); track order.id) {
+    <article class="order-card">
+      <div class="order-header">
+        <div><strong>Đơn - {{ order.id }}</strong><span>Đặt ngày: {{ order.date }}</span></div>
+        <strong class="order-status" [class.delivered]="order.delivered"><span aria-hidden="true">{{ order.delivered ? '▣' : '◷' }}</span>{{ order.status }}</strong>
+      </div>
+      <div class="order-products">
+        @for (product of order.items ?? []; track $index) {
+          <div class="order-product">
+            <div><strong>{{ product.name }}</strong><span>{{ product.details }} · SL {{ product.quantity }}</span></div>
+            @if (order.delivered) { <a [routerLink]="['/account/reviews']">Đánh giá</a> }
+            <strong>{{ formatPrice(product.total) }}đ</strong>
+          </div>
+        }
+      </div>
+      <div class="order-total"><span>Tổng cộng:</span><strong>{{ formatPrice(order.total) }}đ</strong>
+        <button class="cancel-button" type="button" (click)="cancelOrder(order)">Hủy đơn</button>
+        <button class="tracking-button" type="button" (click)="toggleTracking(order)">Theo dõi đơn <span>{{ expandedOrder === order.id ? '⌃' : '⌄' }}</span></button>
+      </div>
+      @if (expandedOrder === order.id) {
+        <div class="tracking-panel">
+          @if (order.history?.length) {
+            <ol>
+              @for (event of order.history; track $index) {
+                <li><span>◷</span><div><strong>{{ event.status }}</strong><small>{{ event.date }}</small></div></li>
+              }
+            </ol>
+          } @else {
+            <p>Lịch sử trạng thái chưa có dữ liệu.</p>
+          }
+        </div>
+      }
+    </article>
+  } @empty {
+    <div class="empty-state"><span>▤</span><h2>Chưa có đơn hàng</h2><p>Không tìm thấy đơn hàng gắn với tài khoản này.</p></div>
+  }
+  }
+</section>

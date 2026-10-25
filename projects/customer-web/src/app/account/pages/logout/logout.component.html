@@ -1,0 +1,15 @@
+<section class="account-screen logout-screen">
+  <div class="screen-heading"><h1>Đăng xuất</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
+  <div class="logout-card">
+    <span class="logout-icon">⇥</span>
+    @if (!confirmed) {
+      <h2>Bạn có chắc muốn đăng xuất?</h2>
+      <p>Bạn sẽ cần đăng nhập lại để xem thông tin tài khoản và đơn hàng.</p>
+      <div class="logout-actions"><button class="outline-button" type="button" routerLink="/account/profile">Ở lại tài khoản</button><button class="primary-button" type="button" (click)="confirmLogout()">Đăng xuất</button></div>
+    } @else {
+      <h2>Bạn đã đăng xuất</h2>
+      <p>Phiên đăng nhập trong bản xem trước đã được kết thúc.</p>
+      <a class="primary-button" routerLink="/account/profile">Quay lại hồ sơ tài khoản</a>
+    }
+  </div>
+</section>

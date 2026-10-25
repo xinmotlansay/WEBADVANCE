@@ -1,0 +1,45 @@
+<section class="account-screen aftersales-screen">
+  <div class="screen-heading"><h1>Đổi trả/ Bảo hành</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
+  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+
+  <section class="after-sales-policies">
+    <details class="policy-details" open>
+      <summary>Chính sách bảo hành</summary>
+      <p>Thời gian bảo hành được áp dụng tùy theo từng loại sản phẩm và được ghi rõ tại trang chi tiết sản phẩm. Chính sách bảo hành áp dụng đối với các lỗi kỹ thuật, kết cấu hoặc phụ kiện do nhà sản xuất. Các trường hợp hư hỏng do sử dụng sai cách, va đập, tự ý sửa chữa hoặc hao mòn tự nhiên sẽ không thuộc phạm vi bảo hành.</p>
+      <p>Khách hàng vui lòng cung cấp thông tin đơn hàng hoặc hóa đơn khi yêu cầu bảo hành.</p>
+    </details>
+    <details class="policy-details">
+      <summary>Chính sách đổi trả</summary>
+      <p>Yêu cầu đổi trả được xem xét theo điều kiện áp dụng cho sản phẩm và tình trạng thực tế khi tiếp nhận.</p>
+    </details>
+  </section>
+
+  <div class="aftersales-request-options">
+    <button type="button" (click)="openRequest('warranty')">Yêu cầu bảo hành</button>
+    <button type="button" (click)="openRequest('return')">Yêu cầu đổi trả</button>
+  </div>
+
+  <section class="after-sales-search">
+    <h2>Sản phẩm bảo hành</h2>
+    <form class="search-row" (ngSubmit)="search()">
+      <label>Mã đơn hàng<input [(ngModel)]="orderQuery" name="order" placeholder="Nhập mã đơn hàng" /></label>
+      <span>Hoặc</span>
+      <label>Tên sản phẩm<input [(ngModel)]="productQuery" name="product" placeholder="Nhập tên sản phẩm" /></label>
+      <button class="primary-button" type="submit">Tìm kiếm</button>
+    </form>
+    @if (searched) {
+      <p class="search-feedback" role="status">Chưa tìm thấy sản phẩm phù hợp trong dữ liệu đơn hàng được hỗ trợ.</p>
+    }
+    <p class="recent-products-label">Sản phẩm đã mua gần đây</p>
+  </section>
+
+  @if (requestFormType) {
+    <section class="request-form-card">
+      <div class="request-form-heading"><h2>{{ requestFormType === 'warranty' ? 'Yêu cầu bảo hành' : 'Yêu cầu đổi trả' }}</h2><button class="link-button" type="button" (click)="requestFormType = ''">Đóng</button></div>
+      <p>Yêu cầu chỉ được ghi nhận trong bản xem trước; API chưa hỗ trợ tạo yêu cầu.</p>
+      <label>Lý do yêu cầu<select [(ngModel)]="requestReason" name="reason"><option value="">Chọn lý do</option><option>Sản phẩm bị lỗi</option><option>Sản phẩm không đúng mô tả</option><option>Khác</option></select></label>
+      <label>Mô tả tình trạng<textarea [(ngModel)]="requestDescription" name="description" rows="4" placeholder="Mô tả chi tiết vấn đề bạn gặp phải"></textarea></label>
+      <button class="primary-button" type="button" (click)="submitRequest()">Gửi yêu cầu</button>
+    </section>
+  }
+</section>

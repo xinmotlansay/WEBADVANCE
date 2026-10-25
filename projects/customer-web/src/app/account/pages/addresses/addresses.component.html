@@ -1,0 +1,35 @@
+<section class="account-screen addresses-screen">
+  <div class="screen-heading"><h1>Thông tin địa chỉ</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
+  <p class="screen-intro">Địa chỉ được tải ở chế độ chỉ đọc từ MongoDB.</p>
+  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+
+  @if (needsAccountId()) {
+    <div class="empty-state"><span>⌖</span><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem địa chỉ.</p></div>
+  } @else if (loading()) {
+    <p role="status">Đang tải địa chỉ từ MongoDB...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <div class="address-list">
+      <div class="address-table" role="table" aria-label="Thông tin địa chỉ">
+        <div class="address-table-head" role="row">
+          <strong role="columnheader">Họ tên</strong>
+          <strong role="columnheader">Địa chỉ</strong>
+          <strong role="columnheader">Số điện thoại</strong>
+          <strong role="columnheader">Thay đổi</strong>
+        </div>
+      @for (address of addresses(); track address.id) {
+        <div class="address-table-row" role="row">
+          <span role="cell">{{ address.recipient }}</span>
+          <span class="address-type" role="cell"><strong>⌂ {{ address.label }}</strong>@if (address.isDefault) { <span class="default-badge">Mặc định</span> }<small>{{ address.detail }}</small></span>
+          <span role="cell">{{ address.phone }}</span>
+          <button class="link-button" type="button" role="cell" (click)="requestEdit()">Chỉnh sửa</button>
+        </div>
+      } @empty {
+        <div class="address-empty">Không tìm thấy địa chỉ gắn với tài khoản này.</div>
+      }
+      </div>
+      <button class="primary-button add-address" type="button" (click)="requestEdit()">Thêm địa chỉ mới</button>
+    </div>
+  }
+</section>

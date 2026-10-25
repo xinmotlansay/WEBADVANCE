@@ -1,0 +1,32 @@
+<section class="account-screen wishlist-screen">
+  <h1 class="wishlist-title">DANH SÁCH YÊU THÍCH</h1>
+  <p class="wishlist-data-note">Database chưa có collection danh sách yêu thích; danh sách dưới đây là dữ liệu xem trước.</p>
+  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  <div class="wishlist-grid">
+    @for (product of products(); track product.id) {
+      <article class="wishlist-card">
+        <div class="wishlist-image"><img [src]="product.image" [alt]="product.name" /><span class="favorite-heart" aria-hidden="true">♥</span></div>
+        <div class="wishlist-info"><h2>{{ product.name }}</h2><p>{{ product.details }}</p><strong>{{ formatPrice(product.price) }}</strong></div>
+        <div class="wishlist-actions"><button type="button" class="wishlist-cart" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 4h2l2.2 11.5h11.1L20 8H6" /><circle cx="9" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M13 9.5v5m-2.5-2.5h5" /></svg></button></div>
+      </article>
+    } @empty {
+      <div class="empty-state"><span>♡</span><h2>Danh sách yêu thích đang trống</h2><p>Lưu sản phẩm bạn quan tâm để xem lại sau.</p></div>
+    }
+  </div>
+  @for (section of recommendationSections; track section) {
+    <section class="wishlist-recommendations">
+      <h2>{{ section }}</h2>
+      <div class="wishlist-grid">
+        @for (product of products().slice(0, 4); track product.id) {
+          <article class="wishlist-card">
+            <div class="wishlist-image"><img [src]="product.image" [alt]="product.name" /><span class="favorite-heart" aria-hidden="true">♡</span></div>
+            <div class="wishlist-info"><h3>{{ product.name }}</h3><p>{{ product.details }}</p><strong>{{ formatPrice(product.price) }}</strong></div>
+            <div class="wishlist-actions"><button type="button" class="wishlist-cart" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 4h2l2.2 11.5h11.1L20 8H6" /><circle cx="9" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M13 9.5v5m-2.5-2.5h5" /></svg></button></div>
+          </article>
+        } @empty {
+          <p class="wishlist-empty-recommendation">Chưa có sản phẩm để gợi ý.</p>
+        }
+      </div>
+    </section>
+  }
+</section>

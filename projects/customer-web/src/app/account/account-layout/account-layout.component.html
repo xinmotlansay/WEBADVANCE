@@ -1,0 +1,15 @@
+<section class="account-layout" [class.wide-account-layout]="wideAccountLayout()">
+  <aside class="account-sidebar" aria-label="Quản lý tài khoản">
+    <nav>
+      @for (item of navigation; track item.path) {
+        <a [routerLink]="['/account', item.path]" routerLinkActive="active">
+          <span class="account-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+  </aside>
+  <section class="account-content">
+    <router-outlet />
+  </section>
+</section>

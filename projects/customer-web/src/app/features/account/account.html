@@ -1,0 +1,90 @@
+<div class="breadcrumbs">Trang chủ <span>/</span> Tài khoản của tôi <span>/</span> {{ heading() }}</div>
+<div class="account-layout">
+  <aside class="account-sidebar">
+    <div class="account-summary"><div class="account-avatar">HY</div><div><strong>Hoàng Hải Yến</strong><span>Khách hàng thân thiết</span></div></div>
+    <nav aria-label="Quản lý tài khoản">
+      @for (item of navigation; track item.id) {
+        <a [routerLink]="['/account', item.id]" [class.active]="section() === item.id" (click)="item.id === 'logout' && logout()"><span class="nav-icon">{{ item.icon }}</span>{{ item.label }}</a>
+      }
+    </nav>
+    <div class="account-help"><strong>Cần hỗ trợ?</strong><p>Đội ngũ CaraVeso luôn sẵn sàng giúp bạn.</p><button type="button" class="button button-outline" (click)="showNotice('Tính năng chat CSKH sẽ được kết nối với bộ phận hỗ trợ.')">Chat với CSKH</button></div>
+  </aside>
+
+  <section class="account-main">
+    <div class="account-title"><div><p class="eyebrow">XIN CHÀO, {{ profileName() }}</p><h1>{{ heading() }}</h1></div><span class="account-top-note">Quản lý thông tin và trải nghiệm mua sắm của bạn</span></div>
+    @if (notice()) { <div class="notice" role="status">{{ notice() }} <button type="button" aria-label="Đóng thông báo" (click)="notice.set('')">×</button></div> }
+    @switch (section()) {
+      @case ('profile') {
+        <div class="account-card profile-card">
+          <div class="card-heading"><div><h2>Thông tin cá nhân</h2><p>Cập nhật thông tin để CaraVeso phục vụ bạn tốt hơn.</p></div><div class="large-avatar">HY</div></div>
+          <form class="profile-form" (submit)="$event.preventDefault(); showNotice('Thông tin cá nhân đã được lưu trong bản xem trước.')">
+            <label>Họ và tên<input [ngModel]="profileName()" (ngModelChange)="profileName.set($event)" name="profileName" /></label>
+            <div class="form-row"><label>Ngày sinh<input type="date" value="2005-08-09" /></label><label>Giới tính<select><option>Nam</option><option selected>Nữ</option><option>Khác</option></select></label></div>
+            <label>Số điện thoại<div class="input-with-action"><input value="0919 012 016" /><button type="button" class="text-button" (click)="showNotice('Quy trình xác minh OTP sẽ được kết nối khi có API.')">Thay đổi</button></div></label>
+            <label>Email<div class="input-with-action"><input value="haiyen.nguyen&#64;gmail.com" /><button type="button" class="text-button" (click)="showNotice('Quy trình xác minh OTP sẽ được kết nối khi có API.')">Thay đổi</button></div></label>
+            <button class="button button-primary" type="submit">Lưu thông tin cá nhân</button>
+          </form>
+          <div class="account-divider"></div>
+          <div class="setting-row"><div><h3>Email và mật khẩu</h3><p>Email: haiyen.nguyen&#64;gmail.com</p></div><button class="button button-outline" type="button" (click)="showNotice('Biểu mẫu đổi mật khẩu sẽ được kết nối với API tài khoản.')">Đổi mật khẩu</button></div>
+          <div class="account-divider"></div>
+          <div class="setting-row"><div><h3>Xóa tài khoản</h3><p>Gửi yêu cầu xóa tài khoản sau khi xác minh. Các đơn hàng cần thiết sẽ được lưu theo quy định.</p></div><button class="button button-danger-outline" type="button" (click)="showNotice('Yêu cầu xóa tài khoản cần xác minh và kiểm tra đơn hàng đang xử lý.')">Yêu cầu xóa</button></div>
+        </div>
+      }
+      @case ('orders') {
+        <div class="order-filters"><button class="selected" type="button">Tất cả đơn hàng</button><button type="button">Chờ xác nhận</button><button type="button">Đang giao</button><button type="button">Đã giao</button><button type="button">Đã hủy</button></div>
+        @for (order of orders; track order.id) {
+          <article class="account-card order-card">
+            <div class="order-header"><div><strong>Đơn hàng #{{ order.id }}</strong><span>Ngày đặt: {{ order.date }}</span></div><span class="status-pill" [class.delivered]="order.delivered">{{ order.delivered ? '✓' : '◷' }} {{ order.status }}</span></div>
+            <div class="order-item"><img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=240&q=70" alt="Ghế sofa" /><div><strong>Ghế sofa Kifi</strong><span>Màu kem · 2 chỗ ngồi</span><span>Số lượng: 2</span></div><strong>2.400.000 ₫</strong></div>
+            <div class="order-item"><img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=240&q=70" alt="Ghế sofa" /><div><strong>Ghế sofa Kifi</strong><span>Màu trắng · 2 chỗ ngồi</span><span>Số lượng: 2</span></div><strong>2.400.000 ₫</strong></div>
+            <div class="order-total"><span>Tổng cộng</span><strong>{{ order.total }}</strong><div class="order-actions">@if (!order.delivered) { <button type="button" class="button button-danger-outline" (click)="showNotice('Yêu cầu hủy đơn đã được ghi nhận trong bản xem trước.')">Hủy đơn</button> } @else { <button type="button" class="text-button" (click)="showNotice('Hóa đơn điện tử sẽ có thể tải sau khi kết nối dữ liệu đơn hàng.')">Tải hóa đơn</button> }<button type="button" class="button button-outline" (click)="showNotice('Chi tiết và trạng thái thời gian thực sẽ được kết nối với API đơn hàng.')">Theo dõi đơn</button></div></div>
+            @if (order.delivered) { <div class="delivery-tracking"><strong>✓ Đã giao vào ngày 09/10/2026</strong><div class="tracking-steps"><span class="done">Đã xác nhận</span><span class="done">Đã xác nhận</span><span class="done">Đang giao hàng</span><span class="done">Giao hàng thành công</span></div></div> }
+          </article>
+        }
+      }
+      @case ('aftersales') {
+        <div class="aftersales-tabs"><button class="selected" type="button">Yêu cầu bảo hành</button><button type="button">Yêu cầu đổi trả</button></div>
+        <div class="account-card aftersales-guide"><details open><summary>Hướng dẫn bảo hành/đổi trả</summary><p>CaraVeso hỗ trợ bảo hành và đổi trả theo chính sách dành cho từng sản phẩm. Khách hàng có thể theo dõi trạng thái yêu cầu, bổ sung minh chứng và xem kết quả xử lý tại đây.</p></details></div>
+        <div class="aftersales-cards"><button class="account-card service-card" type="button" (click)="showNotice('Chọn sản phẩm đã mua để gửi yêu cầu bảo hành.')"><span>⌁</span><strong>Yêu cầu bảo hành</strong><small>Gửi yêu cầu sửa chữa hoặc hỗ trợ sản phẩm</small><b>Tạo yêu cầu →</b></button><button class="account-card service-card" type="button" (click)="showNotice('Chọn đơn hàng đã nhận để gửi yêu cầu đổi trả trong 7 ngày.')"><span>↺</span><strong>Yêu cầu đổi trả</strong><small>Gửi yêu cầu đổi hoặc trả sản phẩm đã nhận</small><b>Tạo yêu cầu →</b></button></div>
+        <div class="account-card">
+          <div class="card-heading"><div><h2>Sản phẩm bảo hành / đổi trả</h2><p>Tra cứu yêu cầu dịch vụ hậu mãi của bạn</p></div></div>
+          <div class="search-order"><label>Mã yêu cầu<input placeholder="Nhập mã yêu cầu" /></label><span>Hoặc</span><label>Tên sản phẩm<input placeholder="Nhập tên sản phẩm" /></label><button class="button button-primary" type="button" (click)="showNotice('Không tìm thấy yêu cầu trùng khớp trong dữ liệu xem trước.')">Tìm kiếm</button></div>
+          <div class="empty-state"><span>⌕</span><p>Chưa có yêu cầu hậu mãi nào</p><small>Các yêu cầu bảo hành hoặc đổi trả sẽ hiển thị tại đây.</small></div>
+        </div>
+      }
+      @case ('addresses') {
+        <div class="account-card"><div class="card-heading"><div><h2>Thông tin địa chỉ</h2><p>Quản lý nơi nhận hàng và lựa chọn địa chỉ mặc định.</p></div><button class="button button-primary" type="button" (click)="toggleAddressForm()">＋ Thêm địa chỉ mới</button></div>
+          <div class="address-table"><div class="table-head"><span>Họ tên</span><span>Địa chỉ</span><span>Số điện thoại</span><span>Thao tác</span></div><div class="address-row"><strong>Anh Thư Lê <em>Mặc định</em></strong><span>⌂ Nhà riêng<br /><small>123 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh</small></span><span>0912 012 016</span><span><button class="text-button" type="button" (click)="showNotice('Chỉnh sửa địa chỉ sẽ được kết nối với dữ liệu tài khoản.')">Chỉnh sửa</button><button class="text-button muted" type="button" (click)="showNotice('Không thể xóa địa chỉ mặc định trước khi chọn địa chỉ khác.')">Xóa</button></span></div></div>
+          @if (addressFormOpen()) { <form class="address-form" (submit)="$event.preventDefault(); saveAddress()"><h3>Thêm địa chỉ nhận hàng</h3><div class="form-row"><label>Họ và tên<input [ngModel]="addressName()" (ngModelChange)="addressName.set($event)" name="addressName" /></label><label>Số điện thoại<input [ngModel]="addressPhone()" (ngModelChange)="addressPhone.set($event)" name="addressPhone" /></label></div><label>Địa chỉ chi tiết<input [ngModel]="addressDetail()" (ngModelChange)="addressDetail.set($event)" name="addressDetail" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" /></label><div class="form-actions"><button class="button button-outline" type="button" (click)="addressFormOpen.set(false)">Hủy</button><button class="button button-primary" type="submit">Lưu địa chỉ</button></div></form> }
+        </div>
+      }
+      @case ('wishlist') {
+        <div class="account-card"><div class="card-heading centered"><div><h2>Danh sách yêu thích</h2><p>Những sản phẩm bạn đã lưu để xem lại sau.</p></div></div><div class="product-grid">
+          @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) { <article class="shop-product"><button class="remove-favorite" type="button" aria-label="Xóa khỏi yêu thích" (click)="showNotice('Sản phẩm đã được bỏ khỏi danh sách yêu thích (bản xem trước).')">♥</button><img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=500&q=75" alt="Sofa hiện đại màu kem" /><p class="eyebrow">SOFA PHÒNG KHÁCH · CV07</p><h3>Ghế Sofa Milano</h3><p>Vải dệt cao cấp, nhiều màu sắc</p><strong>18.500.000 ₫</strong><div class="shop-product-actions"><button class="button button-outline" type="button" (click)="showNotice('Sản phẩm đã được thêm vào giỏ hàng (bản xem trước).')">Mua ngay</button><button class="button button-icon" type="button" aria-label="Thêm vào giỏ hàng" (click)="showNotice('Sản phẩm đã được thêm vào giỏ hàng (bản xem trước).')">♧</button></div></article> }
+        </div></div>
+      }
+      @case ('reviews') {
+        <div class="account-card"><div class="review-tabs"><button class="selected" type="button">Chờ đánh giá <span>1</span></button><button type="button">Đã đánh giá <span>2</span></button></div>
+          <div class="review-product"><img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=240&q=70" alt="Ghế sofa Kifi" /><div><strong>Ghế sofa Kifi</strong><span>Màu trắng · 2 chỗ ngồi</span><small>Mã đơn hàng: CV-01102026 · Đã giao 09/10/2026</small></div><span class="eligible-tag">Đủ điều kiện đánh giá</span></div>
+          <div class="review-product"><img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=240&q=70" alt="Ghế sofa Kifi" /><div><strong>Ghế sofa Kifi</strong><span>Màu trắng · 2 chỗ ngồi</span><small>Hãy chia sẻ trải nghiệm của bạn với sản phẩm.</small></div></div>
+          <form class="review-form" (submit)="$event.preventDefault(); submitReview()"><label>Đánh giá sản phẩm</label><div class="rating-picker" aria-label="Chọn số sao">@for (star of [1, 2, 3, 4, 5]; track star) { <button type="button" [class.active]="star <= reviewRating()" (click)="reviewRating.set(star)" [attr.aria-label]="star + ' sao'">★</button> }</div><label for="review-text">Chia sẻ cảm nhận của bạn</label><textarea id="review-text" [ngModel]="reviewText()" (ngModelChange)="reviewText.set($event)" name="reviewText" placeholder="Chia sẻ trải nghiệm của bạn về chất lượng, thiết kế, dịch vụ..." rows="4"></textarea><label>Hình ảnh thực tế</label><button class="upload-box" type="button" (click)="showNotice('Tải ảnh đánh giá sẽ được mở khi hoàn thiện phần lưu trữ.')">＋<span>Thêm hình ảnh</span></button><div class="form-actions"><button class="button button-primary" type="submit">Gửi đánh giá</button></div></form>
+        </div>
+      }
+      @case ('vouchers') {
+        <div class="voucher-intro"><div><p class="eyebrow">ƯU ĐÃI DÀNH RIÊNG CHO BẠN</p><h2>Ví voucher</h2><p>Lưu và sử dụng ưu đãi cho đơn hàng tiếp theo.</p></div><div class="voucher-count"><strong>{{ vouchers.length }}</strong><span>voucher khả dụng</span></div></div>
+        <div class="voucher-tabs"><button class="selected" type="button">Tất cả ({{ vouchers.length }})</button><button type="button">Có thể sử dụng (2)</button><button type="button">Đã sử dụng</button><button type="button">Hết hạn</button></div>
+        <div class="voucher-list">@for (voucher of vouchers; track voucher.code) { <article class="voucher-card"><div class="voucher-ticket"><span>CARAVESO</span><strong>{{ voucher.value }}</strong><small>VOUCHER ƯU ĐÃI</small></div><div class="voucher-details"><div class="voucher-title"><div><h3>{{ voucher.title }}</h3><span class="status-pill" [class.expiring]="voucher.status === 'Sắp hết hạn'">{{ voucher.status }}</span></div><button type="button" class="text-button" (click)="showNotice('Điều kiện voucher: ' + voucher.condition)">Chi tiết</button></div><p>{{ voucher.condition }}</p><small>Hạn sử dụng: {{ voucher.expiry }}</small><div class="voucher-code"><span>Mã: <strong>{{ voucher.code }}</strong></span><button type="button" (click)="showNotice('Mã ' + voucher.code + ' đã sẵn sàng để áp dụng ở bước thanh toán.')">Dùng ngay</button></div></div></article> }</div>
+      }
+      @case ('home-profiles') {
+        <div class="account-card"><div class="card-heading"><div><h2>Hồ sơ nhà</h2><p>Lưu kích thước lối đi để kiểm tra sản phẩm có thể vận chuyển vào nhà.</p></div><button class="button button-primary" type="button" (click)="showNotice('Biểu mẫu hồ sơ nhà sẽ cho phép lưu cửa, hành lang, cầu thang và thang máy.')">＋ Thêm hồ sơ</button></div>
+          <article class="home-profile-card"><div class="home-profile-icon">⌂</div><div class="home-profile-info"><div><h3>Căn hộ nhà mình <em>Mặc định</em></h3><span>Địa chỉ: Quận 1, TP. Hồ Chí Minh</span></div><button class="text-button" type="button" (click)="showNotice('Biểu mẫu cập nhật các kích thước lối đi sẽ được kết nối.')">Chỉnh sửa</button></div><div class="home-measurements"><div><span>Cửa chính</span><strong>Rộng 90 × cao 210 cm</strong></div><div><span>Hành lang</span><strong>Rộng 120 cm</strong></div><div><span>Thang máy</span><strong>Cabin 140 × 140 cm · Tải trọng 450 kg</strong></div></div><button class="text-button" type="button" (click)="showNotice('Hồ sơ này đã được chọn để kiểm tra Fit your home.')">Dùng hồ sơ này để kiểm tra →</button></article>
+          <div class="info-callout"><strong>Fit your home</strong><p>Kiểm tra sản phẩm có thể đi qua cửa, hành lang, cầu thang và thang máy dựa trên hồ sơ nhà đã lưu.</p><a routerLink="/products/sofa-da-milan">Khám phá sản phẩm →</a></div>
+        </div>
+      }
+      @case ('logout') {
+        <div class="account-card logout-card"><span>⇥</span><h2>Bạn muốn đăng xuất?</h2><p>Đăng xuất khỏi tài khoản CaraVeso trên thiết bị này.</p><button class="button button-danger" type="button" (click)="logout()">Đăng xuất</button></div>
+      }
+      @default { <div class="account-card"><h2>{{ heading() }}</h2><p>Nội dung sẽ được cập nhật.</p></div> }
+    }
+  </section>
+</div>

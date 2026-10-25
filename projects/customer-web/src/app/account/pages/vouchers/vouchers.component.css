@@ -1,0 +1,30 @@
+:host { display: block; }
+.vouchers-screen { max-width: 760px; }
+.voucher-filters { display: flex; gap: 18px; overflow-x: auto; margin-bottom: 15px; border-bottom: 1px solid var(--line); }
+.voucher-filters button { flex: 0 0 auto; padding: 11px 2px; border: 0; border-bottom: 2px solid transparent; background: none; color: #72787b; font-size: 10px; cursor: pointer; }
+.voucher-filters button.active { border-bottom-color: var(--navy); color: var(--navy); font-weight: 600; }
+.voucher-list { display: grid; gap: 12px; }
+.vouchers-screen .voucher-card { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; align-items: center; gap: 14px; overflow: hidden; padding: 0; border: 1px solid var(--line); background: #fff; }
+.vouchers-screen .voucher-ticket { display: grid; min-height: 112px; align-content: center; justify-items: center; gap: 6px; padding: 13px; background: #edf2f4; color: var(--navy); text-align: center; }
+.vouchers-screen .voucher-ticket span { font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.vouchers-screen .voucher-ticket strong { font-size: 19px; }
+.vouchers-screen .voucher-ticket small { font-size: 8px; letter-spacing: .18em; }
+.voucher-description { min-width: 0; padding: 12px 0; }
+.voucher-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.voucher-title-row h2 { margin: 0; font-size: 11px; }
+.voucher-title-row > span { padding: 4px 6px; background: #edf7ef; color: #3d7a4f; font-size: 8px; white-space: nowrap; }
+.voucher-title-row > span.expiring { background: #fff5e8; color: #9a6b1d; }
+.voucher-description p { margin: 7px 0; color: #737b7e; font-size: 9px; line-height: 1.5; }
+.voucher-description .voucher-expiry { margin-bottom: 5px; }
+.voucher-use { min-height: 31px; margin: 0 12px 0 0; padding: 0 10px; font-size: 9px; white-space: nowrap; }
+.vouchers-screen .voucher-card.unavailable { opacity: .72; }
+.vouchers-screen .voucher-card.unavailable .voucher-ticket { background: #f1f2f2; color: #777f82; }
+@media (max-width: 580px) {
+  .vouchers-screen .voucher-card { grid-template-columns: 90px minmax(0, 1fr); gap: 10px; }
+  .vouchers-screen .voucher-ticket { min-height: 105px; padding: 8px; }
+  .vouchers-screen .voucher-ticket span { font-size: 8px; }
+  .vouchers-screen .voucher-ticket strong { font-size: 15px; }
+  .voucher-description { padding-right: 9px; }
+  .voucher-title-row { flex-direction: column; }
+  .voucher-use { grid-column: 2; justify-self: start; margin: 0 0 10px; }
+}
