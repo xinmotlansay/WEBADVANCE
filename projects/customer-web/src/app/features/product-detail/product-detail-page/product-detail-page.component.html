@@ -1,0 +1,142 @@
+@if (loading()) {
+  <p class="api-state" role="status">Đang tải thông tin sản phẩm từ MongoDB...</p>
+}
+@if (error()) {
+  <p class="api-state api-error" role="alert">{{ error() }}</p>
+}
+@if (product(); as product) {
+<nav class="breadcrumbs" aria-label="Đường dẫn">
+  <a routerLink="/">Trang chủ</a><span>›</span>
+  @for (category of product.category; track category) { <a routerLink="/products/sofa-da-milan">{{ category }}</a><span>›</span> }
+  <strong>{{ product.name }}</strong>
+</nav>
+
+<main class="product-page">
+  <section class="product-overview" aria-labelledby="product-title">
+    <div class="product-gallery">
+      <div class="main-image">
+        <img [src]="product.images[selectedImageIndex()]" [alt]="product.name" [style.filter]="product.color[selectedColorIndex()].filter" />
+        <button class="favorite-button" type="button" (click)="toggleFavorite()" [attr.aria-pressed]="favorite()" [attr.aria-label]="favorite() ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'">{{ favorite() ? '♥' : '♡' }}</button>
+      </div>
+      <div class="thumbnails" aria-label="Hình ảnh sản phẩm">
+        @for (image of product.images; track $index) {
+          <button type="button" class="thumbnail" [class.active]="selectedImageIndex() === $index" (click)="selectedImageIndex.set($index)" [attr.aria-label]="'Xem ảnh ' + ($index + 1)">
+            <img [src]="image" [alt]="product.name" [style.filter]="selectedColorIndex() === 0 ? 'none' : product.color[selectedColorIndex()].filter" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="product-info">
+      <h1 id="product-title">{{ product.name }}</h1>
+      <a class="rating-summary" href="#reviews">
+        <span class="stars">@for (star of [1, 2, 3, 4, 5]; track star) { <span [style.opacity]="star <= product.rating ? 1 : 0.25">★</span> }</span><span class="rating-score">{{ product.rating.toFixed(1) }}</span><span>{{ product.reviewCount }} Đánh giá</span>
+      </a>
+      <div class="product-option product-type">
+        <strong>Loại ghế <small>(5)</small></strong>
+        <span>{{ product.capacity }}</span>
+      </div>
+      <div class="product-option color-option">
+        <div class="option-heading"><strong>Màu sắc</strong><span>{{ product.color[selectedColorIndex()].name }} <small>({{ product.color.length }})</small></span></div>
+        <div class="color-choices">
+          @for (color of product.color; track color.name; let index = $index) {
+            <button type="button" [class.active]="selectedColorIndex() === index" (click)="selectColor(index)" [attr.aria-label]="color.name" [attr.aria-pressed]="selectedColorIndex() === index">
+              <img [src]="color.thumbnail" [alt]="color.name" [style.filter]="color.filter" />
+            </button>
+          }
+        </div>
+      </div>
+      <div class="purchase-row">
+        <div class="quantity-control" aria-label="Số lượng">
+          <button type="button" aria-label="Giảm số lượng" (click)="decreaseQuantity()">−</button>
+          <span>{{ quantity() }}</span>
+          <button type="button" aria-label="Tăng số lượng" (click)="increaseQuantity()">+</button>
+        </div>
+        <strong class="product-price">{{ formatPrice(product.price) }}</strong>
+      </div>
+      <div class="purchase-actions">
+        <button type="button" class="buy-button" (click)="buyNow()">Mua nhanh</button>
+        <button type="button" class="cart-button" (click)="addToCart()">Thêm vào giỏ</button>
+      </div>
+      <div class="try-before-buy">
+        <span>Trải nghiệm trước khi mua</span>
+        <div>
+          <button type="button" (click)="showRoomPreview('View your room')"><span aria-hidden="true">◇</span> View your room</button>
+          <button type="button" (click)="showRoomPreview('Fit your home')"><span aria-hidden="true">♧</span> Fit your home</button>
+        </div>
+      </div>
+      @if (notice()) {
+        <p class="action-notice" role="status">{{ notice() }} <button type="button" (click)="notice.set('')" aria-label="Đóng thông báo">×</button></p>
+      }
+    </div>
+  </section>
+
+  <section class="product-details" aria-label="Thông tin chi tiết">
+    <div class="detail-tabs" role="tablist" aria-label="Chi tiết sản phẩm">
+      <button type="button" role="tab" [attr.aria-selected]="selectedTab() === 'description'" [class.active]="selectedTab() === 'description'" (click)="selectedTab.set('description')">Mô tả sản phẩm</button>
+      <button type="button" role="tab" [attr.aria-selected]="selectedTab() === 'specifications'" [class.active]="selectedTab() === 'specifications'" (click)="selectedTab.set('specifications')">Thông số kĩ thuật</button>
+    </div>
+    @if (selectedTab() === 'description') {
+      <div class="description-content" role="tabpanel">
+        @for (paragraph of product.description; track $index) { <p>{{ paragraph }}</p> }
+      </div>
+    } @else {
+      <div class="specifications-content" role="tabpanel">
+        @for (detail of product.technicalDetails; track detail.label) {
+          <div><span>{{ detail.label }}</span><strong>{{ detail.value }}</strong></div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="package-section">
+    <h2>Trong hộp có gì</h2>
+    <div class="package-placeholder" role="img" [attr.aria-label]="product.packageContents"></div>
+  </section>
+
+  <section id="reviews" class="reviews-section">
+    <h2>Đánh giá sản phẩm</h2>
+    @if (product.reviews.length > 0) {
+      @for (review of product.reviews; track $index) {
+        <article class="review">
+          <img class="review-avatar" [src]="review.avatar" [alt]="review.name" />
+          <div class="review-body">
+            <strong class="review-name">{{ review.name }}</strong>
+            <div class="review-stars" [attr.aria-label]="review.rating + ' sao'">
+              @for (star of [1, 2, 3, 4, 5]; track star) { <span [class.filled]="star <= review.rating">★</span> }
+            </div>
+            <p class="review-meta">{{ review.date }} <span>|</span> Phân loại: {{ review.category }}, {{ review.color }}</p>
+            <p class="review-comment">{{ review.comment }}</p>
+            <div class="review-photos">
+              @for (image of review.images; track $index) { <img [src]="image" [alt]="'Ảnh đánh giá của ' + review.name" /> }
+            </div>
+          </div>
+        </article>
+      }
+      <nav class="pagination" aria-label="Phân trang đánh giá">
+        <button type="button" aria-label="Trang trước">‹</button><button class="current" type="button" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button" aria-label="Trang sau">›</button>
+      </nav>
+    } @else {
+      <p class="empty-review">API MongoDB hiện chưa cung cấp dữ liệu đánh giá cho sản phẩm này.</p>
+    }
+  </section>
+
+  <section class="related-section">
+    <h2>Sản phẩm tương tự</h2>
+    <div class="related-products">
+      @for (related of product.relatedProducts; track $index) {
+        <article class="related-product">
+          <div class="related-image">
+            <a [routerLink]="['/products', related.slug]"><img [src]="related.image" [alt]="related.name" /></a>
+            <button type="button" (click)="toggleRelatedFavorite(related.name)" [attr.aria-label]="'Yêu thích ' + related.name">♡</button>
+          </div>
+          <a class="related-name" [routerLink]="['/products', related.slug]">{{ related.name }} - {{ related.sku }}</a>
+          <p>{{ related.description }}</p>
+          <strong>{{ formatPrice(related.price) }}</strong>
+          <div class="related-actions"><button type="button" (click)="buyNow()">MUA NGAY</button><button type="button" class="related-cart" (click)="addToCart()" aria-label="Thêm vào giỏ">♧+</button></div>
+        </article>
+      }
+    </div>
+  </section>
+</main>
+}

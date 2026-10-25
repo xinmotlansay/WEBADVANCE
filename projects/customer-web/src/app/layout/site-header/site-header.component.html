@@ -1,0 +1,25 @@
+<div class="promo-bar">
+  <span>Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso</span>
+</div>
+<header class="site-header">
+  <div class="header-main">
+    <nav class="primary-nav" aria-label="Điều hướng chính">
+      <a routerLink="/products/sofa-da-milan">Sản phẩm <span>⌄</span></a>
+      <a routerLink="/products/sofa-da-milan">Các phòng <span>⌄</span></a>
+      <a routerLink="/products/sofa-da-milan">Nguồn cảm hứng</a>
+      <a class="sale-link" routerLink="/products/sofa-da-milan">Khuyến mãi</a>
+    </nav>
+    <a class="brand" routerLink="/products/sofa-da-milan" aria-label="CaraVeso trang chủ">CaraVeso</a>
+    <label class="search-box">
+      <span aria-hidden="true">⌕</span>
+      <input aria-label="Tìm kiếm" placeholder="Nhập sản phẩm, chất liệu, phong cách..." />
+      <span class="camera-icon" aria-hidden="true">▣</span>
+    </label>
+    <div class="header-actions">
+      <button type="button" aria-label="Giỏ hàng" class="cart-button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6" /><circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
+        @if (cart.itemCount() > 0) { <span>{{ cart.itemCount() }}</span> }
+      </button>
+    </div>
+  </div>
+</header>
