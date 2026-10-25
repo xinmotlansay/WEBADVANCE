@@ -1,0 +1,85 @@
+:host {
+  display: block;
+}
+.catalog-intro {
+  display: grid;
+  gap: var(--space-xl);
+  padding: var(--space-lg);
+  border-radius: var(--radius-panel);
+  background: var(--color-brand-surface);
+}
+.section-kicker {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+  font-weight: var(--font-weight-semibold);
+}
+.intro-copy h1 {
+  color: var(--color-primary);
+  font-size: var(--font-size-display-sm);
+  line-height: 1.25;
+  margin-block: var(--space-md);
+  overflow-wrap: anywhere;
+}
+.intro-copy > p,
+.intro-note > p {
+  color: var(--color-muted);
+  font-size: var(--font-size-h5);
+  line-height: 1.8;
+}
+.intro-note {
+  padding: var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border-radius: var(--space-sm);
+  background: color-mix(in srgb, var(--color-white) 75%, transparent);
+}
+.intro-note h2 {
+  margin-block: var(--space-sm) var(--space-md);
+  color: var(--color-primary);
+  font-size: var(--font-size-h3);
+}
+.room-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+.room-links button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-color: var(--color-gray-light);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  background: var(--color-white);
+  color: var(--color-primary);
+}
+.room-links button:hover {
+  border-color: var(--color-primary);
+}
+.support-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-gray-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+@media (min-width: 760px) {
+  .catalog-intro {
+    grid-template-columns: 1.5fr 1fr;
+    align-items: center;
+    padding: var(--space-xl);
+  }
+}
+@media (max-width: 759px) {
+  .intro-copy h1 {
+    font-size: var(--font-size-h2);
+  }
+  .intro-note {
+    padding: var(--space-md);
+  }
+}

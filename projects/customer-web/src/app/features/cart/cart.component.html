@@ -1,0 +1,58 @@
+<section class="feature-page container cart-page">
+  <p class="eyebrow"><a routerLink="/">Trang chủ</a> / {{ checkout ? 'Đặt hàng' : 'Giỏ hàng' }}</p>
+  @if (completed(); as order) {
+    <div class="confirmation" role="status"><span class="check">✓</span><h1>Đã tiếp nhận đơn hàng</h1>
+      <p>Mã đơn: <strong>{{ order.orderCode }}</strong></p><p>Tổng tiền sản phẩm và lắp đặt bắt buộc: <strong>{{ order.totalAmount | vnd }}</strong></p>
+      <p>CaraVeso sẽ liên hệ xác nhận đơn, phí vận chuyển và thời gian giao hàng. Thanh toán khi nhận hàng.</p>
+      <a class="button primary" routerLink="/support">Đổi trả &amp; Bảo hành</a> <a class="button" routerLink="/">Tiếp tục khám phá</a>
+    </div>
+  } @else {
+    <h1>{{ checkout ? 'Hoàn tất đặt hàng' : 'Giỏ hàng của bạn' }}</h1>
+    @if (!cart.items().length) {
+      <div class="empty"><p>Giỏ hàng chưa có sản phẩm.</p><a class="button primary" routerLink="/">Khám phá bộ sưu tập</a></div>
+    } @else {
+      <div class="shopping-layout">
+        <div class="cart-items">
+          @for (item of cart.items(); track item.variantId) {
+            <article class="cart-item">
+              <a [routerLink]="['/products', item.slug]"><img [src]="item.thumbnail" [alt]="item.name" /></a>
+              <div><a class="item-name" [routerLink]="['/products', item.slug]">{{ item.name }}</a><p>{{ item.label }}</p>
+                <strong>{{ (pricedLine(item.variantId)?.unitPrice ?? item.unitPrice) | vnd }}</strong><label>Số lượng <input #qty type="number" min="1" max="99" [disabled]="busy()" [value]="item.quantity" (change)="cart.quantity(item.variantId, +qty.value)" /></label>
+                <button class="remove" type="button" [disabled]="busy()" (click)="cart.remove(item.variantId)">Xóa sản phẩm</button>
+              </div>
+              <strong>{{ (pricedLine(item.variantId)?.finalAmount ?? item.unitPrice * item.quantity) | vnd }}</strong>
+            </article>
+          }
+          @if (checkout) {
+            <a routerLink="/cart">← Chỉnh sửa giỏ hàng</a>
+            <form id="shipping" [formGroup]="form" (ngSubmit)="submit()" class="shipping-form">
+              <h2>Thông tin nhận hàng</h2>
+              <label>Họ và tên<input formControlName="recipientName" autocomplete="shipping name" maxlength="100" placeholder="Nguyễn Văn An" /></label>
+              <label>Số điện thoại<input formControlName="recipientPhone" type="tel" autocomplete="shipping tel" placeholder="0901234567" /></label>
+              <label>Địa chỉ giao hàng<textarea formControlName="addressLine" autocomplete="shipping street-address" maxlength="500" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"></textarea></label>
+              @if (form.touched && form.invalid) { <p class="error" role="alert">Vui lòng nhập đủ họ tên, số điện thoại Việt Nam hợp lệ và địa chỉ ít nhất 10 ký tự.</p> }
+            </form>
+          }
+        </div>
+        <aside class="summary"><h2>Thông tin đơn hàng</h2><p>{{ cart.count() }} sản phẩm</p>
+          @if (currentQuote(); as quote) {
+            <p class="total">Tổng tiền <strong>{{ quote.totalAmount | vnd }}</strong></p>
+            @for (line of quote.items; track line.variantId) {
+              @if (line.installationFee) { <p>Phí lắp đặt bắt buộc: {{ line.installationFee * line.quantity | vnd }}</p> }
+            }
+          } @else { <p class="total">Tạm tính <strong>{{ cart.total() | vnd }}</strong></p> }
+          <p class="note">Phí vận chuyển được thông báo khi xác nhận đơn. Thanh toán khi nhận hàng (COD).</p>
+          @if (checkout) {
+            <button type="button" [disabled]="busy()" (click)="refresh()">{{ busy() ? 'Đang xử lý…' : 'Cập nhật giá và tồn kho' }}</button>
+            @if (!auth.user()) {
+              <a class="button primary" routerLink="/login" [queryParams]="{ returnUrl: '/checkout' }">Đăng nhập để đặt hàng</a>
+            } @else {
+              <button type="submit" form="shipping" class="primary" [disabled]="busy() || !currentQuote()">{{ busy() ? 'Đang xử lý…' : 'Xác nhận đặt hàng' }}</button>
+            }
+          } @else { <a class="button primary" routerLink="/checkout">Tiến hành đặt hàng →</a> }
+          @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+        </aside>
+      </div>
+    }
+  }
+</section>

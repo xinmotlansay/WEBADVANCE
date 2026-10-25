@@ -1,3 +1,21 @@
 :host {
   display: block;
 }
+.image-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 24px 28px;
+  border: 0;
+  border-radius: 4px;
+  background: white;
+  color: var(--color-black);
+  box-shadow: 0 16px 64px #0003;
+  overflow: auto;
+}
+.image-dialog::backdrop { background: #0005; }
+.image-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.image-dialog__header h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 400; color: var(--color-muted); }
+.image-dialog__header button { display: grid; place-items: center; padding: 4px; border: 0; background: transparent; color: var(--color-muted); }

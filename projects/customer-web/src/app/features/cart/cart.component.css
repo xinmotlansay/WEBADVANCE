@@ -1,0 +1,25 @@
+.cart-page { padding-bottom: 64px; }
+h1 { margin-bottom: 28px; }
+.shopping-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 36px; align-items: start; }
+.cart-item { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 18px; padding: 22px 0; border-bottom: 1px solid #e3e3e3; }
+.cart-item img { width: 120px; height: 110px; object-fit: contain; }
+.item-name { color: #111; font-weight: 600; text-decoration: none; }
+.cart-item p { margin: 8px 0; font-size: 13px; color: #666; }
+.cart-item label { display: flex; align-items: center; gap: 10px; margin: 12px 0; font-size: 13px; }
+.cart-item input { width: 65px; padding: 7px; }
+.remove { border: 0; padding: 0; color: #9e2435; background: none; font-size: 12px; }
+.summary { padding: 26px; border-radius: 10px; border: 1px solid #ddd; display: grid; gap: 16px; }
+.summary h2 { font-size: 20px; }
+.total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.note { color: #666; font-size: 13px; line-height: 1.6; }
+.summary .button, .summary button { display: block; width: 100%; text-align: center; border-radius: 5px; padding: 12px; border: 1px solid var(--color-primary); text-decoration: none; }
+.shipping-form { margin-top: 28px; display: grid; gap: 18px; }
+.shipping-form label { display: grid; gap: 8px; font-size: 14px; }
+.shipping-form input, textarea { padding: 12px; width: 100%; border: 1px solid #ccc; border-radius: 5px; background: white; }
+textarea { min-height: 90px; }
+.confirmation, .empty { max-width: 720px; margin: 40px auto; text-align: center; line-height: 1.8; }
+.confirmation p { margin-bottom: 16px; overflow-wrap: anywhere; }
+.check { display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: #e9f7ee; color: #287342; font-size: 30px; }
+button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 850px) { .shopping-layout { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .cart-item { grid-template-columns: 80px 1fr; gap: 12px; } .cart-item img { width: 80px; height: 90px; } .cart-item > strong { grid-column: 2; } }

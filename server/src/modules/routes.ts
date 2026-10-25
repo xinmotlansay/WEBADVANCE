@@ -7,8 +7,20 @@ import { inspirationRoutes } from './inspirations/inspiration.routes.js';
 import { productRoutes } from './products/product.routes.js';
 import { promotionRoutes } from './promotions/promotion.routes.js';
 import { showroomRoutes } from './showrooms/showroom.routes.js';
+import { searchRoutes } from './products/search.routes.js';
+import { authRoutes } from './auth/auth.routes.js';
+import { warrantyRoutes } from './after-sales/warranty.routes.js';
+import { uploadRoutes } from './after-sales/upload.routes.js';
+import { returnRoutes } from './after-sales/return.routes.js';
+import { checkoutRoutes } from './checkout/checkout.routes.js';
 
 export const apiRoutes = Router();
+apiRoutes.use('/search', searchRoutes);
+apiRoutes.use('/checkout', checkoutRoutes);
+apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/uploads', uploadRoutes);
+apiRoutes.use(warrantyRoutes);
+apiRoutes.use(returnRoutes);
 
 apiRoutes.use('/banners', bannerRoutes);
 apiRoutes.use('/categories', categoryRoutes);

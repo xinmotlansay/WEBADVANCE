@@ -1,0 +1,16 @@
+<section class="feature-page container">
+  <p class="eyebrow">CARAVESO / NGUỒN CẢM HỨNG</p>
+  <h1>Không gian sống của bạn</h1>
+  @let images = items();
+  @if (images === undefined) {
+    <div class="state" role="status">Đang tải ảnh cảm hứng…</div>
+  } @else if (images === null) {
+    <div class="state" role="alert">
+      Không tải được ảnh. <button (click)="retry.next(0)">Thử lại</button>
+    </div>
+  } @else if (!images.length) {
+    <div class="state">Chưa có ảnh cảm hứng.</div>
+  } @else {
+    <app-inspiration-gallery [items]="images" />
+  }
+</section>

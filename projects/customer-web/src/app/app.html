@@ -4,3 +4,16 @@
 </main>
 <app-footer />
 <app-floating-actions />
+@if (search.imageOpen()) {
+  <dialog #imageDialog class="image-dialog" aria-labelledby="image-dialog-title"
+    (cancel)="search.imageOpen.set(false)"
+    (click)="onImageDialogClick($event)">
+    <div class="image-dialog__header">
+      <h2 id="image-dialog-title"><app-icon name="lucide:camera" [size]="18" /> Tìm kiếm bằng hình ảnh</h2>
+      <button type="button" aria-label="Đóng tìm kiếm bằng hình ảnh" (click)="search.imageOpen.set(false)">
+        <app-icon name="lucide:x" [size]="20" />
+      </button>
+    </div>
+    <app-image-search [compact]="true" />
+  </dialog>
+}

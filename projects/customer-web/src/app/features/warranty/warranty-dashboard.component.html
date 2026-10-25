@@ -1,0 +1,80 @@
+<section class="feature-page container">
+    <p class="eyebrow">CARAVESO / HẬU MÃI</p>
+    <h1>Bảo hành của tôi</h1>
+    <nav class="toolbar">
+      <a class="button primary" routerLink="new">Tạo yêu cầu bảo hành</a
+      ><a routerLink="/policies/warranty">Chính sách bảo hành</a
+      ><a routerLink="/account/returns">Đổi trả</a>
+    </nav>
+    <h2>Tra cứu phiếu bảo hành</h2>
+    <label
+      >Serial, mã đơn hoặc số điện thoại nhận hàng<input
+        type="search"
+        [formControl]="lookup"
+        maxlength="120"
+    /></label>
+    @let found = cards();
+    @if (found === undefined) {
+      <div class="state" role="status">Đang tải phiếu…</div>
+    } @else if (found === null) {
+      <div class="state" role="alert">
+        Không tải được phiếu. <button (click)="retry.next(0)">Thử lại</button>
+      </div>
+    } @else {
+      @for (card of found; track card.id) {
+        <article class="panel">
+          <h3>{{ card.productName }}</h3>
+          <p>{{ card.orderCode }} · Serial: {{ card.serialNumber || 'Chưa có' }}</p>
+          <p>
+            Hết hạn: {{ card.expiresAt | date: 'dd/MM/yyyy' : '+0700' }} ·
+            {{
+              card.status === 'VALID'
+                ? 'Còn ' + card.remainingDays + ' ngày'
+                : card.status === 'EXPIRED'
+                  ? 'Đã hết hạn'
+                  : 'Không còn hiệu lực'
+            }}
+          </p>
+          @if (card.status === 'VALID') {
+            <a class="button" routerLink="new" [queryParams]="{ card: card.id }"
+              >Yêu cầu bảo hành</a
+            >
+          }
+        </article>
+      } @empty {
+        <div class="state">Không có phiếu bảo hành phù hợp.</div>
+      }
+    }
+    <h2>Yêu cầu đã gửi</h2>
+    @let requests = list();
+    @if (requests === undefined) {
+      <div class="state" role="status">Đang tải yêu cầu…</div>
+    } @else if (requests === null) {
+      <div class="state" role="alert">
+        Không tải được yêu cầu. <button (click)="retry.next(0)">Thử lại</button>
+      </div>
+    } @else {
+      @for (request of requests.data; track request.id) {
+        <a class="panel request-link" [routerLink]="[request.id]"
+          ><h3>{{ request.productName }}</h3>
+          <p>
+            {{ labels[request.status] || request.status }} ·
+            {{ request.requestedAt | date: 'dd/MM/yyyy' : '+0700' }}
+          </p></a
+        >
+      } @empty {
+        <div class="state">Bạn chưa gửi yêu cầu bảo hành.</div>
+      }
+      <nav class="pagination" aria-label="Phân trang yêu cầu">
+        <button [disabled]="requests.meta.page <= 1" (click)="page(requests.meta.page - 1)">
+          Trang trước</button
+        ><span>{{ requests.meta.page }} / {{ requests.meta.totalPages || 1 }}</span
+        ><button
+          [disabled]="requests.meta.page >= requests.meta.totalPages"
+          (click)="page(requests.meta.page + 1)"
+        >
+          Trang sau
+        </button>
+      </nav>
+    }
+  </section>

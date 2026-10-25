@@ -1,0 +1,41 @@
+<section class="feature-page container">
+  @let p = product();
+  @if (p === undefined) {
+    <div class="state" role="status">Đang tải sản phẩm…</div>
+  } @else if (p) {
+    <p class="eyebrow">CARAVESO / {{ p.productCode }}</p>
+    <h1>{{ p.name }}</h1>
+    <div class="detail-layout">
+      <div>
+        <img [src]="p.thumbnail" [alt]="p.name" />
+        @for (media of p.media; track $index) {
+          @if (media.type === 'IMAGE' && media.url !== p.thumbnail) {
+            <img [src]="media.url" [alt]="p.name" loading="lazy" />
+          }
+        }
+      </div>
+      <div>
+        <h2>{{ p.priceFrom | vnd }}</h2>
+        <p>{{ p.shortDescription }}</p>
+        <p>{{ p.description }}</p>
+        <div class="panel">
+          <h3>Biến thể</h3>
+          @for (v of p.variants; track v.id) {
+            <p>
+              {{ v.sku }} · {{ v.color }} · {{ v.material }} · {{ v.price.final | vnd }} ·
+              {{ v.stockStatus === 'OUT_OF_STOCK' ? 'Hết hàng' : 'Còn hàng' }}
+            </p>
+          }
+        </div>
+        <h3>Bảo hành {{ p.warranty.months }} tháng</h3>
+        <p>{{ p.warranty.terms }}</p>
+        <a class="button" routerLink="/account/warranty">Tra cứu bảo hành</a>
+      </div>
+    </div>
+  } @else {
+    <div class="state" role="alert">
+      Không tìm thấy sản phẩm hoặc không kết nối được máy chủ.
+      <a routerLink="/products">Về danh sách</a>
+    </div>
+  }
+</section>

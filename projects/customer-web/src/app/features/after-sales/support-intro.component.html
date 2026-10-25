@@ -1,0 +1,45 @@
+<div class="support-intro">
+  <h1>Đổi trả/ Bảo hành</h1>
+  <section class="policy-list" aria-label="Chính sách đổi trả và bảo hành">
+    <details open>
+      <summary>Chính sách bảo hành<span class="chevron" aria-hidden="true"></span></summary>
+      <div class="policy-copy">
+        <p>
+          Thời gian bảo hành được áp dụng tùy theo từng loại sản phẩm và được ghi rõ tại trang chi
+          tiết sản phẩm. Chính sách bảo hành áp dụng đối với các lỗi kỹ thuật, kết cấu hoặc phụ kiện
+          do nhà sản xuất. Các trường hợp hư hỏng do sử dụng sai cách, va đập, tự ý sửa chữa hoặc
+          hao mòn tự nhiên sẽ không thuộc phạm vi bảo hành.
+        </p>
+        <p>Khách hàng vui lòng cung cấp thông tin đơn hàng hoặc hóa đơn khi yêu cầu bảo hành.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Chính sách đổi trả<span class="chevron" aria-hidden="true"></span></summary>
+      <div class="policy-copy">
+        <p>
+          Bạn có thể gửi yêu cầu đổi trả trong {{ config()?.policy?.returnDays ?? 7 }} ngày kể từ
+          khi nhận hàng. Sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem nhãn và hóa
+          đơn. Hàng đã lắp đặt vẫn có thể được xem xét theo điều kiện từng sản phẩm.
+        </p>
+        <p>
+          Với sản phẩm lỗi, giao sai hoặc hư hỏng do vận chuyển, vui lòng chuẩn bị ảnh và video mở
+          hàng. Tiền hoàn được chuyển về tài khoản ngân hàng sau khi kiểm tra hàng đạt điều kiện,
+          trong {{ config()?.policy?.refundDaysMin ?? 3 }}–{{
+            config()?.policy?.refundDaysMax ?? 7
+          }}
+          ngày làm việc.
+        </p>
+      </div>
+    </details>
+  </section>
+  <div class="service-grid">
+    <button type="button" class="service-card" (click)="viewSelected.emit('warranty')">
+      <strong>Yêu cầu bảo hành</strong
+      ><span>Gửi thông tin sản phẩm gặp lỗi <span aria-hidden="true">→</span></span>
+    </button>
+    <button type="button" class="service-card" (click)="viewSelected.emit('return')">
+      <strong>Yêu cầu đổi trả</strong
+      ><span>Đổi hoặc trả sản phẩm đã nhận <span aria-hidden="true">→</span></span>
+    </button>
+  </div>
+</div>

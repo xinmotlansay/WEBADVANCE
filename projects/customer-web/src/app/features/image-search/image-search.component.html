@@ -1,0 +1,133 @@
+<section class="image-page" [class.feature-page]="!compact()" [class.container]="!compact()" [class.compact]="compact()">
+  @if (!compact()) {
+  <p class="eyebrow"><a routerLink="/">Trang chủ</a> / Tìm bằng ảnh</p>
+  <header class="image-heading">
+    <span class="kicker">TÌM SẢN PHẨM VỚI AI</span>
+    <h1>Thích món đồ trong ảnh?</h1>
+    <p>Tải ảnh lên để tìm sản phẩm có kiểu dáng gần giống trong bộ sưu tập CaraVeso.</p>
+    <a routerLink="/search">Tìm bằng từ khóa →</a>
+  </header>
+  }
+  <div class="image-workspace">
+    <section class="upload-panel" aria-label="Chọn ảnh tìm kiếm">
+      <input
+        class="file-input"
+        #camera
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
+        aria-label="Chụp ảnh sản phẩm"
+        (change)="select(camera.files?.[0]); camera.value = ''"
+      />
+      <div
+        class="drop-zone"
+        [class.dragging]="dragging()"
+        (dragover)="$event.preventDefault(); dragging.set(true)"
+        (dragleave)="dragging.set(false)"
+        (drop)="drop($event)"
+      >
+        <input
+          #file
+          [class.file-input]="!compact() || !!preview()"
+          [class.drop-zone-input]="compact() && !preview()"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Chọn ảnh sản phẩm"
+          (change)="select(file.files?.[0]); file.value = ''"
+        />
+        @if (preview()) {
+          <img [src]="preview()" alt="Ảnh dùng để tìm sản phẩm tương tự" class="preview" />
+          <p>Ảnh của bạn đã sẵn sàng</p>
+          <button type="button" class="text-link" (click)="file.click()">Đổi ảnh</button>
+        } @else {
+          @if (compact()) {
+            <span class="upload-trigger" aria-hidden="true">
+              <svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 21H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v10M3 17l5-5 4 4 3-3 2 2M19 16v6M16 19h6" />
+                <circle cx="15" cy="8" r="2" />
+              </svg>
+              <span>Tải hình ảnh lên</span>
+            </span>
+          } @else {
+          <span class="upload-icon"><app-icon name="lucide:camera" [size]="36" /></span>
+          <h2>Chọn ảnh món đồ bạn thích</h2>
+          <p>Kéo thả ảnh vào đây hoặc chọn từ thiết bị.</p>
+          <button type="button" class="primary" (click)="file.click()">Chọn ảnh</button>
+          <button type="button" class="text-link" (click)="camera.click()">
+            Chụp ảnh bằng camera
+          </button>
+          }
+        }
+        <small>JPG, PNG hoặc WebP · Tối đa 5 MB</small>
+      </div>
+      @if (compact() && !preview()) {
+        <div class="image-divider"><span>Hoặc</span></div>
+        <form class="image-link" (submit)="$event.preventDefault(); searchLink(imageLink.value)">
+          <input #imageLink type="text" required maxlength="2048" aria-label="Đường dẫn sản phẩm hoặc hình ảnh" placeholder="Dán link sản phẩm hoặc hình ảnh vào đây" />
+          <button type="submit" class="primary" [disabled]="loading()">{{ loading() ? 'Đang tải…' : 'Tìm kiếm' }}</button>
+        </form>
+      }
+      @if (preview()) {
+        <div class="image-actions">
+          <button type="button" class="primary" [disabled]="loading()" (click)="search()">
+            {{ loading() ? 'Đang tìm sản phẩm…' : 'Tìm sản phẩm tương tự' }}
+          </button>
+          <button type="button" (click)="reset()">Xóa ảnh</button>
+        </div>
+      }
+      @if (error()) {
+        <div class="feedback error" role="alert">
+          <strong>{{
+            unavailable() ? 'Bạn thử tìm bằng từ khóa nhé' : 'Chưa thể tìm với ảnh này'
+          }}</strong>
+          <p>{{ error() }}</p>
+          @if (!loading()) {
+            <button type="button" [disabled]="loading()" (click)="search()">Thử lại</button>
+          }
+          <a routerLink="/search">Tìm bằng từ khóa →</a>
+        </div>
+      }
+      @if (loading()) {
+        <p class="feedback" role="status" aria-live="polite">
+          Đang phân tích ảnh và tìm sản phẩm phù hợp…
+        </p>
+      }
+    </section>
+    @if (!compact()) {
+    <aside class="photo-tips">
+      <span class="kicker">MẸO CHỌN ẢNH</span>
+      <h2>Ảnh rõ hơn,<br />dễ tìm hơn.</h2>
+      <ol>
+        <li>Chọn ảnh có một món đồ chính, như ghế, bàn hoặc giường.</li>
+        <li>Ưu tiên ảnh đủ sáng, thấy rõ hình dáng sản phẩm.</li>
+        <li>Cắt bớt phần nền và các đồ vật xung quanh trước khi tải lên.</li>
+      </ol>
+      <p>
+        Kết quả gợi ý theo hình ảnh. Bạn hãy kiểm tra kích thước, chất liệu và màu sắc ở trang sản
+        phẩm trước khi chọn mua.
+      </p>
+    </aside>
+    }
+  </div>
+  @if (searched() && !error() && !loading()) {
+    <section class="image-results" aria-label="Kết quả tìm bằng ảnh">
+      <h2>
+        {{ items().length ? 'Sản phẩm có hình ảnh tương tự' : 'Chưa tìm thấy sản phẩm tương tự' }}
+      </h2>
+      @if (items().length) {
+        <p class="image-result-note">Gợi ý theo màu sắc và bố cục ảnh. Hãy kiểm tra chi tiết sản phẩm trước khi chọn mua.</p>
+      }
+      @if (!items().length) {
+        <p>
+          Thử ảnh chụp gần hơn, ít đồ vật xung quanh hoặc
+          <a routerLink="/search">tìm bằng từ khóa</a>.
+        </p>
+      }
+      <div class="product-grid">
+        @for (product of items(); track product.id) {
+          <app-product-card [product]="product" />
+        }
+      </div>
+    </section>
+  }
+</section>

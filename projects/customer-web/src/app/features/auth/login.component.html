@@ -1,0 +1,28 @@
+<section class="feature-page container">
+    <div class="form-panel">
+      <p class="eyebrow">CARAVESO / TÀI KHOẢN</p>
+      <h1>Đăng nhập</h1>
+      <p>Đăng nhập để quản lý bảo hành và đổi trả của bạn.</p>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <label
+          >Email hoặc số điện thoại<input
+            autocomplete="username"
+            formControlName="identifier" /></label
+        ><label
+          >Mật khẩu<input
+            type="password"
+            autocomplete="current-password"
+            formControlName="password"
+        /></label>
+        @if (form.touched && form.invalid) {
+          <p class="error">Vui lòng nhập tài khoản và mật khẩu.</p>
+        }
+        @if (error()) {
+          <p role="alert" class="error">{{ error() }}</p>
+        }
+        <button class="primary" [disabled]="loading()">
+          {{ loading() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
+        </button>
+      </form>
+    </div>
+  </section>

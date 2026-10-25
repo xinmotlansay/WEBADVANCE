@@ -1,0 +1,28 @@
+<fieldset>
+    <legend>Minh chứng (tối đa 6 file)</legend>
+    <p>Ảnh JPG/PNG/WebP ≤ 5 MB; video MP4/MOV ≤ 50 MB.</p>
+    <label
+      >Chọn ảnh hoặc video<input
+        #files
+        type="file"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+        [disabled]="busy() || urls().length >= 6"
+        (change)="upload(files.files?.[0]); files.value = ''"
+    /></label>
+    @if (busy()) {
+      <p role="status">Đang tải minh chứng…</p>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    @for (url of urls(); track url) {
+      <div class="evidence">
+        @if (isVideo(url)) {
+          <video [src]="url" controls preload="metadata"></video>
+        } @else {
+          <img [src]="url" alt="Ảnh minh chứng đã tải lên" loading="lazy" />
+        }
+        <button type="button" (click)="remove(url)">Bỏ minh chứng</button>
+      </div>
+    }
+  </fieldset>

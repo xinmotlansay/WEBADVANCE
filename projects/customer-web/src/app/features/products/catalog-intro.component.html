@@ -1,0 +1,25 @@
+<header class="catalog-intro">
+  <div class="intro-copy">
+    <span class="section-kicker">NỘI THẤT CHO KHÔNG GIAN SỐNG</span>
+    <h1>{{ imageSearch() ? 'Sản phẩm có hình ảnh tương tự' : keyword() ? 'Kết quả cho “' + keyword() + '”' : 'Tìm món đồ dành cho bạn' }}</h1>
+    <p>{{ imageSearch() ? 'Khám phá sản phẩm có kiểu dáng và màu sắc gần giống ảnh bạn tìm kiếm.' : 'Khám phá sản phẩm phù hợp với không gian và phong cách của bạn.' }}</p>
+  </div>
+  <aside class="intro-note" aria-label="Khám phá theo không gian">
+    <span class="section-kicker">BẮT ĐẦU TỪ KHÔNG GIAN</span>
+    <h2>Mỗi căn phòng, một cảm hứng.</h2>
+    @if (rooms().length) {
+      <div class="room-links">
+        @for (room of rooms(); track room.id) {
+          <button type="button" (click)="roomSelected.emit(room.id)">
+            {{ room.name }} <span aria-hidden="true">↗</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p>Dùng danh mục và khoảng giá bên dưới để thu hẹp lựa chọn.</p>
+    }
+    <a routerLink="/support" class="support-link"
+      >Đổi trả &amp; Bảo hành <span aria-hidden="true">→</span></a
+    >
+  </aside>
+</header>

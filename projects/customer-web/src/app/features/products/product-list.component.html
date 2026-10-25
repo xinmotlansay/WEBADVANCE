@@ -1,0 +1,259 @@
+<section class="feature-page container catalog-page">
+  <p class="eyebrow">
+    <a routerLink="/">Trang chủ</a><span>/</span>{{ imageSearch() ? 'Tìm bằng ảnh' : term() ? 'Tìm kiếm' : 'Sản phẩm' }}
+  </p>
+  <app-catalog-intro
+    [imageSearch]="imageSearch()"
+    [keyword]="term()"
+    [rooms]="rooms()"
+    (roomSelected)="selectRoom($event)"
+  />
+
+  <div class="catalog-layout">
+    <aside
+      [style.display]="imageSearch() ? 'none' : null"
+      #drawer
+      class="filters"
+      [class.filters--open]="filtersOpen()"
+      (keydown.escape)="filtersOpen.set(false); filterToggle.focus()"
+      (keydown.tab)="keepFilterFocus($event, drawer)"
+      aria-label="Bộ lọc sản phẩm"
+    >
+      <div class="filter-heading">
+        <h2>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 32 32"
+            width="30"
+            height="30"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M3 6h26M3 16h26M3 26h26" />
+            <circle cx="21" cy="6" r="3" fill="currentColor" />
+            <circle cx="10" cy="16" r="3" fill="currentColor" />
+            <circle cx="19" cy="26" r="3" fill="currentColor" /></svg
+          >Bộ lọc
+        </h2>
+        <button
+          #filterClose
+          type="button"
+          class="filter-toggle text-button"
+          (click)="filtersOpen.set(false); filterToggle.focus()"
+        >
+          Đóng ×
+        </button>
+        <button type="button" class="text-button reset-button" (click)="clear()">Đặt lại</button>
+      </div>
+      <form [formGroup]="form" (submit)="$event.preventDefault()">
+        <details class="filter-section price-section" open>
+          <summary>
+            <span>Giá <span class="price-unit">(VNĐ)</span></span
+            ><span class="chevron" aria-hidden="true"></span>
+          </summary>
+          <app-price-range
+            [minPrice]="form.controls.minPrice.value"
+            [maxPrice]="form.controls.maxPrice.value"
+            (priceChanged)="changePriceRange($event)"
+          />
+          <div class="range-fields">
+            <label
+              ><span class="sr-only">Từ</span>
+              <input
+                #minPriceInput
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="19"
+                placeholder="0"
+                aria-label="Giá thấp nhất"
+                [value]="formatPrice(form.controls.minPrice.value)"
+                (input)="enterPrice(minPriceInput, 'minPrice')"
+              />
+            </label>
+            <span class="range-divider" aria-hidden="true">–</span>
+            <label
+              ><span class="sr-only">Đến</span>
+              <input
+                #maxPriceInput
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="19"
+                placeholder="Tối đa"
+                aria-label="Giá cao nhất"
+                [value]="formatPrice(form.controls.maxPrice.value)"
+                (input)="enterPrice(maxPriceInput, 'maxPrice')"
+              />
+            </label>
+          </div>
+        </details>
+
+        @for (group of categoryGroups(); track group.type) {
+          <details class="filter-section" [open]="group.type === 'PRODUCT_CATEGORY'">
+            <summary>{{ group.name }} <span class="chevron" aria-hidden="true"></span></summary>
+            <div class="category-options">
+              @for (category of group.items; track category.id) {
+                <label class="check-row">
+                  <input
+                    type="checkbox"
+                    [checked]="form.controls.categoryIds.value.includes(category.id)"
+                    (change)="toggleCategory(category.id)"
+                  />
+                  <span>{{ category.name }}</span>
+                </label>
+              }
+            </div>
+          </details>
+        }
+
+        <div class="filter-section quick-options">
+          <label class="check-row"
+            ><input type="checkbox" formControlName="inStock" /><span>Chỉ còn hàng</span></label
+          >
+          <label class="check-row"
+            ><input type="checkbox" formControlName="hasPromotion" /><span
+              >Đang khuyến mãi</span
+            ></label
+          >
+        </div>
+
+        <details class="filter-section advanced-filters">
+          <summary>Bộ lọc khác <span class="chevron" aria-hidden="true"></span></summary>
+          <div class="advanced-fields">
+            <label>Màu sắc<input formControlName="color" placeholder="Ví dụ: Be, Xám" /></label>
+            <label>Chất liệu<input formControlName="material" placeholder="Ví dụ: Gỗ sồi" /></label>
+            <div class="dimension-heading">Chiều dài <span>cm</span></div>
+            <div class="range-fields">
+              <label
+                >Từ<input type="number" min="0" formControlName="minLength" placeholder="0"
+              /></label>
+              <span class="range-divider" aria-hidden="true">–</span>
+              <label
+                >Đến<input type="number" min="0" formControlName="maxLength" placeholder="Tối đa"
+              /></label>
+            </div>
+            <label
+              >Đặc điểm<select formControlName="badge">
+                <option value="">Tất cả sản phẩm</option>
+                <option value="NEW">Hàng mới</option>
+                <option value="BEST_SELLER">Bán chạy</option>
+              </select></label
+            >
+          </div>
+        </details>
+        @if (filterError()) {
+          <div class="filter-actions">
+            <p class="error" role="alert">{{ filterError() }}</p>
+          </div>
+        }
+      </form>
+    </aside>
+
+    <div class="catalog-results" [style.grid-column]="imageSearch() ? '1 / -1' : null">
+      <div class="catalog-toolbar">
+        <div class="result-summary">
+          <button
+            [style.display]="imageSearch() ? 'none' : null"
+            #filterToggle
+            type="button"
+            class="filter-toggle"
+            [attr.aria-expanded]="filtersOpen()"
+            (click)="openFilters()"
+          >
+            Bộ lọc
+            @if (chips().length) {
+              <span class="filter-count">{{ chips().length }}</span>
+            }
+          </button>
+          <p class="result-total" aria-live="polite">
+            {{ result().loading ? 'Đang tải…' : result().meta.total + ' sản phẩm' }}
+          </p>
+        </div>
+        <label class="sort-control"
+          >Sắp xếp
+          <select
+            #sortSelect
+            [value]="params().get('sort') || (imageSearch() ? 'similarity' : 'newest')"
+            (change)="setSort(sortSelect.value)"
+          >
+            @if (imageSearch()) {
+              <option value="similarity">Giống ảnh nhất</option>
+            } @else {
+              <option value="newest">Mới nhất</option>
+            }
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+            <option value="name_asc">Tên A–Z</option>
+            <option value="name_desc">Tên Z–A</option>
+          </select>
+        </label>
+      </div>
+      @if (chips().length) {
+        <div class="chips" aria-label="Bộ lọc đang áp dụng">
+          @for (chip of chips(); track chip.key) {
+            <button
+              type="button"
+              [attr.aria-label]="'Bỏ bộ lọc ' + chip.label"
+              (click)="remove(chip.key)"
+            >
+              {{ chip.label }} <span aria-hidden="true">×</span>
+            </button>
+          }
+          <button type="button" class="text-button clear-chips" (click)="clear()">
+            Xóa tất cả
+          </button>
+        </div>
+      }
+      @if (result().error) {
+        <div class="state" role="alert">
+          @if (imageSearch()) {
+            Kết quả tìm bằng ảnh đã hết phiên. <a routerLink="/search/image">Chọn ảnh để tìm lại</a>
+          } @else {
+            Không tải được sản phẩm. <button (click)="retry.next(0)">Thử lại</button>
+          }
+        </div>
+      } @else if (result().loading) {
+        <div class="product-grid" role="status" aria-label="Đang tải sản phẩm">
+          @for (slot of [1, 2, 3, 4, 5, 6]; track slot) {
+            <div class="skeleton" aria-hidden="true"></div>
+          }
+        </div>
+      } @else if (!result().items.length) {
+        <div class="state empty-state">
+          <span class="empty-symbol"><app-icon name="lucide:search" [size]="28" /></span>
+          <h2>Chưa tìm thấy sản phẩm phù hợp</h2>
+          @if (imageSearch()) {
+            <p>Thử ảnh chụp rõ món đồ, đủ sáng và ít chi tiết nền hơn.</p>
+            <a routerLink="/search/image">Tìm bằng ảnh khác</a>
+          } @else {
+            <p>Thử thay đổi khoảng giá hoặc bớt một vài bộ lọc nhé.</p>
+          }
+          @if (chips().length) {
+            <button type="button" class="empty-reset" (click)="clear()">Xóa bộ lọc</button>
+          }
+        </div>
+      } @else {
+        <div class="product-grid">
+          @for (product of result().items; track product.id) {
+            <app-product-card [product]="product" />
+          }
+        </div>
+      }
+      @if (result().meta.totalPages > 1) {
+        <nav class="pagination" aria-label="Phân trang">
+          <button [disabled]="result().loading || result().meta.page <= 1" (click)="page(-1)">
+            Trang trước</button
+          ><span>Trang {{ result().meta.page }} / {{ result().meta.totalPages }}</span
+          ><button
+            [disabled]="result().loading || result().meta.page >= result().meta.totalPages"
+            (click)="page(1)"
+          >
+            Trang sau
+          </button>
+        </nav>
+      }
+    </div>
+  </div>
+</section>

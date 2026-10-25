@@ -9,6 +9,8 @@ export interface StoreInfo {
 }
 
 export interface PublicConfig {
+  policy?: { returnDays: number; refundDaysMin: number; refundDaysMax: number };
+  limits?: { maxImageSizeMb: number };
   store: StoreInfo;
   labels: { newDays: number };
 }

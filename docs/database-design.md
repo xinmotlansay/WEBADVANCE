@@ -839,6 +839,14 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 
 ## Phụ lục – Bảng đối chiếu tên
 
+### Bổ sung triển khai 2026-10-23
+
+- `auth_sessions`: `_id` UUID, `userId` ObjectId, `tokenHash` SHA-256 của refresh token ngẫu nhiên, `expiresAt` Date (TTL index). Cookie không chứa mật khẩu, DB không lưu token gốc. Phiên khách tối đa 30 ngày; logout xóa phiên.
+- `warranty_requests` và `return_requests`: thêm `contact: { name, phone, address }`, `timeline: [{ status, at, note? }]`. Đổi trả thêm `CANCELLED` và `refundAccount: { bankName, accountNumber, accountHolder }` dùng lúc xử lý hoàn tiền; response che số tài khoản.
+- `orders.afterSalesVersion`: Number mặc định 0, chỉ dùng khóa ghi khi tính số lượng đổi/trả trong transaction; không sửa giá hoặc tồn kho.
+- `uploaded_files`: `_id` tên file UUID có đuôi đã kiểm tra, `userId`, `purpose`, `url`, `mime`, `size`, `createdAt`. Minh chứng liên kết bằng URL đã kiểm tra chủ sở hữu/purpose, không nhận URL tùy ý.
+- `product_image_embeddings`: `productId`, `mediaUrl`, `embedding: number[]`, `model`, `updatedAt`. Cần tự cấu hình Atlas Vector Search index có filter `model`, số chiều khớp provider; tác vụ index chưa triển khai.
+
 | Thực thể | Collection mới | Bảng SQL cũ |
 |---|---|---|
 | Người dùng | `users` | NGUOIDUNG |

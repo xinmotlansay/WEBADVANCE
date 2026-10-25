@@ -1,0 +1,45 @@
+<div class="scene" (keydown.escape)="active.set(null)">
+  <img #sceneImage class="scene-image" [src]="image().url" [alt]="image().title || 'Không gian nội thất'" />
+  @for (hotspot of image().hotspots; track $index; let i = $index) {
+    <button #point type="button" class="point" [style.left.%]="hotspot.x * 100" [style.top.px]="hotspot.y * imageHeight()"
+      [class.selected]="active() === hotspot.product.id" [attr.aria-label]="'Xem ' + hotspot.product.name"
+      [attr.aria-expanded]="active() === hotspot.product.id" [attr.aria-controls]="'hotspot-' + image().id + '-' + i"
+      (click)="active.set(active() === hotspot.product.id ? null : hotspot.product.id)"
+      (keydown.escape)="$event.stopPropagation(); active.set(null)"><span aria-hidden="true"></span></button>
+    @if (active() === hotspot.product.id) {
+      <section class="popover" role="region" [attr.aria-label]="hotspot.product.name" [id]="'hotspot-' + image().id + '-' + i"
+        [class.below]="hotspot.y < 0.42" [style.left]="'clamp(160px, ' + hotspot.x * 100 + '%, calc(100% - 160px))'"
+        [style.top.px]="hotspot.y * imageHeight()" (keydown.escape)="$event.stopPropagation(); close(point)">
+        <button type="button" class="close" aria-label="Đóng thông tin sản phẩm" (click)="close(point)">×</button>
+        <a class="product-preview" [routerLink]="['/products', hotspot.product.slug]">
+          <img [src]="hotspot.product.thumbnail" [alt]="hotspot.product.name" loading="lazy" />
+          <div class="product-copy"><h3>{{ hotspot.product.name }}</h3><p class="description">{{ hotspot.product.shortDescription }}</p><strong>{{ hotspot.product.priceFrom | vnd }}</strong></div>
+        </a>
+        <div class="popover-actions">
+          <a class="detail-link" [routerLink]="['/products', hotspot.product.slug]">Nhấn để xem chi tiết</a>
+          <button type="button" class="icon-button" aria-label="Chọn mẫu để mua" [disabled]="hotspot.product.stockStatus === 'OUT_OF_STOCK'" (click)="choose(hotspot.product)"><app-icon name="lucide:shopping-cart" [size]="23" /></button>
+          <button type="button" class="icon-button heart" [class.saved]="wishlist.ids().includes(hotspot.product.id)" [attr.aria-pressed]="wishlist.ids().includes(hotspot.product.id)"
+            [attr.aria-label]="wishlist.ids().includes(hotspot.product.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'" (click)="wishlist.toggle(hotspot.product.id)"><app-icon name="lucide:heart" [size]="21" /></button>
+        </div>
+        @if (hotspot.product.stockStatus === 'OUT_OF_STOCK') { <p class="feedback">Sản phẩm hiện hết hàng.</p> }
+        @if (choosing()) {
+          <div class="purchase">
+            @if (loading()) { <p role="status">Đang tải mẫu sản phẩm…</p> }
+            @if (detail(); as product) {
+              <label>Mẫu / màu sắc
+                <select #variant [value]="variantId()" (change)="variantId.set(variant.value); error.set('')">
+                  @for (v of product.variants; track v.id) { <option [value]="v.id" [disabled]="v.stockStatus === 'OUT_OF_STOCK'">{{ v.color }} · {{ v.material }} · {{ v.sku }}{{ v.stockStatus === 'OUT_OF_STOCK' ? ' — Hết hàng' : '' }}</option> }
+                </select>
+              </label>
+              @if (selectedVariant(); as selected) { <strong>{{ selected.price.final | vnd }}</strong> }
+              <label>Số lượng <input #qty type="number" min="1" max="99" step="1" [value]="quantity()" (input)="quantity.set(+qty.value)" /></label>
+              <div class="purchase-actions"><button type="button" [disabled]="!selectedVariant()" (click)="add()">Thêm vào giỏ</button><button type="button" class="primary" [disabled]="!selectedVariant()" (click)="add(true)">Mua ngay</button></div>
+            }
+          </div>
+        }
+        @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+        @if (message()) { <p class="feedback" role="status">{{ message() }} <a routerLink="/cart">Xem giỏ hàng →</a></p> }
+      </section>
+    }
+  }
+</div>

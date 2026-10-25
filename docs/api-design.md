@@ -1274,8 +1274,21 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 ## Lịch sử thay đổi
 
+### Bổ sung triển khai 2026-10-23
+
+- `GET /warranty-cards?q=`: tìm trong phiếu của người đăng nhập theo serial, mã đơn hoặc điện thoại nhận hàng. Mỗi phiếu trả thêm `id`, `orderCode`, `productName`, `remainingDays`.
+- `POST /warranty-requests`: thêm `contact: { name, phone, address }` bắt buộc; lưu thông tin liên hệ cho yêu cầu này. `GET` danh sách/chi tiết trả `id`, `timeline: [{ status, at, note? }]` và tên sản phẩm.
+- `GET /orders?status=DELIVERED`: trả danh sách phân trang theo contract; `GET /orders/:id` trả `items[].actions.canReturn`, `returnableQuantity`, `actualDeliveryDate`, `returnDeadline` do server tính.
+- `POST /return-requests/:id/cancel` (U): chỉ chủ yêu cầu, chỉ `PENDING → CANCELLED`, cập nhật nguyên tử. `GET` danh sách/chi tiết trả `canCancel`, timeline. `CANCELLED` không giữ số lượng đổi/trả.
+- `POST /return-requests`: thêm `contact: { name, phone, address }`. Minh chứng chỉ nhận URL do `/uploads` cấp cho chính người gửi, đúng purpose. Kiểm tra hạn/số lượng chạy trong transaction và khóa phiên bản dòng đơn để chống yêu cầu đồng thời vượt số lượng.
+- Phiên auth được lưu trong MongoDB `auth_sessions` (TTL), dùng cookie refresh `HttpOnly; SameSite=Strict`, `Secure` khi HTTPS. JWT HS256 có `sub`, `sid`, `exp` 15 phút. Refresh quay vòng token, logout thu hồi phiên. Chỉ hỗ trợ khách hàng trong đợt này; bcrypt cho mật khẩu đã có. Không tự tạo tài khoản hoặc đơn mua hàng.
+- Tìm ảnh nhận file multipart `image`; cấu hình `EMBEDDING_URL` trả `{ embedding: number[] }`, `EMBEDDING_MODEL`, `VECTOR_SEARCH_INDEX`. Không có cấu hình trả `503 IMAGE_SEARCH_UNAVAILABLE`, không trả sản phẩm giả. Upload bằng URL chưa triển khai.
+- `GET /products/:slug` triển khai các field dùng bởi UI: thông tin sản phẩm, media ảnh/video/model, warranty, variants với giá và tình trạng hàng; chưa triển khai parts/reviews/3D/cart.
+- Tìm kiếm dùng folding tiếng Việt + khoảng cách một ký tự trong bộ nhớ cho quy mô đồ án; từ đồng nghĩa lấy `searchKeywords`, chưa dùng Atlas Search. Lọc màu/chất liệu/kích thước phải khớp cùng một biến thể ACTIVE. Không có dữ liệu xếp hạng phổ biến nên dùng nhãn BEST_SELLER.
+
 | Phiên bản | Ngày | Nội dung |
 | :-- | :-- | :-- |
+| 1.6 | 2026-10-23 | Triển khai tìm kiếm/lọc, collection hotspot, auth CUSTOMER, upload minh chứng, bảo hành và đổi trả; bổ sung tra cứu phiếu, contact/timeline, hủy yêu cầu, session MongoDB và adapter tìm ảnh (chi tiết phía trên) |
 | 1.0 | 2026-10-17 | Bản đầu từ FR và thiết kế MongoDB |
 | 1.1 | 2026-10-17 | Thêm hoàn tiền, state machine đổi/trả và bảo hành, hóa đơn, cấu trúc dashboard, `GET /config/public`, `PATCH /cart/selection`, chi tiết `PATCH /cart/items`, mã lỗi bổ sung, ghi chú bảo mật, sửa tham chiếu mục 8.5, hỗ trợ `userVoucherId` khi đặt hàng |
 | 1.2 | 2026-10-17 | Bỏ loại trừ giao trễ do khách, bỏ thông báo cho khách (notifications chỉ cho Admin), mỗi sản phẩm một chương trình khuyến mãi (`PROMOTION_CONFLICT`), SKU `AAA.PPP.VV` tự sinh, hóa đơn điện tử tự phát hành sau giao thành công, đánh dấu đổi/trả và bảo hành ở mức demo |

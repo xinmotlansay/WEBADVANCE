@@ -10,6 +10,7 @@
 }
 
 /* Cuộn xuống, rê chuột vào hoặc mở menu thì header đổi sang nền trắng, chữ đen */
+:host(.solid),
 :host(.scrolled),
 :host(:hover),
 :host(.menu-open),
@@ -47,6 +48,9 @@
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
+.topbar__support { position: absolute; left: var(--page-gutter); font-size: var(--font-size-sm); }
+.nav .nav__link--support { display: none; }
+@media (max-width: 1180px) { .topbar__support { display: none; } .nav .nav__link--support { display: inline-flex; } }
 
 .header {
   background: var(--header-bg);
@@ -178,6 +182,7 @@
 
 /* Trạng thái trong suốt: ô tìm kiếm cũng trong suốt, viền và chữ trắng */
 .search {
+  position: relative;
   display: flex;
   flex: 1;
   align-items: center;
@@ -192,6 +197,28 @@
   transition:
     border-color 0.3s ease,
     background 0.3s ease;
+}
+
+.search__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-white);
+  color: var(--color-black);
+  border: 1px solid var(--color-gray-light);
+  max-height: 50vh;
+  overflow: auto;
+}
+.search__suggestions button,
+.search__suggestions a {
+  padding: var(--space-sm);
+  border: 0;
+  background: var(--color-surface);
+  text-align: left;
 }
 :host(.scrolled) .search,
 :host(:hover) .search,
@@ -326,6 +353,22 @@
 }
 
 @media (max-width: 760px) {
+  .topbar__inner {
+    justify-content: space-between;
+    gap: var(--space-sm);
+  }
+  .topbar__promo {
+    max-width: 70%;
+    text-align: left;
+    font-size: var(--font-size-xs);
+  }
+  .topbar__account {
+    position: static;
+    max-width: 30%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--font-size-xs);
+  }
   .header__inner {
     --search-w: 0px;
     --tools-gap: 0px;
@@ -341,3 +384,4 @@
     font-size: 32px;
   }
 }
+:host .cart-badge { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 12px; background: var(--color-primary); color: white; font-size: 10px; }

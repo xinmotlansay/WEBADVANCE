@@ -1,0 +1,16 @@
+fieldset {
+      border: 1px solid var(--color-gray-light);
+      padding: var(--space-md);
+    }
+    .evidence {
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+      margin-top: var(--space-sm);
+    }
+    img,
+    video {
+      width: 120px;
+      max-height: 120px;
+      object-fit: contain;
+    }

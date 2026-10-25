@@ -59,6 +59,7 @@
   font-size: var(--font-size-h5);
   font-weight: var(--font-weight-bold);
 }
+.caption h3 a { color: inherit; text-decoration: none; }
 .caption p {
   margin-top: 4px;
   font-size: var(--font-size-sm);

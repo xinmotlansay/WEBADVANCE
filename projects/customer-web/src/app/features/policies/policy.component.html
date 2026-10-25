@@ -1,0 +1,53 @@
+<section class="feature-page container">
+    <div class="form-panel">
+      <p class="eyebrow">CARAVESO / CHÍNH SÁCH</p>
+      @if (kind === 'warranty') {
+        <h1>Chính sách bảo hành</h1>
+        <p>
+          Thời hạn bảo hành tính từ ngày giao thực tế. Số tháng và phạm vi áp dụng được ghi ở từng
+          sản phẩm và phiếu bảo hành.
+        </p>
+        <p>
+          Khi phát hiện lỗi, hãy gửi mô tả và ảnh/video minh chứng. Trung tâm tiếp nhận, kiểm tra và
+          thông báo kết quả sửa chữa, thay linh kiện, đổi sản phẩm hoặc lý do từ chối.
+        </p>
+        <p>
+          Sản phẩm cồng kềnh được xếp lịch bảo hành tại nhà. Sản phẩm nhỏ được gửi về trung tâm;
+          CaraVeso chịu phí hai chiều trong phạm vi bảo hành.
+        </p>
+        <a class="button primary" routerLink="/account/warranty">Tra cứu và yêu cầu bảo hành</a>
+      } @else {
+        <h1>Chính sách đổi trả</h1>
+        @let data = config();
+        @if (data === undefined) {
+          <p role="status">Đang tải chính sách…</p>
+        } @else if (data) {
+          <p>
+            Gửi yêu cầu trong {{ data.policy?.returnDays }} ngày kể từ ngày giao thực tế. Áp dụng
+            cho cả hàng đã lắp đặt; sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem
+            nhãn và hóa đơn.
+          </p>
+          <p>
+            Lỗi sản phẩm, giao sai hoặc hư hại vận chuyển cần video mở hàng. CaraVeso chịu chi phí
+            khi lỗi thuộc CaraVeso. Khi đổi ý, khách chịu phí vận chuyển và phí tháo dỡ nếu có.
+          </p>
+          <p>
+            Được đổi trả một phần số lượng. Sản phẩm đổi phải còn hàng, có giá ngang hoặc cao hơn số
+            tiền thực trả; khách thanh toán phần chênh lệch. Sản phẩm đổi được cấp phiếu bảo hành
+            mới.
+          </p>
+          <p>
+            Hoàn tiền về tài khoản ngân hàng đã cung cấp sau kiểm tra, trong
+            {{ data.policy?.refundDaysMin }}–{{ data.policy?.refundDaysMax }} ngày làm việc. Voucher
+            đã dùng không hoàn lượt.
+          </p>
+          <p>Yêu cầu đang chờ xử lý có thể hủy từ trang chi tiết.</p>
+        } @else {
+          <p class="error" role="alert">
+            Không tải được chính sách hiện tại. Vui lòng tải lại trang.
+          </p>
+        }
+        <a class="button primary" routerLink="/account/returns">Quản lý đổi trả</a>
+      }
+    </div>
+  </section>

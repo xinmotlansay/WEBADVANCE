@@ -1,0 +1,11 @@
+<ol aria-label="Tiến trình yêu cầu">
+    @for (entry of entries(); track $index) {
+      <li>
+        <strong>{{ labels[entry.status] || entry.status }}</strong>
+        <p>{{ entry.at | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</p>
+        @if (entry.note) {
+          <p>{{ entry.note }}</p>
+        }
+      </li>
+    }
+  </ol>

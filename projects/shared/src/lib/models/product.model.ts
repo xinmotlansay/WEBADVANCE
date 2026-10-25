@@ -19,8 +19,32 @@ export interface ProductListItem {
 }
 
 export type ProductSort = 'price_asc' | 'price_desc' | 'newest' | 'name_asc' | 'name_desc';
+export interface ProductDetail extends ProductListItem {
+  productCode: string;
+  description: string;
+  warranty: { months: number; terms: string };
+  media: { type: 'IMAGE' | 'VIDEO_360' | 'MODEL_3D'; url: string; displayOrder: number }[];
+  variants: {
+    id: string;
+    sku: string;
+    color: string;
+    material: string;
+    dimensions?: { length?: number; width?: number; height?: number; unit: string };
+    stockStatus: StockStatus;
+    price: { original: number; sale: number; final: number };
+  }[];
+}
 
 export interface ProductListQuery {
+  q?: string;
+  color?: string[];
+  material?: string[];
+  minLength?: number;
+  maxLength?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
   categoryIds?: string[];
   badge?: ProductBadge;
   hasPromotion?: boolean;

@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { validateQuery } from '../../middlewares/validate.middleware.js';
 import { asyncHandler } from '../../utils/async-handler.js';
-import { sendPage } from '../../utils/response.js';
-import { listProducts } from './product.service.js';
+import { sendPage, sendData } from '../../utils/response.js';
+import { listProducts, getProductDetail } from './product.service.js';
+import { AppError } from '../../utils/app-error.js';
 import { productListQuerySchema, type ProductListQuery } from './product.schema.js';
 
 export const productRoutes = Router();
@@ -19,5 +20,14 @@ productRoutes.get(
       total,
       totalPages: Math.ceil(total / query.limit),
     });
+  }),
+);
+
+productRoutes.get(
+  '/:slug',
+  asyncHandler(async (req, res) => {
+    const product = await getProductDetail(String(req.params['slug']));
+    if (!product) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy sản phẩm');
+    sendData(res, product);
   }),
 );

@@ -4,6 +4,12 @@ import { Injectable, signal } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class SearchUiService {
   readonly open = signal(false);
+  readonly imageOpen = signal(false);
+
+  openImageSearch(): void {
+    this.closeSearch();
+    this.imageOpen.set(true);
+  }
   /** Tăng mỗi lần có yêu cầu đưa con trỏ vào ô tìm kiếm. */
   readonly focusRequest = signal(0);
 
