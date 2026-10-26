@@ -13,13 +13,16 @@ import {
   sendCustomerMessage,
   type AdminSessionFilter,
 } from './chat.service.js';
+import { askPublicAi } from './ai-chat.service.js';
+import type { ChatAiAskBody, ChatOpenSessionBody } from './chat.schema.js';
 
 function success<T>(data: T, message?: string) {
   return { success: true as const, data, ...(message ? { message } : {}) };
 }
 
 export const openSessionHandler: RequestHandler = async (req, res) => {
-  const session = await openSession(req.user!.id);
+  const body = (req.body ?? {}) as ChatOpenSessionBody;
+  const session = await openSession(req.user!.id, body.mode);
   res.status(200).json(success({ session }));
 };
 
@@ -79,4 +82,12 @@ export const adminSendMessageHandler: RequestHandler = async (req, res) => {
 export const adminCloseHandler: RequestHandler = async (req, res) => {
   const session = await closeSession(String(req.params.id));
   res.status(200).json(success({ session }));
+};
+
+/* ----------------------------- AI công khai ----------------------------- */
+
+export const publicAiAskHandler: RequestHandler = async (req, res) => {
+  const { message, history } = req.body as ChatAiAskBody;
+  const answer = await askPublicAi(message, history);
+  res.status(200).json(success(answer));
 };

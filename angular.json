@@ -56,7 +56,8 @@
               }
             ],
             "styles": [
-              "projects/customer-web/src/styles.css"
+              "projects/customer-web/src/styles.css",
+              "projects/customer-web/src/styles/_auth.scss"
             ],
             "polyfills": [
               "zone.js"

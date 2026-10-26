@@ -50,8 +50,29 @@ export interface ChatMessagesResponse {
   hasMore: boolean;
 }
 
+export interface ChatOpenSessionRequest {
+  mode?: ChatMode;
+}
+
 export interface ChatSendMessageRequest {
   content: string;
+}
+
+/** Một lượt hội thoại gửi kèm để AI công khai có ngữ cảnh (không lưu DB). */
+export interface ChatAiHistoryItem {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatAiAskRequest {
+  message: string;
+  history?: ChatAiHistoryItem[];
+}
+
+export interface ChatAiAskResponse {
+  reply: string;
+  suggestions: string[];
+  provider: 'demo' | 'n8n';
 }
 
 export interface ChatSendMessageResponse {

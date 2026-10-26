@@ -96,14 +96,20 @@ async function createMessage(input: {
   });
 }
 
-export async function openSession(customerId: string): Promise<ChatSessionView> {
+export async function openSession(customerId: string, mode: ChatMode = ChatMode.SUPPORT): Promise<ChatSessionView> {
   let session = await ChatSessionModel.findOne({
     customerId,
+    mode,
     status: { $ne: Status.CLOSED },
   }).sort({ lastMessageAt: -1 });
 
   if (!session) {
-    session = await ChatSessionModel.create({ customerId });
+    session = await ChatSessionModel.create({
+      customerId,
+      mode,
+      status: mode === ChatMode.SUPPORT ? Status.WAITING : Status.AI_ACTIVE,
+      handoffAt: mode === ChatMode.SUPPORT ? new Date() : null,
+    });
   }
 
   return toSessionView(session);

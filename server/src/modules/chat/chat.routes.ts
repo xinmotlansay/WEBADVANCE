@@ -7,11 +7,14 @@ import {
   listSessionsHandler,
   markReadHandler,
   openSessionHandler,
+  publicAiAskHandler,
   requestHandoffHandler,
   sendMessageHandler,
 } from './chat.controller.js';
 import {
+  chatAiAskSchema,
   chatMessagesQuerySchema,
+  chatOpenSessionSchema,
   chatSendMessageSchema,
   chatSessionListQuerySchema,
   chatSessionParamsSchema,
@@ -19,9 +22,26 @@ import {
 
 export const chatRouter = Router();
 
+chatRouter.post(
+  '/ai/ask',
+  validate({ body: chatAiAskSchema }),
+  rateLimit({
+    prefix: 'chat:ai:public',
+    limit: 20,
+    windowSeconds: 60,
+    keyFn: (req) => req.ip ?? 'unknown',
+    message: 'Bạn hỏi hơi nhanh, vui lòng chờ một chút rồi thử lại',
+  }),
+  publicAiAskHandler,
+);
+
 chatRouter.use(requireAuth);
 
-chatRouter.post('/sessions', openSessionHandler);
+chatRouter.post(
+  '/sessions',
+  validate({ body: chatOpenSessionSchema }),
+  openSessionHandler,
+);
 
 chatRouter.get(
   '/sessions',

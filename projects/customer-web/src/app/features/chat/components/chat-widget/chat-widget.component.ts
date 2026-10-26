@@ -6,18 +6,15 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import type { ChatMessageView, ChatSenderType } from 'shared';
 import { ChatSenderType as Sender } from 'shared';
+import { ChatUiService } from '../../../../core/chat/chat-ui.service';
 import { ChatService } from '../../chat.service';
 
-const QUICK_PROMPTS = [
-  'Chính sách bảo hành thế nào?',
-  'Đổi trả trong bao lâu?',
-  'Phí giao hàng tính ra sao?',
-];
-
+/** Khung chat CSKH: mở từ icon bên phải, bắt buộc đăng nhập và lưu lịch sử trong DB. */
 @Component({
   selector: 'app-chat-widget',
   templateUrl: './chat-widget.component.html',
@@ -26,9 +23,8 @@ const QUICK_PROMPTS = [
 })
 export class ChatWidgetComponent {
   protected readonly chat = inject(ChatService);
-  protected readonly quickPrompts = QUICK_PROMPTS;
+  protected readonly ui = inject(ChatUiService);
 
-  protected readonly open = signal(false);
   protected readonly draft = signal('');
 
   private readonly scrollRef = viewChild<ElementRef<HTMLDivElement>>('scroll');
@@ -37,58 +33,66 @@ export class ChatWidgetComponent {
 
   protected readonly headerLabel = computed(() => {
     const session = this.chat.session();
-    if (!session) return 'Trợ lý CaraVeso';
+    if (!session) return 'Chăm sóc khách hàng';
     if (session.status === 'CLOSED') return 'Cuộc trò chuyện đã kết thúc';
-    if (session.mode === 'SUPPORT') {
-      return session.status === 'WAITING' ? 'Đang chờ nhân viên CSKH' : 'Nhân viên CSKH';
-    }
-    return 'Trợ lý AI CaraVeso';
+    if (session.status === 'WAITING') return 'Đang kết nối nhân viên';
+    if (session.status === 'IN_PROGRESS') return 'Nhân viên CSKH';
+    return 'Chăm sóc khách hàng';
   });
 
   protected readonly headerHint = computed(() => {
     const session = this.chat.session();
-    if (!session) return 'Tư vấn sản phẩm và chính sách';
+    if (!session) return 'Gửi tin nhắn, nhân viên sẽ phản hồi';
     if (session.status === 'CLOSED') return 'Cảm ơn anh/chị đã liên hệ';
-    if (session.mode === 'SUPPORT') {
-      return session.status === 'WAITING'
-        ? 'Tin nhắn đã được gửi tới bộ phận CSKH'
-        : 'Nhân viên đang hỗ trợ anh/chị';
-    }
-    return 'Trả lời tự động 24/7';
+    if (session.status === 'WAITING') return 'Tin nhắn đã được gửi tới bộ phận CSKH';
+    if (session.status === 'IN_PROGRESS') return 'Nhân viên đang hỗ trợ anh/chị';
+    return 'Gửi tin nhắn, nhân viên sẽ phản hồi';
   });
 
   protected readonly canSend = computed(() => !this.chat.isClosed() && !this.chat.sending());
 
   constructor() {
+    // Chỉ phụ thuộc `supportOpen`; mọi đọc/ghi signal bên trong phải untracked,
+    // nếu không `open()` (đọc `_loading`) sẽ làm effect tự chạy lại vô hạn.
+    effect(() => {
+      const open = this.ui.supportOpen();
+
+      untracked(() => {
+        if (!open) {
+          this.chat.notifyTyping(false);
+          return;
+        }
+
+        void this.chat.open().then(() => {
+          this.scrollToBottom();
+          queueMicrotask(() => this.inputRef()?.nativeElement.focus());
+        });
+      });
+    });
+
     effect(() => {
       const messages = this.chat.messages();
-      if (messages.length > 0 && this.open()) {
-        this.scrollToBottom();
-      }
+      const open = this.ui.supportOpen();
+      untracked(() => {
+        if (messages.length > 0 && open) {
+          this.scrollToBottom();
+        }
+      });
     });
 
     effect(() => {
-      if (this.open() && !this.chat.loading()) {
-        queueMicrotask(() => this.inputRef()?.nativeElement.focus());
-      }
-    });
-
-    effect(() => {
-      if (this.open() && this.chat.unread() > 0) {
-        void this.chat.markRead();
-      }
+      const open = this.ui.supportOpen();
+      const unread = this.chat.unread();
+      untracked(() => {
+        if (open && unread > 0) {
+          void this.chat.markRead();
+        }
+      });
     });
   }
 
-  protected toggle(): void {
-    const next = !this.open();
-    this.open.set(next);
-
-    if (next) {
-      void this.chat.open().then(() => this.scrollToBottom());
-    } else {
-      this.chat.notifyTyping(false);
-    }
+  protected close(): void {
+    this.ui.closeSupport();
   }
 
   protected onDraftInput(value: string): void {
@@ -122,16 +126,6 @@ export class ChatWidgetComponent {
       this.chat.notifyTyping(false);
       this.scrollToBottom();
     }
-  }
-
-  protected sendQuick(prompt: string): void {
-    if (this.chat.sending()) return;
-    void this.chat.send(prompt).then(() => this.scrollToBottom());
-  }
-
-  protected async requestAgent(): Promise<void> {
-    await this.chat.requestAgent();
-    this.scrollToBottom();
   }
 
   protected restart(): void {

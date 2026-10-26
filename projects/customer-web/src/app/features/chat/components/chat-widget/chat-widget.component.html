@@ -1,186 +1,127 @@
-<div class="chat-root">
-  @if (open()) {
-    <section class="chat-panel" role="dialog" aria-label="Cửa sổ chat CaraVeso">
-      <header class="chat-header">
-        <span class="chat-brand" aria-hidden="true">C</span>
+@if (ui.supportOpen()) {
+  <section class="chat-panel" role="dialog" aria-label="Cửa sổ chat chăm sóc khách hàng CaraVeso">
+    <header class="chat-header">
+      <span class="chat-brand" aria-hidden="true">C</span>
 
-        <div class="chat-title">
-          <strong>{{ headerLabel() }}</strong>
-          <span>{{ headerHint() }}</span>
-        </div>
-
-        <span
-          class="conn"
-          [class.online]="chat.connection() === 'connected'"
-          [attr.title]="chat.connection() === 'connected' ? 'Đã kết nối' : 'Đang kết nối lại'"
-        ></span>
-
-        <button class="icon-btn" type="button" (click)="toggle()" aria-label="Đóng cửa sổ chat">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path
-              d="M6 6l12 12M18 6L6 18"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
-      </header>
-
-      @if (chat.canRequestAgent()) {
-        <button class="handoff" type="button" (click)="requestAgent()">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path
-              d="M12 3l7 4v5c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V7l7-4z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-            />
-          </svg>
-          Gặp nhân viên CSKH
-        </button>
-      }
-
-      <div class="chat-body" #scroll>
-        @if (chat.loading() && chat.messages().length === 0) {
-          <div class="chat-loading">
-            <span></span><span></span><span></span>
-          </div>
-        } @else if (chat.messages().length === 0) {
-          <div class="chat-intro">
-            <span class="intro-mark">C</span>
-            <h3>Xin chào anh/chị!</h3>
-            <p>
-              Em là trợ lý của CaraVeso. Em có thể tư vấn sản phẩm nội thất và các chính sách bảo hành,
-              đổi trả, giao hàng, thanh toán.
-            </p>
-            <div class="quick-list">
-              @for (prompt of quickPrompts; track prompt) {
-                <button type="button" (click)="sendQuick(prompt)">{{ prompt }}</button>
-              }
-            </div>
-          </div>
-        } @else {
-          @if (chat.hasMore()) {
-            <button class="load-more" type="button" (click)="chat.loadMore()">Xem tin nhắn cũ hơn</button>
-          }
-
-          @for (message of chat.messages(); track message.id) {
-            @if (isSystem(message)) {
-              <p class="system-line">{{ message.content }}</p>
-            } @else {
-              <div class="message" [class.mine]="isMine(message)">
-                @if (!isMine(message)) {
-                  <span class="msg-avatar" [class.ai]="message.senderType === 'AI'">
-                    {{ avatarLabel(message.senderType) }}
-                  </span>
-                }
-
-                <div class="msg-main">
-                  <div class="bubble">{{ message.content }}</div>
-                  <span class="msg-time">{{ formatTime(message.sentAt) }}</span>
-                </div>
-              </div>
-            }
-          }
-
-          @if (chat.isWaiting()) {
-            <div class="waiting">
-              <span class="waiting-dots"><i></i><i></i><i></i></span>
-              Đang chờ nhân viên CSKH tiếp nhận
-            </div>
-          }
-        }
+      <div class="chat-title">
+        <strong>{{ headerLabel() }}</strong>
+        <span>{{ headerHint() }}</span>
       </div>
 
-      @if (chat.error()) {
-        <p class="chat-error" role="alert">{{ chat.error() }}</p>
-      }
+      <span
+        class="conn"
+        [class.online]="chat.connection() === 'connected'"
+        [attr.title]="chat.connection() === 'connected' ? 'Đã kết nối' : 'Đang kết nối lại'"
+      ></span>
 
-      <footer class="chat-composer">
-        @if (chat.isClosed()) {
-          <div class="closed-box">
-            <p>Cuộc trò chuyện này đã kết thúc.</p>
-            <button type="button" (click)="restart()">Bắt đầu cuộc trò chuyện mới</button>
-          </div>
-        } @else {
-          <div class="composer-row">
-            <textarea
-              #input
-              rows="1"
-              maxlength="2000"
-              placeholder="Nhập tin nhắn cho CaraVeso..."
-              [value]="draft()"
-              [disabled]="chat.sending()"
-              (input)="onInput($event)"
-              (keydown)="onKeydown($event)"
-              aria-label="Nội dung tin nhắn"
-            ></textarea>
+      <button class="icon-btn" type="button" (click)="close()" aria-label="Đóng cửa sổ chat">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path
+            d="M6 6l12 12M18 6L6 18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </header>
 
-            <button
-              class="send-btn"
-              type="button"
-              [disabled]="!draft().trim() || !canSend()"
-              (click)="send()"
-              aria-label="Gửi tin nhắn"
-            >
-              @if (chat.sending()) {
-                <span class="spinner"></span>
-              } @else {
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path
-                    d="M4 12l16-8-5 8 5 8-16-8z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              }
-            </button>
-          </div>
-          <small class="composer-hint">Enter để gửi · Shift + Enter để xuống dòng</small>
+    <div class="chat-body" #scroll>
+      @if (chat.loading() && chat.messages().length === 0) {
+        <div class="chat-loading">
+          <span></span><span></span><span></span>
+        </div>
+      } @else if (chat.messages().length === 0) {
+        <div class="chat-intro">
+          <span class="intro-mark">C</span>
+          <h3>Xin chào anh/chị!</h3>
+          <p>
+            Anh/chị để lại lời nhắn về sản phẩm, đơn hàng hoặc bảo hành. Nhân viên CaraVeso sẽ
+            phản hồi trong thời gian sớm nhất.
+          </p>
+        </div>
+      } @else {
+        @if (chat.hasMore()) {
+          <button class="load-more" type="button" (click)="chat.loadMore()">Xem tin nhắn cũ hơn</button>
         }
-      </footer>
-    </section>
-  }
 
-  <button
-    class="chat-fab"
-    type="button"
-    [class.opened]="open()"
-    (click)="toggle()"
-    [attr.aria-label]="open() ? 'Đóng chat' : 'Mở chat'"
-  >
-    @if (open()) {
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <path
-          d="M6 6l12 12M18 6L6 18"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-        />
-      </svg>
-    } @else {
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-        <path
-          d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8a2.5 2.5 0 01-2.5 2.5H10l-4.6 3.6c-.6.5-1.4 0-1.4-.7V5.5z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linejoin="round"
-        />
-        <circle cx="9" cy="9.5" r="1" fill="currentColor" />
-        <circle cx="12.5" cy="9.5" r="1" fill="currentColor" />
-        <circle cx="16" cy="9.5" r="1" fill="currentColor" />
-      </svg>
+        @for (message of chat.messages(); track message.id) {
+          @if (isSystem(message)) {
+            <p class="system-line">{{ message.content }}</p>
+          } @else {
+            <div class="message" [class.mine]="isMine(message)">
+              @if (!isMine(message)) {
+                <span class="msg-avatar" [class.ai]="message.senderType === 'AI'">
+                  {{ avatarLabel(message.senderType) }}
+                </span>
+              }
 
-      @if (chat.unread() > 0) {
-        <span class="fab-badge">{{ chat.unread() > 9 ? '9+' : chat.unread() }}</span>
+              <div class="msg-main">
+                <div class="bubble">{{ message.content }}</div>
+                <span class="msg-time">{{ formatTime(message.sentAt) }}</span>
+              </div>
+            </div>
+          }
+        }
+
+        @if (chat.isWaiting()) {
+          <div class="waiting">
+            <span class="waiting-dots"><i></i><i></i><i></i></span>
+            Đang chờ nhân viên CSKH tiếp nhận
+          </div>
+        }
       }
+    </div>
+
+    @if (chat.error()) {
+      <p class="chat-error" role="alert">{{ chat.error() }}</p>
     }
-  </button>
-</div>
+
+    <footer class="chat-composer">
+      @if (chat.isClosed()) {
+        <div class="closed-box">
+          <p>Cuộc trò chuyện này đã kết thúc.</p>
+          <button type="button" (click)="restart()">Bắt đầu cuộc trò chuyện mới</button>
+        </div>
+      } @else {
+        <div class="composer-row">
+          <textarea
+            #input
+            rows="1"
+            maxlength="2000"
+            placeholder="Nhập tin nhắn cho bộ phận CSKH..."
+            [value]="draft()"
+            [disabled]="chat.sending()"
+            (input)="onInput($event)"
+            (keydown)="onKeydown($event)"
+            aria-label="Nội dung tin nhắn"
+          ></textarea>
+
+          <button
+            class="send-btn"
+            type="button"
+            [disabled]="!draft().trim() || !canSend()"
+            (click)="send()"
+            aria-label="Gửi tin nhắn"
+          >
+            @if (chat.sending()) {
+              <span class="spinner"></span>
+            } @else {
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path
+                  d="M4 12l16-8-5 8 5 8-16-8z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            }
+          </button>
+        </div>
+        <small class="composer-hint">Enter để gửi · Shift + Enter để xuống dòng</small>
+      }
+    </footer>
+  </section>
+}

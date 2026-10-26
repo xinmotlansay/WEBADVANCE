@@ -2,10 +2,10 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import type {
   ApiResponse,
-  ChatHandoffResponse,
   ChatMessageEvent,
   ChatMessageView,
   ChatMessagesResponse,
+  ChatOpenSessionRequest,
   ChatReadResponse,
   ChatSendMessageResponse,
   ChatSessionUpdatedEvent,
@@ -49,9 +49,6 @@ export class ChatService {
     () =>
       this._session()?.mode === ChatMode.SUPPORT &&
       this._session()?.status === ChatSessionStatus.IN_PROGRESS,
-  );
-  readonly canRequestAgent = computed(
-    () => this._session()?.mode === ChatMode.AI && !this.isClosed(),
   );
 
   constructor() {
@@ -128,26 +125,6 @@ export class ChatService {
     }
   }
 
-  async requestAgent(): Promise<void> {
-    const session = this._session();
-    if (!session || !this.canRequestAgent()) {
-      return;
-    }
-
-    this._error.set(null);
-    try {
-      const response = await firstValueFrom(
-        this.http.post<ApiResponse<ChatHandoffResponse>>(`${API_BASE}/sessions/${session.id}/handoff`, {}),
-      );
-      this._session.set(response.data.session);
-      if (response.data.message) {
-        this.upsertMessages([response.data.message]);
-      }
-    } catch (error) {
-      this._error.set(toMessage(error));
-    }
-  }
-
   async markRead(): Promise<void> {
     const session = this._session();
     if (!session || session.customerUnread === 0) {
@@ -201,8 +178,9 @@ export class ChatService {
       return existing;
     }
 
+    const body: ChatOpenSessionRequest = { mode: ChatMode.SUPPORT };
     const response = await firstValueFrom(
-      this.http.post<ApiResponse<{ session: ChatSessionView }>>(`${API_BASE}/sessions`, {}),
+      this.http.post<ApiResponse<{ session: ChatSessionView }>>(`${API_BASE}/sessions`, body),
     );
     this._session.set(response.data.session);
     this._messages.set([]);

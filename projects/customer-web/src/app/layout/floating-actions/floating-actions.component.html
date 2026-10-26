@@ -3,22 +3,37 @@
     <app-icon name="lucide:search" [size]="18" />
     <span>Search</span>
   </button>
-  <!-- TODO: trợ lý AI tìm kiếm sản phẩm (FR-17) -->
-  <button type="button" class="dock__ai" aria-label="Trợ lý AI (sắp ra mắt)" title="Sắp ra mắt">
+
+  <button
+    type="button"
+    class="dock__ai"
+    [class.dock__ai--active]="aiOpen()"
+    (click)="openAi()"
+    [attr.aria-expanded]="aiOpen()"
+    aria-label="Trợ lý AI CaraVeso"
+    title="Trợ lý AI CaraVeso"
+  >
     <app-icon name="lucide:sparkles" [size]="18" />
   </button>
 </div>
 
 <div class="side">
-  <!-- TODO(FR-44): chat với chăm sóc khách hàng -->
   <button
     type="button"
     class="side__chat"
-    aria-label="Chat với CSKH (sắp ra mắt)"
-    title="Sắp ra mắt"
+    [class.side__chat--active]="supportOpen()"
+    (click)="openSupport()"
+    [attr.aria-expanded]="supportOpen()"
+    aria-label="Chat với chăm sóc khách hàng"
+    title="Chat với chăm sóc khách hàng"
   >
     <app-icon name="mdi:chat-processing" [size]="42" />
+
+    @if (unread() > 0) {
+      <span class="side__badge">{{ unread() > 9 ? '9+' : unread() }}</span>
+    }
   </button>
+
   <button
     type="button"
     class="side__top"

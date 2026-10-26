@@ -32,6 +32,11 @@ const POLICIES: Record<string, string> = {
 
 const DEMO_REPLIES: Array<{ keywords: string[]; reply: string }> = [
   {
+    keywords: ['sofa', 'ghế', 'bàn', 'giường', 'tủ', 'nội thất', 'phòng', 'm2', 'm²', 'vải'],
+    reply:
+      'Dạ, với phòng khoảng 20m², anh/chị nên chọn sofa 2-3 chỗ dài khoảng 1,8-2,2m để không chắn lối đi, ưu tiên chân thấp hoặc sofa module để mở rộng không gian. Nếu dùng sofa da, da bò hoặc da microfiber dễ vệ sinh và bền hơn trong sinh hoạt hằng ngày; nếu phòng nhiều nắng, nên chọn tông sáng và tránh kê sát cửa sổ. Anh/chị cho em biết thêm diện tích và phong cách mong muốn để em gợi ý mẫu phù hợp nhé.',
+  },
+  {
     keywords: ['bảo hành', 'hỏng', 'hư', 'lỗi', 'sửa'],
     reply:
       'Dạ, sản phẩm của CaraVeso được bảo hành tính từ ngày giao thực tế theo từng dòng sản phẩm. Hàng cồng kềnh được bảo hành tại nhà, hàng nhỏ gửi về trung tâm và CaraVeso chịu phí hai chiều trong phạm vi bảo hành. Anh/chị cho em biết tên sản phẩm để em kiểm tra thời hạn cụ thể nhé.',
@@ -59,7 +64,14 @@ const DEMO_REPLIES: Array<{ keywords: string[]; reply: string }> = [
 ];
 
 const DEMO_FALLBACK =
-  'Dạ, em là trợ lý tư vấn của CaraVeso. Hiện em có thể hỗ trợ về sản phẩm nội thất, bảo hành, đổi trả, giao hàng, thanh toán và voucher. Anh/chị cho em biết rõ hơn nhu cầu để em tư vấn nhé.';
+  'Dạ, câu hỏi này nằm ngoài phạm vi tư vấn nội thất của CaraVeso nên em chưa thể trả lời chính xác. Anh/chị có thể hỏi em về sản phẩm, bảo hành, đổi trả, giao hàng, thanh toán hoặc voucher ạ.';
+
+/** Gợi ý câu hỏi tiếp theo cho khung chat AI công khai (không lưu DB). */
+const PUBLIC_SUGGESTIONS = [
+  'Sofa da phù hợp phòng 20m²?',
+  'Chính sách đổi trả thế nào?',
+  'Phí giao hàng tính ra sao?',
+];
 
 export interface AiReplyResult {
   replies: ChatMessageDocument[];
@@ -236,4 +248,49 @@ export async function respondWithAi(
   }
 
   return { replies, session, handoff };
+}
+
+export interface PublicAiAnswer {
+  reply: string;
+  suggestions: string[];
+  provider: 'demo' | 'n8n';
+}
+
+/**
+ * Trả lời AI cho khung chat công khai trên trang chủ.
+ * Không tạo phiên, không ghi tin nhắn vào MongoDB; lịch sử do client gửi lên.
+ */
+export async function askPublicAi(message: string, history: HistoryItem[]): Promise<PublicAiAnswer> {
+  try {
+    if (isChatWorkflowConfigured()) {
+      const result = await callChatWorkflow({
+        sessionId: 'public',
+        message,
+        history: history.slice(-8),
+        customer: { id: 'guest', fullName: 'Khách' },
+        context: { products: [], policies: POLICIES },
+      });
+
+      if (!result) {
+        throw new Error('Workflow không trả về dữ liệu');
+      }
+
+      const productSuggestions = result.suggestedProducts.slice(0, 3);
+      return {
+        reply: result.reply,
+        suggestions: productSuggestions.length > 0 ? productSuggestions : PUBLIC_SUGGESTIONS,
+        provider: 'n8n',
+      };
+    }
+
+    return { reply: buildDemoReply(message), suggestions: PUBLIC_SUGGESTIONS, provider: 'demo' };
+  } catch (error) {
+    logger.warn({ err: error }, 'AI công khai không phản hồi');
+    return {
+      reply:
+        'Dạ, trợ lý đang bận một chút. Anh/chị thử lại sau ít phút, hoặc đăng nhập để chat trực tiếp với nhân viên CSKH ạ.',
+      suggestions: PUBLIC_SUGGESTIONS,
+      provider: 'demo',
+    };
+  }
 }
