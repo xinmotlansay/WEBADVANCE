@@ -9,5 +9,7 @@ import { CartService } from '../../core/cart/cart.service';
   styleUrl: './site-header.component.css'
 })
 export class SiteHeaderComponent {
-  constructor(protected readonly cart: CartService) {}
+  constructor(protected readonly cart: CartService) {
+    cart.refresh();
+  }
 }

@@ -7,7 +7,7 @@
 @if (product(); as product) {
 <nav class="breadcrumbs" aria-label="Đường dẫn">
   <a routerLink="/">Trang chủ</a><span>›</span>
-  @for (category of product.category; track category) { <a routerLink="/products/sofa-da-milan">{{ category }}</a><span>›</span> }
+  @for (category of product.category; track category) { <a [routerLink]="['/products', product.slug]">{{ category }}</a><span>›</span> }
   <strong>{{ product.name }}</strong>
 </nav>
 
@@ -15,13 +15,13 @@
   <section class="product-overview" aria-labelledby="product-title">
     <div class="product-gallery">
       <div class="main-image">
-        <img [src]="product.images[selectedImageIndex()]" [alt]="product.name" [style.filter]="product.color[selectedColorIndex()].filter" />
-        <button class="favorite-button" type="button" (click)="toggleFavorite()" [attr.aria-pressed]="favorite()" [attr.aria-label]="favorite() ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'">{{ favorite() ? '♥' : '♡' }}</button>
+        <img [src]="product.images[selectedImageIndex()]" [alt]="product.name" />
+        <button class="favorite-button" type="button" (click)="toggleFavorite()" [disabled]="pendingAction() === 'wishlist:' + product.id" [attr.aria-pressed]="isFavorite()" [attr.aria-label]="isFavorite() ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'">{{ isFavorite() ? '♥' : '♡' }}</button>
       </div>
       <div class="thumbnails" aria-label="Hình ảnh sản phẩm">
         @for (image of product.images; track $index) {
           <button type="button" class="thumbnail" [class.active]="selectedImageIndex() === $index" (click)="selectedImageIndex.set($index)" [attr.aria-label]="'Xem ảnh ' + ($index + 1)">
-            <img [src]="image" [alt]="product.name" [style.filter]="selectedColorIndex() === 0 ? 'none' : product.color[selectedColorIndex()].filter" />
+            <img [src]="image" [alt]="product.name" />
           </button>
         }
       </div>
@@ -30,33 +30,51 @@
     <div class="product-info">
       <h1 id="product-title">{{ product.name }}</h1>
       <a class="rating-summary" href="#reviews">
-        <span class="stars">@for (star of [1, 2, 3, 4, 5]; track star) { <span [style.opacity]="star <= product.rating ? 1 : 0.25">★</span> }</span><span class="rating-score">{{ product.rating.toFixed(1) }}</span><span>{{ product.reviewCount }} Đánh giá</span>
+        <span class="stars" [attr.aria-label]="(reviews()?.average ?? 0) + ' trên 5 sao'">@for (star of [1, 2, 3, 4, 5]; track star) { <span [style.opacity]="star <= (reviews()?.average ?? 0) + 0.25 ? 1 : 0.25">★</span> }</span>
+        <span class="rating-score">{{ (reviews()?.average ?? 0).toFixed(1) }}</span><span>{{ reviews()?.total ?? 0 }} Đánh giá</span>
       </a>
-      <div class="product-option product-type">
-        <strong>Loại ghế <small>(5)</small></strong>
-        <span>{{ product.capacity }}</span>
-      </div>
-      <div class="product-option color-option">
-        <div class="option-heading"><strong>Màu sắc</strong><span>{{ product.color[selectedColorIndex()].name }} <small>({{ product.color.length }})</small></span></div>
-        <div class="color-choices">
-          @for (color of product.color; track color.name; let index = $index) {
-            <button type="button" [class.active]="selectedColorIndex() === index" (click)="selectColor(index)" [attr.aria-label]="color.name" [attr.aria-pressed]="selectedColorIndex() === index">
-              <img [src]="color.thumbnail" [alt]="color.name" [style.filter]="color.filter" />
-            </button>
-          }
+      @if (selectedVariant(); as variant) {
+        <div class="product-option product-type">
+          <strong>Kích thước</strong>
+          <span>{{ variant.size }}</span>
         </div>
-      </div>
-      <div class="purchase-row">
-        <div class="quantity-control" aria-label="Số lượng">
-          <button type="button" aria-label="Giảm số lượng" (click)="decreaseQuantity()">−</button>
-          <span>{{ quantity() }}</span>
-          <button type="button" aria-label="Tăng số lượng" (click)="increaseQuantity()">+</button>
+        <div class="product-option color-option">
+          <div class="option-heading"><strong>Màu sắc</strong><span>{{ variant.name }} <small>({{ product.variants.length }})</small></span></div>
+          <div class="color-choices">
+            @for (option of product.variants; track option.variantId; let index = $index) {
+              <button type="button" [class.active]="selectedVariantIndex() === index" [class.sold-out]="option.stockStatus === 'OUT_OF_STOCK'" (click)="selectVariant(index)" [attr.aria-label]="option.name + ' - ' + stockLabels[option.stockStatus]" [attr.aria-pressed]="selectedVariantIndex() === index" [title]="option.name">
+                @if (option.thumbnail) {
+                  <img [src]="option.thumbnail" [alt]="option.name" />
+                } @else {
+                  <span class="color-swatch" [style.background]="option.swatch"></span>
+                }
+              </button>
+            }
+          </div>
         </div>
-        <strong class="product-price">{{ formatPrice(product.price) }}</strong>
-      </div>
+        <div class="purchase-row">
+          <div class="quantity-control" aria-label="Số lượng">
+            <button type="button" aria-label="Giảm số lượng" (click)="decreaseQuantity()" [disabled]="quantity() <= 1">−</button>
+            <span>{{ quantity() }}</span>
+            <button type="button" aria-label="Tăng số lượng" (click)="increaseQuantity()">+</button>
+          </div>
+          <div class="price-block">
+            @if (variant.originalPrice && variant.originalPrice > variant.price) {
+              <s class="original-price">{{ formatPrice(variant.originalPrice) }}</s>
+            }
+            <strong class="product-price">{{ formatPrice(variant.price) }}</strong>
+          </div>
+        </div>
+        <p class="stock-status" [class]="variant.stockStatus.toLowerCase()">
+          {{ stockLabels[variant.stockStatus] }}@if (variant.sku) { <span>· SKU {{ variant.sku }}</span> }
+        </p>
+        @if (variant.stockStatus === 'OUT_OF_STOCK') {
+          <p class="stock-note">Phiên bản này đang tạm hết hàng, bạn vẫn có thể thêm vào giỏ để đặt trước.</p>
+        }
+      }
       <div class="purchase-actions">
-        <button type="button" class="buy-button" (click)="buyNow()">Mua nhanh</button>
-        <button type="button" class="cart-button" (click)="addToCart()">Thêm vào giỏ</button>
+        <button type="button" class="buy-button" (click)="buyNow()" [disabled]="pendingAction() !== null">{{ pendingAction() === 'buy' ? 'Đang xử lý...' : 'Mua nhanh' }}</button>
+        <button type="button" class="cart-button" (click)="addToCart()" [disabled]="pendingAction() !== null">{{ pendingAction() === 'cart' ? 'Đang thêm...' : 'Thêm vào giỏ' }}</button>
       </div>
       <div class="try-before-buy">
         <span>Trải nghiệm trước khi mua</span>
@@ -65,8 +83,8 @@
           <button type="button" (click)="showRoomPreview('Fit your home')"><span aria-hidden="true">♧</span> Fit your home</button>
         </div>
       </div>
-      @if (notice()) {
-        <p class="action-notice" role="status">{{ notice() }} <button type="button" (click)="notice.set('')" aria-label="Đóng thông báo">×</button></p>
+      @if (notice(); as message) {
+        <p class="action-notice" [class.error]="message.type === 'error'" [attr.role]="message.type === 'error' ? 'alert' : 'status'">{{ message.text }} <button type="button" (click)="notice.set(null)" aria-label="Đóng thông báo">×</button></p>
       }
     </div>
   </section>
@@ -78,11 +96,16 @@
     </div>
     @if (selectedTab() === 'description') {
       <div class="description-content" role="tabpanel">
+        <p>{{ product.name }}</p>
+        @if (selectedVariant()?.material) { <p>Chất liệu: {{ selectedVariant()?.material }}.</p> }
         @for (paragraph of product.description; track $index) { <p>{{ paragraph }}</p> }
+        @if (product.description.length === 0) { <p>Mô tả chi tiết cho sản phẩm này đang được cập nhật.</p> }
+        <p>Lưu ý: Màu sắc thực tế của sản phẩm có thể chênh lệch nhẹ so với hình ảnh hiển thị do điều kiện ánh sáng và thiết bị hiển thị. Để duy trì độ bền và tính thẩm mỹ của sản phẩm, nên vệ sinh định kỳ bằng khăn mềm hoặc dung dịch chuyên dụng.</p>
+        <p>Tránh đặt sản phẩm tại nơi có ánh nắng trực tiếp hoặc độ ẩm cao trong thời gian dài.</p>
       </div>
     } @else {
       <div class="specifications-content" role="tabpanel">
-        @for (detail of product.technicalDetails; track detail.label) {
+        @for (detail of specifications(); track detail.label) {
           <div><span>{{ detail.label }}</span><strong>{{ detail.value }}</strong></div>
         }
       </div>
@@ -94,49 +117,110 @@
     <div class="package-placeholder" role="img" [attr.aria-label]="product.packageContents"></div>
   </section>
 
-  <section id="reviews" class="reviews-section">
-    <h2>Đánh giá sản phẩm</h2>
-    @if (product.reviews.length > 0) {
-      @for (review of product.reviews; track $index) {
-        <article class="review">
-          <img class="review-avatar" [src]="review.avatar" [alt]="review.name" />
-          <div class="review-body">
-            <strong class="review-name">{{ review.name }}</strong>
-            <div class="review-stars" [attr.aria-label]="review.rating + ' sao'">
-              @for (star of [1, 2, 3, 4, 5]; track star) { <span [class.filled]="star <= review.rating">★</span> }
-            </div>
-            <p class="review-meta">{{ review.date }} <span>|</span> Phân loại: {{ review.category }}, {{ review.color }}</p>
-            <p class="review-comment">{{ review.comment }}</p>
-            <div class="review-photos">
-              @for (image of review.images; track $index) { <img [src]="image" [alt]="'Ảnh đánh giá của ' + review.name" /> }
-            </div>
-          </div>
-        </article>
-      }
-      <nav class="pagination" aria-label="Phân trang đánh giá">
-        <button type="button" aria-label="Trang trước">‹</button><button class="current" type="button" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button" aria-label="Trang sau">›</button>
-      </nav>
+  <section id="reviews" class="reviews-section" aria-labelledby="reviews-title">
+    <div class="reviews-heading">
+      <h2 id="reviews-title">Đánh giá sản phẩm</h2>
+      <button type="button" class="write-review-button" (click)="reviewFormOpen.set(!reviewFormOpen())" [attr.aria-expanded]="reviewFormOpen()">{{ reviewFormOpen() ? 'Đóng' : 'Viết đánh giá' }}</button>
+    </div>
+
+    @if (reviewFormOpen()) {
+      <form class="review-form" (submit)="submitReview($event)">
+        <div class="review-form-rating" role="radiogroup" aria-label="Số sao đánh giá">
+          @for (star of [1, 2, 3, 4, 5]; track star) {
+            <button type="button" role="radio" [class.filled]="star <= reviewRating()" [attr.aria-checked]="star === reviewRating()" [attr.aria-label]="star + ' sao'" (click)="reviewRating.set(star)">★</button>
+          }
+        </div>
+        <p class="review-form-variant">Phân loại: {{ selectedVariant()?.name }}, {{ selectedVariant()?.size }}</p>
+        <textarea [value]="reviewComment()" (input)="updateReviewComment($event)" [attr.maxlength]="maxReviewLength" rows="3" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..." aria-label="Nội dung đánh giá"></textarea>
+        <div class="review-form-actions">
+          <small>{{ reviewComment().length }}/{{ maxReviewLength }}</small>
+          <button type="submit" [disabled]="pendingAction() !== null">{{ pendingAction() === 'review' ? 'Đang gửi...' : 'Gửi đánh giá' }}</button>
+        </div>
+      </form>
+    }
+
+    @if (reviewsError()) {
+      <p class="empty-review" role="alert">{{ reviewsError() }}</p>
     } @else {
-      <p class="empty-review">API MongoDB hiện chưa cung cấp dữ liệu đánh giá cho sản phẩm này.</p>
+      @if (reviews(); as reviewPage) {
+      @if (reviewPage.items.length > 0) {
+        <div [class.reviews-loading]="reviewsLoading()">
+          @for (review of reviewPage.items; track review.id) {
+            <article class="review">
+              @if (review.avatar) {
+                <img class="review-avatar" [src]="review.avatar" [alt]="review.name" />
+              } @else {
+                <span class="review-avatar review-initial" aria-hidden="true">{{ review.name.charAt(0) }}</span>
+              }
+              <div class="review-body">
+                <strong class="review-name">{{ review.name }}</strong>
+                <div class="review-stars" [attr.aria-label]="review.rating + ' sao'">
+                  @for (star of [1, 2, 3, 4, 5]; track star) { <span [class.filled]="star <= review.rating">★</span> }
+                </div>
+                <p class="review-meta">
+                  {{ review.date }}
+                  @if (review.variantLabel) { <span>|</span> Phân loại: {{ review.variantLabel }} }
+                  @if (review.isEdited) { <span>|</span> Đã chỉnh sửa }
+                </p>
+                @if (review.comment) { <p class="review-comment">{{ review.comment }}</p> }
+                @if (review.images.length > 0) {
+                  <div class="review-photos">
+                    @for (image of review.images; track $index) { <img [src]="image" [alt]="'Ảnh đánh giá của ' + review.name" /> }
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+        @if (reviewPage.totalPages > 1) {
+          <nav class="pagination" aria-label="Phân trang đánh giá">
+            <button type="button" aria-label="Trang trước" [disabled]="reviewPage.page <= 1" (click)="loadReviews(reviewPage.page - 1)">‹</button>
+            @for (page of reviewPages(); track page) {
+              <button type="button" [class.current]="page === reviewPage.page" [attr.aria-current]="page === reviewPage.page ? 'page' : null" (click)="loadReviews(page)">{{ page }}</button>
+            }
+            <button type="button" aria-label="Trang sau" [disabled]="reviewPage.page >= reviewPage.totalPages" (click)="loadReviews(reviewPage.page + 1)">›</button>
+          </nav>
+        }
+      } @else {
+        <p class="empty-review">Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên đánh giá!</p>
+      }
+      } @else {
+        <p class="empty-review" role="status">Đang tải đánh giá...</p>
+      }
     }
   </section>
 
-  <section class="related-section">
-    <h2>Sản phẩm tương tự</h2>
-    <div class="related-products">
-      @for (related of product.relatedProducts; track $index) {
-        <article class="related-product">
-          <div class="related-image">
-            <a [routerLink]="['/products', related.slug]"><img [src]="related.image" [alt]="related.name" /></a>
-            <button type="button" (click)="toggleRelatedFavorite(related.name)" [attr.aria-label]="'Yêu thích ' + related.name">♡</button>
-          </div>
-          <a class="related-name" [routerLink]="['/products', related.slug]">{{ related.name }} - {{ related.sku }}</a>
-          <p>{{ related.description }}</p>
-          <strong>{{ formatPrice(related.price) }}</strong>
-          <div class="related-actions"><button type="button" (click)="buyNow()">MUA NGAY</button><button type="button" class="related-cart" (click)="addToCart()" aria-label="Thêm vào giỏ">♧+</button></div>
-        </article>
-      }
-    </div>
+  <section class="related-section" aria-labelledby="related-title">
+    <h2 id="related-title">Sản phẩm tương tự</h2>
+    @if (relatedError()) {
+      <p class="empty-review" role="alert">{{ relatedError() }}</p>
+    } @else if (relatedProducts().length === 0) {
+      <p class="empty-review">Chưa có sản phẩm tương tự.</p>
+    } @else {
+      <div class="related-carousel">
+        <button type="button" class="carousel-arrow prev" aria-label="Sản phẩm trước" (click)="scrollRelated(-1)">‹</button>
+        <div class="related-products" #relatedTrack>
+          @for (related of relatedProducts(); track related.id) {
+            <article class="related-product">
+              <div class="related-image">
+                <a [routerLink]="['/products', related.slug]"><img [src]="related.image" [alt]="related.name" loading="lazy" /></a>
+                <button type="button" [class.active]="wishlist.productIds().has(related.id)" (click)="toggleRelatedFavorite(related)" [disabled]="pendingAction() === 'wishlist:' + related.id" [attr.aria-pressed]="wishlist.productIds().has(related.id)" [attr.aria-label]="'Yêu thích ' + related.name">{{ wishlist.productIds().has(related.id) ? '♥' : '♡' }}</button>
+              </div>
+              <a class="related-name" [routerLink]="['/products', related.slug]">{{ related.name }}@if (related.sku) { - {{ related.sku }} }</a>
+              <p>{{ related.description }}</p>
+              <strong>{{ formatPrice(related.price) }}</strong>
+              <div class="related-actions">
+                <button type="button" (click)="addRelatedToCart(related, true)" [disabled]="pendingAction() !== null">MUA NGAY</button>
+                <button type="button" class="related-cart" (click)="addRelatedToCart(related)" [disabled]="pendingAction() !== null" [attr.aria-label]="'Thêm ' + related.name + ' vào giỏ'">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6" /><circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" /><path d="M14 9v4M12 11h4" /></svg>
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+        <button type="button" class="carousel-arrow next" aria-label="Sản phẩm sau" (click)="scrollRelated(1)">›</button>
+      </div>
+    }
   </section>
 </main>
 }

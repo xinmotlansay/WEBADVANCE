@@ -1,49 +1,75 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { API_BASE_URL, apiAssetUrl } from '../../core/api/api-url';
+import { variantSwatch } from './variant-colors';
 
-export interface ProductColor {
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+
+export interface ProductVariantOption {
+  variantId: string;
   name: string;
-  thumbnail: string;
-  filter: string;
+  sku: string;
+  /** Ảnh riêng của biến thể (media có `variantId`), null nếu biến thể chỉ dùng ảnh chung. */
+  thumbnail: string | null;
+  swatch: string;
+  /** Vị trí ảnh riêng của biến thể trong `images`, -1 nếu dùng ảnh chung. */
+  imageIndex: number;
+  price: number;
+  originalPrice?: number;
+  size: string;
+  material?: string;
+  stockStatus: StockStatus;
 }
 
 export interface ProductReview {
+  id: string;
   name: string;
+  avatar: string | null;
   date: string;
   rating: number;
-  category: string;
-  color: string;
+  variantLabel: string;
   comment: string;
-  avatar: string;
   images: string[];
+  isEdited: boolean;
+}
+
+export interface ReviewPage {
+  items: ProductReview[];
+  page: number;
+  totalPages: number;
+  total: number;
+  average: number;
+}
+
+export interface NewReview {
+  rating: number;
+  comment: string;
+  variantId?: string;
 }
 
 export interface RelatedProduct {
+  id: string;
+  variantId: string;
   name: string;
   slug: string;
   sku: string;
   description: string;
   price: number;
+  originalPrice?: number;
   image: string;
 }
 
 export interface ProductDetailData {
+  id: string;
+  slug: string;
   name: string;
   category: string[];
-  rating: number;
-  reviewCount: number;
-  type: string;
-  capacity: string;
-  color: ProductColor[];
-  price: number;
+  variants: ProductVariantOption[];
   images: string[];
   description: string[];
   packageContents: string;
   technicalDetails: { label: string; value: string }[];
-  reviews: ProductReview[];
-  relatedProducts: RelatedProduct[];
 }
 
 interface ProductVariantDocument {
@@ -55,6 +81,7 @@ interface ProductVariantDocument {
   dimensions?: { length?: number; width?: number; height?: number; unit?: string };
   salePrice?: number;
   originalPrice?: number;
+  stockStatus?: StockStatus;
   price?: { sale?: number; final?: number; original?: number };
 }
 
@@ -75,7 +102,6 @@ interface ProductDocument {
   description?: string | string[];
   category?: string | string[];
   categories?: Array<string | { name?: string }>;
-  tags?: string[];
   images?: string[];
   image?: string;
   thumbnail?: string;
@@ -84,12 +110,37 @@ interface ProductDocument {
   parts?: Array<{ name?: string; quantity?: number; image?: string }>;
   warrantyMonths?: number;
   warranty?: { months?: number; terms?: string };
-  ratingAverage?: number;
-  ratingCount?: number;
-  ratingSummary?: { average?: number; count?: number };
   price?: number;
   priceFrom?: number;
   salePrice?: number;
+}
+
+interface ReviewDocument {
+  _id: string;
+  customerName: string;
+  avatar: string | null;
+  rating: number;
+  comment: string;
+  images: string[];
+  createdAt: string;
+  isEdited: boolean;
+  variant: { sku?: string; color?: string; dimensions?: ProductVariantDocument['dimensions'] } | null;
+}
+
+interface ReviewPageDocument {
+  items: ReviewDocument[];
+  page: number;
+  totalPages: number;
+  total: number;
+  average: number;
+}
+
+/** Định dạng `dd/MM/yyyy HH:mm` theo thiết kế (locale vi-VN mặc định đặt giờ trước ngày). */
+function formatReviewDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -97,115 +148,147 @@ export class ProductDetailService {
   constructor(private readonly http: HttpClient) {}
 
   getProduct(productIdentifier: string): Observable<ProductDetailData> {
-    return forkJoin({
-      product: this.http.get<ProductDocument>(`${API_BASE_URL}/products/${encodeURIComponent(productIdentifier)}`),
-      products: this.http.get<ProductDocument[]>(`${API_BASE_URL}/products`),
-    }).pipe(
-      switchMap(({ product, products }) => {
-        const currentId = this.productId(product);
-        const relatedRecords = products
-          .filter((record) => this.productId(record) !== currentId)
-          .slice(0, 4);
+    return this.http
+      .get<ProductDocument>(this.productUrl(productIdentifier))
+      .pipe(map((document) => this.mapProduct(document)));
+  }
 
-        if (relatedRecords.length === 0) {
-          return of({ product, related: [] as ProductDocument[] });
-        }
-
-        return forkJoin(
-          relatedRecords.map((record) =>
-            this.http.get<ProductDocument>(`${API_BASE_URL}/products/${encodeURIComponent(this.productId(record))}`),
-          ),
-        ).pipe(map((related) => ({ product, related })));
-      }),
-      map(({ product, related }) => ({
-        ...this.mapProduct(product),
-        relatedProducts: related
-          .map((record) => this.mapRelatedProduct(record))
-          .filter((item): item is RelatedProduct => item !== null),
-      })),
+  getRelatedProducts(productIdentifier: string, limit = 8): Observable<RelatedProduct[]> {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<ProductDocument[]>(`${this.productUrl(productIdentifier)}/related`, { params }).pipe(
+      map((documents) =>
+        documents.map((document) => this.mapRelatedProduct(document)).filter((item): item is RelatedProduct => item !== null),
+      ),
     );
   }
 
-  private mapProduct(document: ProductDocument): Omit<ProductDetailData, 'relatedProducts'> {
-    const variants = document.variants ?? [];
+  getReviews(productIdentifier: string, page: number, limit = 5): Observable<ReviewPage> {
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get<ReviewPageDocument>(`${this.productUrl(productIdentifier)}/reviews`, { params }).pipe(
+      map((result) => ({ ...result, items: result.items.map((review) => this.mapReview(review)) })),
+    );
+  }
+
+  createReview(productIdentifier: string, review: NewReview): Observable<ProductReview> {
+    return this.http
+      .post<ReviewDocument>(`${this.productUrl(productIdentifier)}/reviews`, review)
+      .pipe(map((document) => this.mapReview(document)));
+  }
+
+  private productUrl(productIdentifier: string): string {
+    return `${API_BASE_URL}/products/${encodeURIComponent(productIdentifier)}`;
+  }
+
+  private mapProduct(document: ProductDocument): ProductDetailData {
     const images = this.imageUrls(document);
     if (images.length === 0) {
       throw new Error('Sản phẩm trong MongoDB chưa có hình ảnh để hiển thị.');
     }
 
-    const colors = variants
-      .filter((variant) => variant.color?.trim())
-      .map((variant) => {
-        const variantImage = document.media?.find(
-          (media) => media.type === 'IMAGE' && media.variantId === (variant._id ?? variant.id),
-        )?.url;
-        return { name: variant.color!.trim(), thumbnail: apiAssetUrl(variantImage ?? images[0]), filter: 'none' };
-      });
-    if (colors.length === 0) {
-      colors.push({ name: 'Mặc định', thumbnail: images[0], filter: 'none' });
+    const variants = (document.variants ?? [])
+      .map((variant, index) => this.mapVariant(document, variant, index, images))
+      .filter((variant): variant is ProductVariantOption => variant !== null);
+    if (variants.length === 0) {
+      throw new Error('Sản phẩm trong MongoDB chưa có phiên bản đang bán.');
     }
 
-    const firstVariant = variants[0];
-    const price = this.variantPrice(firstVariant) ?? document.salePrice ?? document.priceFrom ?? document.price;
-    if (price === undefined || price < 0) {
-      throw new Error('Sản phẩm trong MongoDB chưa có giá bán hợp lệ.');
-    }
-
-    const dimensions = firstVariant?.dimensions;
     const technicalDetails: ProductDetailData['technicalDetails'] = [];
-    if (dimensions) {
-      const unit = dimensions.unit ?? 'cm';
-      const size = [dimensions.length, dimensions.width, dimensions.height].filter((value) => value !== undefined).join(' × ');
-      if (size) technicalDetails.push({ label: 'Kích thước', value: `${size} ${unit}` });
-    }
-    if (firstVariant?.material) technicalDetails.push({ label: 'Chất liệu', value: firstVariant.material });
+    if (document.productCode) technicalDetails.push({ label: 'Mã sản phẩm', value: document.productCode });
     const warrantyMonths = document.warranty?.months ?? document.warrantyMonths;
     if (warrantyMonths) technicalDetails.push({ label: 'Bảo hành', value: `${warrantyMonths} tháng` });
     if (document.warranty?.terms) technicalDetails.push({ label: 'Điều kiện bảo hành', value: document.warranty.terms });
 
-    const description = Array.isArray(document.description)
-      ? document.description
-      : [document.shortDescription, document.description].filter((value): value is string => Boolean(value?.trim()));
-    const category = this.categoryNames(document);
-    const rating = document.ratingSummary?.average ?? document.ratingAverage ?? 0;
-    const reviewCount = document.ratingSummary?.count ?? document.ratingCount ?? 0;
-
     return {
+      id: this.productId(document),
+      slug: document.slug ?? this.productId(document),
       name: document.name?.trim() || 'Sản phẩm',
-      category,
-      rating,
-      reviewCount,
-      type: firstVariant?.color ? `${firstVariant.color}${firstVariant.material ? ` · ${firstVariant.material}` : ''}` : 'Sản phẩm nội thất',
-      capacity: firstVariant?.dimensions
-        ? [firstVariant.dimensions.length, firstVariant.dimensions.width, firstVariant.dimensions.height]
-            .filter((value) => value !== undefined)
-            .join(' × ') || 'Thông tin đang cập nhật'
-        : 'Thông tin đang cập nhật',
-      color: colors,
-      price,
+      category: this.categoryNames(document),
+      variants,
       images: images.map((image) => apiAssetUrl(image)),
-      description,
+      description: this.descriptionParagraphs(document),
       packageContents: document.parts?.length
         ? `Bộ sản phẩm gồm: ${document.parts.map((part) => `${part.quantity ?? 1} ${part.name ?? 'bộ phận'}`).join(', ')}.`
         : 'Thông tin thành phần đóng gói chưa được cập nhật.',
       technicalDetails,
-      reviews: [],
+    };
+  }
+
+  private mapVariant(
+    document: ProductDocument,
+    variant: ProductVariantDocument,
+    index: number,
+    images: string[],
+  ): ProductVariantOption | null {
+    const variantId = variant._id ?? variant.id;
+    const price = this.variantPrice(variant);
+    if (!variantId || price === undefined || price < 0) return null;
+
+    const variantImage = document.media?.find((media) => media.type === 'IMAGE' && media.variantId === variantId)?.url;
+    const name = variant.color?.trim() || `Phiên bản ${index + 1}`;
+    return {
+      variantId,
+      name,
+      sku: variant.sku ?? '',
+      thumbnail: variantImage ? apiAssetUrl(variantImage) : null,
+      swatch: variantSwatch(name),
+      imageIndex: variantImage ? images.indexOf(variantImage) : -1,
+      price,
+      originalPrice: variant.originalPrice ?? variant.price?.original,
+      size: this.formatDimensions(variant.dimensions),
+      material: variant.material,
+      stockStatus: variant.stockStatus ?? 'IN_STOCK',
     };
   }
 
   private mapRelatedProduct(document: ProductDocument): RelatedProduct | null {
     const image = this.imageUrls(document)[0];
-    const price = this.variantPrice(document.variants?.[0]) ?? document.salePrice ?? document.priceFrom ?? document.price;
-    if (!document.name || !image || price === undefined) return null;
+    const variant = document.variants?.[0];
+    const variantId = variant?._id ?? variant?.id;
+    const price = this.variantPrice(variant);
+    if (!document.name || !image || !variantId || price === undefined) return null;
 
     return {
+      id: this.productId(document),
+      variantId,
       name: document.name,
       slug: document.slug ?? this.productId(document),
-      sku: document.variants?.[0]?.sku ?? document.productCode ?? '',
+      sku: document.productCode ?? variant?.sku ?? '',
       description: document.shortDescription ?? '',
       price,
+      originalPrice: variant?.originalPrice,
       image: apiAssetUrl(image),
     };
+  }
+
+  private mapReview(review: ReviewDocument): ProductReview {
+    const variantLabel = [review.variant?.color, this.formatDimensions(review.variant?.dimensions, '')]
+      .filter(Boolean)
+      .join(', ');
+    return {
+      id: review._id,
+      name: review.customerName,
+      avatar: review.avatar ? apiAssetUrl(review.avatar) : null,
+      date: review.createdAt ? formatReviewDate(review.createdAt) : '',
+      rating: review.rating,
+      variantLabel,
+      comment: review.comment,
+      images: review.images.map((image) => apiAssetUrl(image)),
+      isEdited: review.isEdited,
+    };
+  }
+
+  /** `description` thường trùng `shortDescription`, nên gộp và bỏ đoạn lặp. */
+  private descriptionParagraphs(document: ProductDocument): string[] {
+    const description = Array.isArray(document.description) ? document.description : (document.description ?? '').split(/\n+/);
+    const paragraphs = [document.shortDescription, ...description]
+      .map((paragraph) => paragraph?.trim())
+      .filter((paragraph): paragraph is string => Boolean(paragraph));
+    return [...new Set(paragraphs)];
+  }
+
+  private formatDimensions(dimensions?: ProductVariantDocument['dimensions'], fallback = 'Thông tin đang cập nhật'): string {
+    const size = [dimensions?.length, dimensions?.width, dimensions?.height].filter((value) => value !== undefined).join(' × ');
+    return size ? `${size} ${dimensions?.unit ?? 'cm'}` : fallback;
   }
 
   private imageUrls(document: ProductDocument): string[] {
