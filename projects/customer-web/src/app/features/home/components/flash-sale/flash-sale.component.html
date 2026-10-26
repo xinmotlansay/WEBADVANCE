@@ -1,0 +1,35 @@
+<section class="flash" [attr.aria-label]="flashSale().promotion.name">
+  <div class="container">
+    <header class="flash__head">
+      <h2 class="flash__logo">
+        <app-icon name="lucide:zap" [size]="26" />
+        <span>FLASH SALE</span>
+      </h2>
+
+      <ol class="countdown" aria-label="Thời gian còn lại">
+        @for (unit of countdown(); track unit.label) {
+          <li>
+            <strong>{{ unit.value }}</strong>
+            <small>{{ unit.label }}</small>
+          </li>
+        }
+      </ol>
+
+      <a class="flash__more" routerLink="/products" [queryParams]="{ hasPromotion: true }"
+        >Xem thêm</a
+      >
+    </header>
+
+    <app-scroll-carousel
+      arrowTone="light"
+      [perView]="5"
+      [perViewTablet]="3"
+      [perViewMobile]="2"
+      [label]="flashSale().promotion.name"
+    >
+      @for (product of flashSale().products; track product.id) {
+        <app-product-card [product]="product" [compact]="true" />
+      }
+    </app-scroll-carousel>
+  </div>
+</section>

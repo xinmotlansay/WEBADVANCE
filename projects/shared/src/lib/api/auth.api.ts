@@ -19,12 +19,6 @@ export interface ApiErrorBody {
   };
 }
 
-export interface ApiResponse<T> {
-  success: true;
-  data: T;
-  message?: string;
-}
-
 export interface AuthUser {
   id: string;
   fullName: string;

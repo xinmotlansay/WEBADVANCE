@@ -1,0 +1,21 @@
+<section>
+  <header class="head">
+    <h2>Nguồn cảm hứng</h2>
+    <a class="more" routerLink="/inspirations">Xem thêm</a>
+  </header>
+
+  <ul class="gallery">
+    @for (item of items(); track item.id; let i = $index) {
+      <li>
+        <button type="button" class="card" (click)="openIndex.set(i)">
+          <img [src]="item.imageUrl" alt="Không gian nội thất gợi cảm hứng" loading="lazy" />
+          <span class="card__label">SHOP BY LOOK</span>
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (openIndex() !== null) {
+    <app-inspiration-modal [items]="items()" [(index)]="openIndex" (closed)="openIndex.set(null)" />
+  }
+</section>

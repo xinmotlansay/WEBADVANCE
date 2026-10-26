@@ -1,0 +1,61 @@
+@if (banners().length) {
+  <section
+    class="hero"
+    aria-roledescription="carousel"
+    aria-label="Banner nổi bật"
+    (mouseenter)="stopAutoplay()"
+    (mouseleave)="startAutoplay()"
+  >
+    @for (banner of banners(); track banner.id; let i = $index) {
+      <img
+        class="hero__img"
+        [class.hero__img--active]="i === index()"
+        [src]="banner.imageUrl"
+        [alt]="banner.title"
+        [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+        [attr.aria-hidden]="i !== index()"
+      />
+    }
+
+    <div class="hero__shade"></div>
+
+    @if (current(); as banner) {
+      <div class="hero__text container">
+        <h1>{{ banner.title }}</h1>
+        <p>{{ banner.content }}</p>
+      </div>
+
+      <a class="hero__cta" [routerLink]="banner.linkUrl || '/products'">Xem thêm</a>
+    }
+
+    @if (banners().length > 1) {
+      <button
+        type="button"
+        class="hero__arrow hero__arrow--prev"
+        aria-label="Banner trước"
+        (click)="go(-1)"
+      >
+        <app-icon name="lucide:chevron-left" [size]="22" />
+      </button>
+      <button
+        type="button"
+        class="hero__arrow hero__arrow--next"
+        aria-label="Banner sau"
+        (click)="go(1)"
+      >
+        <app-icon name="lucide:chevron-right" [size]="22" />
+      </button>
+
+      <div class="hero__dots">
+        @for (banner of banners(); track banner.id; let i = $index) {
+          <button
+            type="button"
+            [class.active]="i === index()"
+            [attr.aria-label]="'Chuyển tới banner ' + (i + 1)"
+            (click)="select(i)"
+          ></button>
+        }
+      </div>
+    }
+  </section>
+}

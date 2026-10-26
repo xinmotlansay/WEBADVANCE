@@ -11,6 +11,7 @@
     "start:admin": "ng serve admin-web --port 4201 --proxy-config proxy.conf.json",
     "dev:server": "tsx watch server/src/server.ts",
     "dev:worker": "tsx watch server/src/worker.ts",
+    "seed": "tsx server/seed/seed.ts",
     "start:api": "node dist/server/src/server.js",
     "start:worker": "node dist/server/src/worker.js",
     "build:server": "tsc -p server/tsconfig.json",

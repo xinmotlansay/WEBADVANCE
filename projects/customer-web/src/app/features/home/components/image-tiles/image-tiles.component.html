@@ -1,0 +1,15 @@
+<section>
+  <h2 class="title">{{ title() }}</h2>
+  <ul class="tiles">
+    @for (item of items(); track item.id) {
+      <li>
+        <a [routerLink]="['/products']" [queryParams]="{ categoryIds: item.id }">
+          <span class="tile__media">
+            <img [src]="item.image" [alt]="item.name" loading="lazy" />
+          </span>
+          <span class="tile__label">{{ item.name }}</span>
+        </a>
+      </li>
+    }
+  </ul>
+</section>

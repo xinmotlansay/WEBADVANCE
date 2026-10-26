@@ -811,6 +811,30 @@ Collection: `system_configs` (trước đây: `CAU_HINH_HE_THONG`). Dạng khóa
 
 **Các khóa cấu hình cần có:** số ngày đổi/trả (7), thời hạn đánh giá (90 ngày), hạn thanh toán QR (15 phút), ngưỡng đặt cọc (20.000.000đ), tỷ lệ cọc (30%), số ngày trễ được bù (2), giá trị voucher bù (100.000đ), hạn voucher bù (30 ngày), thời gian hoàn tiền (3–7 ngày làm việc), số giờ coi đơn chờ xác nhận là quá hạn (cho Dashboard AD-02), số ngày nhãn Mới (30), ngưỡng nhãn Bán chạy (top 10%, tối thiểu 5 sản phẩm đã bán), bảng phí 4 cấp vận chuyển, khung giờ giao, số lần đổi lịch (2), số lần giao lại (2), ngưỡng cảnh báo tồn kho mặc định, số lần đăng nhập sai (3), thời gian khóa (1 phút), hạn OTP (5 phút), số lần nhập sai OTP (5), giới hạn gửi lại OTP (60 giây, 5 lần mỗi giờ), thời gian hết phiên Admin (30 phút), thông tin cửa hàng (gồm giờ làm việc), thông tin hóa đơn, mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho), bật/tắt COD và QR, tài khoản ngân hàng nhận tiền.
 
+### Thực thể 34: Showroom (Showroom)
+
+Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả nước, hiển thị ở trang chủ và trang Hệ thống showroom.
+
+*Bảng 3.39. Thuộc tính Showroom*
+
+| # | Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ràng buộc / Mô tả |
+|---|---|---|---|---|
+| 1 | _id | ObjectId | Y | Mã định danh của showroom, do MongoDB tự sinh |
+| 2 | name | String | Y | Tên showroom |
+| 3 | slug | String | Y | Unique. Đường dẫn thân thiện |
+| 4 | city | String | Y | Tỉnh, thành phố |
+| 5 | region | String | Y | `NORTH` (miền Bắc), `CENTRAL` (miền Trung), `SOUTH` (miền Nam) |
+| 6 | address | String | Y | Địa chỉ đầy đủ |
+| 7 | phone | String | | Số điện thoại liên hệ |
+| 8 | openTime | String | Y | Giờ mở cửa, dạng `HH:mm` |
+| 9 | closeTime | String | Y | Giờ đóng cửa, dạng `HH:mm` |
+| 10 | latitude | Number | Y | Vĩ độ (-90 đến 90), dùng đặt điểm trên bản đồ |
+| 11 | longitude | Number | Y | Kinh độ (-180 đến 180) |
+| 12 | image | String | | Default: "". Ảnh đại diện |
+| 13 | isFlagship | Boolean | | Default: false. Showroom chủ lực (Design Center) |
+| 14 | displayOrder | Number | | Default: 0. Thứ tự hiển thị |
+| 15 | status | String | Y | Default: `VISIBLE`. `VISIBLE`, `HIDDEN` |
+
 ---
 
 ## Phụ lục – Bảng đối chiếu tên
@@ -850,3 +874,4 @@ Collection: `system_configs` (trước đây: `CAU_HINH_HE_THONG`). Dạng khóa
 | Thông báo | `notifications` | *(mới)* |
 | Nhật ký hoạt động | `audit_logs` | NHAT_KY_HOAT_DONG |
 | Cấu hình hệ thống | `system_configs` | CAU_HINH_HE_THONG |
+| Showroom | `showrooms` | *(mới)* |

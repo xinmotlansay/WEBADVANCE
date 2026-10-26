@@ -1,0 +1,65 @@
+<footer class="footer">
+  <div class="container footer__grid">
+    <section>
+      <h2>THÔNG TIN</h2>
+      <ul>
+        @for (link of infoLinks; track link.path) {
+          <li>
+            <a [routerLink]="link.path">{{ link.label }}</a>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h2>CARAVESO</h2>
+      <ul>
+        @for (link of brandLinks; track link.path) {
+          <li>
+            <a [routerLink]="link.path">{{ link.label }}</a>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="company">
+      <h2>THÔNG TIN CÔNG TY</h2>
+      @if (store(); as info) {
+        @if (info.establishedDate) {
+          <p>Ngày hoạt động: {{ formatDate(info.establishedDate) }}</p>
+        }
+        @if (info.address) {
+          <p><strong>Trụ sở chính:</strong><br />{{ info.address }}</p>
+        }
+        @if (info.hotline) {
+          <p><strong>Hotline:</strong> {{ info.hotline }}</p>
+        }
+        @if (info.email) {
+          <p><strong>Email:</strong> {{ info.email }}</p>
+        }
+      }
+    </section>
+
+    <section class="brand">
+      <a class="brand__logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+      <div class="brand__social">
+        <a href="https://www.youtube.com" target="_blank" rel="noopener" aria-label="YouTube">
+          <app-icon name="simple-icons:youtube" [size]="22" />
+        </a>
+        <a href="https://www.tiktok.com" target="_blank" rel="noopener" aria-label="TikTok">
+          <app-icon name="simple-icons:tiktok" [size]="22" />
+        </a>
+        <a href="https://www.instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
+          <app-icon name="simple-icons:instagram" [size]="22" />
+        </a>
+        <a href="https://www.facebook.com" target="_blank" rel="noopener" aria-label="Facebook">
+          <app-icon name="simple-icons:facebook" [size]="22" />
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer__copy">
+    <div class="container">Bản quyền © {{ year }} CARAVESO FURNITURE.</div>
+  </div>
+</footer>

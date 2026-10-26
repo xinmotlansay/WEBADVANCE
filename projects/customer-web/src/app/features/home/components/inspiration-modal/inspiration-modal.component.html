@@ -1,0 +1,57 @@
+<div class="backdrop" (click)="closed.emit()">
+  <div
+    class="panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="look-title"
+    (click)="$event.stopPropagation()"
+  >
+    <button #closeButton type="button" class="close" aria-label="Đóng" (click)="closed.emit()">
+      <app-icon name="lucide:x" [size]="32" />
+    </button>
+
+    @if (items().length > 1) {
+      <button type="button" class="arrow arrow--prev" aria-label="Ảnh trước" (click)="step(-1)">
+        <app-icon name="lucide:chevron-left" [size]="40" />
+      </button>
+    }
+
+    <img class="photo" [src]="current().imageUrl" alt="Không gian nội thất gợi cảm hứng" />
+
+    @if (items().length > 1) {
+      <button type="button" class="arrow arrow--next" aria-label="Ảnh sau" (click)="step(1)">
+        <app-icon name="lucide:chevron-right" [size]="40" />
+      </button>
+    }
+
+    <div class="info">
+      <h3 id="look-title">MUA SẮM THEO NGUỒN CẢM HỨNG</h3>
+
+      @if (detail(); as look) {
+        @if (look.products.length) {
+          <ul class="products">
+            @for (product of look.products; track product.id) {
+              <li>
+                <a [routerLink]="['/products', product.slug]" (click)="closed.emit()">
+                  <img [src]="product.thumbnail" [alt]="product.name" />
+                  <span class="products__name">{{ product.name }}</span>
+                  <span class="products__price">{{ product.priceFrom | vnd }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty">Chưa có sản phẩm nào gắn với ảnh này.</p>
+        }
+      } @else if (detail() === null) {
+        <p class="empty">Không tải được danh sách sản phẩm. Vui lòng thử lại.</p>
+      } @else {
+        <ul class="products" aria-busy="true">
+          @for (n of [1, 2, 3]; track n) {
+            <li class="skeleton"></li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</div>

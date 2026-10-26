@@ -1,0 +1,31 @@
+<div class="dock" role="group" aria-label="Công cụ nhanh">
+  <button type="button" class="dock__search" (click)="openSearch()">
+    <app-icon name="lucide:search" [size]="18" />
+    <span>Search</span>
+  </button>
+  <!-- TODO: trợ lý AI tìm kiếm sản phẩm (FR-17) -->
+  <button type="button" class="dock__ai" aria-label="Trợ lý AI (sắp ra mắt)" title="Sắp ra mắt">
+    <app-icon name="lucide:sparkles" [size]="18" />
+  </button>
+</div>
+
+<div class="side">
+  <!-- TODO(FR-44): chat với chăm sóc khách hàng -->
+  <button
+    type="button"
+    class="side__chat"
+    aria-label="Chat với CSKH (sắp ra mắt)"
+    title="Sắp ra mắt"
+  >
+    <app-icon name="mdi:chat-processing" [size]="42" />
+  </button>
+  <button
+    type="button"
+    class="side__top"
+    [class.side__top--visible]="showTop()"
+    aria-label="Về đầu trang"
+    (click)="scrollToTop()"
+  >
+    <app-icon name="lucide:chevron-up" [size]="24" />
+  </button>
+</div>

@@ -1,0 +1,115 @@
+<div class="topbar">
+  <div class="container topbar__inner">
+    <p class="topbar__promo">
+      Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso
+    </p>
+    <!-- TODO(FR-02): hiển thị tên khách khi có đăng nhập -->
+    <a class="topbar__account" routerLink="/login">Đăng nhập</a>
+  </div>
+</div>
+
+<header class="header">
+  <div class="container header__inner">
+    <button
+      type="button"
+      class="burger"
+      aria-label="Mở menu"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Danh mục chính">
+      <div class="nav__item nav__item--dropdown">
+        <button type="button" class="nav__link">
+          Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
+        </button>
+        <ul class="dropdown">
+          @for (category of productCategories(); track category.id) {
+            <li>
+              <a
+                [routerLink]="['/products']"
+                [queryParams]="{ categoryIds: category.id }"
+                (click)="closeMenu()"
+                >{{ category.name }}</a
+              >
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="nav__item nav__item--dropdown">
+        <button type="button" class="nav__link">
+          Các phòng <app-icon name="lucide:chevron-down" [size]="14" />
+        </button>
+        <ul class="dropdown">
+          @for (room of rooms(); track room.id) {
+            <li>
+              <a
+                [routerLink]="['/products']"
+                [queryParams]="{ categoryIds: room.id }"
+                (click)="closeMenu()"
+                >{{ room.name }}</a
+              >
+            </li>
+          }
+        </ul>
+      </div>
+
+      <a class="nav__link" routerLink="/inspirations" (click)="closeMenu()">Nguồn cảm hứng</a>
+      <a class="nav__link nav__link--sale" routerLink="/promotions" (click)="closeMenu()">
+        Khuyến mãi
+      </a>
+    </nav>
+
+    <a class="logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+
+    <div class="tools">
+      <!-- TODO(FR-15, FR-16): tìm kiếm thủ công và tìm bằng ảnh -->
+      <form
+        #searchForm
+        class="search"
+        role="search"
+        (submit)="$event.preventDefault()"
+        (focusout)="onSearchFocusOut($event, searchForm)"
+        (keydown.escape)="closeSearch()"
+      >
+        <app-icon name="lucide:search" [size]="20" />
+        <input
+          #searchInput
+          type="search"
+          placeholder="Nhập sản phẩm, chất liệu, phong cách,..."
+          aria-label="Tìm kiếm"
+          (focus)="search.openSearch()"
+        />
+        @if (search.open()) {
+          <button
+            type="button"
+            class="search__action"
+            aria-label="Đóng tìm kiếm"
+            (click)="closeSearch()"
+          >
+            <app-icon name="lucide:x" [size]="20" />
+          </button>
+        } @else {
+          <button type="button" class="search__action" aria-label="Tìm bằng hình ảnh">
+            <app-icon name="lucide:camera" [size]="20" />
+          </button>
+        }
+      </form>
+
+      <div class="icons">
+        <a class="icon-btn" routerLink="/wishlist" aria-label="Yêu thích">
+          <app-icon name="lucide:heart" [size]="22" />
+        </a>
+        <a class="icon-btn" routerLink="/account" aria-label="Tài khoản">
+          <app-icon name="lucide:user" [size]="22" />
+        </a>
+        <a class="icon-btn" routerLink="/cart" aria-label="Giỏ hàng">
+          <app-icon name="lucide:shopping-cart" [size]="22" />
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

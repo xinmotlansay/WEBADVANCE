@@ -4,12 +4,13 @@ import pinoHttp from 'pino-http';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { config } from './config/index.js';
-import { connectDb } from './lib/db.js';
+import { connectDb, isDbConnected } from './lib/db.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { chatRouter } from './modules/chat/chat.routes.js';
 import { chatAdminRouter } from './modules/chat/chat.admin.routes.js';
+import { apiRoutes } from './modules/routes.js';
 import { initSocket } from './socket/index.js';
 
 const app = express();
@@ -22,12 +23,17 @@ app.use(cookieParser(config.COOKIE_SECRET));
 app.use(pinoHttp({ logger }));
 
 app.get('/api/v1/health', (_req, res) => {
-  res.json({ success: true, data: { status: 'ok' } });
+  res.json({
+    success: true,
+    data: { status: 'ok', database: isDbConnected() ? 'connected' : 'disconnected' },
+  });
 });
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/chat', chatRouter);
 app.use('/api/v1/admin/chat', chatAdminRouter);
+app.use('/api/v1', apiRoutes);
+app.use('/api', notFoundHandler);
 
 app.use('/uploads', express.static(path.resolve('uploads')));
 app.use('/admin', express.static(path.resolve('dist/admin-web/browser')));

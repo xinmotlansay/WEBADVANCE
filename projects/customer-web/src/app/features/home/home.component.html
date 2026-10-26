@@ -1,39 +1,55 @@
-<div class="home">
-  <header class="home-header">
-    <a class="brand" href="/" aria-label="CaraVeso">
-      <span class="brand-mark">C</span>
-      <span>CaraVeso</span>
-    </a>
+<app-hero-banner [banners]="banners()" />
 
-    <button class="btn-logout" type="button" (click)="auth.logout()">Đăng xuất</button>
-  </header>
+<div class="container home">
+  @if (newProducts().length) {
+    <app-product-section
+      title="Sản phẩm mới"
+      moreLink="/products"
+      [moreQueryParams]="{ badge: 'NEW' }"
+      layout="carousel"
+      [products]="newProducts()"
+    />
+  }
 
-  <main class="home-main">
-    <section class="welcome">
-      <span class="kicker">Đăng nhập thành công</span>
-      <h1>Xin chào, {{ auth.user()?.fullName }}</h1>
-      <p>
-        Tài khoản của bạn đã được xác thực. Đây là trang tạm để kiểm tra luồng đăng nhập; trang chủ
-        thật sẽ được nhóm phát triển ở bước tiếp theo.
-      </p>
-    </section>
+  @if (categoryTiles().length) {
+    <app-image-tiles title="Danh mục sản phẩm" variant="category" [items]="categoryTiles()" />
+  }
 
-    <section class="account-card">
-      <h2>Thông tin tài khoản</h2>
-      <dl>
-        <div>
-          <dt>Email / Số điện thoại</dt>
-          <dd>{{ contact() }}</dd>
-        </div>
-        <div>
-          <dt>Vai trò</dt>
-          <dd>{{ roleLabel() }}</dd>
-        </div>
-        <div>
-          <dt>Trạng thái phiên</dt>
-          <dd><span class="dot"></span> Đang hoạt động</dd>
-        </div>
-      </dl>
-    </section>
-  </main>
+  @if (collections().length) {
+    <app-collection-slider [collections]="collections()" />
+  }
+
+  @if (roomTiles().length) {
+    <app-image-tiles title="Cho căn phòng của bạn" variant="room" [items]="roomTiles()" />
+  }
 </div>
+
+@if (flashSale(); as sale) {
+  @if (sale.products.length) {
+    <app-flash-sale [flashSale]="sale" />
+  }
+}
+
+<div class="container home">
+  @if (recommended().length) {
+    <app-product-section title="Có thể bạn sẽ thích" layout="grid" [products]="recommended()" />
+  }
+
+  @if (inspirations().length) {
+    <app-inspiration-gallery [items]="inspirations()" />
+  }
+
+  @if (completeRoomProducts().length) {
+    <app-product-section
+      title="Hoàn thiện căn phòng của bạn"
+      layout="grid"
+      [products]="completeRoomProducts()"
+    />
+  }
+</div>
+
+<app-view-room-cta />
+
+@if (showrooms().length) {
+  <app-showroom-network [showrooms]="showrooms()" />
+}

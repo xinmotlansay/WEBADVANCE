@@ -1,0 +1,33 @@
+<article class="card" role="listitem">
+  <a class="media" [routerLink]="link()" [attr.aria-label]="product().name">
+    <img [src]="product().thumbnail" [alt]="product().name" loading="lazy" />
+    @if (compact() && discountPercent() > 0) {
+      <span class="tag">-{{ discountPercent() }}%</span>
+    }
+  </a>
+  @if (!compact()) {
+    <!-- TODO(FR-22): thêm/xóa yêu thích khi có chức năng đăng nhập -->
+    <button type="button" class="wish" aria-label="Thêm vào yêu thích">
+      <app-icon name="lucide:heart" [size]="18" />
+    </button>
+  }
+
+  <div class="body">
+    <a class="name" [routerLink]="link()">{{ product().name }}</a>
+    @if (!compact()) {
+      <p class="desc">{{ product().shortDescription }}</p>
+    }
+    @if (product().hasPromotion && product().originalPriceFrom > product().priceFrom) {
+      <p class="price-old">{{ product().originalPriceFrom | vnd }}</p>
+    }
+    <p class="price" [class.price--sale]="compact()">{{ product().priceFrom | vnd }}</p>
+  </div>
+
+  <!-- TODO(FR-28, FR-32): Mua ngay và thêm giỏ khi có giỏ hàng -->
+  <div class="actions">
+    <button type="button" class="buy">MUA NGAY</button>
+    <button type="button" class="cart" aria-label="Thêm vào giỏ hàng">
+      <app-icon name="lucide:shopping-cart" [size]="18" />
+    </button>
+  </div>
+</article>

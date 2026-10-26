@@ -1,5 +1,16 @@
+@if (!isAuthRoute()) {
+  <app-header />
+}
+
+<main>
+  <router-outlet />
+</main>
+
+@if (!isAuthRoute()) {
+  <app-footer />
+  <app-floating-actions />
+}
+
 @if (auth.isAuthenticated()) {
   <app-chat-widget />
 }
-
-<router-outlet />

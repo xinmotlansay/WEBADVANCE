@@ -12,6 +12,10 @@ export async function connectDb(): Promise<void> {
   await mongoose.connect(config.MONGODB_URI);
 }
 
+export function isDbConnected(): boolean {
+  return mongoose.connection.readyState === mongoose.ConnectionStates.connected;
+}
+
 export async function disconnectDb(): Promise<void> {
   await mongoose.disconnect();
 }

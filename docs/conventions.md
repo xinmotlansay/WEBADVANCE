@@ -40,6 +40,8 @@ Quy tắc đuôi file Angular: `.component.ts`, `.service.ts`, `.guard.ts`, `.in
 - Phân quyền route bằng guard. Ẩn menu theo vai trò ở admin-web, nhưng quyền thật do backend kiểm.
 - Dùng `ChangeDetectionStrategy.OnPush` và Signals cho trạng thái cục bộ.
 - Văn bản hiển thị là tiếng Việt, tiền tệ định dạng VND.
+- Giao diện theo `STYLE_GUIDE.md`: màu, cỡ chữ, độ đậm, lề và gutter của lưới khai báo một lần thành CSS variable trong `styles.css`, component chỉ tham chiếu token, không viết cứng mã màu hay cỡ chữ. Dùng CSS thuần, không dùng SCSS.
+- Icon lấy từ Iconify (ví dụ `lucide:search`), lưu thành file SVG trong `projects/customer-web/public/icons/` (tên `bộ-tên.svg`) và dùng qua `app-icon`, không gọi Iconify lúc chạy.
 
 ---
 

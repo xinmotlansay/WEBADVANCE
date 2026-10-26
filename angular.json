@@ -11,7 +11,7 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "scss",
+          "style": "css",
           "skipTests": true
         },
         "@schematics/angular:class": {
@@ -48,7 +48,7 @@
             "browser": "projects/customer-web/src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "projects/customer-web/tsconfig.app.json",
-            "inlineStyleLanguage": "scss",
+            "inlineStyleLanguage": "css",
             "assets": [
               {
                 "glob": "**/*",
@@ -56,7 +56,10 @@
               }
             ],
             "styles": [
-              "projects/customer-web/src/styles.scss"
+              "projects/customer-web/src/styles.css"
+            ],
+            "polyfills": [
+              "zone.js"
             ]
           },
           "configurations": {
@@ -69,8 +72,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all"
@@ -101,7 +104,7 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "scss",
+          "style": "css",
           "skipTests": true
         },
         "@schematics/angular:class": {
@@ -138,7 +141,7 @@
             "browser": "projects/admin-web/src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "projects/admin-web/tsconfig.app.json",
-            "inlineStyleLanguage": "scss",
+            "inlineStyleLanguage": "css",
             "assets": [
               {
                 "glob": "**/*",
@@ -146,7 +149,10 @@
               }
             ],
             "styles": [
-              "projects/admin-web/src/styles.scss"
+              "projects/admin-web/src/styles.css"
+            ],
+            "polyfills": [
+              "zone.js"
             ]
           },
           "configurations": {

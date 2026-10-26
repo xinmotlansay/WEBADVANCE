@@ -1,0 +1,11 @@
+<div class="carousel" [class.carousel--light]="arrowTone() === 'light'">
+  <button type="button" class="arrow arrow--prev" aria-label="Trước" (click)="scroll(-1)">
+    <app-icon name="lucide:chevron-left" [size]="22" />
+  </button>
+  <div #track class="track" role="list" [attr.aria-label]="label()">
+    <ng-content />
+  </div>
+  <button type="button" class="arrow arrow--next" aria-label="Sau" (click)="scroll(1)">
+    <app-icon name="lucide:chevron-right" [size]="22" />
+  </button>
+</div>

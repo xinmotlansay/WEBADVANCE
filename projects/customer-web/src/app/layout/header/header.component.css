@@ -1,0 +1,343 @@
+:host {
+  --header-fg: var(--color-white);
+  --header-bg: transparent;
+  --header-sale: var(--color-white);
+  --header-nav-weight: var(--font-weight-medium);
+  display: block;
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+}
+
+/* Cuộn xuống, rê chuột vào hoặc mở menu thì header đổi sang nền trắng, chữ đen */
+:host(.scrolled),
+:host(:hover),
+:host(.menu-open),
+:host(.search-open) {
+  --header-fg: var(--color-black);
+  --header-bg: var(--color-white);
+  --header-sale: var(--color-accent);
+  --header-nav-weight: var(--font-weight-regular);
+}
+
+.topbar {
+  max-height: 34px;
+  overflow: hidden;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
+  transition: max-height 0.3s ease;
+}
+:host(.scrolled) .topbar {
+  max-height: 0;
+}
+.topbar__inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+}
+.topbar__promo {
+  text-align: center;
+}
+.topbar__account {
+  position: absolute;
+  right: var(--page-gutter);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.header {
+  background: var(--header-bg);
+  color: var(--header-fg);
+  border-bottom: 1px solid transparent;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+:host(.scrolled) .header,
+:host(:hover) .header,
+:host(.menu-open) .header,
+:host(.search-open) .header {
+  border-bottom-color: var(--color-gray-light);
+}
+/* Bố cục theo Figma: nav bên trái, logo căn giữa trang, ô tìm kiếm và icon sát lề phải */
+.header__inner {
+  --header-pad: clamp(16px, 2.6vw, 48px);
+  --logo-w: 190px;
+  --search-w: clamp(200px, 24vw, 420px);
+  --tools-gap: 20px;
+  --icons-w: 106px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: none;
+  min-height: 80px;
+  padding-inline: var(--header-pad);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 2.2vw, 36px);
+}
+.nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--font-size-h5);
+  font-weight: var(--header-nav-weight);
+  white-space: nowrap;
+  transition: font-weight 0.3s ease;
+}
+.nav__link--sale {
+  color: var(--header-sale);
+}
+.nav__item--dropdown {
+  position: relative;
+  padding-block: 28px;
+}
+.nav__item--dropdown:hover .dropdown,
+.nav__item--dropdown:focus-within .dropdown {
+  display: block;
+}
+
+.dropdown {
+  color: var(--color-black);
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: -16px;
+  min-width: 200px;
+  padding: 8px 0;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-light);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-black) 8%, transparent);
+}
+.dropdown a {
+  display: block;
+  padding: 8px 16px;
+  font-size: var(--font-size-h5);
+}
+.dropdown a:hover {
+  background: var(--color-surface);
+}
+
+.logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--logo-w);
+  transform: translate(-50%, -50%);
+  font-family: var(--font-logo);
+  font-size: var(--font-size-logo);
+  font-weight: var(--font-weight-regular);
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mở ô tìm kiếm: logo dời sang trái, nav và icon biến mất */
+:host(.search-open) .logo {
+  left: var(--header-pad);
+  transform: translate(0, -50%);
+}
+.nav,
+.burger {
+  transition: opacity 0.25s ease;
+}
+:host(.search-open) .nav,
+:host(.search-open) .burger {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tools {
+  position: absolute;
+  top: 50%;
+  right: var(--header-pad);
+  display: flex;
+  align-items: center;
+  width: calc(var(--search-w) + var(--tools-gap) + var(--icons-w));
+  transform: translateY(-50%);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+:host(.search-open) .tools {
+  width: calc(100% - 2 * var(--header-pad) - var(--logo-w) - 32px);
+}
+
+/* Trạng thái trong suốt: ô tìm kiếm cũng trong suốt, viền và chữ trắng */
+.search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  height: 40px;
+  padding-inline: 14px;
+  border: 1px solid color-mix(in srgb, var(--header-fg) 55%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--header-fg);
+  transition:
+    border-color 0.3s ease,
+    background 0.3s ease;
+}
+:host(.scrolled) .search,
+:host(:hover) .search,
+:host(.menu-open) .search,
+:host(.search-open) .search {
+  border-color: var(--color-gray);
+  background: var(--color-white);
+}
+:host(.search-open) .search {
+  border-color: var(--color-black);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-h5);
+  color: var(--header-fg);
+}
+.search input::placeholder {
+  color: color-mix(in srgb, var(--header-fg) 60%, transparent);
+  font-weight: var(--font-weight-medium);
+}
+.search__action {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: color-mix(in srgb, var(--header-fg) 60%, transparent);
+}
+:host(.search-open) .search__action {
+  color: var(--color-black);
+}
+
+.icons {
+  display: flex;
+  flex: none;
+  gap: var(--tools-gap);
+  width: var(--icons-w);
+  margin-left: var(--tools-gap);
+  overflow: hidden;
+  transition:
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    margin-left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+:host(.search-open) .icons {
+  width: 0;
+  margin-left: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+}
+
+.burger {
+  display: none;
+}
+
+/* Màn hình hẹp: thu ô tìm kiếm và khoảng cách để không đè lên logo ở giữa */
+@media (min-width: 1700px) {
+  .nav__link {
+    font-size: var(--font-size-h4);
+  }
+}
+
+@media (max-width: 1280px) {
+  .nav {
+    gap: 32px;
+  }
+  .header__inner {
+    --search-w: clamp(180px, 23vw, 300px);
+  }
+}
+/* Không đủ chỗ cho nav hai bên logo: chuyển nav vào nút menu */
+@media (max-width: 1180px) {
+  .header__inner {
+    gap: 12px;
+  }
+  .burger {
+    display: grid;
+    gap: 4px;
+    padding: 8px 0;
+    border: 0;
+    background: none;
+  }
+  .burger span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--header-fg);
+  }
+  .logo {
+    text-align: center;
+  }
+  .nav {
+    display: none;
+    color: var(--color-black);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px var(--page-gutter);
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-gray-light);
+  }
+  .nav--open {
+    display: flex;
+  }
+  .nav__item--dropdown {
+    padding-block: 0;
+  }
+  .dropdown {
+    position: static;
+    display: block;
+    border: 0;
+    box-shadow: none;
+    padding: 4px 0 0 12px;
+  }
+  .logo {
+    font-size: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  .header__inner {
+    --search-w: 0px;
+    --tools-gap: 0px;
+    --logo-w: 150px;
+  }
+  .search {
+    display: none;
+  }
+  :host(.search-open) .search {
+    display: flex;
+  }
+  .logo {
+    font-size: 32px;
+  }
+}

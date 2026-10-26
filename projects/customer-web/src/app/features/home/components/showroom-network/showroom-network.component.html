@@ -1,0 +1,142 @@
+<section class="network" [class.network--in-view]="inView()" aria-labelledby="network-title">
+  <div class="container network__layout">
+    <div class="network__left">
+      <header class="network__head">
+        <p class="eyebrow">HỆ THỐNG SHOWROOM</p>
+        <h2 id="network-title" class="headline">
+          <span class="headline__line">CaraVeso trên khắp</span>
+          <span class="headline__line headline__line--strong">Việt Nam</span>
+        </h2>
+
+        <ul class="stats">
+          @for (stat of stats(); track stat.label) {
+            <li>
+              <strong>{{ stat.value }}</strong>
+              <span>{{ stat.label }}</span>
+            </li>
+          }
+        </ul>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Lọc showroom theo miền">
+        @for (option of regionOptions; track option.value) {
+          <button
+            type="button"
+            role="tab"
+            class="tab"
+            [class.tab--active]="region() === option.value"
+            [attr.aria-selected]="region() === option.value"
+            (click)="selectRegion(option.value)"
+          >
+            {{ option.label }}
+            <span class="tab__count">{{ regionCounts().get(option.value) ?? 0 }}</span>
+          </button>
+        }
+      </div>
+
+      <ul #list class="list" aria-label="Danh sách showroom">
+        @for (pin of visiblePins(); track pin.showroom.id) {
+          <li
+            class="item"
+            [class.item--active]="pin.showroom.id === active()?.showroom.id"
+            [attr.data-id]="pin.showroom.id"
+          >
+            <button
+              type="button"
+              class="item__head"
+              [attr.aria-expanded]="pin.showroom.id === active()?.showroom.id"
+              (click)="select(pin.showroom.id)"
+            >
+              <span class="item__dot" [class.item__dot--flagship]="pin.showroom.isFlagship"></span>
+              <span class="item__text">
+                <span class="item__city">{{ pin.showroom.city }}</span>
+                <span class="item__name">{{ pin.showroom.name }}</span>
+              </span>
+              <app-icon name="lucide:chevron-down" [size]="18" />
+            </button>
+
+            <div class="item__more">
+              <div class="item__more-inner">
+                <img [src]="pin.showroom.image" [alt]="pin.showroom.name" loading="lazy" />
+                <div class="item__info">
+                  <p>{{ pin.showroom.address }}</p>
+                  <p class="meta">
+                    {{ pin.showroom.openTime }} – {{ pin.showroom.closeTime }}
+                    @if (pin.showroom.phone) {
+                      · {{ pin.showroom.phone }}
+                    }
+                  </p>
+                  <a
+                    class="directions"
+                    [href]="directionsUrl(pin.showroom)"
+                    target="_blank"
+                    rel="noopener"
+                    >Chỉ đường</a
+                  >
+                </div>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="map" [style.aspect-ratio]="map.width + ' / ' + map.height">
+      <svg
+        class="map__svg"
+        [attr.viewBox]="'0 0 ' + map.width + ' ' + map.height"
+        role="img"
+        aria-label="Bản đồ các showroom CaraVeso trên lãnh thổ Việt Nam"
+      >
+        <path class="map__outline" pathLength="1" [attr.d]="map.outline" />
+
+        @for (island of archipelagos; track island.name) {
+          <g class="map__island">
+            <circle [attr.cx]="island.x" [attr.cy]="island.y" r="2" />
+            <circle [attr.cx]="island.x + 6" [attr.cy]="island.y + 4" r="1.5" />
+            <circle [attr.cx]="island.x - 5" [attr.cy]="island.y + 5" r="1.5" />
+            <text [attr.x]="island.x" [attr.y]="island.y + 20" text-anchor="middle">
+              {{ island.name }}
+            </text>
+          </g>
+        }
+
+        @if (route(); as d) {
+          <path class="map__route" [attr.d]="d" />
+        }
+
+        @for (pin of visiblePins(); track pin.showroom.id) {
+          <g
+            class="pin"
+            [class.pin--active]="pin.showroom.id === active()?.showroom.id"
+            [class.pin--flagship]="pin.showroom.isFlagship"
+            [attr.transform]="'translate(' + pin.x.toFixed(1) + ' ' + pin.y.toFixed(1) + ')'"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="pin.showroom.name + ', ' + pin.showroom.city"
+            (click)="select(pin.showroom.id)"
+            (keydown.enter)="select(pin.showroom.id)"
+            (keydown.space)="select(pin.showroom.id); $event.preventDefault()"
+            (mouseenter)="select(pin.showroom.id)"
+          >
+            <circle class="pin__ripple" r="18" />
+            <circle class="pin__hit" r="14" />
+            <circle class="pin__core" r="5" />
+          </g>
+        }
+      </svg>
+
+      @if (active(); as current) {
+        <div
+          class="tip"
+          [style.left]="percent(current.x, map.width)"
+          [style.top]="percent(current.y, map.height)"
+          [class.tip--left]="current.x > map.width * 0.62"
+        >
+          <strong>{{ current.showroom.name }}</strong>
+          <span>{{ current.showroom.openTime }} – {{ current.showroom.closeTime }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</section>

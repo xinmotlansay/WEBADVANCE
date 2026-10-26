@@ -1,0 +1,131 @@
+/* Token theo docs/STYLE_GUIDE.md (Figma: frame "Style"). */
+:root {
+  /* Màu */
+  --color-primary: #0b3056;
+  --color-black: #000000;
+  --color-gray-light: #d9d9d9;
+  --color-gray: #c4c4c4;
+  --color-white: #ffffff;
+
+  /* Chữ */
+  --font-sans: 'Inter', sans-serif;
+  --font-logo: 'Italiana', serif;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-size-h1: 36px;
+  --font-size-h2: 24px;
+  --font-size-h3: 20px;
+  --font-size-h4: 16px;
+  --font-size-h5: 14px;
+  --font-size-logo: 48px;
+
+  /* Lưới 12 cột */
+  --layout-columns: 12;
+  --layout-margin: 80px;
+  --grid-gutter: 24px;
+
+  /*
+   * Giá trị lấy từ mockup trang chủ, CHƯA có trong style guide, chờ xác nhận với Figma:
+   * màu nhấn (nhãn giảm giá, Khuyến mãi), màu chữ phụ, nền xám nhạt, cỡ chữ nhỏ.
+   */
+  --color-accent: #e11d2e;
+  --color-muted: #6b6b6b;
+  --color-surface: #f2f2f2;
+  --font-size-sm: 13px;
+  --font-size-xs: 12px;
+  --font-size-display: clamp(36px, 4vw, 56px);
+  --font-size-display-sm: clamp(28px, 2.8vw, 40px);
+
+  /* Lề trang thu nhỏ theo màn hình, tối đa bằng lề của style guide. */
+  --page-gutter: clamp(16px, 5.5vw, var(--layout-margin));
+  --page-max: 1440px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-black);
+  background: var(--color-white);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-weight: var(--font-weight-medium);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+}
+
+h5 {
+  font-size: var(--font-size-h5);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}

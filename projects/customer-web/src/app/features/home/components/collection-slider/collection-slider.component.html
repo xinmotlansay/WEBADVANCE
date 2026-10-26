@@ -1,0 +1,38 @@
+<section aria-roledescription="carousel" aria-label="CaraVeso Collections">
+  <h2 class="title">CaraVeso Collections</h2>
+
+  @if (current(); as collection) {
+    <div class="stage">
+      <a class="stage__link" [routerLink]="['/collections', collection.slug]">
+        @for (item of collections(); track item.id; let i = $index) {
+          <img
+            [class.active]="i === index()"
+            [src]="item.thumbnail"
+            [alt]="item.name"
+            loading="lazy"
+            [attr.aria-hidden]="i !== index()"
+          />
+        }
+      </a>
+
+      @if (collections().length > 1) {
+        <button
+          type="button"
+          class="arrow arrow--prev"
+          aria-label="Collection trước"
+          (click)="go(-1)"
+        >
+          <app-icon name="lucide:chevron-left" [size]="22" />
+        </button>
+        <button type="button" class="arrow arrow--next" aria-label="Collection sau" (click)="go(1)">
+          <app-icon name="lucide:chevron-right" [size]="22" />
+        </button>
+      }
+    </div>
+
+    <div class="caption">
+      <h3>{{ collection.name }}</h3>
+      <p>{{ collection.slogan }}</p>
+    </div>
+  }
+</section>

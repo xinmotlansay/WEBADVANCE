@@ -1,0 +1,22 @@
+<section>
+  <header class="head">
+    <h2>{{ title() }}</h2>
+    @if (moreLink(); as link) {
+      <a class="more" [routerLink]="link" [queryParams]="moreQueryParams()">Xem thêm</a>
+    }
+  </header>
+
+  @if (layout() === 'carousel') {
+    <app-scroll-carousel [perView]="4" [perViewTablet]="3" [perViewMobile]="2" [label]="title()">
+      @for (product of products(); track product.id) {
+        <app-product-card [product]="product" />
+      }
+    </app-scroll-carousel>
+  } @else {
+    <div class="grid" role="list">
+      @for (product of products(); track product.id) {
+        <app-product-card [product]="product" />
+      }
+    </div>
+  }
+</section>

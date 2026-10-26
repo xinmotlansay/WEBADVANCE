@@ -1,0 +1,77 @@
+:host {
+  display: block;
+}
+
+.carousel {
+  position: relative;
+}
+
+.track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - var(--grid-gutter) * (var(--per-view) - 1)) / var(--per-view));
+  gap: var(--grid-gutter);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.track::-webkit-scrollbar {
+  display: none;
+}
+.track ::ng-deep > * {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
+  color: var(--color-black);
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--color-black) 18%, transparent);
+  transform: translateY(-50%);
+}
+.arrow--prev {
+  left: -18px;
+}
+.arrow--next {
+  right: -18px;
+}
+.arrow:hover {
+  background: var(--color-white);
+}
+
+.carousel--light .arrow {
+  background: color-mix(in srgb, var(--color-white) 25%, transparent);
+  color: var(--color-white);
+  box-shadow: none;
+}
+
+@media (max-width: 1024px) {
+  .track {
+    grid-auto-columns: calc(
+      (100% - var(--grid-gutter) * (var(--per-view-tablet) - 1)) / var(--per-view-tablet)
+    );
+  }
+}
+@media (max-width: 640px) {
+  .track {
+    grid-auto-columns: calc(
+      (100% - var(--grid-gutter) * (var(--per-view-mobile) - 1)) / var(--per-view-mobile)
+    );
+  }
+  .arrow--prev {
+    left: -8px;
+  }
+  .arrow--next {
+    right: -8px;
+  }
+}

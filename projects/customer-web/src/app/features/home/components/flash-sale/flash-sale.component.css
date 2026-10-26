@@ -1,0 +1,65 @@
+:host {
+  display: block;
+}
+
+.flash {
+  padding-block: 28px 36px;
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+.flash__head {
+  display: flex;
+  align-items: center;
+  gap: var(--grid-gutter);
+  margin-bottom: 20px;
+}
+.flash__logo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+  font-size: var(--font-size-h3);
+  font-style: italic;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.01em;
+}
+.flash__more {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+.flash__more:hover {
+  text-decoration: underline;
+}
+
+.countdown {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.countdown li {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 60%, transparent);
+  border-radius: 4px;
+  line-height: 1.1;
+}
+.countdown strong {
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-bold);
+}
+.countdown small {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .flash__head {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

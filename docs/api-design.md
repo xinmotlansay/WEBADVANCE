@@ -469,6 +469,7 @@ Response `200`:
 | `color`, `material` | `Xám,Nâu` | CSV nhiều giá trị |
 | `minLength` `maxLength` `minWidth` `maxWidth` `minHeight` `maxHeight` | số cm | Kích thước tổng thể biến thể |
 | `badge` | `NEW` hoặc `BEST_SELLER` | Tình trạng nhãn |
+| `hasPromotion` | `true` | Chỉ sản phẩm đang thuộc chương trình khuyến mãi đang chạy |
 | `inStock` | `true` | Chỉ còn hàng |
 | `sort` | `price_asc, price_desc, newest, name_asc, name_desc` | Mặc định `newest` |
 | `page`, `limit` | | Phân trang |
@@ -477,7 +478,7 @@ Chỉ trả sản phẩm `status = ACTIVE`. Item `ProductListItem`:
 
 ```json
 {
-  "id": "66f...", "name": "Sofa Oslo", "slug": "sofa-oslo",
+  "id": "66f...", "name": "Sofa Oslo", "slug": "sofa-oslo", "shortDescription": "Êm ái, thoải mái",
   "thumbnail": "https://.../1.jpg",
   "priceFrom": 15000000, "originalPriceFrom": 18000000, "hasPromotion": true,
   "badges": ["NEW"], "stockStatus": "IN_STOCK",
@@ -578,6 +579,17 @@ Dùng `walkwayProfileId` (cần đăng nhập) hoặc `passages` nhập trực t
 | POST | `/banners/:id/click` | P | MA-09 | Ghi lượt click |
 | GET | `/contents` | P | | Bài viết/thông báo (`?type=ARTICLE&page=`) |
 | GET | `/contents/:slug` | P | | Nội dung chi tiết (trang chủ, landing, bài viết) |
+| GET | `/promotions/flash-sale` | P | | Chương trình khuyến mãi đang chạy kết thúc sớm nhất kèm sản phẩm, dùng cho khối Flash Sale ở trang chủ |
+| GET | `/showrooms` | P | | Danh sách showroom đang mở (`?region=NORTH|CENTRAL|SOUTH`), theo `displayOrder` |
+
+`GET /collections` trả mỗi phần tử `{ id, name, slug, slogan, shortDescription, thumbnail }`. `GET /inspirations/:id` trả `{ id, imageUrl, products: [ProductListItem] }` (chỉ sản phẩm `ACTIVE`, theo `displayOrder`). `GET /showrooms` trả mỗi phần tử `{ id, name, slug, city, region, address, phone, openTime, closeTime, latitude, longitude, image, isFlagship }`. `GET /promotions/flash-sale` trả `data: null` khi không có chương trình nào đang chạy, ngược lại:
+
+```json
+{
+  "promotion": { "id": "...", "name": "Flash Sale", "startDate": "2026-10-20T00:00:00.000Z", "endDate": "2026-10-22T00:00:00.000Z" },
+  "products": [ "ProductListItem" ]
+}
+```
 
 `GET /collections/:slug` (rút gọn):
 
@@ -1267,6 +1279,9 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 | 1.0 | 2026-10-17 | Bản đầu từ FR và thiết kế MongoDB |
 | 1.1 | 2026-10-17 | Thêm hoàn tiền, state machine đổi/trả và bảo hành, hóa đơn, cấu trúc dashboard, `GET /config/public`, `PATCH /cart/selection`, chi tiết `PATCH /cart/items`, mã lỗi bổ sung, ghi chú bảo mật, sửa tham chiếu mục 8.5, hỗ trợ `userVoucherId` khi đặt hàng |
 | 1.2 | 2026-10-17 | Bỏ loại trừ giao trễ do khách, bỏ thông báo cho khách (notifications chỉ cho Admin), mỗi sản phẩm một chương trình khuyến mãi (`PROMOTION_CONFLICT`), SKU `AAA.PPP.VV` tự sinh, hóa đơn điện tử tự phát hành sau giao thành công, đánh dấu đổi/trả và bảo hành ở mức demo |
+| 1.3 | 2026-10-20 | Trang chủ: thêm `GET /promotions/flash-sale`, tham số `hasPromotion` cho `GET /products`, field `shortDescription` cho `ProductListItem`, định nghĩa response `GET /collections` |
+| 1.4 | 2026-10-20 | Trang chủ: thêm collection `showrooms` (database-design thực thể 34) và `GET /showrooms` |
+| 1.5 | 2026-10-20 | Trang chủ: định nghĩa response `GET /inspirations/:id` cho popup Shop by look |
 
 ---
 

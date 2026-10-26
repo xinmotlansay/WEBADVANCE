@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.title {
+  display: table;
+  margin: 0 auto 36px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--color-primary);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+}
+
+.tiles {
+  display: grid;
+  gap: var(--grid-gutter);
+}
+
+a {
+  display: block;
+  text-align: center;
+}
+
+.tile__media {
+  display: block;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.tile__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+a:hover .tile__media img {
+  transform: scale(1.04);
+}
+
+.tile__label {
+  display: block;
+  margin-top: 10px;
+  font-size: var(--font-size-h5);
+}
+
+:host([data-variant='category']) .tiles {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+:host([data-variant='category']) .tile__media {
+  aspect-ratio: 4/3;
+}
+
+:host([data-variant='room']) .tiles {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+:host([data-variant='room']) .tile__media {
+  aspect-ratio: 1/1;
+}
+:host([data-variant='room']) .tile__label {
+  font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 900px) {
+  :host([data-variant='category']) .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  :host([data-variant='room']) .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
