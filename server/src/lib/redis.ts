@@ -3,7 +3,9 @@ import { config } from '../config/index.js';
 import { logger } from './logger.js';
 
 export const redis = new Redis(config.REDIS_URL, {
-  maxRetriesPerRequest: null,
+  maxRetriesPerRequest: 3,
+  enableOfflineQueue: false,
+  commandTimeout: 2000,
   lazyConnect: false,
 });
 

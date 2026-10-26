@@ -18,6 +18,13 @@ const envSchema = z.object({
   BANK_WEBHOOK_SECRET: z.string().optional(),
   OTP_EMAIL_FROM: z.string().default('CaraVeso <onboarding@resend.dev>'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:4200,http://localhost:4201'),
+  N8N_CHAT_WEBHOOK_URL: z.string().url('N8N_CHAT_WEBHOOK_URL phải là URL hợp lệ').optional(),
+  N8N_WEBHOOK_SECRET: z.string().optional(),
+  GEMINI_CHAT_MODEL: z.string().default('gemini-2.5-flash'),
+  CHAT_AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  CHAT_AI_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+  CHAT_AI_RATE_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+  CHAT_HISTORY_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 const parsed = envSchema.safeParse(process.env);
