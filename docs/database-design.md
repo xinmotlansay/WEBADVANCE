@@ -33,19 +33,20 @@ Collection: `users` (trước đây: `NGUOIDUNG`). Dùng chung cho khách hàng 
 | 7 | authSource | String | Y | Nguồn đăng nhập chính: `EMAIL`, `PHONE`, `GOOGLE` |
 | 8 | profile.fullName | String | Y | Họ tên |
 | 9 | profile.dateOfBirth | Date | | Default: null. Ngày sinh |
-| 10 | profile.birthDateEditCount | Number | | Default: 0. Số lần đã nhập ngày sinh, tối đa 2 (tính cả lần đầu) |
-| 11 | avatar | String | | Default: "". Đường dẫn ảnh đại diện |
-| 12 | termsAccepted | Boolean | | Đã đồng ý điều khoản khi đăng ký. Bắt buộc là true với khách hàng. Tài khoản Admin do Admin cấp cao tạo nên không áp dụng |
-| 13 | termsAcceptedAt | Date | | Thời điểm đồng ý điều khoản |
-| 14 | status | String | Y | Default: `ACTIVE`. Trạng thái: `ACTIVE` (kích hoạt), `LOCKED` (bị khóa), `ANONYMIZED` (đã ẩn danh hóa) |
-| 15 | security.failedLoginCount | Number | | Default: 0. Số lần sai mật khẩu liên tiếp |
-| 16 | security.lockCount | Number | | Default: 0. Số lần đã bị khóa đăng nhập, dùng để tăng dần thời gian khóa |
-| 17 | security.lockedUntil | Date | | Default: null. Thời điểm hết khóa đăng nhập, dùng hiển thị thời gian còn lại |
-| 18 | security.mustChangePassword | Boolean | | Default: false. Bắt buộc đổi mật khẩu ở lần đăng nhập đầu (mật khẩu tạm của Admin) |
-| 19 | lockInfo.reason | String | | Lý do khóa tài khoản (bắt buộc khi Admin khóa). Hiển thị cho khách khi đăng nhập bị chặn |
-| 20 | lockInfo.lockedBy | ObjectId (ref: users) | | Admin thực hiện khóa |
-| 21 | lockInfo.lockedAt | Date | | Thời điểm khóa |
-| 22 | anonymizedAt | Date | | Thời điểm ẩn danh hóa theo yêu cầu xóa tài khoản |
+| 10 | profile.gender | String | | `MALE`, `FEMALE`, `OTHER`. Giới tính |
+| 11 | profile.birthDateEditCount | Number | | Default: 0. Số lần đã nhập ngày sinh, tối đa 2 (tính cả lần đầu) |
+| 12 | avatar | String | | Default: "". Đường dẫn ảnh đại diện |
+| 13 | termsAccepted | Boolean | | Đã đồng ý điều khoản khi đăng ký. Bắt buộc là true với khách hàng. Tài khoản Admin do Admin cấp cao tạo nên không áp dụng |
+| 14 | termsAcceptedAt | Date | | Thời điểm đồng ý điều khoản |
+| 15 | status | String | Y | Default: `ACTIVE`. Trạng thái: `ACTIVE` (kích hoạt), `LOCKED` (bị khóa), `ANONYMIZED` (đã ẩn danh hóa) |
+| 16 | security.failedLoginCount | Number | | Default: 0. Số lần sai mật khẩu liên tiếp |
+| 17 | security.lockCount | Number | | Default: 0. Số lần đã bị khóa đăng nhập, dùng để tăng dần thời gian khóa |
+| 18 | security.lockedUntil | Date | | Default: null. Thời điểm hết khóa đăng nhập, dùng hiển thị thời gian còn lại |
+| 19 | security.mustChangePassword | Boolean | | Default: false. Bắt buộc đổi mật khẩu ở lần đăng nhập đầu (mật khẩu tạm của Admin) |
+| 20 | lockInfo.reason | String | | Lý do khóa tài khoản (bắt buộc khi Admin khóa). Hiển thị cho khách khi đăng nhập bị chặn |
+| 21 | lockInfo.lockedBy | ObjectId (ref: users) | | Admin thực hiện khóa |
+| 22 | lockInfo.lockedAt | Date | | Thời điểm khóa |
+| 23 | anonymizedAt | Date | | Thời điểm ẩn danh hóa theo yêu cầu xóa tài khoản |
 
 ### Thực thể 2: Vai trò (Role)
 
@@ -634,6 +635,7 @@ Collection: `return_requests` (trước đây: `PHIEU_DOI_TRA`).
 | 29 | requestedAt | Date | Y | Ngày yêu cầu, phải trong 7 ngày kể từ `shipments.actualDeliveryDate` (số ngày lấy từ cấu hình) |
 | 30 | approvedAt | Date | | Ngày được xác nhận |
 | 31 | completedAt | Date | | Ngày hoàn tất |
+| 32 | refundAccount | Object | | Tài khoản hoàn tiền; demo lưu gói mã hóa AES-256-GCM, không lưu số tài khoản dạng văn bản thường |
 
 ### Thực thể 25: Phiên chat (ChatSession)
 

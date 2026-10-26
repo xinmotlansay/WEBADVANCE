@@ -1,40 +1,91 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { CustomerAddress } from '../../../features/account/account.service';
-import { AccountReadApiService } from '../../../features/account/account-read-api.service';
+import { AccountReadApiService, MongoCustomerAddress } from '../../../features/account/account-read-api.service';
+
+interface AddressView extends MongoCustomerAddress {
+  label: string;
+}
 
 @Component({
   selector: 'app-addresses',
-  imports: [RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './addresses.component.html',
   styleUrl: './addresses.component.css',
 })
 export class AddressesComponent {
-  protected readonly addresses = signal<CustomerAddress[]>([]);
+  protected readonly addresses = signal<AddressView[]>([]);
   protected readonly loading = signal(false);
   protected readonly loadError = signal('');
   protected readonly needsAccountId = signal(false);
   protected notice = '';
+  protected addressFormOpen = false;
+  protected savingAddress = false;
+  protected editingAddressId = '';
+  protected addressForm = this.emptyAddress();
+  private readonly userId: string;
 
   constructor(private readonly accountApi: AccountReadApiService) {
-    const userId = accountApi.getPreviewUserId();
-    if (!userId) {
+    this.userId = accountApi.getPreviewUserId();
+    if (!this.userId) {
       this.needsAccountId.set(true);
       return;
     }
 
+    this.loadAddresses();
+  }
+
+  protected requestEdit(address?: AddressView): void {
+    this.editingAddressId = address?._id ?? '';
+    this.addressForm = address ? {
+      recipientName: address.recipientName ?? '',
+      recipientPhone: address.recipientPhone ?? '',
+      addressLine: address.addressLine ?? '',
+      ward: address.ward ?? '',
+      district: address.district ?? '',
+      province: address.province ?? '',
+      isDefault: address.isDefault ?? false,
+    } : this.emptyAddress();
+    this.addressFormOpen = true;
+    this.notice = '';
+  }
+
+  protected saveAddress(): void {
+    if (!this.userId || this.savingAddress) return;
+    this.savingAddress = true;
+    this.notice = '';
+    const request = this.editingAddressId
+      ? this.accountApi.updateAddress(this.userId, this.editingAddressId, this.addressForm)
+      : this.accountApi.createAddress(this.userId, this.addressForm);
+    request.subscribe({
+      next: () => {
+        this.savingAddress = false;
+        this.addressFormOpen = false;
+        this.notice = 'Địa chỉ đã được lưu vào MongoDB.';
+        this.loadAddresses();
+      },
+      error: (error: unknown) => {
+        this.savingAddress = false;
+        this.notice = this.apiErrorMessage(error);
+      },
+    });
+  }
+
+  protected cancelAddress(): void {
+    this.addressFormOpen = false;
+    this.editingAddressId = '';
+  }
+
+  protected formatAddress(address: AddressView): string {
+    return [address.addressLine, address.ward, address.district, address.province].filter((part) => !!part).join(', ');
+  }
+
+  private loadAddresses(): void {
     this.loading.set(true);
-    accountApi.getAddresses(userId).subscribe({
+    this.accountApi.getAddresses(this.userId).subscribe({
       next: (addresses) => {
-        this.addresses.set(addresses.map((address, index) => ({
-          id: index + 1,
-          recipient: address.recipientName ?? '',
-          phone: address.recipientPhone ?? '',
-          detail: [address.addressLine, address.ward, address.province].filter(Boolean).join(', '),
-          label: 'Nhà riêng',
-          isDefault: address.isDefault ?? false,
-        })));
+        this.addresses.set(addresses.map((address) => ({ ...address, label: 'Nhà riêng' })));
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -44,8 +95,16 @@ export class AddressesComponent {
     });
   }
 
-  protected requestEdit(): void {
-    this.notice = 'Demo chỉ đọc: API chưa hỗ trợ chỉnh sửa hoặc thêm địa chỉ.';
+  private emptyAddress(): Omit<MongoCustomerAddress, '_id'> & { district: string } {
+    return {
+      recipientName: '',
+      recipientPhone: '',
+      addressLine: '',
+      ward: '',
+      district: '',
+      province: '',
+      isDefault: false,
+    };
   }
 
   private apiErrorMessage(error: unknown): string {

@@ -14,5 +14,6 @@ export class SiteHeaderComponent {
 
   constructor(protected readonly cart: CartService, accountApi: AccountReadApiService) {
     this.accountProfile = accountApi.profile;
+    accountApi.getPreviewUserId();
   }
 }

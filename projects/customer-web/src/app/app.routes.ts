@@ -21,6 +21,7 @@ export const routes: Routes = [
           { path: 'logout', loadComponent: () => import('./account/pages/logout/logout.component').then((module) => module.LogoutComponent) },
         ],
       },
+      { path: 'products/:id', loadComponent: () => import('./features/product-detail/product-detail-page/product-detail-page.component').then((module) => module.ProductDetailPageComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'account/profile' },
     ],
   },

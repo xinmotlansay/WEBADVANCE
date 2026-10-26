@@ -17,6 +17,7 @@ export class ProfileComponent {
   protected customerId = '';
   protected readonly profileLoaded = signal(false);
   protected readonly loadingProfile = signal(false);
+  protected readonly savingProfile = signal(false);
   protected readonly loadError = signal('');
   protected accountPickerOpen = true;
   protected passwordFormOpen = false;
@@ -65,7 +66,29 @@ export class ProfileComponent {
   }
 
   protected saveProfile(): void {
-    this.notice = 'Demo chỉ đọc: thông tin cá nhân chưa được lưu vào MongoDB.';
+    const genderCodes: Record<string, string> = { Nam: 'MALE', Nữ: 'FEMALE', Khác: 'OTHER', '': '' };
+    const gender = genderCodes[this.profile.gender];
+    if (gender === undefined) {
+      this.notice = 'Giới tính không hợp lệ.';
+      return;
+    }
+    if (!this.customerId) {
+      this.notice = 'Hãy chọn tài khoản demo trong mục Tài khoản của tôi.';
+      return;
+    }
+
+    this.savingProfile.set(true);
+    this.notice = '';
+    this.accountApi.saveGender(this.customerId, gender).subscribe({
+      next: () => {
+        this.savingProfile.set(false);
+        this.notice = 'Đã lưu thông tin cá nhân vào MongoDB.';
+      },
+      error: (error: unknown) => {
+        this.savingProfile.set(false);
+        this.notice = this.apiErrorMessage(error);
+      },
+    });
   }
 
   protected changePassword(): void {

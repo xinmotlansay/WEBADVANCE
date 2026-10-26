@@ -1,6 +1,5 @@
 <section class="account-screen orders-screen">
   <div class="screen-heading"><h1>Đơn hàng</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
-  <p class="screen-intro">Dữ liệu được tải ở chế độ chỉ đọc từ MongoDB.</p>
   @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
   @if (needsAccountId()) {
     <p class="empty-state">Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem đơn hàng.</p>

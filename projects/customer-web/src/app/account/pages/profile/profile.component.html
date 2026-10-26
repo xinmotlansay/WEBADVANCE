@@ -5,7 +5,7 @@
   </div>
   @if (!profileLoaded() || accountPickerOpen) {
     <section class="database-preview">
-      <p>Nhập MongoDB _id của tài khoản để tải hồ sơ thật ở chế độ demo localhost chỉ đọc.</p>
+      <p>Nhập MongoDB _id của tài khoản khách demo đã được cấu hình để tải hồ sơ từ MongoDB.</p>
       <form class="preview-id-form" (ngSubmit)="loadProfile()">
         <label for="preview-user-id">MongoDB _id</label>
         <input id="preview-user-id" [(ngModel)]="customerId" name="customerId" placeholder="24 ký tự hexadecimal" autocomplete="off" />
@@ -26,17 +26,17 @@
       <form class="profile-form" (ngSubmit)="saveProfile()">
         <label class="profile-name-field">Họ và tên<input [(ngModel)]="profile.name" name="name" readonly /></label>
         <div class="birthday-row">
-          <label>Ngày sinh <span class="info-mark" title="Ngày sinh được tải từ hồ sơ MongoDB.">i</span>
+          <label>Ngày sinh
             <input type="date" [(ngModel)]="profile.birthday" name="birthday" disabled />
           </label>
           <label>Giới tính
-            <select [(ngModel)]="profile.gender" name="gender" disabled><option value="">Chưa cập nhật</option><option>Nam</option><option>Nữ</option><option>Khác</option></select>
+            <select [(ngModel)]="profile.gender" name="gender"><option value="">Chưa cập nhật</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select>
           </label>
         </div>
         <label>Số điện thoại
           <div class="phone-control"><span>+84</span><input [(ngModel)]="profile.phone" name="phone" readonly /><button type="button" (click)="notice = 'API hiện tại chưa hỗ trợ đổi số điện thoại.'">Thay đổi</button></div>
         </label>
-        <button class="primary-button save-profile" type="submit">Lưu thông tin cá nhân</button>
+        <button class="primary-button save-profile" type="submit" [disabled]="savingProfile()">{{ savingProfile() ? 'Đang lưu...' : 'Lưu thông tin cá nhân' }}</button>
       </form>
     </div>
 
@@ -56,7 +56,7 @@
 
     <section class="profile-setting delete-setting">
       <h2>Xóa tài khoản</h2>
-      <p class="delete-explanation">Xóa tài khoản đồng nghĩa với việc xóa vĩnh viễn thông tin cá nhân và lịch sử đặt hàng. Tính năng xóa cần API xác thực nên chưa được bật trong chế độ chỉ đọc.</p>
+      <p class="delete-explanation">Xóa tài khoản của bạn sẽ đồng nghĩa với việc xóa vĩnh viễn tất cả thông tin cá nhân và lịch sử đặt hàng của bạn. Xin lưu ý, hành động này sẽ không thể thay đổi. Nếu có bất kì thắc mắc nào, vui lòng liên hệ với chúng tôi trước khi bạn tiếp tục thao tác.</p>
       <button class="outline-button" type="button" (click)="deleteConfirmationOpen = !deleteConfirmationOpen">Xóa tài khoản</button>
       @if (deleteConfirmationOpen) {
         <div class="delete-confirmation">

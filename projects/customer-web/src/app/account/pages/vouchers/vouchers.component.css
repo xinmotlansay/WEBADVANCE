@@ -1,5 +1,5 @@
 :host { display: block; }
-.vouchers-screen { max-width: 760px; }
+.vouchers-screen { max-width: none; }
 .voucher-filters { display: flex; gap: 18px; overflow-x: auto; margin-bottom: 15px; border-bottom: 1px solid var(--line); }
 .voucher-filters button { flex: 0 0 auto; padding: 11px 2px; border: 0; border-bottom: 2px solid transparent; background: none; color: #72787b; font-size: 10px; cursor: pointer; }
 .voucher-filters button.active { border-bottom-color: var(--navy); color: var(--navy); font-weight: 600; }

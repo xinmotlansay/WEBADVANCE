@@ -1,43 +1,57 @@
 <section class="account-screen reviews-screen">
   <div class="screen-heading"><h1>Đánh giá</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
-  <p class="screen-intro">Nội dung hiển thị là bản xem trước; MongoDB hiện chưa có collection đánh giá.</p>
   @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
   <nav class="review-tabs">
-    <button type="button" [class.active]="activeTab === 'pending'" (click)="activeTab = 'pending'">CHỜ ĐÁNH GIÁ <span>({{ submittedReview ? 1 : 2 }})</span></button>
-    <button type="button" [class.active]="activeTab === 'submitted'" (click)="activeTab = 'submitted'">ĐÃ ĐÁNH GIÁ <span>({{ submittedReview ? 2 : 1 }})</span></button>
+    <button type="button" [class.active]="activeTab === 'pending'" (click)="activeTab = 'pending'">CHỜ ĐÁNH GIÁ <span>({{ reviewItems().length }})</span></button>
+    <button type="button" [class.active]="activeTab === 'submitted'" (click)="activeTab = 'submitted'">ĐÃ ĐÁNH GIÁ <span>({{ submittedItems().length }})</span></button>
   </nav>
-  @if (activeTab === 'pending') {
-    <article class="review-product">
-      <img src="https://images.pexels.com/photos/276534/pexels-photo-276534.jpeg?auto=compress&cs=tinysrgb&w=240" alt="Ghế sofa Kifi" />
-      <div class="review-product-info"><strong>Ghế sofa Kifi</strong><span>Màu trắng be, 2 chỗ ngồi</span><small>Mã đơn: #12345678 &nbsp; Giao thành công ngày: 11/03/2026</small></div>
-      <button class="primary-button" type="button" (click)="notice = 'Bạn có thể để lại đánh giá cho sản phẩm này.'">Viết đánh giá</button>
-    </article>
-    @if (!submittedReview) {
-      <article class="review-editor-card">
-        <div class="review-product editor-product">
-          <img src="https://images.pexels.com/photos/276534/pexels-photo-276534.jpeg?auto=compress&cs=tinysrgb&w=240" alt="Ghế sofa Kifi" />
-          <div class="review-product-info"><strong>Ghế sofa Kifi</strong><span>Màu trắng be, 2 chỗ ngồi</span><small>Mã đơn: #12345678 &nbsp; Giao thành công ngày: 11/03/2026</small></div>
+  @if (needsAccountId()) {
+    <p class="api-error" role="alert">Hãy chọn tài khoản demo trong mục Tài khoản của tôi trước.</p>
+  } @else if (loading()) {
+    <p role="status">Đang tải các sản phẩm đủ điều kiện đánh giá...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else if (activeTab === 'pending') {
+    @for (item of reviewItems(); track item.orderItemId) {
+      <article class="review-product review-order-item">
+        <div class="review-product-info">
+          <strong>{{ item.name }}</strong><span>{{ item.color || item.sku }}</span>
+          <small>Mã đơn: #{{ item.orderCode }} &nbsp; Giao thành công ngày: {{ formatDate(item.deliveredAt) }}</small>
         </div>
-        <div class="rating-label">Đánh giá sản phẩm:
-          <div class="rating-picker" aria-label="Chọn số sao">
-            @for (star of [1, 2, 3, 4, 5]; track star) { <button type="button" [class.selected]="star <= rating" (click)="rating = star" [attr.aria-label]="star + ' sao'">☆</button> }
-          </div>
-        </div>
-        <label class="review-text-label">Chia sẻ cảm nhận của bạn:<textarea [(ngModel)]="reviewText" name="reviewText" rows="5" maxlength="1000" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea></label>
-        <div class="review-upload">
-          <label class="upload-control">▧<span>Hình ảnh thực tế</span><input type="file" accept="image/*" multiple (change)="selectFiles($event)" /></label>
-          <span>Tối đa 4 hình ảnh</span>
-          <div class="review-image-previews">@for (image of selectedImages; track image) { <img [src]="image" alt="Ảnh đính kèm" /> }</div>
-        </div>
-        <button class="primary-button submit-review" type="button" (click)="submitReview()">Gửi đánh giá</button>
+        <button class="primary-button" type="button" (click)="chooseReview(item)">Viết đánh giá</button>
       </article>
+      @if (selectedItem()?.orderItemId === item.orderItemId) {
+        <article class="review-editor-card">
+          <div class="review-product review-order-item editor-product">
+            <div class="review-product-info"><strong>{{ item.name }}</strong><span>{{ item.color || item.sku }}</span><small>Mã đơn: #{{ item.orderCode }}</small></div>
+          </div>
+          <div class="rating-label">Đánh giá sản phẩm:
+            <div class="rating-picker" aria-label="Chọn số sao">
+              @for (star of [1, 2, 3, 4, 5]; track star) { <button type="button" [class.selected]="star <= rating" (click)="rating = star" [attr.aria-label]="star + ' sao'">☆</button> }
+            </div>
+          </div>
+          <label class="review-text-label">Chia sẻ cảm nhận của bạn:<textarea [(ngModel)]="reviewText" name="reviewText" rows="5" maxlength="1000" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea></label>
+          <div class="review-upload">
+            <label class="upload-control" aria-label="Thêm hình ảnh thực tế">▧<span>Hình ảnh thực tế</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="selectFiles($event)" /></label>
+            <span>Tối đa 4 hình ảnh</span>
+            <div class="review-image-previews">@for (image of selectedImages; track image) { <img [src]="image" alt="Ảnh đính kèm" /> }</div>
+          </div>
+          <button class="primary-button submit-review" type="button" [disabled]="saving()" (click)="submitReview()">{{ saving() ? 'Đang lưu...' : 'Gửi đánh giá' }}</button>
+        </article>
+      }
+    } @empty {
+      <p class="empty-state">Không có sản phẩm nào đang chờ đánh giá.</p>
     }
   } @else {
-    <article class="submitted-review-card">
-      <div class="review-product"><img src="https://images.pexels.com/photos/276534/pexels-photo-276534.jpeg?auto=compress&cs=tinysrgb&w=240" alt="Ghế sofa Kifi" /><div class="review-product-info"><strong>Ghế sofa Kifi</strong><span>Mã đơn: #12345678</span></div></div>
-      <div class="submitted-stars">★★★★★</div>
-      <p>{{ submittedReview ? 'Cảm ơn bạn đã chia sẻ trải nghiệm với CaraVeso.' : 'Sản phẩm đẹp, chất lượng tốt và giao hàng đúng hẹn.' }}</p>
-      <span class="review-published">Đánh giá minh họa</span>
-    </article>
+    @for (review of submittedItems(); track review.item.orderItemId) {
+      <article class="submitted-review-card">
+        <div class="review-product review-order-item"><div class="review-product-info"><strong>{{ review.item.name }}</strong><span>Mã đơn: #{{ review.item.orderCode }}</span></div></div>
+        <div class="submitted-stars">{{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}</div>
+        <p>{{ review.comment }}</p>
+        <span class="review-published">Đã lưu vào MongoDB</span>
+      </article>
+    } @empty {
+      <p class="empty-state">Chưa có đánh giá nào được gửi trong phiên này.</p>
+    }
   }
 </section>

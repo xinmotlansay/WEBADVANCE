@@ -1,7 +1,24 @@
 <section class="account-screen addresses-screen">
   <div class="screen-heading"><h1>Thông tin địa chỉ</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
-  <p class="screen-intro">Địa chỉ được tải ở chế độ chỉ đọc từ MongoDB.</p>
   @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  @if (addressFormOpen) {
+    <form class="address-form" (ngSubmit)="saveAddress()">
+      <h2>{{ editingAddressId ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+      <div class="address-fields">
+        <label>Họ tên<input [(ngModel)]="addressForm.recipientName" name="recipientName" required maxlength="120" /></label>
+        <label>Số điện thoại<input [(ngModel)]="addressForm.recipientPhone" name="recipientPhone" required maxlength="30" /></label>
+        <label class="address-detail">Địa chỉ cụ thể<input [(ngModel)]="addressForm.addressLine" name="addressLine" required maxlength="300" /></label>
+        <label>Phường / xã<input [(ngModel)]="addressForm.ward" name="ward" required maxlength="120" /></label>
+        <label>Quận / huyện<input [(ngModel)]="addressForm.district" name="district" required maxlength="120" /></label>
+        <label>Tỉnh / thành phố<input [(ngModel)]="addressForm.province" name="province" required maxlength="120" /></label>
+      </div>
+      <label class="default-checkbox"><input type="checkbox" [(ngModel)]="addressForm.isDefault" name="isDefault" /> Đặt làm địa chỉ mặc định</label>
+      <div class="form-actions">
+        <button class="primary-button" type="submit" [disabled]="savingAddress">{{ savingAddress ? 'Đang lưu...' : 'Lưu địa chỉ' }}</button>
+        <button class="link-button" type="button" (click)="cancelAddress()">Hủy</button>
+      </div>
+    </form>
+  }
 
   @if (needsAccountId()) {
     <div class="empty-state"><span>⌖</span><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem địa chỉ.</p></div>
@@ -20,10 +37,10 @@
         </div>
       @for (address of addresses(); track address.id) {
         <div class="address-table-row" role="row">
-          <span role="cell">{{ address.recipient }}</span>
-          <span class="address-type" role="cell"><strong>⌂ {{ address.label }}</strong>@if (address.isDefault) { <span class="default-badge">Mặc định</span> }<small>{{ address.detail }}</small></span>
-          <span role="cell">{{ address.phone }}</span>
-          <button class="link-button" type="button" role="cell" (click)="requestEdit()">Chỉnh sửa</button>
+          <span role="cell">{{ address.recipientName }}</span>
+          <span class="address-type" role="cell"><strong>⌂ {{ address.label }}</strong>@if (address.isDefault) { <span class="default-badge">Mặc định</span> }<small>{{ formatAddress(address) }}</small></span>
+          <span role="cell">{{ address.recipientPhone }}</span>
+          <button class="link-button" type="button" role="cell" (click)="requestEdit(address)">Chỉnh sửa</button>
         </div>
       } @empty {
         <div class="address-empty">Không tìm thấy địa chỉ gắn với tài khoản này.</div>

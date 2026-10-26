@@ -1,5 +1,5 @@
 :host { display: block; }
-.logout-screen { max-width: 650px; }
+.logout-screen { max-width: none; }
 .logout-card { display: grid; justify-items: center; margin-top: 25px; padding: 48px 22px; border: 1px solid var(--line); background: #fff; text-align: center; }
 .logout-icon { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: #eff3f5; color: var(--navy); font-size: 24px; }
 .logout-card h2 { margin: 15px 0 6px; font-size: 16px; font-weight: 600; }

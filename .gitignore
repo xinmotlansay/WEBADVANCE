@@ -47,3 +47,4 @@ Thumbs.db
 .env
 /uploads/*
 !/uploads/.gitkeep
+/my-server-mongoDB/public/uploads/

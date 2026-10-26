@@ -1,6 +1,5 @@
 <section class="account-screen wishlist-screen">
   <h1 class="wishlist-title">DANH SÁCH YÊU THÍCH</h1>
-  <p class="wishlist-data-note">Database chưa có collection danh sách yêu thích; danh sách dưới đây là dữ liệu xem trước.</p>
   @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
   <div class="wishlist-grid">
     @for (product of products(); track product.id) {

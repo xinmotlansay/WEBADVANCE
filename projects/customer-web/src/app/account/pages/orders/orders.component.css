@@ -1,5 +1,5 @@
 :host { display: block; }
-.orders-screen { max-width: 412px; }
+.orders-screen { max-width: none; }
 .orders-screen > .screen-intro { margin: -6px 0 10px; font-size: 9px; }
 .order-filters { display: none; gap: 17px; margin-bottom: 18px; }
 .order-filters button { padding: 12px 1px; color: #73797c; font-size: 10px; }
@@ -35,7 +35,6 @@
 .empty-state h2 { margin: 12px 0 5px; color: #343b3e; font-size: 15px; }
 .empty-state p { margin: 0 0 16px; font-size: 10px; }
 @media (max-width: 520px) {
-  .orders-screen { max-width: none; }
   .order-total { gap: 5px; }
   .cancel-button { margin-left: 0; }
 }

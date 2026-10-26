@@ -1,7 +1,6 @@
 <section class="account-screen vouchers-screen">
   <div class="screen-heading"><h1>Ví voucher</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
   <p class="screen-intro">Lưu giữ và quản lý các ưu đãi dành riêng cho bạn.</p>
-  <p class="screen-intro">Dữ liệu được tải ở chế độ chỉ đọc từ MongoDB.</p>
   @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
   @if (needsAccountId()) {
     <div class="empty-state"><span>▣</span><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem voucher.</p></div>

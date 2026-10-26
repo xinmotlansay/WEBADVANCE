@@ -1,5 +1,5 @@
 :host { display: block; }
-.home-profiles-screen { max-width: 760px; }
+.home-profiles-screen { max-width: none; }
 .home-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; color: #747c7f; font-size: 10px; }
 .home-toolbar .outline-button { min-height: 32px; }
 .home-profile-list { display: grid; gap: 12px; }

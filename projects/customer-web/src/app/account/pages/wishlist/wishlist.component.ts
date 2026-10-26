@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccountProduct, AccountService } from '../../../features/account/account.service';
-import { CartService } from '../../../core/cart/cart.service';
 
 @Component({
   selector: 'app-wishlist',
@@ -14,7 +13,7 @@ export class WishlistComponent {
   protected notice = '';
   protected readonly recommendationSections = ['GỢI Ý CHO BẠN', 'XEM GẦN ĐÂY'];
 
-  constructor(account: AccountService, private readonly cart: CartService) {
+  constructor(account: AccountService) {
     this.products = account.products;
   }
 
@@ -24,8 +23,7 @@ export class WishlistComponent {
   }
 
   protected addToCart(product: AccountProduct): void {
-    this.cart.add(1);
-    this.notice = `${product.name} đã được thêm vào giỏ hàng.`;
+    this.notice = `Không thể lưu ${product.name}: sản phẩm gợi ý chưa có mã biến thể MongoDB.`;
   }
 
   protected formatPrice(price: number): string {

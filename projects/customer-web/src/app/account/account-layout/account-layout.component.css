@@ -1,23 +1,38 @@
-:host { display: block; }
-.account-layout { grid-template-columns: 150px minmax(0, 770px); gap: 27px; max-width: 1120px; min-height: 560px; padding-top: 18px; }
-.account-sidebar { padding: 0 12px 22px 0; border-right: 0; }
-.account-sidebar nav { gap: 0; }
-.account-sidebar nav a { min-height: 28px; gap: 10px; padding: 5px 10px; border-left-width: 2px; border-bottom: 1px solid #f0f1f1; font-size: 10px; }
-.account-sidebar nav a.active { background: #fff; }
-.account-icon { width: 17px; color: #7b8386; text-align: center; font-size: 16px; }
+:host { display: block; width: 100%; }
+.account-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: clamp(22px, 3vw, 48px);
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 20px clamp(20px, 3vw, 48px) 32px 20px;
+}
+.account-sidebar { align-self: start; min-width: 0; padding: 0 12px 22px 0; }
+.account-sidebar nav { display: grid; gap: 0; }
+.account-sidebar nav a {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid #f0f1f1;
+  color: #72787b;
+  font-size: 12px;
+}
+.account-sidebar nav a:hover, .account-sidebar nav a.active { color: var(--navy); }
+.account-sidebar nav a.active { border-left-color: var(--navy); font-weight: 600; }
+.account-icon { width: 17px; flex: 0 0 17px; color: #7b8386; text-align: center; font-size: 16px; }
 .account-sidebar nav a.active .account-icon { color: var(--navy); }
-.account-content { width: 100%; max-width: 530px; min-width: 0; }
-.wide-account-layout { display: block; max-width: 1320px; padding-top: 24px; }
-.wide-account-layout .account-sidebar { display: none; }
-.wide-account-layout .account-content { width: 100%; max-width: none; }
+.account-content { width: 100%; max-width: none; min-width: 0; }
 @media (max-width: 680px) {
   .account-layout { grid-template-columns: 1fr; gap: 16px; padding: 18px 15px 28px; }
   .account-sidebar { padding: 0 0 8px; border-right: 0; border-bottom: 1px solid var(--line); }
   .account-sidebar nav { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
-  .account-sidebar nav a { flex: 0 0 auto; min-height: 34px; padding: 7px 9px; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .account-sidebar nav a { min-height: 34px; flex: 0 0 auto; padding: 7px 9px; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
   .account-sidebar nav a.active { border-bottom-color: var(--navy); }
-  .wide-account-layout { display: block; padding: 18px 20px 28px; }
-  .wide-account-layout .account-sidebar { display: none; }
 }
 @media (max-width: 560px) {
   .account-layout { padding: 14px 14px 24px; }
