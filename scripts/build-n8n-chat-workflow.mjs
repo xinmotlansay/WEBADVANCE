@@ -2,7 +2,9 @@
  * Sinh workflow n8n cho trợ lý AI công khai CaraVeso.
  *
  * Chạy: node scripts/build-n8n-chat-workflow.mjs
- * Kết quả: docs/integrations/caraveso-ai-chat-workflow.v2.json (import trực tiếp vào n8n).
+ * Kết quả:
+ *   - docs/integrations/caraveso-ai-chat-workflow.v2.json    (self-hosted, đọc $env)
+ *   - docs/integrations/caraveso-ai-chat-workflow.cloud.json (n8n Cloud, dùng credential)
  *
  * Vì sao có script thay vì sửa JSON tay: các Code node chứa JS dài, viết tay rất dễ hỏng
  * escape và không test được. Script này giữ JS ở dạng đọc được, và
@@ -14,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outputFile = resolve(here, '../docs/integrations/caraveso-ai-chat-workflow.v2.json');
+const outputFileCloud = resolve(here, '../docs/integrations/caraveso-ai-chat-workflow.cloud.json');
 
 const VERIFY_SECRET = String.raw`const headers = ($json.headers && typeof $json.headers === 'object') ? $json.headers : {};
 let provided = '';
@@ -39,7 +42,7 @@ const sessionId = (typeof body.sessionId === 'string' && body.sessionId.trim())
   : 'public';
 return [{ json: { authorized: authorized, sessionId: sessionId } }];`;
 
-const NORMALIZE = String.raw`const webhook = $('01 - Webhook CaraVeso Chat').first().json;
+const NORMALIZE_TEMPLATE = String.raw`const webhook = $('__WEBHOOK_NODE__').first().json;
 const rawBody = (webhook.body && typeof webhook.body === 'object') ? webhook.body : {};
 
 function text(value, max) {
@@ -256,7 +259,7 @@ return [{
   }
 }];`;
 
-const PARSE_REPLY = String.raw`const source = $('04 - Normalize Input').first().json;
+const PARSE_REPLY_TEMPLATE = String.raw`const source = $('__NORMALIZE_NODE__').first().json;
 const data = ($json && typeof $json === 'object') ? $json : {};
 const fallback = 'Dạ, trợ lý đang bận một chút. Anh/chị thử lại sau ít phút ạ.';
 
@@ -332,244 +335,308 @@ return [{
 
 const RESPOND_BODY = `={{ { sessionId: $json.sessionId || 'public', reply: (typeof $json.reply === 'string' && $json.reply.trim()) ? $json.reply : 'Dạ, trợ lý đang bận một chút. Anh/chị thử lại sau ít phút ạ.', handoff: $json.handoff === true, suggestedProducts: Array.isArray($json.suggestedProducts) ? $json.suggestedProducts.slice(0, 3) : [], error: $json.error ?? null } }}`;
 
-const nodes = [
-  {
-    parameters: {
-      httpMethod: 'POST',
-      path: 'caraveso-chat',
-      responseMode: 'responseNode',
-      options: {},
-    },
+const NODE_NAMES = {
+  selfHosted: {
+    webhook: '01 - Webhook CaraVeso Chat',
+    verify: '02 - Verify Secret',
+    ifAuthorized: '03 - IF Authorized',
+    normalize: '04 - Normalize Input',
+    ifMessage: '05 - IF Message Present',
+    gemini: '06 - Gemini Generate Content',
+    parse: '07 - Parse Response',
+    respond: '08 - Respond 200',
+    unauthorized: '09 - Respond 401',
+    empty: '10 - Respond Empty Message',
+  },
+  cloud: {
+    webhook: '01 - Webhook CaraVeso Chat',
+    normalize: '02 - Normalize Input',
+    ifMessage: '03 - IF Message Present',
+    gemini: '04 - Gemini Generate Content',
+    parse: '05 - Parse Response',
+    respond: '06 - Respond 200',
+    empty: '07 - Respond Empty Message',
+  },
+};
+
+function makeNormalizeCode(webhookNodeName) {
+  return NORMALIZE_TEMPLATE.replace('__WEBHOOK_NODE__', webhookNodeName);
+}
+
+function makeParseReplyCode(normalizeNodeName) {
+  return PARSE_REPLY_TEMPLATE.replace('__NORMALIZE_NODE__', normalizeNodeName);
+}
+
+const GEMINI_URL_SELF_HOSTED =
+  "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent($env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash') + ':generateContent' }}";
+const GEMINI_URL_CLOUD =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_BODY =
+  "={{ JSON.stringify({ system_instruction: { parts: [{ text: $json.systemPrompt }] }, contents: $json.contents, generationConfig: { temperature: 0.3, maxOutputTokens: 900, responseMimeType: 'application/json' } }) }}";
+
+const IF_CONDITION = (id, expression) => ({
+  conditions: {
+    options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+    conditions: [
+      {
+        id,
+        leftValue: expression,
+        rightValue: true,
+        operator: { type: 'boolean', operation: 'true', singleValue: true },
+      },
+    ],
+    combinator: 'and',
+  },
+  options: {},
+});
+
+const RESPOND_HEADERS = {
+  entries: [{ name: 'content-type', value: 'application/json; charset=utf-8' }],
+};
+
+const RESPOND_EMPTY_BODY =
+  "={{ { sessionId: $json.sessionId || 'public', reply: $json.emptyReply || 'Dạ, anh/chị vui lòng nhập câu hỏi để em tư vấn nội thất CaraVeso nhé ạ.', handoff: false, suggestedProducts: [], error: 'EMPTY_MESSAGE' } }}";
+
+function buildWebhookNode(names, cloud) {
+  const parameters = {
+    httpMethod: 'POST',
+    path: 'caraveso-chat',
+    responseMode: 'responseNode',
+    options: {},
+  };
+  if (cloud) {
+    // n8n Cloud không cho đọc $env trong node, nên xác thực bằng credential Header Auth.
+    parameters.authentication = 'headerAuth';
+  }
+  return {
+    parameters,
     id: 'a1f0c3d2-1111-4a01-9f01-000000000001',
-    name: '01 - Webhook CaraVeso Chat',
+    name: names.webhook,
     type: 'n8n-nodes-base.webhook',
     typeVersion: 2,
     position: [-900, 120],
     webhookId: 'a1f0c3d2-1111-4a01-9f01-0000000000ff',
-  },
-  {
-    parameters: {
-      mode: 'runOnceForAllItems',
-      jsCode: VERIFY_SECRET,
+  };
+}
+
+function buildGeminiNode(names, cloud) {
+  const parameters = {
+    method: 'POST',
+    url: cloud ? GEMINI_URL_CLOUD : GEMINI_URL_SELF_HOSTED,
+    sendHeaders: true,
+    headerParameters: {
+      parameters: [
+        { name: 'content-type', value: 'application/json' },
+        ...(cloud ? [] : [{ name: 'x-goog-api-key', value: '={{ $env.GEMINI_API_KEY }}' }]),
+      ],
     },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000002',
-    name: '02 - Verify Secret',
-    type: 'n8n-nodes-base.code',
-    typeVersion: 2,
-    position: [-680, 120],
-  },
-  {
-    parameters: {
-      conditions: {
-        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
-        conditions: [
-          {
-            id: 'authorized',
-            leftValue: '={{ $json.authorized }}',
-            rightValue: true,
-            operator: { type: 'boolean', operation: 'true', singleValue: true },
-          },
-        ],
-        combinator: 'and',
-      },
-      options: {},
+    sendBody: true,
+    contentType: 'raw',
+    rawContentType: 'application/json',
+    body: GEMINI_BODY,
+    options: {
+      timeout: 20000,
+      response: { response: { neverError: true } },
     },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000003',
-    name: '03 - IF Authorized',
-    type: 'n8n-nodes-base.if',
-    typeVersion: 2.2,
-    position: [-460, 120],
-  },
-  {
-    parameters: {
-      mode: 'runOnceForAllItems',
-      jsCode: NORMALIZE,
-    },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000004',
-    name: '04 - Normalize Input',
-    type: 'n8n-nodes-base.code',
-    typeVersion: 2,
-    position: [-220, 20],
-  },
-  {
-    parameters: {
-      conditions: {
-        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
-        conditions: [
-          {
-            id: 'has-message',
-            leftValue: '={{ $json.shouldCallModel }}',
-            rightValue: true,
-            operator: { type: 'boolean', operation: 'true', singleValue: true },
-          },
-        ],
-        combinator: 'and',
-      },
-      options: {},
-    },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000005',
-    name: '05 - IF Message Present',
-    type: 'n8n-nodes-base.if',
-    typeVersion: 2.2,
-    position: [40, 20],
-  },
-  {
-    parameters: {
-      method: 'POST',
-      url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent($env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
-      sendHeaders: true,
-      headerParameters: {
-        parameters: [
-          { name: 'content-type', value: 'application/json' },
-          { name: 'x-goog-api-key', value: '={{ $env.GEMINI_API_KEY }}' },
-        ],
-      },
-      sendBody: true,
-      contentType: 'raw',
-      rawContentType: 'application/json',
-      body: "={{ JSON.stringify({ system_instruction: { parts: [{ text: $json.systemPrompt }] }, contents: $json.contents, generationConfig: { temperature: 0.3, maxOutputTokens: 900, responseMimeType: 'application/json' } }) }}",
-      options: {
-        timeout: 20000,
-        response: { response: { neverError: true } },
-      },
-    },
+  };
+  if (cloud) {
+    // Key Gemini nằm trong credential Header Auth (x-goog-api-key), không lưu trong workflow.
+    parameters.authentication = 'genericCredentialType';
+    parameters.genericAuthType = 'httpHeaderAuth';
+  }
+  return {
+    parameters,
     id: 'a1f0c3d2-1111-4a01-9f01-000000000006',
-    name: '06 - Gemini Generate Content',
+    name: names.gemini,
     type: 'n8n-nodes-base.httpRequest',
     typeVersion: 4.2,
-    position: [280, 20],
+    position: cloud ? [-200, 20] : [280, 20],
     retryOnFail: true,
     maxTries: 2,
     waitBetweenTries: 1500,
     onError: 'continueRegularOutput',
-    notes:
-      'Dùng GEMINI_API_KEY, GEMINI_CHAT_MODEL. Key gửi qua header x-goog-api-key, không nằm trong URL.',
-  },
-  {
-    parameters: {
-      mode: 'runOnceForAllItems',
-      jsCode: PARSE_REPLY,
-    },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000007',
-    name: '07 - Parse Response',
+    notes: cloud
+      ? 'Model cố định gemini-2.5-flash. Key gửi qua credential Header Auth tên x-goog-api-key.'
+      : 'Dùng GEMINI_API_KEY, GEMINI_CHAT_MODEL. Key gửi qua header x-goog-api-key, không nằm trong URL.',
+  };
+}
+
+function buildNodes(names, cloud) {
+  const normalizeCode = makeNormalizeCode(names.webhook);
+  const parseReplyCode = makeParseReplyCode(names.normalize);
+
+  const nodes = [buildWebhookNode(names, cloud)];
+
+  if (!cloud) {
+    nodes.push({
+      parameters: { mode: 'runOnceForAllItems', jsCode: VERIFY_SECRET },
+      id: 'a1f0c3d2-1111-4a01-9f01-000000000002',
+      name: names.verify,
+      type: 'n8n-nodes-base.code',
+      typeVersion: 2,
+      position: [-680, 120],
+    });
+    nodes.push({
+      parameters: IF_CONDITION('authorized', '={{ $json.authorized }}'),
+      id: 'a1f0c3d2-1111-4a01-9f01-000000000003',
+      name: names.ifAuthorized,
+      type: 'n8n-nodes-base.if',
+      typeVersion: 2.2,
+      position: [-460, 120],
+    });
+  }
+
+  nodes.push({
+    parameters: { mode: 'runOnceForAllItems', jsCode: normalizeCode },
+    id: 'a1f0c3d2-1111-4a01-9f01-000000000004',
+    name: names.normalize,
     type: 'n8n-nodes-base.code',
     typeVersion: 2,
-    position: [520, 20],
+    position: cloud ? [-680, 20] : [-220, 20],
+  });
+  nodes.push({
+    parameters: IF_CONDITION('has-message', '={{ $json.shouldCallModel }}'),
+    id: 'a1f0c3d2-1111-4a01-9f01-000000000005',
+    name: names.ifMessage,
+    type: 'n8n-nodes-base.if',
+    typeVersion: 2.2,
+    position: cloud ? [-440, 20] : [40, 20],
+  });
+  nodes.push(buildGeminiNode(names, cloud));
+  nodes.push({
+    parameters: { mode: 'runOnceForAllItems', jsCode: parseReplyCode },
+    id: 'a1f0c3d2-1111-4a01-9f01-000000000007',
+    name: names.parse,
+    type: 'n8n-nodes-base.code',
+    typeVersion: 2,
+    position: cloud ? [40, 20] : [520, 20],
     onError: 'continueRegularOutput',
-  },
-  {
+  });
+  nodes.push({
     parameters: {
       respondWith: 'json',
       responseBody: RESPOND_BODY,
-      options: {
-        responseCode: 200,
-        responseHeaders: {
-          entries: [{ name: 'content-type', value: 'application/json; charset=utf-8' }],
-        },
-      },
+      options: { responseCode: 200, responseHeaders: RESPOND_HEADERS },
     },
     id: 'a1f0c3d2-1111-4a01-9f01-000000000008',
-    name: '08 - Respond 200',
+    name: names.respond,
     type: 'n8n-nodes-base.respondToWebhook',
     typeVersion: 1.4,
-    position: [760, 20],
-  },
-  {
+    position: cloud ? [280, 20] : [760, 20],
+  });
+  if (!cloud) {
+    nodes.push({
+      parameters: {
+        respondWith: 'json',
+        responseBody:
+          "={{ { sessionId: $json.sessionId || 'public', reply: 'Dạ, yêu cầu chưa được xác thực. Anh/chị vui lòng thử lại sau ạ.', handoff: false, suggestedProducts: [], error: 'UNAUTHORIZED' } }}",
+        options: { responseCode: 401, responseHeaders: RESPOND_HEADERS },
+      },
+      id: 'a1f0c3d2-1111-4a01-9f01-000000000009',
+      name: names.unauthorized,
+      type: 'n8n-nodes-base.respondToWebhook',
+      typeVersion: 1.4,
+      position: [-220, 260],
+    });
+  }
+  nodes.push({
     parameters: {
       respondWith: 'json',
-      responseBody:
-        "={{ { sessionId: $json.sessionId || 'public', reply: 'Dạ, yêu cầu chưa được xác thực. Anh/chị vui lòng thử lại sau ạ.', handoff: false, suggestedProducts: [], error: 'UNAUTHORIZED' } }}",
-      options: {
-        responseCode: 401,
-        responseHeaders: {
-          entries: [{ name: 'content-type', value: 'application/json; charset=utf-8' }],
-        },
-      },
-    },
-    id: 'a1f0c3d2-1111-4a01-9f01-000000000009',
-    name: '09 - Respond 401',
-    type: 'n8n-nodes-base.respondToWebhook',
-    typeVersion: 1.4,
-    position: [-220, 260],
-  },
-  {
-    parameters: {
-      respondWith: 'json',
-      responseBody:
-        "={{ { sessionId: $json.sessionId || 'public', reply: $json.emptyReply || 'Dạ, anh/chị vui lòng nhập câu hỏi để em tư vấn nội thất CaraVeso nhé ạ.', handoff: false, suggestedProducts: [], error: 'EMPTY_MESSAGE' } }}",
-      options: {
-        responseCode: 200,
-        responseHeaders: {
-          entries: [{ name: 'content-type', value: 'application/json; charset=utf-8' }],
-        },
-      },
+      responseBody: RESPOND_EMPTY_BODY,
+      options: { responseCode: 200, responseHeaders: RESPOND_HEADERS },
     },
     id: 'a1f0c3d2-1111-4a01-9f01-00000000000a',
-    name: '10 - Respond Empty Message',
+    name: names.empty,
     type: 'n8n-nodes-base.respondToWebhook',
     typeVersion: 1.4,
-    position: [280, 260],
-  },
-];
+    position: cloud ? [-440, 260] : [280, 260],
+  });
 
-const workflow = {
-  name: 'CaraVeso - Tro ly AI tu van noi that (v2)',
-  nodes,
-  connections: {
-    '01 - Webhook CaraVeso Chat': {
-      main: [[{ node: '02 - Verify Secret', type: 'main', index: 0 }]],
-    },
-    '02 - Verify Secret': {
-      main: [[{ node: '03 - IF Authorized', type: 'main', index: 0 }]],
-    },
-    '03 - IF Authorized': {
-      main: [
-        [{ node: '04 - Normalize Input', type: 'main', index: 0 }],
-        [{ node: '09 - Respond 401', type: 'main', index: 0 }],
-      ],
-    },
-    '04 - Normalize Input': {
-      main: [[{ node: '05 - IF Message Present', type: 'main', index: 0 }]],
-    },
-    '05 - IF Message Present': {
-      main: [
-        [{ node: '06 - Gemini Generate Content', type: 'main', index: 0 }],
-        [{ node: '10 - Respond Empty Message', type: 'main', index: 0 }],
-      ],
-    },
-    '06 - Gemini Generate Content': {
-      main: [[{ node: '07 - Parse Response', type: 'main', index: 0 }]],
-    },
-    '07 - Parse Response': {
-      main: [[{ node: '08 - Respond 200', type: 'main', index: 0 }]],
-    },
-  },
-  active: false,
-  settings: {
-    executionOrder: 'v1',
-    saveDataSuccessExecution: 'none',
-    saveDataErrorExecution: 'none',
-    saveManualExecutions: false,
-    callerPolicy: 'workflowsFromSameOwner',
-  },
-  versionId: 'a1f0c3d2-2222-4b02-8f02-000000000001',
-  meta: { templateCredsSetupCompleted: false },
-  tags: [],
-};
-
-export const codeNodes = {
-  verifySecret: VERIFY_SECRET,
-  normalize: NORMALIZE,
-  parseReply: PARSE_REPLY,
-};
-
-export function buildWorkflow() {
-  return workflow;
+  return nodes;
 }
 
-export { outputFile };
+function buildConnections(names, cloud) {
+  const main = (target) => [[{ node: target, type: 'main', index: 0 }]];
+
+  if (!cloud) {
+    return {
+      [names.webhook]: { main: main(names.verify) },
+      [names.verify]: { main: main(names.ifAuthorized) },
+      [names.ifAuthorized]: {
+        main: [main(names.normalize)[0], main(names.unauthorized)[0]],
+      },
+      [names.normalize]: { main: main(names.ifMessage) },
+      [names.ifMessage]: {
+        main: [main(names.gemini)[0], main(names.empty)[0]],
+      },
+      [names.gemini]: { main: main(names.parse) },
+      [names.parse]: { main: main(names.respond) },
+    };
+  }
+
+  return {
+    [names.webhook]: { main: main(names.normalize) },
+    [names.normalize]: { main: main(names.ifMessage) },
+    [names.ifMessage]: {
+      main: [main(names.gemini)[0], main(names.empty)[0]],
+    },
+    [names.gemini]: { main: main(names.parse) },
+    [names.parse]: { main: main(names.respond) },
+  };
+}
+
+export function buildWorkflow(variant = 'selfHosted') {
+  const cloud = variant === 'cloud';
+  const names = NODE_NAMES[variant];
+  if (!names) throw new Error(`Variant không hợp lệ: ${variant} (chỉ có selfHosted | cloud)`);
+
+  return {
+    name: cloud
+      ? 'CaraVeso - Tro ly AI tu van noi that (cloud)'
+      : 'CaraVeso - Tro ly AI tu van noi that (v2)',
+    nodes: buildNodes(names, cloud),
+    connections: buildConnections(names, cloud),
+    active: false,
+    settings: {
+      executionOrder: 'v1',
+      saveDataSuccessExecution: 'none',
+      saveDataErrorExecution: 'none',
+      saveManualExecutions: false,
+      callerPolicy: 'workflowsFromSameOwner',
+    },
+    versionId: cloud
+      ? 'a1f0c3d2-3333-4c03-9f03-000000000001'
+      : 'a1f0c3d2-2222-4b02-8f02-000000000001',
+    meta: { templateCredsSetupCompleted: false },
+    tags: [],
+  };
+}
+
+const codeNodes = {
+  verifySecret: VERIFY_SECRET,
+  normalize: makeNormalizeCode(NODE_NAMES.selfHosted.webhook),
+  parseReply: makeParseReplyCode(NODE_NAMES.selfHosted.normalize),
+};
+
+/** Code node của bản Cloud: cùng logic, chỉ khác tên node được tham chiếu. */
+const cloudCodeNodes = {
+  normalize: makeNormalizeCode(NODE_NAMES.cloud.webhook),
+  parseReply: makeParseReplyCode(NODE_NAMES.cloud.normalize),
+};
+
+export { codeNodes, cloudCodeNodes, outputFile, outputFileCloud, NODE_NAMES };
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  writeFileSync(outputFile, `${JSON.stringify(workflow, null, 2)}\n`, 'utf8');
-  console.log(`Đã ghi ${outputFile}`);
+  const targets = [
+    { variant: 'selfHosted', file: outputFile },
+    { variant: 'cloud', file: outputFileCloud },
+  ];
+  for (const target of targets) {
+    writeFileSync(
+      target.file,
+      `${JSON.stringify(buildWorkflow(target.variant), null, 2)}\n`,
+      'utf8',
+    );
+    console.log(`Đã ghi ${target.file}`);
+  }
 }
