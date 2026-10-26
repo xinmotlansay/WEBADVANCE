@@ -1,13 +1,56 @@
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
+export interface ChatWorkflowVariant {
+  color?: string;
+  material?: string;
+  dimensions?: string;
+  price: number;
+  originalPrice?: number;
+  stockQuantity: number;
+  shippingTier?: number;
+  installation?: string;
+}
+
 export interface ChatWorkflowProduct {
   name: string;
-  price?: number;
+  slug?: string;
+  productCode?: string;
+  description?: string;
+  category?: string[];
+  room?: string[];
+  priceFrom?: number;
+  priceTo?: number;
+  colors?: string[];
   material?: string;
-  color?: string;
   dimensions?: string;
+  warrantyMonths?: number;
   stockStatus?: string;
+  shippingTier?: number;
+  variants?: ChatWorkflowVariant[];
+}
+
+export interface ChatWorkflowShowroom {
+  name: string;
+  city: string;
+  address: string;
+  phone?: string;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface ChatWorkflowCollection {
+  name: string;
+  slogan?: string;
+  description?: string;
+  productNames: string[];
+}
+
+export interface ChatWorkflowContext {
+  products: ChatWorkflowProduct[];
+  policies: Record<string, string>;
+  showrooms?: ChatWorkflowShowroom[];
+  collections?: ChatWorkflowCollection[];
 }
 
 export interface ChatWorkflowRequest {
@@ -15,10 +58,7 @@ export interface ChatWorkflowRequest {
   message: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   customer: { id: string; fullName: string };
-  context: {
-    products: ChatWorkflowProduct[];
-    policies: Record<string, string>;
-  };
+  context: ChatWorkflowContext;
 }
 
 export interface ChatWorkflowResponse {
@@ -37,7 +77,9 @@ export function isChatWorkflowConfigured(): boolean {
  * Gọi workflow n8n đã import từ docs/integrations/n8n-chat-workflow.json.
  * Trả `null` khi chưa cấu hình URL để tầng trên dùng chế độ demo.
  */
-export async function callChatWorkflow(payload: ChatWorkflowRequest): Promise<ChatWorkflowResponse | null> {
+export async function callChatWorkflow(
+  payload: ChatWorkflowRequest,
+): Promise<ChatWorkflowResponse | null> {
   const url = config.N8N_CHAT_WEBHOOK_URL;
   if (!url) {
     return null;
@@ -71,7 +113,9 @@ export async function callChatWorkflow(payload: ChatWorkflowRequest): Promise<Ch
       reply: data.reply.trim(),
       handoff: Boolean(data.handoff),
       suggestedProducts: Array.isArray(data.suggestedProducts)
-        ? data.suggestedProducts.filter((name): name is string => typeof name === 'string').slice(0, 3)
+        ? data.suggestedProducts
+            .filter((name): name is string => typeof name === 'string')
+            .slice(0, 3)
         : [],
       error: typeof data.error === 'string' ? data.error : null,
     };

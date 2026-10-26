@@ -1,12 +1,9 @@
 import { config } from '../../config/index.js';
 import { logger } from '../../lib/logger.js';
 import { redis } from '../../lib/redis.js';
-import {
-  ChatMode,
-  ChatSenderType,
-  ChatSessionStatus,
-} from '../../lib/shared-enums.js';
+import { ChatMode, ChatSenderType, ChatSessionStatus } from '../../lib/shared-enums.js';
 import { callChatWorkflow, isChatWorkflowConfigured } from '../../integrations/n8n.js';
+import { getChatCatalogSafe } from './chat-catalog.service.js';
 import {
   ChatMessageModel,
   ChatSessionModel,
@@ -86,7 +83,9 @@ interface HistoryItem {
 
 function buildDemoReply(message: string): string {
   const normalized = message.toLowerCase();
-  const matched = DEMO_REPLIES.find((item) => item.keywords.some((keyword) => normalized.includes(keyword)));
+  const matched = DEMO_REPLIES.find((item) =>
+    item.keywords.some((keyword) => normalized.includes(keyword)),
+  );
   return matched?.reply ?? DEMO_FALLBACK;
 }
 
@@ -147,7 +146,10 @@ async function createSystemMessage(
   });
 }
 
-async function switchToSupport(session: ChatSessionDocument, reason: string): Promise<ChatMessageDocument> {
+async function switchToSupport(
+  session: ChatSessionDocument,
+  reason: string,
+): Promise<ChatMessageDocument> {
   const now = new Date();
   session.mode = ChatMode.SUPPORT;
   session.status = ChatSessionStatus.WAITING;
@@ -171,7 +173,10 @@ async function switchToSupport(session: ChatSessionDocument, reason: string): Pr
   return message;
 }
 
-async function touchSession(session: ChatSessionDocument, message: ChatMessageDocument): Promise<void> {
+async function touchSession(
+  session: ChatSessionDocument,
+  message: ChatMessageDocument,
+): Promise<void> {
   session.lastMessageAt = message.sentAt;
   session.lastMessagePreview = buildMessagePreview(message.content);
   await session.save();
@@ -202,12 +207,18 @@ export async function respondWithAi(
   try {
     if (isChatWorkflowConfigured()) {
       provider = 'n8n';
+      const catalog = await getChatCatalogSafe();
       const result = await callChatWorkflow({
         sessionId: String(session._id),
         message: customerMessage.content,
         history,
         customer: { id: customerId, fullName: customerName },
-        context: { products: [], policies: POLICIES },
+        context: {
+          products: catalog.products,
+          policies: POLICIES,
+          showrooms: catalog.showrooms,
+          collections: catalog.collections,
+        },
       });
 
       if (!result) {
@@ -260,15 +271,24 @@ export interface PublicAiAnswer {
  * Trả lời AI cho khung chat công khai trên trang chủ.
  * Không tạo phiên, không ghi tin nhắn vào MongoDB; lịch sử do client gửi lên.
  */
-export async function askPublicAi(message: string, history: HistoryItem[]): Promise<PublicAiAnswer> {
+export async function askPublicAi(
+  message: string,
+  history: HistoryItem[],
+): Promise<PublicAiAnswer> {
   try {
     if (isChatWorkflowConfigured()) {
+      const catalog = await getChatCatalogSafe();
       const result = await callChatWorkflow({
         sessionId: 'public',
         message,
         history: history.slice(-8),
         customer: { id: 'guest', fullName: 'Khách' },
-        context: { products: [], policies: POLICIES },
+        context: {
+          products: catalog.products,
+          policies: POLICIES,
+          showrooms: catalog.showrooms,
+          collections: catalog.collections,
+        },
       });
 
       if (!result) {
