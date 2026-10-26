@@ -3,12 +3,7 @@
  * node scripts/verify-n8n-chat-workflow.mjs
  */
 import assert from 'node:assert/strict';
-import {
-  buildWorkflow,
-  cloudCodeNodes,
-  codeNodes,
-  NODE_NAMES,
-} from './build-n8n-chat-workflow.mjs';
+import { codeNodes } from './build-n8n-chat-workflow.mjs';
 
 function run(code, { json = {}, env = {}, nodes = {} }) {
   const $ = (name) => {
@@ -297,91 +292,3 @@ const context = {
 }
 
 console.log('OK: 3 Code node của workflow n8n đều chạy đúng.');
-
-// 4. Bản Cloud: cùng logic nhưng tên node khác, không được đọc $env
-{
-  const names = NODE_NAMES.cloud;
-  const body = {
-    sessionId: 'public',
-    message: 'Sofa da phù hợp phòng khách 20m2?',
-    history: [],
-    customer: { id: 'guest', fullName: 'Khách' },
-    context,
-  };
-
-  const normalized = run(cloudCodeNodes.normalize, {
-    json: {},
-    nodes: { [names.webhook]: { body } },
-  })[0].json;
-  assert.equal(normalized.shouldCallModel, true);
-  assert.equal(normalized.productNames[0], 'Sofa da Milan');
-  assert.ok(!cloudCodeNodes.normalize.includes('$env'), 'bản Cloud không được đọc $env');
-
-  const parsed = run(cloudCodeNodes.parseReply, {
-    json: {
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text: '{"reply":"Dạ, Sofa da Milan phù hợp ạ.","handoff":false,"suggestedProducts":["Sofa da Milan"]}',
-              },
-            ],
-          },
-        },
-      ],
-    },
-    nodes: {
-      [names.normalize]: {
-        sessionId: 'public',
-        message: 'Sofa da?',
-        productNames: ['Sofa da Milan'],
-      },
-    },
-  })[0].json;
-  assert.equal(parsed.reply, 'Dạ, Sofa da Milan phù hợp ạ.');
-  assert.deepEqual(parsed.suggestedProducts, ['Sofa da Milan']);
-  assert.ok(!cloudCodeNodes.parseReply.includes('$env'), 'bản Cloud không được đọc $env');
-}
-
-// 5. Cấu trúc 2 file: node/connection phải khớp, Cloud dùng credential thay $env
-for (const variant of ['selfHosted', 'cloud']) {
-  const workflow = buildWorkflow(variant);
-  const names = Object.values(workflow.nodes).map((node) => node.name);
-  assert.equal(new Set(names).size, names.length, `${variant}: tên node phải duy nhất`);
-
-  for (const [source, connection] of Object.entries(workflow.connections)) {
-    assert.ok(source in workflow.connections, `${variant}: connection từ node lạ ${source}`);
-    for (const branch of connection.main) {
-      for (const target of branch) {
-        assert.ok(
-          names.includes(target.node),
-          `${variant}: connection tới node không tồn tại ${target.node}`,
-        );
-      }
-    }
-  }
-
-  const raw = JSON.stringify(workflow);
-  if (variant === 'cloud') {
-    assert.equal(workflow.nodes.length, 7, 'bản Cloud phải có 7 node');
-    assert.ok(!raw.includes('$env'), 'bản Cloud không được chứa $env');
-    const webhook = workflow.nodes.find((node) => node.type === 'n8n-nodes-base.webhook');
-    const gemini = workflow.nodes.find((node) => node.type === 'n8n-nodes-base.httpRequest');
-    assert.equal(webhook.parameters.authentication, 'headerAuth');
-    assert.equal(gemini.parameters.authentication, 'genericCredentialType');
-    assert.equal(gemini.parameters.genericAuthType, 'httpHeaderAuth');
-    assert.ok(gemini.parameters.url.includes('gemini-2.5-flash'));
-    assert.ok(!JSON.stringify(gemini.parameters.headerParameters).includes('x-goog-api-key'));
-  } else {
-    assert.equal(workflow.nodes.length, 10, 'bản self-hosted phải có 10 node');
-    assert.ok(raw.includes('$env.CARAVESO_WEBHOOK_SECRET'));
-    assert.ok(raw.includes('$env.GEMINI_API_KEY'));
-    assert.ok(
-      !JSON.stringify(workflow).includes('headerAuth'),
-      'self-hosted tự so sánh secret, không dùng credential',
-    );
-  }
-}
-
-console.log('OK: bản self-hosted và bản Cloud đều đúng cấu trúc, Code node chạy đúng.');

@@ -24,94 +24,41 @@ Khách (customer-web)
 
 ## 2. Import workflow n8n
 
-Có 2 bản, cùng logic và cùng contract, chỉ khác cách lấy secret/key:
-
-| Bản         | File                                                     | Dùng khi                                                    |
-| ----------- | -------------------------------------------------------- | ----------------------------------------------------------- |
-| Self-hosted | `docs/integrations/caraveso-ai-chat-workflow.v2.json`    | n8n chạy Docker/npm trên máy bạn, đọc được `$env`           |
-| Cloud       | `docs/integrations/caraveso-ai-chat-workflow.cloud.json` | n8n Cloud — **không đọc được `$env`**, phải dùng credential |
-
-Cả 2 file sinh từ `scripts/build-n8n-chat-workflow.mjs` và được test bằng `scripts/verify-n8n-chat-workflow.mjs`.
+File cần import: `docs/integrations/caraveso-ai-chat-workflow.v2.json` (sinh ra từ `scripts/build-n8n-chat-workflow.mjs`, đã được test bằng `scripts/verify-n8n-chat-workflow.mjs`).
 
 > File `docs/integrations/n8n-chat-workflow.json` là bản nháp ban đầu, không dùng nữa.
 
-### 2.1 Self-hosted
-
-1. Mở n8n → **Workflows** → **Import from File** → chọn `caraveso-ai-chat-workflow.v2.json`.
-2. Khai báo biến môi trường cho n8n rồi restart:
+1. Mở n8n → **Workflows** → **Import from File** → chọn file trên.
+2. Khai báo biến môi trường cho n8n rồi restart (self-hosted):
    ```
    CARAVESO_WEBHOOK_SECRET=<chuỗi bí mật, trùng N8N_WEBHOOK_SECRET của backend>
    GEMINI_API_KEY=<key thật>
    GEMINI_CHAT_MODEL=gemini-2.5-flash
    ```
    Workflow tự so sánh header `x-webhook-secret` với `CARAVESO_WEBHOOK_SECRET` ở node **02 - Verify Secret** (không cần tạo credential Header Auth).
-   Nếu n8n báo không cho đọc biến môi trường, đặt `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`.
-3. Bật **Active** và lấy URL:
+   Nếu n8n báo không cho đọc biến môi trường, đặt `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`. Trên n8n Cloud (`$env` không khả dụng), thay 3 chỗ dùng `$env` bằng giá trị cứng hoặc credential Header Auth `x-goog-api-key` và một node Set chứa secret.
+3. Activate workflow và lấy URL:
    - Production: `https://<host>/webhook/caraveso-chat`
    - Test: `https://<host>/webhook-test/caraveso-chat` (chỉ dùng khi bấm Execute Workflow)
-
-### 2.2 n8n Cloud
-
-Cloud chặn đọc biến môi trường trong node, nên bản Cloud bỏ node **Verify Secret** và **Respond 401**: việc xác thực do credential của Webhook lo (sai secret → n8n trả 403 trước khi vào workflow, backend vẫn coi là lỗi). Còn 7 node:
-
-```
-01 Webhook (Header Auth credential)
-  └─ 02 Normalize Input
-       └─ 03 IF Message Present
-            ├─ true  → 04 Gemini (Header Auth credential) → 05 Parse Response → 06 Respond 200
-            └─ false → 07 Respond Empty Message
-```
-
-1. Import `caraveso-ai-chat-workflow.cloud.json`.
-2. Node **01 - Webhook CaraVeso Chat**:
-   - `Authentication` đã đặt sẵn **Header Auth**.
-   - **Create new credential** → Name: `x-webhook-secret`, Value: chuỗi secret bạn tự đặt (ví dụ `caraveso-2026`).
-   - Giữ POST, path `caraveso-chat`, Respond = Using Respond to Webhook node.
-3. Node **04 - Gemini Generate Content**:
-   - `Authentication` đã đặt sẵn **Generic Credential Type → Header Auth**.
-   - **Create new credential** → Name: `x-goog-api-key`, Value: key Gemini (Google AI Studio).
-   - Model cố định `gemini-2.5-flash` trong URL; muốn đổi thì sửa tay URL trong node.
-   - Key nằm trong credential, **không** ghi vào URL `?key=` (Cloud lưu execution data nên key sẽ lộ trong log).
-4. Bấm **Publish** (Cloud dùng Publish, không phải toggle Active) và copy Production URL dạng:
-   `https://<ten-instance>.app.n8n.cloud/webhook/caraveso-chat`
-5. Test trước khi nối backend:
-   ```bash
-   curl -X POST "https://<ten-instance>.app.n8n.cloud/webhook/caraveso-chat" \
-     -H "Content-Type: application/json" \
-     -H "x-webhook-secret: caraveso-2026" \
-     -d '{"sessionId":"test-1","message":"Sofa da phù hợp phòng khách 20m2?","history":[],"customer":{"id":"guest","fullName":"Khách"},"context":{"products":[],"policies":{},"showrooms":[],"collections":[]}}'
+4. Cấu hình backend `.env`:
    ```
-   Kỳ vọng: HTTP 200 với `{"sessionId":"test-1","reply":"Dạ, ...","handoff":false,"suggestedProducts":[],"error":null}`.
-   Sai secret phải nhận HTTP 403 của n8n.
-
-Cả 2 bản dùng chung cấu hình backend ở mục 2.3.
-
-### 2.3 Cấu hình backend (dùng chung)
-
-Thêm vào `.env` của backend:
-
-```
-N8N_CHAT_WEBHOOK_URL=https://<host>/webhook/caraveso-chat
-N8N_WEBHOOK_SECRET=<secret, trùng credential/secret bên n8n>
-CHAT_AI_TIMEOUT_MS=45000
-```
-
-`GEMINI_CHAT_MODEL` chỉ dùng cho bản self-hosted; bản Cloud cố định model trong URL.
-
-Backend gọi workflow với timeout 45s; node Gemini trong n8n timeout 20s và retry 1 lần (tối đa 40s) nên không bị cắt giữa chừng.
+   N8N_CHAT_WEBHOOK_URL=https://<host>/webhook/caraveso-chat
+   N8N_WEBHOOK_SECRET=<secret>
+   GEMINI_CHAT_MODEL=gemini-2.5-flash
+   CHAT_AI_TIMEOUT_MS=45000
+   ```
+   Backend gọi workflow với timeout 45s; node Gemini trong n8n timeout 20s và retry 1 lần (tối đa 40s) nên không bị cắt giữa chừng.
 
 ### Sửa workflow
 
 Đừng sửa trực tiếp file JSON. Sửa JS/prompt trong `scripts/build-n8n-chat-workflow.mjs`, chạy:
 
 ```bash
-node scripts/build-n8n-chat-workflow.mjs   # sinh lại cả 2 file JSON
-node scripts/verify-n8n-chat-workflow.mjs  # chạy thử Code node + kiểm tra cấu trúc 2 bản
+node scripts/build-n8n-chat-workflow.mjs   # sinh lại file JSON
+node scripts/verify-n8n-chat-workflow.mjs  # chạy thử 3 Code node, không cần n8n
 ```
 
 Sau đó import lại file JSON vào n8n. Cách này tránh lỗi escape trong Code node và có test cho phần chọn sản phẩm, parse JSON, lọc `suggestedProducts`.
-
-Khi thêm/bớt node, phải cập nhật `NODE_NAMES` trong script: các Code node gọi cứng tên node qua `$('...')`, nên tên node đổi mà không sửa map là workflow chết ở node Normalize.
 
 ## 3. Contract backend → n8n
 
