@@ -1,39 +1,70 @@
 :host { display: block; width: 100%; }
 .account-layout {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: clamp(22px, 3vw, 48px);
-  width: 100%;
-  max-width: none;
-  min-height: 0;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: clamp(24px, 4.5vw, 68px);
+  max-width: 1440px;
   margin: 0;
-  padding: 20px clamp(20px, 3vw, 48px) 32px 20px;
+  padding: 60px clamp(16px, 4vw, 60px) 0 32px;
+  border: 0;
 }
-.account-sidebar { align-self: start; min-width: 0; padding: 0 12px 22px 0; }
+.account-sidebar { align-self: start; min-width: 0; padding: 0; border: 0; }
 .account-sidebar nav { display: grid; gap: 0; }
+.nav-group { display: grid; padding: 6px 0; }
+.nav-group + .nav-group { border-top: 1px solid var(--gray-light); }
 .account-sidebar nav a {
+  position: relative;
   display: flex;
-  min-height: 36px;
   align-items: center;
-  gap: 10px;
-  padding: 5px 10px;
-  border-left: 2px solid transparent;
-  border-bottom: 1px solid #f0f1f1;
-  color: #72787b;
-  font-size: 12px;
+  gap: 18px;
+  min-height: 52px;
+  margin-left: 20px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: #b3b3b3;
+  font-size: 16px;
+  font-weight: 400;
+  transition: color .15s ease;
 }
-.account-sidebar nav a:hover, .account-sidebar nav a.active { color: var(--navy); }
-.account-sidebar nav a.active { border-left-color: var(--navy); font-weight: 600; }
-.account-icon { width: 17px; flex: 0 0 17px; color: #7b8386; text-align: center; font-size: 16px; }
-.account-sidebar nav a.active .account-icon { color: var(--navy); }
-.account-content { width: 100%; max-width: none; min-width: 0; }
+.account-sidebar nav a:hover { color: var(--navy); background: none; }
+.account-sidebar nav a.active { border-bottom: 1px solid var(--gray-light); color: var(--navy); font-weight: 400; }
+/* Thanh dọc đánh dấu mục đang mở, nằm sát lề trái sidebar */
+.account-sidebar nav a.active::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: 4px;
+  background: var(--navy);
+  content: '';
+}
+.nav-badge {
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  place-items: center;
+  margin-left: -10px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #b3b3b3;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+.account-content { width: 100%; max-width: 1000px; min-width: 0; }
+@media (max-width: 900px) {
+  .account-layout { grid-template-columns: 220px minmax(0, 1fr); padding-left: 16px; }
+  .account-sidebar nav a { gap: 12px; font-size: 15px; }
+}
 @media (max-width: 680px) {
-  .account-layout { grid-template-columns: 1fr; gap: 16px; padding: 18px 15px 28px; }
-  .account-sidebar { padding: 0 0 8px; border-right: 0; border-bottom: 1px solid var(--line); }
-  .account-sidebar nav { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
-  .account-sidebar nav a { min-height: 34px; flex: 0 0 auto; padding: 7px 9px; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
-  .account-sidebar nav a.active { border-bottom-color: var(--navy); }
-}
-@media (max-width: 560px) {
-  .account-layout { padding: 14px 14px 24px; }
+  .account-layout { grid-template-columns: 1fr; gap: 20px; padding: 20px 16px 0; }
+  .account-sidebar nav { display: flex; overflow-x: auto; border-bottom: 1px solid var(--gray-light); }
+  .nav-group { display: flex; padding: 0; }
+  .nav-group + .nav-group { border: 0; }
+  .account-sidebar nav a { min-height: 44px; flex: 0 0 auto; margin: 0; padding: 0 10px; gap: 6px; font-size: 14px; white-space: nowrap; }
+  .account-sidebar nav a app-icon { display: none; }
+  .account-sidebar nav a.active { border-bottom: 2px solid var(--navy); }
+  .account-sidebar nav a.active::before { display: none; }
+  .nav-badge { margin-left: 0; }
 }

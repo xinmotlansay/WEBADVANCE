@@ -1,9 +1,28 @@
 <footer class="site-footer">
   <div class="footer-columns">
-    <div><strong>THÔNG TIN</strong><a>Câu hỏi thường gặp</a><a>Hướng dẫn mua hàng</a><a>Chính sách giao hàng</a><a>Chính sách đổi trả</a><a>Chính sách bảo hành</a><a>Phương thức thanh toán</a><a>Điều khoản sử dụng</a><a>Chính sách bảo mật</a><a>Chính sách thành viên</a></div>
-    <div><strong>CARAVESO</strong><a>Về chúng tôi</a><a>Liên hệ</a><a>Hệ thống showroom</a><a>Blog &amp; Cảm hứng sống</a><a>Tuyển dụng</a></div>
-    <div class="company-info"><strong>THÔNG TIN CÔNG TY</strong><p>Ngày hoạt động: 08 - 09 - 2006</p><p><b>Trụ sở chính:</b> CaraVeso Design Center, Tầng 15, Tòa nhà The Crescent Office, 101 Tôn Dật Tiên, Khu đô thị Phú Mỹ Hưng, Phường Tân Phú, Quận 7, Thành phố Hồ Chí Minh, Việt Nam.</p><p><b>Hotline:</b> 1900 080906</p><p><b>Email:</b> caravesodesign&#64;gmail.com.vn</p></div>
-    <a class="footer-brand" routerLink="/account/profile">CaraVeso</a>
+    <section>
+      <h2>THÔNG TIN</h2>
+      @for (link of infoLinks; track link) { <a>{{ link }}</a> }
+    </section>
+    <section>
+      <h2>CARAVESO</h2>
+      @for (link of brandLinks; track link) { <a>{{ link }}</a> }
+    </section>
+    <section class="company-info">
+      <h2>THÔNG TIN CÔNG TY</h2>
+      <p>Ngày hoạt động: 11 - 03 - 2006</p>
+      <p><b>Trụ sở chính:</b><br />CaraVeso Design Center, Tầng 15, Tòa nhà The Crescent Office, 101 Tôn Dật Tiên, Khu đô thị Phú Mỹ Hưng, Phường Tân Phú, Quận 7, Thành phố Hồ Chí Minh, Việt Nam.</p>
+      <p><b>Hotline:</b> 1900 080906<br /><b>Email:</b> caravesodesign&#64;gmail.com.vn</p>
+    </section>
+    <section class="footer-brand">
+      <a class="brand-logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+      <div class="social-links">
+        <a href="https://www.youtube.com" target="_blank" rel="noopener" aria-label="YouTube"><app-icon name="youtube" [size]="30" /></a>
+        <a href="https://www.tiktok.com" target="_blank" rel="noopener" aria-label="TikTok"><app-icon name="tiktok" [size]="24" /></a>
+        <a href="https://www.instagram.com" target="_blank" rel="noopener" aria-label="Instagram"><app-icon name="instagram" [size]="24" /></a>
+        <a href="https://www.facebook.com" target="_blank" rel="noopener" aria-label="Facebook"><app-icon name="facebook" [size]="26" /></a>
+      </div>
+    </section>
   </div>
-  <div class="copyright"><span>Bản quyền © 2026 CARAVESO FURNITURE.</span><div aria-label="Mạng xã hội"><a aria-label="Facebook">f</a><a aria-label="Instagram">◎</a><a aria-label="YouTube">▶</a><a aria-label="TikTok">♪</a></div></div>
+  <div class="copyright">Bản quyền © 2026 CARAVESO FURNITURE.</div>
 </footer>

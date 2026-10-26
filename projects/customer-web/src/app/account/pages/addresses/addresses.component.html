@@ -1,52 +1,62 @@
 <section class="account-screen addresses-screen">
-  <div class="screen-heading"><h1>Thông tin địa chỉ</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
-  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
-  @if (addressFormOpen) {
-    <form class="address-form" (ngSubmit)="saveAddress()">
-      <h2>{{ editingAddressId ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-      <div class="address-fields">
-        <label>Họ tên<input [(ngModel)]="addressForm.recipientName" name="recipientName" required maxlength="120" /></label>
-        <label>Số điện thoại<input [(ngModel)]="addressForm.recipientPhone" name="recipientPhone" required maxlength="30" /></label>
-        <label class="address-detail">Địa chỉ cụ thể<input [(ngModel)]="addressForm.addressLine" name="addressLine" required maxlength="300" /></label>
-        <label>Phường / xã<input [(ngModel)]="addressForm.ward" name="ward" required maxlength="120" /></label>
-        <label>Quận / huyện<input [(ngModel)]="addressForm.district" name="district" required maxlength="120" /></label>
-        <label>Tỉnh / thành phố<input [(ngModel)]="addressForm.province" name="province" required maxlength="120" /></label>
-      </div>
-      <label class="default-checkbox"><input type="checkbox" [(ngModel)]="addressForm.isDefault" name="isDefault" /> Đặt làm địa chỉ mặc định</label>
-      <div class="form-actions">
-        <button class="primary-button" type="submit" [disabled]="savingAddress">{{ savingAddress ? 'Đang lưu...' : 'Lưu địa chỉ' }}</button>
-        <button class="link-button" type="button" (click)="cancelAddress()">Hủy</button>
-      </div>
-    </form>
-  }
+  <div class="screen-heading"><h1>Thông tin địa chỉ</h1></div>
+  @if (notice) { <p class="form-notice" [class.error]="noticeIsError" role="status">{{ notice }}</p> }
 
   @if (needsAccountId()) {
-    <div class="empty-state"><span>⌖</span><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem địa chỉ.</p></div>
+    <div class="empty-state"><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem địa chỉ.</p></div>
   } @else if (loading()) {
-    <p role="status">Đang tải địa chỉ từ MongoDB...</p>
+    <p role="status">Đang tải địa chỉ...</p>
   } @else if (loadError()) {
     <p class="api-error" role="alert">{{ loadError() }}</p>
   } @else {
-    <div class="address-list">
-      <div class="address-table" role="table" aria-label="Thông tin địa chỉ">
-        <div class="address-table-head" role="row">
-          <strong role="columnheader">Họ tên</strong>
-          <strong role="columnheader">Địa chỉ</strong>
-          <strong role="columnheader">Số điện thoại</strong>
-          <strong role="columnheader">Thay đổi</strong>
-        </div>
-      @for (address of addresses(); track address.id) {
-        <div class="address-table-row" role="row">
-          <span role="cell">{{ address.recipientName }}</span>
-          <span class="address-type" role="cell"><strong>⌂ {{ address.label }}</strong>@if (address.isDefault) { <span class="default-badge">Mặc định</span> }<small>{{ formatAddress(address) }}</small></span>
+    <span class="collapse-control list-chevron" aria-hidden="true"><app-icon name="chevron-down" [size]="20" /></span>
+    <div class="address-table" role="table" aria-label="Thông tin địa chỉ">
+      <div class="address-row address-head" role="row">
+        <span role="columnheader">Họ tên</span>
+        <span role="columnheader">Địa chỉ</span>
+        <span role="columnheader">Số điện thoại</span>
+        <span role="columnheader">Thay đổi</span>
+      </div>
+      @for (address of addresses(); track address._id) {
+        <div class="address-row" role="row">
+          <span class="recipient" role="cell">{{ address.recipientName }}</span>
+          <div class="address-cell" role="cell">
+            <p class="address-type"><app-icon name="home" [size]="28" /><strong>Nhà riêng</strong>@if (address.isDefault) { <span class="default-tag">Mặc định</span> }</p>
+            <p class="address-text">{{ formatAddress(address) }}</p>
+          </div>
           <span role="cell">{{ address.recipientPhone }}</span>
-          <button class="link-button" type="button" role="cell" (click)="requestEdit(address)">Chỉnh sửa</button>
+          <span role="cell"><button class="edit-link" type="button" (click)="openForm(address)">Chỉnh sửa</button></span>
         </div>
       } @empty {
-        <div class="address-empty">Không tìm thấy địa chỉ gắn với tài khoản này.</div>
+        <div class="address-empty">Bạn chưa có địa chỉ nhận hàng nào.</div>
       }
-      </div>
-      <button class="primary-button add-address" type="button" (click)="requestEdit()">Thêm địa chỉ mới</button>
     </div>
+
+    @if (!formOpen) {
+      <button class="primary-button add-address" type="button" (click)="openForm()">Thêm địa chỉ mới</button>
+    } @else {
+      <form class="address-form" (ngSubmit)="saveAddress()">
+        <h2>{{ editingAddressId ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+        <div class="address-fields">
+          <label>Họ tên người nhận *<input [(ngModel)]="form.recipientName" name="recipientName" required maxlength="120" autocomplete="name" /></label>
+          <label>Số điện thoại *<input [(ngModel)]="form.recipientPhone" name="recipientPhone" required maxlength="12" inputmode="tel" autocomplete="tel" placeholder="0xxxxxxxxx" /></label>
+          <label class="wide">Số nhà, tên đường *<input [(ngModel)]="form.addressLine" name="addressLine" required maxlength="300" autocomplete="address-line1" /></label>
+          <label>Phường / xã *<input [(ngModel)]="form.ward" name="ward" required maxlength="120" /></label>
+          <label>Quận / huyện <small>(nếu có)</small><input [(ngModel)]="form.district" name="district" maxlength="120" /></label>
+          <label>Tỉnh / thành phố *<input [(ngModel)]="form.province" name="province" required maxlength="120" /></label>
+        </div>
+        <label class="default-checkbox">
+          <input type="checkbox" [(ngModel)]="form.isDefault" name="isDefault" [disabled]="editingDefault" />
+          Đặt làm địa chỉ mặc định
+        </label>
+        <div class="form-actions">
+          @if (editingAddressId) {
+            <button class="delete-address" type="button" [disabled]="saving()" (click)="deleteAddress()"><app-icon name="trash" [size]="16" /> Xoá địa chỉ</button>
+          }
+          <button class="link-button" type="button" (click)="closeForm()">Huỷ</button>
+          <button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu địa chỉ' }}</button>
+        </div>
+      </form>
+    }
   }
 </section>

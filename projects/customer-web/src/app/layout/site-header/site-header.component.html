@@ -1,28 +1,29 @@
 <div class="promo-bar">
-  <span>Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso</span>
-  <a routerLink="/account/profile">{{ accountProfile()?.name || 'Tài khoản' }}</a>
+  <p>Chỉ duy nhất 1 lần, tặng voucher 100.000 VNĐ cho khách hàng mới của CaraVeso</p>
 </div>
 <header class="site-header">
   <div class="header-main">
-    <nav class="primary-nav" aria-label="Điều hướng chính">
-      <a routerLink="/account/profile">Hồ sơ khách hàng <span>⌄</span></a>
-      <a routerLink="/account/orders">Đơn hàng <span>⌄</span></a>
-      <a routerLink="/account/addresses">Địa chỉ nhận hàng</a>
-      <a class="sale-link" routerLink="/account/vouchers">Khuyến mãi</a>
+    <nav class="primary-nav" aria-label="Danh mục chính">
+      <a routerLink="/products">Sản phẩm <app-icon name="chevron-down" [size]="16" /></a>
+      <a routerLink="/rooms">Các phòng <app-icon name="chevron-down" [size]="16" /></a>
+      <a routerLink="/inspirations">Nguồn cảm hứng</a>
+      <a class="sale-link" routerLink="/promotions">Khuyến mãi</a>
     </nav>
-    <a class="brand" routerLink="/account/profile" aria-label="CaraVeso trang chủ">CaraVeso</a>
-    <label class="search-box">
-      <span aria-hidden="true">⌕</span>
-      <input aria-label="Tìm kiếm" placeholder="Nhập sản phẩm, chất liệu, phong cách..." />
-      <span class="camera-icon" aria-hidden="true">▣</span>
-    </label>
-    <div class="header-actions">
-      <a routerLink="/account/wishlist" aria-label="Danh sách yêu thích"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.4-8.8 10.2-8.8 10.2S3.2 14.1 3.2 8.7a4.5 4.5 0 0 1 8.8-1.3 4.5 4.5 0 0 1 8.8 1.3Z" /></svg></a>
-      <a routerLink="/account/profile" aria-label="Tài khoản"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5" /><path d="M4.5 21a7.5 7.5 0 0 1 15 0Z" /></svg></a>
-      <button type="button" aria-label="Giỏ hàng" class="cart-button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6" /><circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
-        @if (cart.itemCount() > 0) { <span>{{ cart.itemCount() }}</span> }
-      </button>
+    <a class="brand" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+    <div class="header-tools">
+      <form class="search-box" role="search" (submit)="$event.preventDefault()">
+        <app-icon name="search" [size]="24" [strokeWidth]="2" />
+        <input type="search" aria-label="Tìm kiếm" placeholder="Nhập sản phẩm, chất liệu, phong cách,..." />
+        <button type="button" class="camera-button" aria-label="Tìm bằng hình ảnh"><app-icon name="camera" [size]="22" /></button>
+      </form>
+      <div class="header-actions">
+        <a routerLink="/account/wishlist" aria-label="Danh sách yêu thích"><app-icon name="heart" [size]="26" /></a>
+        <a routerLink="/account/profile" [attr.aria-label]="accountProfile()?.name || 'Tài khoản'" [attr.title]="accountProfile()?.name || null"><app-icon name="user" [size]="26" /></a>
+        <a routerLink="/cart" aria-label="Giỏ hàng" class="cart-button">
+          <app-icon name="cart" [size]="26" />
+          @if (cart.itemCount() > 0) { <span>{{ cart.itemCount() }}</span> }
+        </a>
+      </div>
     </div>
   </div>
 </header>

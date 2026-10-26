@@ -1,51 +1,73 @@
 <section class="account-screen orders-screen">
-  <div class="screen-heading"><h1>Đơn hàng</h1><span class="collapse-control" aria-hidden="true">⌄</span></div>
-  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  <div class="screen-heading"><h1>Đơn hàng</h1></div>
+  @if (notice) { <p class="form-notice" [class.error]="noticeIsError" role="status">{{ notice }}</p> }
+
   @if (needsAccountId()) {
-    <p class="empty-state">Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem đơn hàng.</p>
+    <div class="empty-state"><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem đơn hàng.</p></div>
   } @else if (loading()) {
-    <p role="status">Đang tải đơn hàng từ MongoDB...</p>
+    <p role="status">Đang tải đơn hàng...</p>
   } @else if (loadError()) {
     <p class="api-error" role="alert">{{ loadError() }}</p>
   } @else {
-  <nav class="order-filters" aria-label="Lọc đơn hàng">
-    @for (item of filters; track item) { <button type="button" [class.active]="filter === item" (click)="filter = item">{{ item }}</button> }
-  </nav>
-  @for (order of filteredOrders(); track order.id) {
-    <article class="order-card">
-      <div class="order-header">
-        <div><strong>Đơn - {{ order.id }}</strong><span>Đặt ngày: {{ order.date }}</span></div>
-        <strong class="order-status" [class.delivered]="order.delivered"><span aria-hidden="true">{{ order.delivered ? '▣' : '◷' }}</span>{{ order.status }}</strong>
-      </div>
-      <div class="order-products">
-        @for (product of order.items ?? []; track $index) {
-          <div class="order-product">
-            <div><strong>{{ product.name }}</strong><span>{{ product.details }} · SL {{ product.quantity }}</span></div>
-            @if (order.delivered) { <a [routerLink]="['/account/reviews']">Đánh giá</a> }
-            <strong>{{ formatPrice(product.total) }}đ</strong>
+    <span class="collapse-control list-chevron" aria-hidden="true"><app-icon name="chevron-down" [size]="12" /></span>
+    @for (order of orders(); track order.id) {
+      <article class="order-card">
+        <header class="order-header">
+          <div><strong>Đơn - #{{ order.code }}</strong><span>Đặt ngày: {{ order.date }}</span></div>
+          <p class="order-status"><app-icon [name]="order.statusIcon" [size]="24" />{{ order.status }}</p>
+        </header>
+
+        <ul class="order-products">
+          @for (product of order.items; track $index) {
+            <li>
+              <div><strong>{{ product.name }}</strong>@if (product.details) { <span>{{ product.details }}</span> }</div>
+              @if (order.delivered) { <a class="review-link" routerLink="/account/reviews">Đánh giá</a> }
+              <strong class="price">{{ formatPrice(product.total) }}<u>đ</u></strong>
+            </li>
+          }
+        </ul>
+
+        <div class="order-total">
+          <span>Tổng cộng:</span><strong class="total-price">{{ formatPrice(order.total) }}<u>đ</u></strong>
+          <div class="order-actions">
+            @if (order.cancellable) {
+              <button class="cancel-button" type="button" [attr.aria-expanded]="cancellingOrder === order.id" (click)="openCancel(order)">Huỷ đơn</button>
+            }
+            <button class="tracking-button" type="button" [attr.aria-expanded]="expandedOrder === order.id" (click)="toggleTracking(order)">
+              Theo dõi đơn <app-icon [name]="expandedOrder === order.id ? 'chevron-up' : 'chevron-down'" [size]="16" />
+            </button>
           </div>
+        </div>
+
+        @if (cancellingOrder === order.id) {
+          <form class="cancel-panel" (ngSubmit)="confirmCancel(order)">
+            <strong>Chọn lý do huỷ đơn</strong>
+            @for (reason of cancelReasons; track reason) {
+              <label><input type="radio" name="cancelReason" [value]="reason" [(ngModel)]="cancelReason" /> {{ reason }}</label>
+            }
+            <div class="cancel-actions">
+              <button class="link-button" type="button" (click)="cancellingOrder = ''">Không huỷ</button>
+              <button class="danger-button" type="submit" [disabled]="cancelling()">{{ cancelling() ? 'Đang huỷ...' : 'Xác nhận huỷ đơn' }}</button>
+            </div>
+          </form>
         }
-      </div>
-      <div class="order-total"><span>Tổng cộng:</span><strong>{{ formatPrice(order.total) }}đ</strong>
-        <button class="cancel-button" type="button" (click)="cancelOrder(order)">Hủy đơn</button>
-        <button class="tracking-button" type="button" (click)="toggleTracking(order)">Theo dõi đơn <span>{{ expandedOrder === order.id ? '⌃' : '⌄' }}</span></button>
-      </div>
-      @if (expandedOrder === order.id) {
-        <div class="tracking-panel">
-          @if (order.history?.length) {
+
+        @if (expandedOrder === order.id) {
+          <div class="tracking-panel">
+            <strong>{{ order.trackingTitle }}</strong>
             <ol>
-              @for (event of order.history; track $index) {
-                <li><span>◷</span><div><strong>{{ event.status }}</strong><small>{{ event.date }}</small></div></li>
+              @for (step of order.steps; track $index) {
+                <li [class.done]="step.done">
+                  <app-icon [name]="step.icon" [size]="18" />
+                  <div><span>{{ step.label }}</span>@if (step.note) { <small>{{ step.note }}</small> }</div>
+                </li>
               }
             </ol>
-          } @else {
-            <p>Lịch sử trạng thái chưa có dữ liệu.</p>
-          }
-        </div>
-      }
-    </article>
-  } @empty {
-    <div class="empty-state"><span>▤</span><h2>Chưa có đơn hàng</h2><p>Không tìm thấy đơn hàng gắn với tài khoản này.</p></div>
-  }
+          </div>
+        }
+      </article>
+    } @empty {
+      <div class="empty-state"><app-icon name="archive" [size]="36" /><h2>Chưa có đơn hàng</h2><p>Không tìm thấy đơn hàng gắn với tài khoản này.</p></div>
+    }
   }
 </section>

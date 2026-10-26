@@ -1,45 +1,130 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AccountOrder } from '../../../features/account/account.service';
 import { AccountReadApiService, MongoCustomerOrder } from '../../../features/account/account-read-api.service';
+import { IconComponent, IconName } from '../../../shared/icon/icon.component';
+
+interface TrackingStep {
+  label: string;
+  icon: IconName;
+  note: string;
+  done: boolean;
+}
+
+interface OrderView {
+  id: string;
+  code: string;
+  date: string;
+  status: string;
+  statusIcon: IconName;
+  total: number;
+  delivered: boolean;
+  cancellable: boolean;
+  trackingTitle: string;
+  items: { name: string; details: string; total: number }[];
+  steps: TrackingStep[];
+}
+
+const STATUS_VIEW: Record<string, { label: string; icon: IconName }> = {
+  PENDING_PAYMENT: { label: 'Chờ thanh toán', icon: 'clock' },
+  PENDING_CONFIRMATION: { label: 'Chờ xác nhận', icon: 'clock' },
+  CONFIRMED: { label: 'Đã xác nhận', icon: 'clipboard-check' },
+  HANDED_OVER: { label: 'Đang giao hàng', icon: 'truck' },
+  SHIPPING: { label: 'Đang giao hàng', icon: 'truck' },
+  DELIVERED: { label: 'Giao thành công', icon: 'package' },
+  DELIVERY_FAILED: { label: 'Giao thất bại', icon: 'x-circle' },
+  RETURNING: { label: 'Đang hoàn hàng', icon: 'truck' },
+  CANCELLED: { label: 'Đã huỷ', icon: 'x-circle' },
+};
+
+// Các mốc theo dõi đơn hiển thị trong Figma, mỗi mốc ứng với một hoặc nhiều trạng thái đơn.
+const TRACKING_STEPS: { label: string; icon: IconName; statuses: string[]; note: (date: string) => string }[] = [
+  { label: 'Chờ xác nhận', icon: 'clock', statuses: ['PENDING_PAYMENT', 'PENDING_CONFIRMATION'], note: () => '' },
+  { label: 'Đã xác nhận', icon: 'clipboard-check', statuses: ['CONFIRMED'], note: (date) => `Đã xác nhận vào ${date}` },
+  { label: 'Đang giao hàng', icon: 'truck', statuses: ['HANDED_OVER', 'SHIPPING'], note: (date) => `Đã giao cho đơn vị vận chuyển vào ${date}` },
+  { label: 'Giao hàng thành công', icon: 'package', statuses: ['DELIVERED'], note: (date) => `Đã giao cho bạn vào ${date}` },
+];
+
+const CANCELLABLE_STATUSES = ['PENDING_PAYMENT', 'PENDING_CONFIRMATION'];
 
 @Component({
   selector: 'app-orders',
-  imports: [CommonModule, RouterLink],
+  imports: [FormsModule, RouterLink, IconComponent],
   templateUrl: './orders.component.html',
   styleUrl: './orders.component.css',
 })
 export class OrdersComponent {
-  protected readonly orders = signal<AccountOrder[]>([]);
+  protected readonly orders = signal<OrderView[]>([]);
   protected readonly loading = signal(false);
   protected readonly loadError = signal('');
   protected readonly needsAccountId = signal(false);
-  protected filter = 'Tất cả';
+  protected readonly cancelling = signal(false);
   protected expandedOrder = '';
+  protected cancellingOrder = '';
+  protected cancelReason = '';
   protected notice = '';
-
-  protected readonly filters = ['Tất cả', 'Chờ xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+  protected noticeIsError = false;
+  protected readonly cancelReasons = [
+    'Muốn thay đổi địa chỉ giao hàng',
+    'Muốn thay đổi sản phẩm trong đơn',
+    'Tìm thấy giá tốt hơn ở nơi khác',
+    'Thời gian giao hàng quá lâu',
+    'Đổi ý, không muốn mua nữa',
+  ];
+  private readonly userId: string;
 
   constructor(private readonly accountApi: AccountReadApiService) {
-    const userId = accountApi.getPreviewUserId();
-    if (!userId) {
+    this.userId = accountApi.getPreviewUserId();
+    if (!this.userId) {
       this.needsAccountId.set(true);
       return;
     }
-    this.loadOrders(userId);
+    this.loadOrders();
   }
 
-  private loadOrders(userId: string): void {
+  protected toggleTracking(order: OrderView): void {
+    this.expandedOrder = this.expandedOrder === order.id ? '' : order.id;
+  }
+
+  protected openCancel(order: OrderView): void {
+    this.cancellingOrder = this.cancellingOrder === order.id ? '' : order.id;
+    this.cancelReason = '';
+  }
+
+  protected confirmCancel(order: OrderView): void {
+    if (!this.cancelReason) {
+      this.notice = 'Vui lòng chọn lý do huỷ đơn.';
+      this.noticeIsError = true;
+      return;
+    }
+    this.cancelling.set(true);
+    this.accountApi.cancelOrder(this.userId, order.id, this.cancelReason).subscribe({
+      next: () => {
+        this.cancelling.set(false);
+        this.cancellingOrder = '';
+        this.notice = `Đã huỷ đơn #${order.code}.`;
+        this.noticeIsError = false;
+        this.loadOrders();
+      },
+      error: (error: unknown) => {
+        this.cancelling.set(false);
+        this.notice = this.apiErrorMessage(error);
+        this.noticeIsError = true;
+      },
+    });
+  }
+
+  protected formatPrice(value: number): string {
+    return new Intl.NumberFormat('vi-VN').format(value);
+  }
+
+  private loadOrders(): void {
     this.loading.set(true);
     this.loadError.set('');
-    this.accountApi.getOrders(userId).subscribe({
+    this.accountApi.getOrders(this.userId).subscribe({
       next: (orders) => {
-        const mappedOrders = orders.map((order) => this.toAccountOrder(order));
-        this.orders.set(mappedOrders);
-        this.expandedOrder = mappedOrders.find((order) => order.delivered)?.id ?? '';
+        this.orders.set(orders.map((order) => this.toOrderView(order)));
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -49,73 +134,80 @@ export class OrdersComponent {
     });
   }
 
-  private toAccountOrder(order: MongoCustomerOrder): AccountOrder {
-    const status = this.statusLabel(order.status ?? '');
+  private toOrderView(order: MongoCustomerOrder): OrderView {
+    const status = order.status ?? '';
+    const view = STATUS_VIEW[status] ?? { label: status, icon: 'clock' as IconName };
+    const history = order.statusHistory ?? [];
+    const lastChange = history.at(-1)?.changedAt ?? order.createdAt;
     return {
-      id: order.orderCode || order._id,
+      id: order._id,
+      code: order.orderCode || order._id,
       date: this.formatDate(order.createdAt),
-      status,
+      status: view.label,
+      statusIcon: view.icon,
       total: order.totalAmount ?? 0,
-      delivered: status === 'Giao hàng thành công',
-      items: (order.items ?? []).map((item) => ({
-        name: item.snapshot?.name || 'Sản phẩm',
-        details: [item.snapshot?.color, item.snapshot?.dimensions].filter(Boolean).join(', '),
-        quantity: item.quantity ?? 1,
-        total: item.finalAmount ?? item.unitPrice ?? 0,
-      })),
-      history: (order.statusHistory ?? []).map((item) => ({
-        status: this.statusLabel(item.toStatus ?? ''),
-        date: this.formatDate(item.changedAt),
-      })),
+      delivered: status === 'DELIVERED',
+      cancellable: CANCELLABLE_STATUSES.includes(status),
+      trackingTitle: status === 'DELIVERED'
+        ? `Đã giao vào ngày: ${this.formatDate(lastChange)}`
+        : status === 'CANCELLED'
+          ? `Đã huỷ vào ngày: ${this.formatDate(order.cancellation?.cancelledAt ?? lastChange)}`
+          : `Trạng thái hiện tại: ${view.label}`,
+      items: (order.items ?? []).map((item) => {
+        const details = [item.snapshot?.color, item.snapshot?.dimensions].filter(Boolean).join(', ');
+        const quantity = item.quantity ?? 1;
+        return {
+          name: item.snapshot?.name || 'Sản phẩm',
+          details: quantity > 1 ? `${details}${details ? ' · ' : ''}SL: ${quantity}` : details,
+          total: item.finalAmount ?? (item.unitPrice ?? 0) * quantity,
+        };
+      }),
+      steps: this.trackingSteps(order),
     };
   }
 
-  private statusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      PENDING_CONFIRMATION: 'Chờ xác nhận',
-      PENDING_PAYMENT: 'Chờ thanh toán',
-      CONFIRMED: 'Đã xác nhận',
-      PROCESSING: 'Đang chuẩn bị',
-      SHIPPING: 'Đang giao hàng',
-      IN_TRANSIT: 'Đang giao hàng',
-      DELIVERED: 'Giao hàng thành công',
-      CANCELLED: 'Đã hủy',
-    };
-    return labels[status] ?? status;
+  private trackingSteps(order: MongoCustomerOrder): TrackingStep[] {
+    const history = order.statusHistory ?? [];
+    const reachedAt = TRACKING_STEPS.map((step, index) =>
+      history.find((event) => step.statuses.includes(event.toStatus ?? ''))?.changedAt
+        ?? (index === 0 ? order.createdAt : undefined));
+    const lastReached = reachedAt.reduce((last, date, index) => (date ? index : last), 0);
+    const steps = TRACKING_STEPS.map((step, index) => ({
+      label: step.label,
+      icon: step.icon,
+      note: reachedAt[index] ? step.note(this.formatDate(reachedAt[index], true)) : '',
+      done: index <= lastReached,
+    }));
+
+    const endEvent = history.find((event) => ['CANCELLED', 'DELIVERY_FAILED', 'RETURNING'].includes(event.toStatus ?? ''));
+    if (!endEvent) return steps;
+    const reason = order.cancellation?.reason ? ` · Lý do: ${order.cancellation.reason}` : '';
+    return [
+      ...steps.slice(0, lastReached + 1),
+      {
+        label: STATUS_VIEW[endEvent.toStatus ?? '']?.label ?? '',
+        icon: 'x-circle',
+        note: `Cập nhật vào ${this.formatDate(endEvent.changedAt, true)}${endEvent.toStatus === 'CANCELLED' ? reason : ''}`,
+        done: true,
+      },
+    ];
   }
 
-  private formatDate(value?: string): string {
+  private formatDate(value?: string, short = false): string {
     if (!value) return '—';
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('vi-VN').format(date);
-  }
-
-  protected formatPrice(value: number): string {
-    return new Intl.NumberFormat('vi-VN').format(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('vi-VN', short
+      ? { day: '2-digit', month: '2-digit' }
+      : { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
   }
 
   private apiErrorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) return 'Không kết nối được MongoDB API. Hãy kiểm tra server ở cổng 3002.';
-      if (error.status === 400) return 'MongoDB _id không hợp lệ. Hãy nhập lại trong mục Tài khoản của tôi.';
-      if (error.status === 404) return 'Không tìm thấy tài khoản trong MongoDB.';
       if (typeof error.error?.message === 'string') return error.error.message;
+      if (error.status === 404) return 'Không tìm thấy tài khoản trong MongoDB.';
     }
     return error instanceof Error ? error.message : 'Không tải được đơn hàng từ MongoDB.';
-  }
-
-  protected filteredOrders(): AccountOrder[] {
-    if (this.filter === 'Tất cả') return this.orders();
-    if (this.filter === 'Đã giao') return this.orders().filter((order) => order.delivered);
-    if (this.filter === 'Đang giao') return this.orders().filter((order) => order.status === 'Đang giao hàng');
-    return this.orders().filter((order) => order.status === this.filter);
-  }
-
-  protected cancelOrder(order: AccountOrder): void {
-    this.notice = `Demo chỉ đọc: không gửi yêu cầu hủy đơn ${order.id} và không thay đổi dữ liệu MongoDB.`;
-  }
-
-  protected toggleTracking(order: AccountOrder): void {
-    this.expandedOrder = this.expandedOrder === order.id ? '' : order.id;
   }
 }

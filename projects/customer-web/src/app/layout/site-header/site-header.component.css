@@ -2,219 +2,167 @@
   display: block;
   position: relative;
   z-index: 2;
-  color: #292c2e;
-  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
 }
 
 .promo-bar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  min-height: 20px;
-  padding: 0 5.2%;
-  background: #10375b;
+  min-height: 38px;
+  place-items: center;
+  padding: 6px 16px;
+  background: var(--navy);
   color: #fff;
-  font-size: 10px;
-  letter-spacing: .01em;
+  font-size: 16px;
+  text-align: center;
 }
 
-.promo-bar > span {
-  grid-column: 2;
-}
-
-.promo-bar > a {
-  grid-column: 3;
-  justify-self: end;
-  color: #fff;
+.promo-bar p {
+  margin: 0;
 }
 
 .site-header {
+  border-bottom: 1px solid var(--gray-light);
   background: #fff;
-  border-bottom: 1px solid #e7e7e7;
 }
 
+/* Nav bên trái, logo căn giữa trang, ô tìm kiếm và icon sát lề phải */
 .header-main {
-  display: grid;
-  grid-template-columns: minmax(290px, 1fr) auto minmax(230px, 1fr) auto;
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: clamp(16px, 2.2vw, 34px);
-  max-width: 1440px;
-  min-height: 48px;
-  margin: 0 auto;
-  padding: 0 5.2%;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 76px;
+  padding: 0 clamp(16px, 2.8vw, 40px) 0 clamp(16px, 3.5vw, 50px);
 }
 
 .primary-nav {
   display: flex;
   align-items: center;
-  gap: clamp(13px, 2.5vw, 35px);
+  gap: clamp(20px, 3.2vw, 48px);
+  font-size: 15px;
   white-space: nowrap;
-  font-size: 10px;
 }
 
-.primary-nav a:hover,
-.header-actions a:hover {
-  color: #b54c49;
+.primary-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.primary-nav a span {
-  margin-left: 3px;
-  color: #7a7e80;
+.primary-nav a:hover {
+  text-decoration: underline;
 }
 
 .primary-nav .sale-link {
-  color: #d84d4d;
+  color: var(--accent);
 }
 
 .brand {
-  color: #161719;
-  font-family: 'Times New Roman', Georgia, serif;
-  font-size: 30px;
-  letter-spacing: -.08em;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-logo);
+  font-size: 48px;
+  line-height: 1;
   white-space: nowrap;
+}
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 22px;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-  height: 31px;
-  padding: 0 9px;
-  border: 1px solid #d8dadd;
-  border-radius: 4px;
-  color: #3f4548;
-}
-
-.search-box > span:first-child {
-  font-size: 20px;
-  line-height: 1;
+  gap: 12px;
+  width: clamp(220px, 30vw, 432px);
+  height: 42px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--gray);
+  border-radius: 6px;
+  background: #fff;
 }
 
 .search-box input {
-  width: 100%;
+  flex: 1;
   min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 9px;
+  font-size: 14px;
 }
 
-.search-box .camera-icon {
-  color: #64696c;
-  font-size: 13px;
+.search-box input::placeholder {
+  color: #6b6b6b;
+}
+
+.camera-button {
+  display: grid;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6b6b6b;
+  cursor: pointer;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 19px;
+  gap: 18px;
 }
 
-.header-actions a,
-.cart-button {
+.header-actions a {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 24px;
-}
-
-.header-actions svg,
-.cart-button svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.6;
-}
-
-.cart-button {
-  position: relative;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 19px;
-  cursor: pointer;
 }
 
 .cart-button span {
   position: absolute;
-  top: -5px;
-  right: -7px;
+  top: -6px;
+  right: -8px;
   display: grid;
+  min-width: 18px;
+  height: 18px;
   place-items: center;
-  min-width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: #10375b;
-  color: white;
-  font-size: 8px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-@media (max-width: 950px) {
-  .header-main {
-    grid-template-columns: minmax(250px, 1fr) auto minmax(170px, .8fr) auto;
-    gap: 14px;
-    padding: 0 20px;
-  }
+@media (max-width: 1360px) {
+  .primary-nav { gap: 20px; font-size: 14px; }
+  .search-box { width: 220px; }
+  .brand { font-size: 40px; }
+}
 
-  .primary-nav {
-    gap: 12px;
+/* Không đủ chỗ cho nav hai bên logo: xếp thành hai hàng */
+@media (max-width: 1060px) {
+  .header-main {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 12px 16px;
   }
+  .brand {
+    position: static;
+    order: -1;
+    transform: none;
+    font-size: 36px;
+  }
+  .header-tools { flex: 1; justify-content: flex-end; }
+  .primary-nav { order: 2; flex-basis: 100%; overflow-x: auto; padding-bottom: 2px; }
 }
 
 @media (max-width: 680px) {
-  .promo-bar {
-    grid-template-columns: 1fr auto;
-    gap: 10px;
-    min-height: 20px;
-    padding: 0 10px;
-    text-align: center;
-    font-size: 8px;
-  }
-
-  .promo-bar > span {
-    grid-column: 1;
-  }
-
-  .promo-bar > a {
-    grid-column: 2;
-    font-size: 8px;
-    white-space: nowrap;
-  }
-
-  .header-main {
-    grid-template-columns: 1fr auto;
-    gap: 9px 12px;
-    padding: 8px 14px;
-  }
-
-  .brand {
-    grid-column: 1;
-    grid-row: 1;
-    font-size: 25px;
-  }
-
-  .search-box {
-    grid-column: 1 / 3;
-    grid-row: 2;
-  }
-
-  .header-actions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .primary-nav {
-    grid-column: 1 / 3;
-    grid-row: 3;
-    gap: 16px;
-    overflow-x: auto;
-    padding: 3px 0;
-    font-size: 9px;
-  }
+  .promo-bar { min-height: 32px; font-size: 12px; }
+  .brand { font-size: 30px; }
+  .search-box { display: none; }
+  .header-actions { gap: 14px; }
 }

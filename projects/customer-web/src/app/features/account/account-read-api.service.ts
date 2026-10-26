@@ -21,6 +21,7 @@ export interface MongoReviewableItem {
   orderCode: string;
   deliveredAt: string;
   productId: string | null;
+  image?: string;
   name: string;
   color: string;
   sku: string;
@@ -75,7 +76,30 @@ export interface MongoCustomerOrder {
     finalAmount?: number;
   }[];
   statusHistory?: { toStatus?: string; changedAt?: string }[];
+  cancellation?: { reason?: string; cancelledAt?: string };
 }
+
+export interface MongoWishlistItem {
+  productId: string;
+  slug: string;
+  name: string;
+  description: string;
+  image: string;
+  price: number;
+  originalPrice: number;
+  variantId: string | null;
+  inStock: boolean;
+  addedAt: string;
+}
+
+export interface ProfileUpdate {
+  fullName: string;
+  gender: string;
+  dateOfBirth: string;
+  phoneNumber: string;
+}
+
+export type AddressInput = Omit<MongoCustomerAddress, '_id'>;
 
 export interface MongoCustomerVoucher {
   _id: string;
@@ -106,7 +130,9 @@ interface MongoCustomerDocument {
     fullName?: string;
     dateOfBirth?: string;
     gender?: string;
+    birthDateEditCount?: number;
   };
+  hasPassword?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -114,6 +140,7 @@ export class AccountReadApiService {
   private readonly previewUserKey = 'caraveso.previewCustomerId';
   readonly profile = signal<CustomerProfile | null>(null);
   readonly previewUserId = signal('');
+  readonly pendingReviewCount = signal(0);
 
   constructor(private readonly http: HttpClient) {}
 
@@ -127,6 +154,17 @@ export class AccountReadApiService {
     sessionStorage.setItem(this.previewUserKey, id);
     this.previewUserId.set(id);
     this.profile.set(null);
+  }
+
+  clearPreviewUser(): void {
+    sessionStorage.removeItem(this.previewUserKey);
+    this.previewUserId.set('');
+    this.profile.set(null);
+    this.pendingReviewCount.set(0);
+  }
+
+  private userUrl(userId: string, path = ''): string {
+    return `${API_BASE_URL}/users/${encodeURIComponent(userId)}${path}`;
   }
 
   getProfile(userId: string): Observable<CustomerProfile> {
@@ -145,6 +183,8 @@ export class AccountReadApiService {
           phone: user.phoneNumber ?? user.phone ?? '',
           email: user.email ?? '',
           avatar: user.avatar ? apiAssetUrl(user.avatar) : '',
+          birthDateEditCount: user.profile?.birthDateEditCount ?? (birthday ? 1 : 0),
+          hasPassword: user.hasPassword ?? false,
         };
       }),
       tap((profile) => this.profile.set(profile)),
@@ -185,16 +225,39 @@ export class AccountReadApiService {
     );
   }
 
-  saveGender(userId: string, gender: string): Observable<{ gender: string }> {
-    return this.http.post<{ gender: string }>(
-      `${API_BASE_URL}/users/${encodeURIComponent(userId)}/profile`,
-      { gender },
+  saveProfile(userId: string, profile: ProfileUpdate): Observable<unknown> {
+    return this.http.patch(this.userUrl(userId, '/profile'), profile);
+  }
+
+  changePassword(userId: string, currentPassword: string, newPassword: string): Observable<unknown> {
+    return this.http.post(this.userUrl(userId, '/password'), { currentPassword, newPassword });
+  }
+
+  deleteAccount(userId: string, password: string): Observable<unknown> {
+    return this.http.delete(this.userUrl(userId), { body: { password } });
+  }
+
+  cancelOrder(userId: string, orderId: string, reason: string): Observable<unknown> {
+    return this.http.post(this.userUrl(userId, `/orders/${encodeURIComponent(orderId)}/cancel`), { reason });
+  }
+
+  getWishlist(userId: string): Observable<MongoWishlistItem[]> {
+    return this.http.get<MongoWishlistItem[]>(this.userUrl(userId, '/wishlist')).pipe(
+      map((items) => items.map((item) => ({ ...item, image: apiAssetUrl(item.image) }))),
     );
+  }
+
+  removeWishlistItem(userId: string, productId: string): Observable<unknown> {
+    return this.http.delete(this.userUrl(userId, `/wishlist/${encodeURIComponent(productId)}`));
+  }
+
+  deleteAddress(userId: string, addressId: string): Observable<unknown> {
+    return this.http.delete(this.userUrl(userId, `/addresses/${encodeURIComponent(addressId)}`));
   }
 
   createAddress(
     userId: string,
-    address: Omit<MongoCustomerAddress, '_id'> & { district: string },
+    address: AddressInput,
   ): Observable<MongoCustomerAddress> {
     return this.http.post<MongoCustomerAddress>(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/addresses`,
@@ -205,7 +268,7 @@ export class AccountReadApiService {
   updateAddress(
     userId: string,
     addressId: string,
-    address: Omit<MongoCustomerAddress, '_id'> & { district: string },
+    address: AddressInput,
   ): Observable<MongoCustomerAddress> {
     return this.http.patch<MongoCustomerAddress>(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/addresses/${encodeURIComponent(addressId)}`,
@@ -229,12 +292,21 @@ export class AccountReadApiService {
   getReviewableItems(userId: string): Observable<MongoReviewableItem[]> {
     return this.http.get<MongoReviewableItem[]>(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/reviewable-items`,
+    ).pipe(
+      map((items) => items.map((item) => ({ ...item, image: item.image ? apiAssetUrl(item.image) : '' }))),
+      tap((items) => this.pendingReviewCount.set(items.length)),
     );
   }
 
   getReviews(userId: string): Observable<MongoCustomerReview[]> {
     return this.http.get<MongoCustomerReview[]>(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/reviews`,
+    ).pipe(
+      map((reviews) => reviews.map((review) => ({
+        ...review,
+        image: review.image ? apiAssetUrl(review.image) : '',
+        images: (review.images ?? []).map((image) => apiAssetUrl(image)),
+      }))),
     );
   }
 

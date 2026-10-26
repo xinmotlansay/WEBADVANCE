@@ -1,11 +1,18 @@
 <section class="account-layout">
   <aside class="account-sidebar" aria-label="Quản lý tài khoản">
     <nav>
-      @for (item of navigation; track item.path) {
-        <a [routerLink]="['/account', item.path]" routerLinkActive="active">
-          <span class="account-icon" aria-hidden="true">{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
-        </a>
+      @for (group of navigation; track $index) {
+        <div class="nav-group">
+          @for (item of group; track item.path) {
+            <a [routerLink]="['/account', item.path]" routerLinkActive="active">
+              <app-icon [name]="item.icon" [size]="26" [strokeWidth]="1.3" />
+              <span>{{ item.label }}</span>
+              @if (item.path === 'reviews' && accountApi.pendingReviewCount() > 0) {
+                <small class="nav-badge" [attr.aria-label]="accountApi.pendingReviewCount() + ' sản phẩm chờ đánh giá'">{{ accountApi.pendingReviewCount() }}</small>
+              }
+            </a>
+          }
+        </div>
       }
     </nav>
   </aside>

@@ -7,6 +7,8 @@ export interface CustomerProfile {
   phone: string;
   email: string;
   avatar: string;
+  birthDateEditCount?: number;
+  hasPassword?: boolean;
 }
 
 export interface CustomerAddress {

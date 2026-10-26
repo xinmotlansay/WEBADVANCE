@@ -1,31 +1,37 @@
 <section class="account-screen wishlist-screen">
   <h1 class="wishlist-title">DANH SÁCH YÊU THÍCH</h1>
-  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
-  <div class="wishlist-grid">
-    @for (product of products(); track product.id) {
-      <article class="wishlist-card">
-        <div class="wishlist-image"><img [src]="product.image" [alt]="product.name" /><span class="favorite-heart" aria-hidden="true">♥</span></div>
-        <div class="wishlist-info"><h2>{{ product.name }}</h2><p>{{ product.details }}</p><strong>{{ formatPrice(product.price) }}</strong></div>
-        <div class="wishlist-actions"><button type="button" class="wishlist-cart" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 4h2l2.2 11.5h11.1L20 8H6" /><circle cx="9" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M13 9.5v5m-2.5-2.5h5" /></svg></button></div>
-      </article>
-    } @empty {
-      <div class="empty-state"><span>♡</span><h2>Danh sách yêu thích đang trống</h2><p>Lưu sản phẩm bạn quan tâm để xem lại sau.</p></div>
-    }
-  </div>
-  @for (section of recommendationSections; track section) {
-    <section class="wishlist-recommendations">
-      <h2>{{ section }}</h2>
-      <div class="wishlist-grid">
-        @for (product of products().slice(0, 4); track product.id) {
-          <article class="wishlist-card">
-            <div class="wishlist-image"><img [src]="product.image" [alt]="product.name" /><span class="favorite-heart" aria-hidden="true">♡</span></div>
-            <div class="wishlist-info"><h3>{{ product.name }}</h3><p>{{ product.details }}</p><strong>{{ formatPrice(product.price) }}</strong></div>
-            <div class="wishlist-actions"><button type="button" class="wishlist-cart" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 4h2l2.2 11.5h11.1L20 8H6" /><circle cx="9" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M13 9.5v5m-2.5-2.5h5" /></svg></button></div>
-          </article>
-        } @empty {
-          <p class="wishlist-empty-recommendation">Chưa có sản phẩm để gợi ý.</p>
-        }
-      </div>
-    </section>
+  @if (notice) { <p class="form-notice" [class.error]="noticeIsError" role="status">{{ notice }}</p> }
+
+  @if (needsAccountId()) {
+    <div class="empty-state"><h2>Chưa chọn tài khoản</h2><p>Nhập MongoDB _id trong mục <a routerLink="/account/profile">Tài khoản của tôi</a> để xem danh sách yêu thích.</p></div>
+  } @else if (loading()) {
+    <p role="status">Đang tải danh sách yêu thích...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <div class="wishlist-grid">
+      @for (product of products(); track product.productId) {
+        <article class="wishlist-card">
+          <div class="wishlist-image">
+            <a [routerLink]="['/products', product.slug || product.productId]"><img [src]="product.image" [alt]="product.name" /></a>
+            <button type="button" class="favorite-heart" [attr.aria-label]="'Bỏ ' + product.name + ' khỏi danh sách yêu thích'" [disabled]="busyProductId === product.productId" (click)="remove(product)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
+            </button>
+          </div>
+          <div class="wishlist-info">
+            <h2>{{ product.name }}</h2>
+            <p>{{ product.description }}</p>
+            <strong>{{ formatPrice(product.price) }}</strong>
+            @if (!product.inStock) { <small>Tạm hết hàng</small> }
+          </div>
+          <div class="wishlist-actions">
+            <a class="buy-now-link" [routerLink]="['/products', product.slug || product.productId]">Mua ngay</a>
+            <button type="button" class="wishlist-cart" [disabled]="!product.inStock || busyProductId === product.productId" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><app-icon name="cart" [size]="18" /></button>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state"><app-icon name="heart" [size]="36" /><h2>Danh sách yêu thích đang trống</h2><p>Lưu sản phẩm bạn quan tâm để xem lại sau.</p></div>
+      }
+    </div>
   }
 </section>

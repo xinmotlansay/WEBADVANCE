@@ -1,71 +1,96 @@
 <section class="account-screen profile-screen">
-  <div class="profile-header">
+  <div class="screen-heading">
     <h1>Thông tin cá nhân</h1>
-    <button class="collapse-control" type="button" aria-label="Chọn tài khoản demo" (click)="toggleAccountPicker()">⌄</button>
+    <button class="collapse-control" type="button" [attr.aria-expanded]="accountPickerOpen" aria-label="Chọn tài khoản khách hàng" (click)="accountPickerOpen = !accountPickerOpen">
+      <app-icon [name]="accountPickerOpen ? 'chevron-up' : 'chevron-down'" [size]="16" />
+    </button>
   </div>
+
   @if (!profileLoaded() || accountPickerOpen) {
-    <section class="database-preview">
-      <p>Nhập MongoDB _id của tài khoản khách demo đã được cấu hình để tải hồ sơ từ MongoDB.</p>
-      <form class="preview-id-form" (ngSubmit)="loadProfile()">
-        <label for="preview-user-id">MongoDB _id</label>
-        <input id="preview-user-id" [(ngModel)]="customerId" name="customerId" placeholder="24 ký tự hexadecimal" autocomplete="off" />
+    <section class="account-picker">
+      <p>Chưa có chức năng đăng nhập: nhập MongoDB <code>_id</code> của tài khoản khách hàng để xem và chỉnh sửa dữ liệu.</p>
+      <form class="picker-form" (ngSubmit)="loadProfile()">
+        <input id="preview-user-id" [(ngModel)]="customerId" name="customerId" placeholder="24 ký tự hexadecimal" autocomplete="off" aria-label="MongoDB _id" />
         <button class="outline-button" type="submit" [disabled]="loadingProfile()">{{ loadingProfile() ? 'Đang tải...' : 'Tải hồ sơ' }}</button>
       </form>
       @if (loadError()) { <p class="api-error" role="alert">{{ loadError() }}</p> }
     </section>
   }
 
-  @if (notice) { <p class="form-notice" role="status">{{ notice }}</p> }
+  @if (notice) { <p class="form-notice" [class.error]="noticeIsError" role="status">{{ notice }}</p> }
+
   @if (profileLoaded()) {
-    <div class="profile-edit">
-      <div class="avatar-field">
-        <div class="avatar-preview">
-          @if (avatarPreview) { <img [src]="avatarPreview" alt="Ảnh đại diện" /> } @else { <span>{{ profile.name.slice(0, 1) || '?' }}</span> }
+    <form class="profile-form" (ngSubmit)="saveProfile()">
+      <fieldset class="name-field">
+        <legend>Họ và tên</legend>
+        <input [(ngModel)]="profile.name" name="name" required maxlength="120" autocomplete="name" aria-label="Họ và tên" />
+      </fieldset>
+
+      <div class="field-row">
+        <label class="field-label" for="birthday">Ngày sinh: <span class="help" tabindex="0" [attr.data-tip]="birthdayHint()"><app-icon name="help" [size]="16" /></span></label>
+        <div class="input-box birthday-box" [class.locked]="birthdayLocked()">
+          <input id="birthday" type="date" [(ngModel)]="profile.birthday" name="birthday" [max]="maxBirthday" [disabled]="birthdayLocked()" />
+        </div>
+        <label class="field-label gender-label" for="gender">Giới tính:</label>
+        <div class="input-box gender-box">
+          <select id="gender" [(ngModel)]="profile.gender" name="gender">
+            <option value="">Chưa chọn</option>
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+            <option value="Khác">Khác</option>
+          </select>
         </div>
       </div>
-      <form class="profile-form" (ngSubmit)="saveProfile()">
-        <label class="profile-name-field">Họ và tên<input [(ngModel)]="profile.name" name="name" readonly /></label>
-        <div class="birthday-row">
-          <label>Ngày sinh
-            <input type="date" [(ngModel)]="profile.birthday" name="birthday" disabled />
-          </label>
-          <label>Giới tính
-            <select [(ngModel)]="profile.gender" name="gender"><option value="">Chưa cập nhật</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select>
-          </label>
-        </div>
-        <label>Số điện thoại
-          <div class="phone-control"><span>+84</span><input [(ngModel)]="profile.phone" name="phone" readonly /><button type="button" (click)="notice = 'API hiện tại chưa hỗ trợ đổi số điện thoại.'">Thay đổi</button></div>
-        </label>
-        <button class="primary-button save-profile" type="submit" [disabled]="savingProfile()">{{ savingProfile() ? 'Đang lưu...' : 'Lưu thông tin cá nhân' }}</button>
-      </form>
-    </div>
 
-    <section class="profile-setting">
+      <div class="field-row">
+        <label class="field-label" for="phone">Số điện thoại: <span class="help" tabindex="0" data-tip="Số điện thoại dùng để đăng nhập và nhận thông báo đơn hàng."><app-icon name="help" [size]="16" /></span></label>
+        <div class="input-box phone-box">
+          <span>+84</span>
+          <input id="phone" type="tel" [(ngModel)]="profile.phone" name="phone" inputmode="tel" maxlength="12" autocomplete="tel" />
+        </div>
+      </div>
+
+      <button class="primary-button large-button" type="submit" [disabled]="savingProfile()">{{ savingProfile() ? 'Đang lưu...' : 'Lưu thông tin cá nhân' }}</button>
+    </form>
+
+    <section class="profile-section">
       <h2>Email và mật khẩu</h2>
-      <p><strong>Email:</strong> <span>{{ profile.email || 'Chưa cập nhật' }}</span><button class="link-button" type="button" (click)="notice = 'API hiện tại chưa hỗ trợ đổi email.'">Thay đổi</button></p>
-      <button class="outline-button" type="button" (click)="passwordFormOpen = !passwordFormOpen">Đổi mật khẩu</button>
-      @if (passwordFormOpen) {
-        <form class="password-form" (ngSubmit)="changePassword()">
-          <label>Mật khẩu hiện tại<input type="password" [(ngModel)]="currentPassword" name="currentPassword" autocomplete="current-password" /></label>
-          <label>Mật khẩu mới<input type="password" [(ngModel)]="newPassword" name="newPassword" autocomplete="new-password" /></label>
-          <label>Nhập lại mật khẩu mới<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" /></label>
-          <button class="primary-button" type="submit">Lưu mật khẩu mới</button>
+      <p class="email-row"><strong>Email:</strong> <span>{{ profile.email || 'Chưa cập nhật' }}</span></p>
+      @if (!passwordFormOpen) {
+        <button class="outline-button large-button" type="button" (click)="passwordFormOpen = true">Đổi mật khẩu</button>
+      } @else {
+        <form class="stacked-form" (ngSubmit)="changePassword()">
+          @if (profile.hasPassword) {
+            <label>Mật khẩu hiện tại<input type="password" [(ngModel)]="currentPassword" name="currentPassword" autocomplete="current-password" required /></label>
+          }
+          <label>Mật khẩu mới<input type="password" [(ngModel)]="newPassword" name="newPassword" autocomplete="new-password" required minlength="8" /></label>
+          <label>Nhập lại mật khẩu mới<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" required /></label>
+          <small>Tối thiểu 8 ký tự, gồm cả chữ và số.</small>
+          <div class="form-actions">
+            <button class="link-button" type="button" (click)="closePasswordForm()">Hủy</button>
+            <button class="primary-button" type="submit" [disabled]="savingPassword()">{{ savingPassword() ? 'Đang lưu...' : 'Lưu mật khẩu mới' }}</button>
+          </div>
         </form>
       }
     </section>
 
-    <section class="profile-setting delete-setting">
-      <h2>Xóa tài khoản</h2>
-      <p class="delete-explanation">Xóa tài khoản của bạn sẽ đồng nghĩa với việc xóa vĩnh viễn tất cả thông tin cá nhân và lịch sử đặt hàng của bạn. Xin lưu ý, hành động này sẽ không thể thay đổi. Nếu có bất kì thắc mắc nào, vui lòng liên hệ với chúng tôi trước khi bạn tiếp tục thao tác.</p>
-      <button class="outline-button" type="button" (click)="deleteConfirmationOpen = !deleteConfirmationOpen">Xóa tài khoản</button>
-      @if (deleteConfirmationOpen) {
-        <div class="delete-confirmation">
-          <p>API hiện tại chưa hỗ trợ yêu cầu xóa tài khoản. Không có dữ liệu nào bị thay đổi.</p>
-          <button class="link-button" type="button" (click)="deleteConfirmationOpen = false">Đóng</button>
-        </div>
+    <section class="profile-section">
+      <h2>Xoá tài khoản</h2>
+      <p class="delete-explanation">Xóa tài khoản của bạn sẽ đồng nghĩa với việc xóa vĩnh viễn tất cả thông tin cá nhân và lịch sử đặt hàng của bạn. Xin lưu ý, hành động này sẽ không thể thay đổi.<br />Nếu có bất kì thắc mắc nào, vui lòng liên hệ với chúng tôi trước khi bạn tiếp tục thao tác.</p>
+      @if (!deleteConfirmationOpen) {
+        <button class="outline-button large-button" type="button" (click)="deleteConfirmationOpen = true">Xoá tài khoản</button>
+      } @else {
+        <form class="stacked-form delete-confirmation" (ngSubmit)="deleteAccount()">
+          <strong>Bạn chắc chắn muốn xoá tài khoản?</strong>
+          @if (profile.hasPassword) {
+            <label>Nhập mật khẩu để xác nhận<input type="password" [(ngModel)]="deletePassword" name="deletePassword" autocomplete="current-password" required /></label>
+          }
+          <div class="form-actions">
+            <button class="link-button" type="button" (click)="deleteConfirmationOpen = false; deletePassword = ''">Giữ tài khoản</button>
+            <button class="danger-button" type="submit" [disabled]="deletingAccount()">{{ deletingAccount() ? 'Đang xoá...' : 'Xoá vĩnh viễn' }}</button>
+          </div>
+        </form>
       }
     </section>
-  } @else if (!loadingProfile() && !profileLoaded()) {
-    <div class="empty-state"><span>♙</span><h2>Chưa tải hồ sơ</h2><p>Nhập MongoDB _id ở trên để xem dữ liệu khách hàng.</p></div>
   }
 </section>
