@@ -20,6 +20,17 @@ export const config = {
   chatHistoryLimit: Number(process.env['CHAT_HISTORY_LIMIT'] ?? 20),
   googleClientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
   bankWebhookSecret: process.env['BANK_WEBHOOK_SECRET'] ?? '',
+  sepayApiKey: process.env['SEPAY_API_KEY'] ?? '',
+  /** Tài khoản nhận tiền QR từ `.env`, biến nào có giá trị thì ghi đè `payment.bankAccount` trong DB. */
+  // ponytail: đường tắt cho demo, bỏ khi Admin sửa được tài khoản ở trang cấu hình (AD-15).
+  bankAccountOverride: Object.fromEntries(
+    Object.entries({
+      bankId: process.env['BANK_ID'],
+      bankName: process.env['BANK_NAME'],
+      accountNumber: process.env['BANK_ACCOUNT_NUMBER'],
+      accountHolder: process.env['BANK_ACCOUNT_HOLDER'],
+    }).filter(([, value]) => value?.trim()),
+  ) as Partial<Record<'bankId' | 'bankName' | 'accountNumber' | 'accountHolder', string>>,
   isProduction: process.env['NODE_ENV'] === 'production',
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',

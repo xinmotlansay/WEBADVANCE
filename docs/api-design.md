@@ -728,6 +728,7 @@ Một đơn tối đa một voucher. `PUT /cart/voucher` luôn trả `200` với
 | POST | `/orders/:id/cancel` | U | FR-37 | Hủy đơn |
 | PATCH | `/orders/:id/delivery-schedule` | U | FR-36 | Đổi lịch hẹn giao |
 | POST | `/webhooks/bank-transfer` | Webhook | FR-38 | Ngân hàng/cổng thanh toán báo tiền về |
+| POST | `/webhooks/sepay` | Webhook | FR-38 | SePay báo tiền về tài khoản thật |
 
 ### 8.1. Mô hình checkout (stateless)
 
@@ -853,6 +854,14 @@ Thuật toán (idempotent theo `bankTransactionCode`):
 | Thiếu / thừa tiền | `UNDERPAID` / `OVERPAID` |
 | Sau hạn thanh toán | `LATE` |
 | Các trường hợp ngoại lệ | Vào hàng đối soát thủ công (OA-08), tạo thông báo `RECONCILIATION` cho Order Admin. Khách thấy đơn vẫn `PENDING_PAYMENT` hoặc liên hệ CSKH. Webhook luôn trả `200` để nhà cung cấp không gửi lại |
+
+**Webhook `POST /webhooks/sepay`** (SePay, tài khoản thật): xác thực header `Authorization: Apikey <SEPAY_API_KEY>`, sai hoặc chưa cấu hình trả `401`. Body là payload webhook của SePay; server chỉ dùng `id`, `transactionDate`, `content`, `transferType`, `transferAmount`:
+
+```json
+{ "id": 92704, "gateway": "MBBank", "transactionDate": "2026-10-27 14:02:37", "content": "NGUYEN VAN A chuyen tien CV2610270001K7Q2", "transferType": "in", "transferAmount": 1450000, "referenceCode": "FT26300123" }
+```
+
+Đổi sang cùng thuật toán đối chiếu ở trên: `bankTransactionCode = "SEPAY-<id>"` (SePay giữ nguyên `id` khi gửi lại), `transactionDate` là giờ Việt Nam (`+07:00`). `transferType = "out"` bị bỏ qua. Luôn trả đúng `{"success": true}` (200) khi đã nhận, kể cả giao dịch trùng hoặc lệch tiền, vì SePay chỉ coi body này là thành công và sẽ gửi lại nếu khác.
 
 ### 8.5. `POST /orders/:id/cancel` (FR-37)
 

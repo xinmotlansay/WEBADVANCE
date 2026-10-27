@@ -95,10 +95,13 @@ export class PaymentComponent {
   }
 
   private apply(order: OrderPayment): void {
+    const wasWaiting = this.order()?.status === 'PENDING_PAYMENT';
     this.order.set(order);
     this.seconds.set(order.payment.secondsRemaining);
     // COD, đã trả tiền hoặc đã qua bước chờ thanh toán: sang trang thành công.
     if (order.paid || (order.status !== 'PENDING_PAYMENT' && order.status !== 'CANCELLED')) {
+      // Chỉ báo khi tiền về lúc khách đang ở trang, không báo khi mở lại đơn đã trả trước đó.
+      if (wasWaiting) this.toast.success('Đã nhận thanh toán');
       void this.router.navigate(['/checkout/success', order.id], { replaceUrl: true });
       return;
     }

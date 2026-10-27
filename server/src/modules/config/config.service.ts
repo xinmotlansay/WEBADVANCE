@@ -1,3 +1,4 @@
+import { config } from '../../config/index.js';
 import { SystemConfigModel } from './system-config.model.js';
 
 export interface PaymentConfig {
@@ -86,6 +87,10 @@ export async function getCheckoutConfig(): Promise<CheckoutConfig> {
     payment: { ...d.payment, ...byKey.get(KEYS.payment) },
     shipping: { ...d.shipping, ...byKey.get(KEYS.shipping) },
     invoice: { ...d.invoice, ...byKey.get(KEYS.invoice) },
-    bankAccount: { ...d.bankAccount, ...byKey.get(KEYS.bankAccount) },
+    bankAccount: {
+      ...d.bankAccount,
+      ...byKey.get(KEYS.bankAccount),
+      ...config.bankAccountOverride,
+    },
   };
 }
