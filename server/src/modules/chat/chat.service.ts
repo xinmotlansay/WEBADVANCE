@@ -185,8 +185,7 @@ export async function sendCustomerMessage(
   broadcastMessage(session, message);
   broadcastSession(session);
 
-  const customer = await UserModel.findById(customerId).select('profile.fullName');
-  const aiResult = await respondWithAi(session, message, customer?.profile?.fullName ?? '');
+  const aiResult = await respondWithAi(session, message);
 
   for (const replyMessage of aiResult.replies) {
     broadcastMessage(aiResult.session, replyMessage);

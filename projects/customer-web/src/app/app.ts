@@ -3,7 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
-import { AiChatBarComponent } from './features/chat/components/ai-chat-bar/ai-chat-bar.component';
 import { ChatWidgetComponent } from './features/chat/components/chat-widget/chat-widget.component';
 import { FloatingActionsComponent } from './layout/floating-actions/floating-actions.component';
 import { FooterComponent } from './layout/footer/footer.component';
@@ -16,7 +15,6 @@ import { HeaderComponent } from './layout/header/header.component';
     HeaderComponent,
     FooterComponent,
     FloatingActionsComponent,
-    AiChatBarComponent,
     ChatWidgetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

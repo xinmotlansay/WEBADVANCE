@@ -1,5 +1,5 @@
 /**
- * Kiểm tra catalog mà chat AI sẽ gửi sang n8n (đúng những gì Gemini đọc được).
+ * Kiểm tra catalog mà chat AI gửi cho Gemini.
  * Chạy: npx tsx scripts/check-chat-catalog.ts
  */
 import mongoose from 'mongoose';

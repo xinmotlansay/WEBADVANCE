@@ -1,0 +1,43 @@
+<article class="product">
+  <div class="product__media">
+    @if (product().thumbnail) {
+      <img [src]="product().thumbnail" [alt]="product().name" loading="lazy" />
+    }
+    @if (discountPercent() > 0) {
+      <span class="product__tag">-{{ discountPercent() }}%</span>
+    }
+  </div>
+
+  <div class="product__body">
+    <h4 class="product__name">{{ product().name }}</h4>
+
+    @if (product().attributes.length) {
+      <ul class="product__attributes">
+        @for (attribute of product().attributes; track attribute) {
+          <li>{{ attribute }}</li>
+        }
+      </ul>
+    }
+
+    <div class="product__price-row">
+      <strong class="product__price">{{ product().price | vnd }}</strong>
+      @if (product().originalPrice) {
+        <s class="product__price-old">{{ product().originalPrice | vnd }}</s>
+      }
+      @if (product().stockStatus) {
+        <span class="product__stock">{{ product().stockStatus }}</span>
+      }
+    </div>
+  </div>
+
+  <footer class="product__footer">
+    <span class="product__actions">
+      <button type="button" disabled title="Chức năng đang phát triển" aria-label="Thêm vào giỏ hàng">
+        <app-icon name="lucide:shopping-cart" [size]="16" />
+      </button>
+      <button type="button" disabled title="Chức năng đang phát triển" aria-label="Thêm vào yêu thích">
+        <app-icon name="lucide:heart" [size]="16" />
+      </button>
+    </span>
+  </footer>
+</article>

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { config } from '../../config/index.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { rateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
@@ -27,8 +28,8 @@ chatRouter.post(
   validate({ body: chatAiAskSchema }),
   rateLimit({
     prefix: 'chat:ai:public',
-    limit: 20,
-    windowSeconds: 60,
+    limit: config.CHAT_AI_RATE_LIMIT,
+    windowSeconds: config.CHAT_AI_RATE_WINDOW_SECONDS,
     keyFn: (req) => req.ip ?? 'unknown',
     message: 'Bạn hỏi hơi nhanh, vui lòng chờ một chút rồi thử lại',
   }),

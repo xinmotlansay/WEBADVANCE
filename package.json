@@ -18,8 +18,6 @@
     "build:web": "ng build customer-web && ng build admin-web",
     "seed:roles": "tsx server/seed/roles.ts",
     "chat:catalog": "tsx scripts/check-chat-catalog.ts",
-    "chat:workflow": "node scripts/build-n8n-chat-workflow.mjs",
-    "chat:workflow:test": "node scripts/verify-n8n-chat-workflow.mjs",
     "test:server": "vitest run"
   },
   "private": true,

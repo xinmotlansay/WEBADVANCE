@@ -1,6 +1,8 @@
 <app-hero-banner [banners]="banners()" />
 
-<div class="container home">
+<div class="container home home--anchor">
+  <app-ai-chat-bar />
+
   @if (newProducts().length) {
     <app-product-section
       title="Sản phẩm mới"

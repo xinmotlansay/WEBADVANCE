@@ -28,7 +28,7 @@ describe('toMessageView', () => {
       messageType: 'TEXT',
       isRead: false,
       sentAt,
-      metadata: { provider: 'n8n' },
+      metadata: { provider: 'gemini' },
     } as unknown as ChatMessageDocument;
 
     expect(toMessageView(document)).toEqual({
@@ -40,7 +40,7 @@ describe('toMessageView', () => {
       messageType: 'TEXT',
       isRead: false,
       sentAt: sentAt.toISOString(),
-      metadata: { provider: 'n8n' },
+      metadata: { provider: 'gemini' },
     });
   });
 });

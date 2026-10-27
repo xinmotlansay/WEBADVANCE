@@ -1,4 +1,5 @@
 export type {
+  ChatAiProductSuggestion,
   ChatCustomerView,
   ChatMessageView,
   ChatSessionView,

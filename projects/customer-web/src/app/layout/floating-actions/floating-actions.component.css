@@ -5,73 +5,15 @@
   pointer-events: none;
 }
 
-.dock,
 .side {
   position: absolute;
-  pointer-events: auto;
-}
-
-.dock {
-  left: 50%;
-  bottom: 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transform: translateX(-50%);
-}
-
-.dock__search,
-.dock__ai {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: var(--color-white);
-  color: var(--color-black);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-black) 18%, transparent);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.dock__search {
-  gap: 8px;
-  height: 40px;
-  padding-inline: 16px;
-  border-radius: 999px;
-  font-size: var(--font-size-h5);
-}
-
-.dock__ai {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: var(--color-primary);
-}
-
-.dock__search:hover,
-.dock__ai:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-black) 22%, transparent);
-}
-
-.dock__ai--active {
-  background: var(--color-primary);
-  color: var(--color-white);
-}
-
-.dock__ai--active:hover {
-  background: var(--color-primary);
-  color: var(--color-white);
-}
-
-.side {
   right: 24px;
   bottom: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  pointer-events: auto;
 }
 
 .side__chat {
@@ -149,10 +91,6 @@
 @media (max-width: 640px) {
   .side {
     right: 12px;
-    bottom: 12px;
-  }
-
-  .dock {
     bottom: 12px;
   }
 }

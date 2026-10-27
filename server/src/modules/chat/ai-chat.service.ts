@@ -2,8 +2,16 @@ import { config } from '../../config/index.js';
 import { logger } from '../../lib/logger.js';
 import { redis } from '../../lib/redis.js';
 import { ChatMode, ChatSenderType, ChatSessionStatus } from '../../lib/shared-enums.js';
-import { callChatWorkflow, isChatWorkflowConfigured } from '../../integrations/n8n.js';
-import { getChatCatalogSafe } from './chat-catalog.service.js';
+import { generateChatAnswer } from '../../integrations/gemini.js';
+import {
+  getChatCatalogSafe,
+  getPublicChatCatalog,
+  type ChatCatalog,
+} from './chat-catalog.service.js';
+import {
+  findCatalogPriceProducts,
+  selectCatalogSuggestionProducts,
+} from './chat-catalog-answer.js';
 import {
   ChatMessageModel,
   ChatSessionModel,
@@ -27,42 +35,6 @@ const POLICIES: Record<string, string> = {
     'CaraVeso làm việc 8:00-17:30 thứ 2 đến thứ 7. Hotline 1900 080906, email caravesodesign@com.vn. Ngoài giờ, khách để lại tin nhắn và được trả lời vào ngày làm việc kế tiếp.',
 };
 
-const DEMO_REPLIES: Array<{ keywords: string[]; reply: string }> = [
-  {
-    keywords: ['sofa', 'ghế', 'bàn', 'giường', 'tủ', 'nội thất', 'phòng', 'm2', 'm²', 'vải'],
-    reply:
-      'Dạ, với phòng khoảng 20m², anh/chị nên chọn sofa 2-3 chỗ dài khoảng 1,8-2,2m để không chắn lối đi, ưu tiên chân thấp hoặc sofa module để mở rộng không gian. Nếu dùng sofa da, da bò hoặc da microfiber dễ vệ sinh và bền hơn trong sinh hoạt hằng ngày; nếu phòng nhiều nắng, nên chọn tông sáng và tránh kê sát cửa sổ. Anh/chị cho em biết thêm diện tích và phong cách mong muốn để em gợi ý mẫu phù hợp nhé.',
-  },
-  {
-    keywords: ['bảo hành', 'hỏng', 'hư', 'lỗi', 'sửa'],
-    reply:
-      'Dạ, sản phẩm của CaraVeso được bảo hành tính từ ngày giao thực tế theo từng dòng sản phẩm. Hàng cồng kềnh được bảo hành tại nhà, hàng nhỏ gửi về trung tâm và CaraVeso chịu phí hai chiều trong phạm vi bảo hành. Anh/chị cho em biết tên sản phẩm để em kiểm tra thời hạn cụ thể nhé.',
-  },
-  {
-    keywords: ['đổi', 'trả', 'hoàn', '7 ngày'],
-    reply:
-      'Dạ, CaraVeso hỗ trợ đổi hoặc trả trong 7 ngày kể từ ngày giao thực tế, kèm lý do và ảnh/video. Hàng cần còn phụ kiện, bao bì và tem nhãn. Với hàng lỗi do vận chuyển hoặc nhà sản xuất, anh/chị giúp em quay video lúc mở hàng nhé.',
-  },
-  {
-    keywords: ['giao', 'ship', 'vận chuyển', 'lắp'],
-    reply:
-      'Dạ, CaraVeso giao hàng theo cấp độ cồng kềnh 1-4. Hàng cồng kềnh do đội xe CaraVeso giao và lắp đặt theo lịch anh/chị chọn. Phí vận chuyển sẽ hiển thị ở bước thanh toán ạ.',
-  },
-  {
-    keywords: ['thanh toán', 'cod', 'qr', 'chuyển khoản', 'cọc'],
-    reply:
-      'Dạ, anh/chị có thể thanh toán COD khi nhận hàng hoặc chuyển khoản QR. Đơn trên 20.000.000đ cần đặt cọc 30% qua QR trong 15 phút, quá hạn đơn sẽ tự hủy ạ.',
-  },
-  {
-    keywords: ['giờ', 'làm việc', 'hotline', 'liên hệ', 'cskh'],
-    reply:
-      'Dạ, CaraVeso làm việc 8:00-17:30 thứ 2 đến thứ 7. Hotline 1900 080906, email caravesodesign@com.vn. Ngoài giờ, anh/chị để lại tin nhắn, nhân viên sẽ phản hồi vào ngày làm việc kế tiếp ạ.',
-  },
-];
-
-const DEMO_FALLBACK =
-  'Dạ, câu hỏi này nằm ngoài phạm vi tư vấn nội thất của CaraVeso nên em chưa thể trả lời chính xác. Anh/chị có thể hỏi em về sản phẩm, bảo hành, đổi trả, giao hàng, thanh toán hoặc voucher ạ.';
-
 /** Gợi ý câu hỏi tiếp theo cho khung chat AI công khai (không lưu DB). */
 const PUBLIC_SUGGESTIONS = [
   'Sofa da phù hợp phòng 20m²?',
@@ -79,14 +51,6 @@ export interface AiReplyResult {
 interface HistoryItem {
   role: 'user' | 'assistant';
   content: string;
-}
-
-function buildDemoReply(message: string): string {
-  const normalized = message.toLowerCase();
-  const matched = DEMO_REPLIES.find((item) =>
-    item.keywords.some((keyword) => normalized.includes(keyword)),
-  );
-  return matched?.reply ?? DEMO_FALLBACK;
 }
 
 async function loadHistory(sessionId: string, excludedMessageId: string): Promise<HistoryItem[]> {
@@ -183,13 +147,12 @@ async function touchSession(
 }
 
 /**
- * Trả lời tin nhắn của khách bằng AI (qua n8n, hoặc chế độ demo khi chưa cấu hình).
+ * Trả lời tin nhắn của khách bằng Gemini.
  * Tin nhắn của khách đã được lưu trước khi hàm này chạy.
  */
 export async function respondWithAi(
   session: ChatSessionDocument,
   customerMessage: ChatMessageDocument,
-  customerName = '',
 ): Promise<AiReplyResult> {
   const customerId = String(session.customerId);
 
@@ -199,72 +162,45 @@ export async function respondWithAi(
   }
 
   const history = await loadHistory(String(session._id), String(customerMessage._id));
-  let reply: string;
-  let handoff = false;
-  let suggestedProducts: string[] = [];
-  let provider = 'demo';
+  let answer: Awaited<ReturnType<typeof generateChatAnswer>>;
 
   try {
-    if (isChatWorkflowConfigured()) {
-      provider = 'n8n';
-      const catalog = await getChatCatalogSafe();
-      const result = await callChatWorkflow({
-        sessionId: String(session._id),
-        message: customerMessage.content,
-        history,
-        customer: { id: customerId, fullName: customerName },
-        context: {
-          products: catalog.products,
+    answer = await generateChatAnswer({
+      message: customerMessage.content,
+      history,
+      loadContext: async (query) => {
+        const catalog = await getChatCatalogSafe();
+        const relevantProducts = findCatalogPriceProducts(query, catalog);
+        return {
+          ...catalog,
+          products: relevantProducts ?? catalog.products,
           policies: POLICIES,
-          showrooms: catalog.showrooms,
-          collections: catalog.collections,
-        },
-      });
-
-      if (!result) {
-        throw new Error('Workflow không trả về dữ liệu');
-      }
-      if (result.error && !result.reply) {
-        throw new Error(result.error);
-      }
-
-      reply = result.reply;
-      handoff = result.handoff;
-      suggestedProducts = result.suggestedProducts;
-    } else {
-      reply = buildDemoReply(customerMessage.content);
-    }
+        };
+      },
+    });
   } catch (error) {
     logger.warn({ err: error, sessionId: String(session._id) }, 'AI không phản hồi, chuyển CSKH');
     const systemMessage = await switchToSupport(session, 'AI_ERROR');
     return { replies: [systemMessage], session, handoff: true };
   }
 
-  const aiMessage = await createAiMessage(session, reply, {
-    provider,
-    model: provider === 'n8n' ? config.GEMINI_CHAT_MODEL : null,
-    suggestedProducts,
+  const aiMessage = await createAiMessage(session, answer.text, {
+    provider: 'gemini',
+    model: answer.model,
+    suggestedProducts: answer.productSlugs,
   });
 
-  const replies: ChatMessageDocument[] = [aiMessage];
+  session.customerUnread += 1;
+  await touchSession(session, aiMessage);
 
-  if (handoff) {
-    const systemMessage = await switchToSupport(session, 'HANDOFF');
-    replies.push(systemMessage);
-    session.customerUnread += 1;
-    await session.save();
-  } else {
-    session.customerUnread += 1;
-    await touchSession(session, aiMessage);
-  }
-
-  return { replies, session, handoff };
+  return { replies: [aiMessage], session, handoff: false };
 }
 
 export interface PublicAiAnswer {
   reply: string;
   suggestions: string[];
-  provider: 'demo' | 'n8n';
+  products: ReturnType<typeof selectCatalogSuggestionProducts>;
+  provider: 'gemini';
 }
 
 /**
@@ -275,42 +211,26 @@ export async function askPublicAi(
   message: string,
   history: HistoryItem[],
 ): Promise<PublicAiAnswer> {
-  try {
-    if (isChatWorkflowConfigured()) {
-      const catalog = await getChatCatalogSafe();
-      const result = await callChatWorkflow({
-        sessionId: 'public',
-        message,
-        history: history.slice(-8),
-        customer: { id: 'guest', fullName: 'Khách' },
-        context: {
-          products: catalog.products,
-          policies: POLICIES,
-          showrooms: catalog.showrooms,
-          collections: catalog.collections,
-        },
-      });
+  let catalog: ChatCatalog = { products: [], showrooms: [], collections: [] };
 
-      if (!result) {
-        throw new Error('Workflow không trả về dữ liệu');
-      }
-
-      const productSuggestions = result.suggestedProducts.slice(0, 3);
+  const answer = await generateChatAnswer({
+    message,
+    history,
+    loadContext: async (query) => {
+      catalog = await getPublicChatCatalog();
+      const relevantProducts = findCatalogPriceProducts(query, catalog);
       return {
-        reply: result.reply,
-        suggestions: productSuggestions.length > 0 ? productSuggestions : PUBLIC_SUGGESTIONS,
-        provider: 'n8n',
+        ...catalog,
+        products: relevantProducts ?? catalog.products,
+        policies: POLICIES,
       };
-    }
+    },
+  });
 
-    return { reply: buildDemoReply(message), suggestions: PUBLIC_SUGGESTIONS, provider: 'demo' };
-  } catch (error) {
-    logger.warn({ err: error }, 'AI công khai không phản hồi');
-    return {
-      reply:
-        'Dạ, trợ lý đang bận một chút. Anh/chị thử lại sau ít phút, hoặc đăng nhập để chat trực tiếp với nhân viên CSKH ạ.',
-      suggestions: PUBLIC_SUGGESTIONS,
-      provider: 'demo',
-    };
-  }
+  return {
+    reply: answer.text,
+    suggestions: PUBLIC_SUGGESTIONS,
+    products: selectCatalogSuggestionProducts(catalog, answer.productSlugs),
+    provider: 'gemini',
+  };
 }

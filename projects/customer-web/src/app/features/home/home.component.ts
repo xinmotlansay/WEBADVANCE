@@ -11,6 +11,7 @@ import {
   type Showroom,
 } from 'shared';
 import { Observable, catchError, filter, map, of, switchMap } from 'rxjs';
+import { AiChatBarComponent } from '../chat/components/ai-chat-bar/ai-chat-bar.component';
 import { CollectionSliderComponent } from './components/collection-slider/collection-slider.component';
 import { FlashSaleComponent } from './components/flash-sale/flash-sale.component';
 import { HeroBannerComponent } from './components/hero-banner/hero-banner.component';
@@ -25,6 +26,7 @@ const COMPLETE_ROOM_SLUG = 'phong-khach';
 @Component({
   selector: 'app-home',
   imports: [
+    AiChatBarComponent,
     HeroBannerComponent,
     ProductSectionComponent,
     ImageTilesComponent,

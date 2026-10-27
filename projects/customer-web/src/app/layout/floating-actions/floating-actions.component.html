@@ -1,22 +1,3 @@
-<div class="dock" role="group" aria-label="Công cụ nhanh">
-  <button type="button" class="dock__search" (click)="openSearch()">
-    <app-icon name="lucide:search" [size]="18" />
-    <span>Search</span>
-  </button>
-
-  <button
-    type="button"
-    class="dock__ai"
-    [class.dock__ai--active]="aiOpen()"
-    (click)="openAi()"
-    [attr.aria-expanded]="aiOpen()"
-    aria-label="Trợ lý AI CaraVeso"
-    title="Trợ lý AI CaraVeso"
-  >
-    <app-icon name="lucide:sparkles" [size]="18" />
-  </button>
-</div>
-
 <div class="side">
   <button
     type="button"

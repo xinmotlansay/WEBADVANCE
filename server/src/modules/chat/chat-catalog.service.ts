@@ -5,21 +5,21 @@ import { ProductModel, type ProductDoc } from '../products/product.model.js';
 import { VariantModel, type VariantDoc } from '../products/variant.model.js';
 import { ShowroomModel, type ShowroomDoc } from '../showrooms/showroom.model.js';
 import type {
-  ChatWorkflowCollection,
-  ChatWorkflowProduct,
-  ChatWorkflowShowroom,
-  ChatWorkflowVariant,
-} from '../../integrations/n8n.js';
+  GeminiChatCollection,
+  GeminiChatProduct,
+  GeminiChatShowroom,
+  GeminiChatVariant,
+} from '../../integrations/gemini.js';
 
 export interface ChatCatalog {
-  products: ChatWorkflowProduct[];
-  showrooms: ChatWorkflowShowroom[];
-  collections: ChatWorkflowCollection[];
+  products: GeminiChatProduct[];
+  showrooms: GeminiChatShowroom[];
+  collections: GeminiChatCollection[];
 }
 
 const EMPTY_CATALOG: ChatCatalog = { products: [], showrooms: [], collections: [] };
 
-/** Giới hạn số sản phẩm gửi sang n8n để prompt không phình to bất thường. */
+/** Giới hạn dữ liệu catalog gửi sang AI để prompt không phình to bất thường. */
 const MAX_PRODUCTS = 60;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -40,14 +40,14 @@ function formatDimensions(dimensions?: VariantDoc['dimensions']): string | undef
   return `${parts.join('x')}${dimensions.unit || 'cm'}`;
 }
 
-function stockStatusOf(variants: ChatWorkflowVariant[]): string {
+function stockStatusOf(variants: GeminiChatVariant[]): string {
   const total = variants.reduce((sum, variant) => sum + variant.stockQuantity, 0);
   if (total <= 0) return 'Hết hàng';
   const low = variants.some((variant) => variant.stockQuantity > 0 && variant.stockQuantity <= 5);
   return low ? 'Sắp hết' : 'Còn hàng';
 }
 
-function toVariant(variant: VariantDoc): ChatWorkflowVariant {
+function toVariant(variant: VariantDoc): GeminiChatVariant {
   return {
     color: variant.color,
     material: variant.material,
@@ -69,7 +69,7 @@ function toProduct(
   product: ProductDoc,
   variants: VariantDoc[],
   categoryById: Map<string, CategoryLookup>,
-): ChatWorkflowProduct {
+): GeminiChatProduct {
   const mappedVariants = variants.map(toVariant);
   const prices = mappedVariants.map((variant) => variant.price).filter((price) => price > 0);
   const categories = product.categoryIds
@@ -86,8 +86,10 @@ function toProduct(
   const installation = mappedVariants.some((variant) => variant.installation);
 
   return {
+    id: String(product._id),
     name: product.name,
     slug: product.slug,
+    thumbnail: product.media?.find((item) => item.type === 'IMAGE')?.url,
     productCode: product.productCode,
     description: (product.description || product.shortDescription || '').slice(0, 400) || undefined,
     category: categories
@@ -110,7 +112,7 @@ function toCollection(
   collection: CollectionDoc,
   availableProductIds: Set<string>,
   productNames: Map<string, string>,
-): ChatWorkflowCollection {
+): GeminiChatCollection {
   const names = collection.products
     .map((item) => String(item.productId))
     .filter((id) => availableProductIds.has(id))
@@ -126,7 +128,7 @@ function toCollection(
   };
 }
 
-function toShowroom(showroom: ShowroomDoc): ChatWorkflowShowroom {
+function toShowroom(showroom: ShowroomDoc): GeminiChatShowroom {
   return {
     name: showroom.name,
     city: showroom.city,
@@ -190,8 +192,7 @@ async function loadCatalog(): Promise<ChatCatalog> {
 }
 
 /**
- * Catalog rút gọn gửi sang n8n. Không phụ thuộc n8n đọc MongoDB nên n8n stateless,
- * và luôn khớp dữ liệu đang bán trên web. Cache 5 phút để không query mỗi tin nhắn.
+ * Catalog rút gọn lấy trực tiếp từ MongoDB. Cache 5 phút để không query mỗi tin nhắn.
  */
 export async function getChatCatalog(): Promise<ChatCatalog> {
   const now = Date.now();
@@ -219,7 +220,11 @@ export async function getChatCatalogSafe(): Promise<ChatCatalog> {
   try {
     return await getChatCatalog();
   } catch (error) {
-    logger.warn({ err: error }, 'Không tải được catalog cho chat AI');
+    logger.error({ err: error }, 'Không tải được catalog chat từ MongoDB');
     return EMPTY_CATALOG;
   }
+}
+
+export async function getPublicChatCatalog(): Promise<ChatCatalog> {
+  return getChatCatalogSafe();
 }

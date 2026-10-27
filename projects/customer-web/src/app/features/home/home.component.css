@@ -4,3 +4,8 @@
   gap: 88px;
   padding-block: 72px;
 }
+
+/* Neo cụm Search + AI đúng vị trí ngay trên "Sản phẩm mới". */
+.home--anchor {
+  position: relative;
+}

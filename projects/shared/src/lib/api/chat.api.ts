@@ -1,4 +1,9 @@
-import type { ChatMessageType, ChatMode, ChatSenderType, ChatSessionStatus } from '../enums/chat.enum';
+import type {
+  ChatMessageType,
+  ChatMode,
+  ChatSenderType,
+  ChatSessionStatus,
+} from '../enums/chat.enum';
 
 export interface ChatSessionView {
   id: string;
@@ -69,10 +74,30 @@ export interface ChatAiAskRequest {
   history?: ChatAiHistoryItem[];
 }
 
+/** Thẻ sản phẩm AI gợi ý kèm đầy đủ thuộc tính để hiển thị trong khung chat. */
+export interface ChatAiProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  thumbnail: string;
+  price: number;
+  originalPrice?: number;
+  attributes: string[];
+  colors: string[];
+  category: string[];
+  room: string[];
+  material?: string;
+  dimensions?: string;
+  stockStatus?: string;
+  warrantyMonths?: number;
+  hasPromotion: boolean;
+}
+
 export interface ChatAiAskResponse {
   reply: string;
   suggestions: string[];
-  provider: 'demo' | 'n8n';
+  products: ChatAiProductSuggestion[];
+  provider: 'gemini';
 }
 
 export interface ChatSendMessageResponse {
