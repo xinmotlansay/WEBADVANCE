@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { numberFromDetails, parseApiError } from '../../../../core/auth/auth-error';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { createCountdown } from '../../auth-form';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 import { GoogleAuthComponent } from '../../components/google-auth/google-auth.component';
 
@@ -14,23 +16,32 @@ import { GoogleAuthComponent } from '../../components/google-auth/google-auth.co
   styleUrl: './login.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent implements OnDestroy {
+export class LoginComponent {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly lock = createCountdown();
 
   readonly form = this.formBuilder.group({
-    identifier: ['', [Validators.required, Validators.minLength(3)]],
+    // Điền sẵn khi quay về từ trang quên mật khẩu.
+    identifier: [
+      this.route.snapshot.queryParamMap.get('identifier') ?? '',
+      [Validators.required, Validators.minLength(3)],
+    ],
     password: ['', [Validators.required]],
   });
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly showPassword = signal(false);
-  readonly lockRemaining = signal(0);
+  readonly lockRemaining = this.lock.remaining;
+  /** Đang liên kết Google: ẩn form mật khẩu chính để không có hai ô mật khẩu trên trang. */
+  readonly linking = signal(false);
 
-  private countdownTimer: ReturnType<typeof setInterval> | null = null;
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.errorMessage.set(null));
+  }
 
   get identifier() {
     return this.form.controls.identifier;
@@ -56,19 +67,20 @@ export class LoginComponent implements OnDestroy {
         next: () => this.navigateAfterLogin(),
         error: (error: unknown) => {
           const parsed = parseApiError(error);
-          let message = parsed.message;
 
+          // Khóa tạm thời đã có thông báo đếm ngược riêng, không hiện thêm alert lỗi.
+          if (parsed.code === 'ACCOUNT_LOCKED') {
+            const seconds = numberFromDetails(parsed, 'remainingSeconds');
+            this.lock.start(Math.max(seconds ?? 60, 1));
+            return;
+          }
+
+          let message = parsed.message;
           const remainingAttempts = numberFromDetails(parsed, 'remainingAttempts');
           if (parsed.code === 'INVALID_CREDENTIALS' && remainingAttempts !== null) {
             message += ` Bạn còn ${remainingAttempts} lần thử.`;
           }
-
           this.errorMessage.set(message);
-
-          if (parsed.code === 'ACCOUNT_LOCKED') {
-            const seconds = numberFromDetails(parsed, 'remainingSeconds');
-            this.startLockCountdown(seconds ?? 60);
-          }
         },
       });
   }
@@ -80,31 +92,5 @@ export class LoginComponent implements OnDestroy {
   navigateAfterLogin(): void {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
     void this.router.navigateByUrl(returnUrl);
-  }
-
-  ngOnDestroy(): void {
-    this.stopCountdown();
-  }
-
-  private startLockCountdown(seconds: number): void {
-    this.stopCountdown();
-    this.lockRemaining.set(Math.max(seconds, 1));
-
-    this.countdownTimer = setInterval(() => {
-      this.lockRemaining.update((value) => {
-        if (value <= 1) {
-          this.stopCountdown();
-          return 0;
-        }
-        return value - 1;
-      });
-    }, 1000);
-  }
-
-  private stopCountdown(): void {
-    if (this.countdownTimer !== null) {
-      clearInterval(this.countdownTimer);
-      this.countdownTimer = null;
-    }
   }
 }

@@ -70,7 +70,14 @@ function hasServiceAccount(): boolean {
 export async function verifyFirebaseIdToken(idToken: string): Promise<GoogleProfile> {
   try {
     const { app, canCheckRevoked } = buildContext();
-    const decoded = await getAuth(app).verifyIdToken(idToken, canCheckRevoked);
+    const decoded = await getAuth(app)
+      .verifyIdToken(idToken, canCheckRevoked)
+      .catch((error: { code?: string }) => {
+        // Service account thiếu quyền Firebase Auth: vẫn kiểm chữ ký/hạn/project, chỉ bỏ bước kiểm tra thu hồi.
+        if (error.code !== 'auth/insufficient-permission') throw error;
+        logger.warn('Service account thiếu quyền Firebase Authentication Admin, bỏ qua kiểm tra token bị thu hồi');
+        return getAuth(app).verifyIdToken(idToken, false);
+      });
 
     if (decoded.firebase?.sign_in_provider !== 'google.com') {
       throw new AppError(

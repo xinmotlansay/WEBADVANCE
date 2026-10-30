@@ -14,7 +14,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogApiService, type ProductListItem } from 'shared';
 import { firstValueFrom } from 'rxjs';
-import { AuthTokenService } from '../../core/auth/auth-token.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ProductPanelComponent } from './components/product-panel/product-panel.component';
 import {
   RoomSettingsComponent,
@@ -51,7 +51,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   private readonly catalog = inject(CatalogApiService);
   private readonly api = inject(ViewRoomApiService);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly auth = inject(AuthTokenService);
+  protected readonly auth = inject(AuthService);
   private readonly canvasHost = viewChild.required<ElementRef<HTMLElement>>('canvasHost');
 
   protected readonly room = signal<RoomConfig>(DEFAULT_ROOM);
@@ -233,7 +233,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   }
 
   protected save(): void {
-    if (!this.auth.isLoggedIn() || this.saving()) return;
+    if (!this.auth.isAuthenticated() || this.saving()) return;
     const name = `Bố cục ${new Date().toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`;
     this.saving.set(true);
     this.api

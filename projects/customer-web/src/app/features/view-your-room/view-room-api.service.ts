@@ -1,8 +1,7 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { ApiResponse } from 'shared';
 import { map, type Observable } from 'rxjs';
-import { AuthTokenService } from '../../core/auth/auth-token.service';
 import type {
   LayoutSnapshot,
   ProductDetail,
@@ -23,7 +22,6 @@ export interface SavedLayout {
 @Injectable({ providedIn: 'root' })
 export class ViewRoomApiService {
   private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthTokenService);
 
   getProductDetail(slug: string): Observable<ProductDetail> {
     return this.http
@@ -41,8 +39,6 @@ export class ViewRoomApiService {
   }
 
   saveLayout(name: string, snapshot: LayoutSnapshot): Observable<SavedLayout> {
-    const token = this.auth.accessToken();
-    const headers = new HttpHeaders({ Authorization: `Bearer ${token ?? ''}` });
     const body = {
       name,
       room: snapshot.room,
@@ -54,7 +50,7 @@ export class ViewRoomApiService {
       })),
     };
     return this.http
-      .post<ApiResponse<SavedLayout>>(`${API_BASE}/view-room/layouts`, body, { headers })
+      .post<ApiResponse<SavedLayout>>(`${API_BASE}/view-room/layouts`, body)
       .pipe(map((r) => r.data));
   }
 }

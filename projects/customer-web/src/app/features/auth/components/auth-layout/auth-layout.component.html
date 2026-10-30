@@ -3,7 +3,12 @@
     <a routerLink="/">Trang chủ</a>
     @for (crumb of breadcrumbs; track $index) {
       <span class="breadcrumb-separator" aria-hidden="true">›</span>
-      <span [attr.aria-current]="$last ? 'page' : null">{{ crumb }}</span>
+      @if (crumb.link && !$last) {
+        <!-- Giữ returnUrl để quay lại đăng nhập vẫn về đúng trang ban đầu. -->
+        <a [routerLink]="crumb.link" queryParamsHandling="preserve">{{ crumb.label }}</a>
+      } @else {
+        <span [attr.aria-current]="$last ? 'page' : null">{{ crumb.label }}</span>
+      }
     }
   </nav>
 

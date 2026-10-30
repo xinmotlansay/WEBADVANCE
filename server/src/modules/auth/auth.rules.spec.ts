@@ -92,4 +92,8 @@ describe('normalizeIdentifier', () => {
   it('giữ nguyên số điện thoại', () => {
     expect(normalizeIdentifier(' 0901234567 ')).toBe('0901234567');
   });
+
+  it('đưa số +84 về dạng 0xxxxxxxxx', () => {
+    expect(normalizeIdentifier('+84901234567')).toBe('0901234567');
+  });
 });

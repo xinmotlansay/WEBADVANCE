@@ -13,8 +13,9 @@ import { firebaseConfig } from './firebase.config';
 export class GoogleAuthError extends Error {}
 
 const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
-  'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập Google.',
-  'auth/cancelled-popup-request': 'Đã có một cửa sổ đăng nhập Google đang mở.',
+  // Khách chủ động đóng popup: không phải lỗi, chuỗi rỗng để giao diện bỏ qua.
+  'auth/popup-closed-by-user': '',
+  'auth/cancelled-popup-request': '',
   'auth/popup-blocked':
     'Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng cho phép popup rồi thử lại.',
   'auth/unauthorized-domain':
@@ -33,9 +34,9 @@ export class GoogleAuthService {
 
   readonly isConfigured = Boolean(
     firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.appId,
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId,
   );
 
   /** Mở popup đăng nhập Google và trả về Firebase ID token để backend xác minh. */

@@ -89,7 +89,11 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   if (user.status === UserStatus.ANONYMIZED) {
     throw new AppError('UNAUTHORIZED', 401, 'Tài khoản đã bị xóa');
   }
-  if (user.security.mustChangePassword && !req.path.endsWith('/auth/change-password')) {
+  // `req.path` trong router con chỉ là `/change-password`, nên so theo URL gốc.
+  if (
+    user.security.mustChangePassword &&
+    !req.originalUrl.split('?')[0]!.endsWith('/auth/change-password')
+  ) {
     throw new AppError('MUST_CHANGE_PASSWORD', 403, 'Bạn phải đổi mật khẩu trước khi tiếp tục');
   }
 
@@ -103,29 +107,27 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 };
 
 /**
- * Quyền `U`: gán `res.locals['userId']` (ObjectId) cho route cần khách đăng nhập.
- * Có access token hợp lệ thì dùng `sub` của token; chưa có thì dùng user cố định `DEV_USER_ID`
- * (chưa có đăng nhập, FR-02), chặn hẳn ở production.
+ * Quyền `U`: gán `res.locals['userId']` (ObjectId) từ `sub` của access token. Không có token hợp lệ
+ * thì 401 để client refresh hoặc chuyển tới đăng nhập.
  */
 export const requireUser: RequestHandler = (req, res, next) => {
   const sub = bearerClaims(req.headers.authorization)?.sub;
-  if (sub && Types.ObjectId.isValid(sub)) {
-    res.locals['userId'] = new Types.ObjectId(sub);
-    next();
-    return;
-  }
-  if (config.isProduction || !Types.ObjectId.isValid(config.devUserId)) {
+  if (!sub || !Types.ObjectId.isValid(sub)) {
     next(new AppError('UNAUTHORIZED', 401, 'Bạn cần đăng nhập'));
     return;
   }
-  res.locals['userId'] = new Types.ObjectId(config.devUserId);
+  res.locals['userId'] = new Types.ObjectId(sub);
   next();
 };
 
-/** Chỉ cho phép Origin thuộc danh sách cấu hình (chống CSRF cho endpoint dùng cookie). */
+/**
+ * Chỉ cho phép Origin thuộc danh sách cấu hình hoặc chính server này (chống CSRF cho endpoint dùng
+ * cookie). Server tự phục vụ FE (cổng 3000, ngrok…) nên request cùng origin luôn hợp lệ.
+ */
 export const checkOrigin: RequestHandler = (req, _res, next) => {
   const origin = req.headers.origin;
-  if (origin && !config.allowedOrigins.includes(origin)) {
+  const sameOrigin = origin === `${req.protocol}://${req.get('host')}`;
+  if (origin && !sameOrigin && !config.allowedOrigins.includes(origin)) {
     throw new AppError('FORBIDDEN', 403, 'Origin không được phép');
   }
   next();

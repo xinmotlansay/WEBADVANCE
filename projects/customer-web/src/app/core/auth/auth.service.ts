@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import type {
@@ -17,7 +17,18 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
 } from 'shared';
-import { Observable, EMPTY, catchError, finalize, firstValueFrom, map, shareReplay, tap, timeout } from 'rxjs';
+import {
+  Observable,
+  EMPTY,
+  catchError,
+  defer,
+  finalize,
+  firstValueFrom,
+  map,
+  shareReplay,
+  tap,
+  timeout,
+} from 'rxjs';
 
 const API_BASE = '/api/v1';
 
@@ -96,13 +107,24 @@ export class AuthService {
       );
   }
 
+  /**
+   * Refresh token bị xoay sau mỗi lần dùng, nên các tab phải refresh lần lượt: tab sau chờ khóa
+   * rồi mới gửi, lúc đó cookie đã là token mới của tab trước.
+   */
   refresh(): Observable<string> {
-    return this.http
-      .post<ApiResponse<{ accessToken: string }>>(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
-      .pipe(
-        map((response) => response.data.accessToken),
-        tap((token) => this._accessToken.set(token)),
+    const request = () =>
+      firstValueFrom(
+        this.http.post<ApiResponse<AuthResponse>>(
+          `${API_BASE}/auth/refresh`,
+          {},
+          { withCredentials: true },
+        ),
       );
+
+    return defer(() => navigator.locks?.request('auth-refresh', request) ?? request()).pipe(
+      tap((response) => this.applySession(response.data)),
+      map((response) => response.data.accessToken),
+    );
   }
 
   /** Dùng khi nhiều request cùng nhận 401: chỉ gọi refresh một lần. */
@@ -118,19 +140,19 @@ export class AuthService {
   }
 
   loadMe(): Observable<AuthUser> {
-    return this.http
-      .get<ApiResponse<{ user: AuthUser }>>(`${API_BASE}/auth/me`)
-      .pipe(
-        map((response) => response.data.user),
-        tap((user) => this._user.set(user)),
-      );
+    return this.http.get<ApiResponse<{ user: AuthUser }>>(`${API_BASE}/auth/me`).pipe(
+      map((response) => response.data.user),
+      tap((user) => this._user.set(user)),
+    );
   }
 
-  /** Khôi phục phiên sau khi tải lại trang: refresh token nằm trong cookie httpOnly. */
+  /**
+   * Khôi phục phiên sau khi tải lại trang: refresh token nằm trong cookie httpOnly. Refresh trả kèm
+   * tài khoản nên chỉ cần một request; app chờ bước này trước khi hiện trang.
+   */
   async restoreSession(): Promise<void> {
     try {
       await firstValueFrom(this.refresh().pipe(timeout(5000)));
-      await firstValueFrom(this.loadMe().pipe(timeout(5000)));
     } catch {
       this.clearSession();
     }
@@ -155,8 +177,4 @@ export class AuthService {
     this._accessToken.set(data.accessToken);
     this._user.set(data.user);
   }
-}
-
-export function isUnauthorized(error: unknown): boolean {
-  return error instanceof HttpErrorResponse && error.status === 401;
 }

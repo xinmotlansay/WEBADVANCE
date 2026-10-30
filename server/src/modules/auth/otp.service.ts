@@ -6,9 +6,10 @@ import { logger } from '../../lib/logger.js';
 import { OtpChannel, OtpPurpose } from '../../lib/shared-enums.js';
 import { sendOtpEmail } from '../../integrations/resend.js';
 import { OtpModel, UserModel } from './auth.model.js';
-import { canResendOtp, OTP_RESEND_INTERVAL_SECONDS } from './auth.rules.js';
+import { canResendOtp, normalizePhone, OTP_RESEND_INTERVAL_SECONDS } from './auth.rules.js';
 
 const OTP_TTL_SECONDS = 5 * 60;
+const VERIFIED_OTP_TTL_SECONDS = 10 * 60;
 const OTP_MAX_ATTEMPTS = 5;
 const BCRYPT_ROUNDS = 10;
 
@@ -23,27 +24,32 @@ export interface SendOtpResult {
   otpId: string;
   expiresAt: string;
   resendAvailableAt: string;
-  /** Chỉ dùng nội bộ ở môi trường dev, không trả ra response. */
-  devCode?: string;
 }
 
 const PUBLIC_PURPOSES: OtpPurpose[] = [OtpPurpose.REGISTER, OtpPurpose.FORGOT_PASSWORD];
 /** Cần đăng nhập: `userId` lấy từ token (API Design 1.1). */
-export const ACCOUNT_PURPOSES: OtpPurpose[] = [OtpPurpose.CHANGE_CONTACT, OtpPurpose.DELETE_ACCOUNT];
+export const ACCOUNT_PURPOSES: OtpPurpose[] = [
+  OtpPurpose.CHANGE_CONTACT,
+  OtpPurpose.DELETE_ACCOUNT,
+];
 
 export function normalizeTarget(channel: OtpChannel, target: string): string {
   const trimmed = target.trim();
   if (channel === OtpChannel.EMAIL) {
     return trimmed.toLowerCase();
   }
-  return trimmed.replace(/[\s.-]/g, '');
+  return normalizePhone(trimmed);
 }
 
 export async function sendOtp(
   input: SendOtpInput,
   options: { internal?: boolean } = {},
 ): Promise<SendOtpResult> {
-  if (!options.internal && !PUBLIC_PURPOSES.includes(input.purpose) && !ACCOUNT_PURPOSES.includes(input.purpose)) {
+  if (
+    !options.internal &&
+    !PUBLIC_PURPOSES.includes(input.purpose) &&
+    !ACCOUNT_PURPOSES.includes(input.purpose)
+  ) {
     throw new AppError('FORBIDDEN', 403, 'Mục đích xác thực không hợp lệ');
   }
 
@@ -67,7 +73,11 @@ export async function sendOtp(
   if (ACCOUNT_PURPOSES.includes(input.purpose)) {
     const owner = input.userId ? await UserModel.findById(input.userId).lean() : null;
     if (!owner) throw new AppError('UNAUTHORIZED', 401, 'Bạn chưa đăng nhập');
-    if (input.purpose === OtpPurpose.CHANGE_CONTACT && existingUser && !existingUser._id.equals(owner._id)) {
+    if (
+      input.purpose === OtpPurpose.CHANGE_CONTACT &&
+      existingUser &&
+      !existingUser._id.equals(owner._id)
+    ) {
       throw new AppError(
         input.channel === OtpChannel.EMAIL ? 'EMAIL_EXISTS' : 'PHONE_EXISTS',
         409,
@@ -114,7 +124,7 @@ export async function sendOtp(
   if (!resendCheck.allowed) {
     throw new AppError(
       resendCheck.reason,
-      resendCheck.reason === 'OTP_RESEND_LIMIT' ? 429 : 429,
+      429,
       resendCheck.reason === 'OTP_RESEND_LIMIT'
         ? 'Bạn đã gửi quá nhiều mã trong một giờ'
         : `Vui lòng đợi ${resendCheck.retryAfterSeconds} giây để gửi lại mã`,
@@ -138,7 +148,11 @@ export async function sendOtp(
   });
 
   if (input.channel === OtpChannel.EMAIL) {
-    await sendOtpEmail(target, code, input.purpose);
+    // Gửi lỗi thì xóa bản ghi để lần thất bại không tính vào giới hạn 60 giây / 5 lần mỗi giờ.
+    await sendOtpEmail(target, code, input.purpose).catch(async (error: unknown) => {
+      await OtpModel.deleteOne({ _id: otp._id });
+      throw error;
+    });
   } else {
     // OTP số điện thoại mô phỏng: chỉ ghi log theo docs/architecture.md 5.3.
     logger.warn({ target, code }, 'OTP số điện thoại (mô phỏng)');
@@ -148,7 +162,6 @@ export async function sendOtp(
     otpId: String(otp._id),
     expiresAt: expiresAt.toISOString(),
     resendAvailableAt: new Date(now.getTime() + OTP_RESEND_INTERVAL_SECONDS * 1000).toISOString(),
-    devCode: process.env['NODE_ENV'] !== 'production' ? code : undefined,
   };
 }
 
@@ -182,21 +195,31 @@ export async function verifyOtp(otpId: string, code: string): Promise<{ verified
 
   otp.isVerified = true;
   otp.verifiedAt = new Date();
+  // Mã gốc chỉ sống 5 phút từ lúc gửi; gia hạn để khách kịp điền form / đặt mật khẩu mới.
+  otp.expiresAt = new Date(Date.now() + VERIFIED_OTP_TTL_SECONDS * 1000);
   await otp.save();
 
   return { verified: true };
 }
 
-/** Dùng cho register / đặt lại mật khẩu: OTP phải đã verify, còn hạn và đúng mục đích. */
+/**
+ * Dùng cho register / đặt lại mật khẩu: OTP phải đã verify, còn hạn và đúng mục đích.
+ * Đánh dấu `consumedAt` nguyên tử để mỗi OTP chỉ dùng được một lần (chống replay).
+ */
 export async function consumeVerifiedOtp(otpId: string, purpose: OtpPurpose) {
-  const otp = await OtpModel.findById(otpId);
+  const otp = await OtpModel.findOneAndUpdate(
+    {
+      _id: otpId,
+      purpose,
+      isVerified: true,
+      consumedAt: null,
+      expiresAt: { $gt: new Date() },
+    },
+    { $set: { consumedAt: new Date() } },
+    { new: true },
+  );
 
-  if (
-    !otp ||
-    otp.purpose !== purpose ||
-    !otp.isVerified ||
-    otp.expiresAt.getTime() <= Date.now()
-  ) {
+  if (!otp) {
     throw new AppError('OTP_INVALID', 409, 'Mã xác thực chưa được xác nhận hoặc đã hết hạn');
   }
 

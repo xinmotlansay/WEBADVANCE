@@ -60,11 +60,11 @@
       <button
         type="button"
         class="vyr__save"
-        [disabled]="!auth.isLoggedIn() || saving()"
-        [title]="auth.isLoggedIn() ? 'Lưu bố cục của bạn' : 'Đăng nhập để lưu bố cục'"
+        [disabled]="!auth.isAuthenticated() || saving()"
+        [title]="auth.isAuthenticated() ? 'Lưu bố cục của bạn' : 'Đăng nhập để lưu bố cục'"
         (click)="save()"
       >
-        {{ auth.isLoggedIn() ? (saving() ? 'Đang lưu...' : 'Lưu bố cục') : 'Đăng nhập để lưu' }}
+        {{ auth.isAuthenticated() ? (saving() ? 'Đang lưu...' : 'Lưu bố cục') : 'Đăng nhập để lưu' }}
       </button>
 
       @if (notice(); as message) {

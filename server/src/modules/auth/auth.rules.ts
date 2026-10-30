@@ -52,7 +52,13 @@ export function canResendOtp(input: OtpResendInput): OtpResendResult {
   return { allowed: true };
 }
 
+/** SĐT về một dạng duy nhất `0xxxxxxxxx` để `+84901…` và `0901…` là cùng một tài khoản. */
+export function normalizePhone(phone: string): string {
+  const compact = phone.trim().replace(/[\s.-]/g, '');
+  return compact.startsWith('+84') ? `0${compact.slice(3)}` : compact;
+}
+
 export function normalizeIdentifier(identifier: string): string {
   const trimmed = identifier.trim();
-  return trimmed.includes('@') ? trimmed.toLowerCase() : trimmed;
+  return trimmed.includes('@') ? trimmed.toLowerCase() : normalizePhone(trimmed);
 }

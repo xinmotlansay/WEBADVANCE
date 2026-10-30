@@ -4,11 +4,22 @@ import {
   changePassword,
   getCurrentUser,
   login,
+  mapUser,
   register,
   resetPassword,
   type AuthResult,
+  type AuthUserSource,
 } from './auth.service.js';
-import type { ChangePasswordBody, LoginBody, RegisterBody, ResetPasswordBody } from './auth.schema.js';
+import type {
+  ChangePasswordBody,
+  GoogleLinkBody,
+  GoogleLinkOtpBody,
+  GoogleLoginBody,
+  LoginBody,
+  OtpVerifyBody,
+  RegisterBody,
+  ResetPasswordBody,
+} from './auth.schema.js';
 import { linkGoogle, loginWithGoogle, requestGoogleLinkOtp } from './google.service.js';
 import { sendOtp, verifyOtp, type SendOtpInput } from './otp.service.js';
 import { readRefreshToken, revokeSession, rotateSession } from './token.service.js';
@@ -35,7 +46,7 @@ export const sendOtpHandler: RequestHandler = async (req, res) => {
 };
 
 export const verifyOtpHandler: RequestHandler = async (req, res) => {
-  const { otpId, code } = req.body as { otpId: string; code: string };
+  const { otpId, code } = req.body as OtpVerifyBody;
   const result = await verifyOtp(otpId, code);
   res.status(200).json(success(result));
 };
@@ -53,11 +64,15 @@ export const loginHandler: RequestHandler = async (req, res) => {
 export const refreshHandler: RequestHandler = async (req, res) => {
   const rawToken = readRefreshToken(req);
   if (!rawToken) {
-    throw new AppError('SESSION_EXPIRED', 401, 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+    throw new AppError(
+      'SESSION_EXPIRED',
+      401,
+      'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại',
+    );
   }
 
-  const accessToken = await rotateSession(rawToken, res);
-  res.status(200).json(success({ accessToken }));
+  const { accessToken, user } = await rotateSession(rawToken, res);
+  res.status(200).json(success({ accessToken, user: mapUser(user as unknown as AuthUserSource) }));
 };
 
 export const logoutHandler: RequestHandler = async (req, res) => {
@@ -80,19 +95,19 @@ export const resetPasswordHandler: RequestHandler = async (req, res) => {
 };
 
 export const googleLoginHandler: RequestHandler = async (req, res) => {
-  const { idToken } = req.body as { idToken: string };
+  const { idToken } = req.body as GoogleLoginBody;
   const result = await loginWithGoogle(idToken, res);
   res.status(200).json(success(result, 'Đăng nhập bằng Google thành công'));
 };
 
 export const googleLinkOtpHandler: RequestHandler = async (req, res) => {
-  const { linkToken } = req.body as { linkToken: string };
+  const { linkToken } = req.body as GoogleLinkOtpBody;
   const result = await requestGoogleLinkOtp(linkToken);
   res.status(200).json(success(result, 'Đã gửi mã xác thực tới email của tài khoản'));
 };
 
 export const googleLinkHandler: RequestHandler = async (req, res) => {
-  const result = await linkGoogle(req.body as { linkToken: string; password?: string; otpId?: string }, res);
+  const result = await linkGoogle(req.body as GoogleLinkBody, res);
   res.status(200).json(success(result, 'Liên kết tài khoản Google thành công'));
 };
 

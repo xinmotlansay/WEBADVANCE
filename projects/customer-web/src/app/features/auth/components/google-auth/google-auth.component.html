@@ -29,6 +29,10 @@
     <span>{{ label }}</span>
   }
 </button>
+<p class="google-terms">
+  Tiếp tục với Google nghĩa là bạn đồng ý với
+  <a routerLink="/policies/terms" target="_blank">điều khoản dịch vụ</a> của CaraVeso.
+</p>
 
 @if (errorMessage()) {
   <div class="alert alert-error google-alert" role="alert">{{ errorMessage() }}</div>
@@ -73,6 +77,9 @@
             autocomplete="current-password"
             placeholder="Nhập mật khẩu hiện tại"
           />
+          <a class="field-hint" routerLink="/auth/forgot-password" queryParamsHandling="preserve"
+            >Quên mật khẩu?</a
+          >
         </div>
       } @else {
         <div class="field">

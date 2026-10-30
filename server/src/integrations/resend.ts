@@ -25,7 +25,7 @@ const SUBJECT_BY_PURPOSE: Record<string, string> = {
  */
 export async function sendOtpEmail(to: string, code: string, purpose: string): Promise<void> {
   if (!config.resendApiKey) {
-    if (!!config.isProduction) {
+    if (config.isProduction) {
       throw new AppError(
         'EMAIL_NOT_CONFIGURED',
         500,

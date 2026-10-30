@@ -6,11 +6,10 @@
  * dùng cho backend (xem FIREBASE_* trong .env), tuyệt đối không đặt ở đây.
  */
 export const firebaseConfig = {
-  apiKey: 'AIzaSyBqSEUkOGKiG-wvkyx02NqwD0NzDh9-N58',
-  authDomain: 'web2-5e4f3.firebaseapp.com',
-  projectId: 'web2-5e4f3',
-  storageBucket: 'web2-5e4f3.firebasestorage.app',
-  messagingSenderId: '838934773474',
-  appId: '1:838934773474:web:396dac5a8fa19ded6ce8bb',
-  measurementId: 'G-YJM4XJ17TQ',
+  apiKey: 'AIzaSyCVw6bx60Nx__aEudKToIFxFa4rHeHWiFw',
+  authDomain: 'caraveso-6fc4a.firebaseapp.com',
+  projectId: 'caraveso-6fc4a',
+  storageBucket: 'caraveso-6fc4a.firebasestorage.app',
+  messagingSenderId: '828167544538',
+  appId: '1:828167544538:web:c64c23b2d201933fee0fe3',
 };

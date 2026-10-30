@@ -6,10 +6,15 @@ import { logger } from '../../lib/logger.js';
 import { AuthSource, OtpChannel, OtpPurpose, UserStatus } from '../../lib/shared-enums.js';
 import { config } from '../../config/index.js';
 import { verifyFirebaseIdToken, type GoogleProfile } from '../../integrations/google.js';
-import { ensureCustomerRole, mapUser, type AuthResult, type AuthUserSource } from './auth.service.js';
-import { UserModel, type IRole, type IUser } from './auth.model.js';
+import {
+  assertAccountUsable,
+  ensureCustomerRole,
+  startSession,
+  type AuthResult,
+  type AuthUserSource,
+} from './auth.service.js';
+import { UserModel, type IRole } from './auth.model.js';
 import { consumeVerifiedOtp, sendOtp } from './otp.service.js';
-import { issueSession } from './token.service.js';
 
 const LINK_TOKEN_AUDIENCE = 'google-link';
 const LINK_TOKEN_TTL = '15m';
@@ -57,31 +62,6 @@ function verifyLinkToken(token: string): GoogleLinkTokenPayload {
   }
 }
 
-function assertAccountUsable(user: IUser): void {
-  if (user.status === UserStatus.LOCKED) {
-    throw new AppError(
-      'ACCOUNT_LOCKED_BY_ADMIN',
-      403,
-      user.lockInfo?.reason || 'Tài khoản đã bị khóa bởi quản trị viên',
-    );
-  }
-  if (user.status === UserStatus.ANONYMIZED) {
-    throw new AppError('UNAUTHORIZED', 401, 'Tài khoản đã bị xóa');
-  }
-}
-
-async function startSession(
-  user: AuthUserSource,
-  res: Response,
-): Promise<AuthResult> {
-  const dto = mapUser(user);
-  const accessToken = await issueSession(
-    { id: dto.id, roleName: dto.roleName, mustChangePassword: dto.mustChangePassword },
-    res,
-  );
-  return { user: dto, accessToken };
-}
-
 /**
  * Đăng nhập / đăng ký nhanh bằng Google.
  * - Đã liên kết googleId: đăng nhập.
@@ -97,7 +77,7 @@ export async function loginWithGoogle(idToken: string, res: Response): Promise<A
   );
 
   if (linked) {
-    assertAccountUsable(linked as unknown as IUser);
+    assertAccountUsable(linked);
     return startSession(linked as unknown as AuthUserSource, res);
   }
 
@@ -106,7 +86,7 @@ export async function loginWithGoogle(idToken: string, res: Response): Promise<A
     .populate<{ roleId: IRole }>('roleId', 'name');
 
   if (existing) {
-    assertAccountUsable(existing as unknown as IUser);
+    assertAccountUsable(existing);
 
     const verifyMethods: Array<'PASSWORD' | 'OTP_EMAIL'> = [];
     if (existing.passwordHash) {
@@ -209,7 +189,7 @@ export async function linkGoogle(input: GoogleLinkInput, res: Response): Promise
     );
   }
 
-  assertAccountUsable(user as unknown as IUser);
+  assertAccountUsable(user);
 
   if (user.googleId) {
     if (user.googleId === payload.googleId) {

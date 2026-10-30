@@ -16,7 +16,8 @@ const passwordSchema = z
 const dateOfBirthSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày sinh phải có định dạng YYYY-MM-DD')
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Ngày sinh không hợp lệ');
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Ngày sinh không hợp lệ')
+  .refine((value) => Date.parse(value) <= Date.now(), 'Ngày sinh không được ở tương lai');
 
 export const otpSendSchema = z
   .object({
@@ -40,7 +41,11 @@ export const otpVerifySchema = z.object({
 
 export const registerSchema = z
   .object({
-    fullName: z.string().trim().min(2, 'Họ tên tối thiểu 2 ký tự').max(100, 'Họ tên tối đa 100 ký tự'),
+    fullName: z
+      .string()
+      .trim()
+      .min(2, 'Họ tên tối thiểu 2 ký tự')
+      .max(100, 'Họ tên tối đa 100 ký tự'),
     dateOfBirth: dateOfBirthSchema.nullish(),
     email: z.email('Email không hợp lệ').nullish(),
     phoneNumber: phoneSchema.nullish(),
@@ -98,7 +103,6 @@ export const googleLinkSchema = z
     path: ['password'],
   });
 
-export type OtpSendBody = z.infer<typeof otpSendSchema>;
 export type OtpVerifyBody = z.infer<typeof otpVerifySchema>;
 export type RegisterBody = z.infer<typeof registerSchema>;
 export type LoginBody = z.infer<typeof loginSchema>;

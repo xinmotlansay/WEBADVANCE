@@ -3,17 +3,19 @@ import {
   Component,
   EventEmitter,
   Input,
-  OnDestroy,
   Output,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { finalize, switchMap } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { finalize, from, switchMap } from 'rxjs';
 import type { GoogleEmailExistsDetails } from 'shared';
 import { parseApiError } from '../../../../core/auth/auth-error';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { GoogleAuthError, GoogleAuthService } from '../../../../core/auth/google-auth.service';
+import { createCountdown, secondsUntil } from '../../auth-form';
 
 type LinkMode = 'password' | 'otp';
 
@@ -30,17 +32,20 @@ interface LinkState {
  */
 @Component({
   selector: 'app-google-auth',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './google-auth.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GoogleAuthComponent implements OnDestroy {
+export class GoogleAuthComponent {
   @Input() label = 'Đăng nhập bằng Google';
   @Output() readonly authenticated = new EventEmitter<void>();
+  /** Bật/tắt panel liên kết, để trang cha ẩn form mật khẩu của chính nó. */
+  @Output() readonly linkingChange = new EventEmitter<boolean>();
 
   private readonly auth = inject(AuthService);
   private readonly googleAuth = inject(GoogleAuthService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly linkCountdown = createCountdown();
 
   readonly linkForm = this.formBuilder.group({
     password: [''],
@@ -52,11 +57,9 @@ export class GoogleAuthComponent implements OnDestroy {
   readonly linkState = signal<LinkState | null>(null);
   readonly linkError = signal<string | null>(null);
   readonly linkLoading = signal(false);
-  readonly linkOtpSent = signal(false);
   readonly linkOtpId = signal<string | null>(null);
-  readonly linkResendSeconds = signal(0);
-
-  private linkTimer: ReturnType<typeof setInterval> | null = null;
+  readonly linkOtpSent = computed(() => this.linkOtpId() !== null);
+  readonly linkResendSeconds = this.linkCountdown.remaining;
 
   signIn(): void {
     if (this.loading() || this.linkState()) {
@@ -66,24 +69,18 @@ export class GoogleAuthComponent implements OnDestroy {
     this.errorMessage.set(null);
     this.loading.set(true);
 
-    this.googleAuth
-      .signIn()
-      .then((idToken) => {
-        this.auth
-          .loginWithGoogle({ idToken })
-          .pipe(finalize(() => this.loading.set(false)))
-          .subscribe({
-            next: () => this.authenticated.emit(),
-            error: (error: unknown) => this.handleGoogleError(error),
-          });
-      })
-      .catch((error: unknown) => {
-        this.loading.set(false);
-        this.errorMessage.set(
+    from(this.googleAuth.signIn())
+      .pipe(
+        switchMap((idToken) => this.auth.loginWithGoogle({ idToken })),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: () => this.authenticated.emit(),
+        // Lỗi Google không có message (vd: khách tự đóng popup) thì không báo gì.
+        error: (error: unknown) =>
           error instanceof GoogleAuthError
-            ? error.message
-            : 'Đăng nhập Google thất bại, vui lòng thử lại.',
-        );
+            ? this.errorMessage.set(error.message || null)
+            : this.handleGoogleError(error),
       });
   }
 
@@ -110,9 +107,9 @@ export class GoogleAuthComponent implements OnDestroy {
       .pipe(finalize(() => this.linkLoading.set(false)))
       .subscribe({
         next: (response) => {
-          this.linkOtpSent.set(true);
+          this.linkOtpId.set(response.otpId);
           this.linkForm.controls.code.setValue('');
-          this.startLinkCountdown(response.resendAvailableAt);
+          this.linkCountdown.start(secondsUntil(response.resendAvailableAt, 60));
         },
         error: (error: unknown) => this.linkError.set(parseApiError(error).message),
       });
@@ -170,67 +167,34 @@ export class GoogleAuthComponent implements OnDestroy {
 
   cancelLink(): void {
     this.linkState.set(null);
-    this.linkError.set(null);
-    this.linkOtpSent.set(false);
-    this.linkOtpId.set(null);
-    this.linkResendSeconds.set(0);
-    this.linkForm.reset();
-    this.stopLinkCountdown();
+    this.linkingChange.emit(false);
+    this.resetLinkForm();
   }
 
-  ngOnDestroy(): void {
-    this.stopLinkCountdown();
+  private resetLinkForm(): void {
+    this.linkError.set(null);
+    this.linkOtpId.set(null);
+    this.linkForm.reset();
+    this.linkCountdown.start(0);
   }
 
   private handleGoogleError(error: unknown): void {
     const parsed = parseApiError(error);
+    const details = parsed.details as Partial<GoogleEmailExistsDetails>;
 
-    if (parsed.code === 'GOOGLE_EMAIL_EXISTS') {
-      const details = parsed.details as unknown as Partial<GoogleEmailExistsDetails>;
-      const methods = details.verifyMethods ?? ['PASSWORD', 'OTP_EMAIL'];
-
-      if (!details.linkToken) {
-        this.errorMessage.set(parsed.message);
-        return;
-      }
-
-      this.linkForm.reset();
-      this.linkError.set(null);
-      this.linkOtpSent.set(false);
-      this.linkOtpId.set(null);
-      this.linkState.set({
-        linkToken: details.linkToken,
-        email: details.email ?? '',
-        methods,
-        mode: methods.includes('PASSWORD') ? 'password' : 'otp',
-      });
+    if (parsed.code !== 'GOOGLE_EMAIL_EXISTS' || !details.linkToken) {
+      this.errorMessage.set(parsed.message);
       return;
     }
 
-    this.errorMessage.set(parsed.message);
-  }
-
-  private startLinkCountdown(resendAvailableAt: string): void {
-    this.stopLinkCountdown();
-
-    const seconds = Math.ceil((new Date(resendAvailableAt).getTime() - Date.now()) / 1000);
-    this.linkResendSeconds.set(Math.min(Math.max(seconds, 0), 60));
-
-    this.linkTimer = setInterval(() => {
-      this.linkResendSeconds.update((value) => {
-        if (value <= 1) {
-          this.stopLinkCountdown();
-          return 0;
-        }
-        return value - 1;
-      });
-    }, 1000);
-  }
-
-  private stopLinkCountdown(): void {
-    if (this.linkTimer !== null) {
-      clearInterval(this.linkTimer);
-      this.linkTimer = null;
-    }
+    const methods = details.verifyMethods ?? ['PASSWORD', 'OTP_EMAIL'];
+    this.resetLinkForm();
+    this.linkState.set({
+      linkToken: details.linkToken,
+      email: details.email ?? '',
+      methods,
+      mode: methods.includes('PASSWORD') ? 'password' : 'otp',
+    });
+    this.linkingChange.emit(true);
   }
 }

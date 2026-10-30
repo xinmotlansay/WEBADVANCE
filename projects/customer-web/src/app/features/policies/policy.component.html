@@ -1,53 +1,85 @@
 <section class="feature-page container">
-    <div class="form-panel">
-      <p class="eyebrow">CARAVESO / CHÍNH SÁCH</p>
-      @if (kind === 'warranty') {
-        <h1>Chính sách bảo hành</h1>
+  <div class="form-panel">
+    <p class="eyebrow">CARAVESO / CHÍNH SÁCH</p>
+    @if (kind === 'warranty') {
+      <h1>Chính sách bảo hành</h1>
+      <p>
+        Thời hạn bảo hành tính từ ngày giao thực tế. Số tháng và phạm vi áp dụng được ghi ở từng sản
+        phẩm và phiếu bảo hành.
+      </p>
+      <p>
+        Khi phát hiện lỗi, hãy gửi mô tả và ảnh/video minh chứng. Trung tâm tiếp nhận, kiểm tra và
+        thông báo kết quả sửa chữa, thay linh kiện, đổi sản phẩm hoặc lý do từ chối.
+      </p>
+      <p>
+        Sản phẩm cồng kềnh được xếp lịch bảo hành tại nhà. Sản phẩm nhỏ được gửi về trung tâm;
+        CaraVeso chịu phí hai chiều trong phạm vi bảo hành.
+      </p>
+      <a class="button primary" routerLink="/support" [queryParams]="{ view: 'warranty' }"
+        >Tra cứu và yêu cầu bảo hành</a
+      >
+    } @else if (kind === 'terms') {
+      <h1>Điều khoản dịch vụ</h1>
+      <p>
+        Khi tạo tài khoản CaraVeso, bạn cam kết thông tin đăng ký là chính xác và tự bảo mật mật
+        khẩu của mình. Mỗi email hoặc số điện thoại chỉ đăng ký được một tài khoản.
+      </p>
+      <p>
+        Giá, tồn kho và khuyến mãi hiển thị tại thời điểm đặt hàng. Đơn hàng chỉ được xác nhận khi
+        CaraVeso gửi thông báo xác nhận; trường hợp hết hàng hoặc sai giá, chúng tôi sẽ liên hệ để
+        hủy hoặc điều chỉnh.
+      </p>
+      <p>
+        Bảo hành và đổi trả áp dụng theo chính sách riêng của từng loại. CaraVeso có thể tạm khóa
+        tài khoản có dấu hiệu gian lận hoặc vi phạm điều khoản.
+      </p>
+    } @else if (kind === 'privacy') {
+      <h1>Chính sách bảo mật</h1>
+      <p>
+        CaraVeso thu thập họ tên, email hoặc số điện thoại, ngày sinh (nếu bạn cung cấp), địa chỉ
+        giao hàng và lịch sử đơn hàng để xử lý đơn, giao hàng, bảo hành và chăm sóc khách hàng.
+      </p>
+      <p>
+        Mật khẩu được mã hóa một chiều; nhân viên CaraVeso không xem được. Thông tin chỉ chia sẻ với
+        đơn vị vận chuyển và cổng thanh toán ở mức cần thiết để hoàn tất đơn hàng.
+      </p>
+      <p>
+        Bạn có thể cập nhật thông tin hoặc yêu cầu xóa tài khoản trong trang Tài khoản. Khi xóa, dữ
+        liệu cá nhân được ẩn danh hóa; dữ liệu hóa đơn được giữ theo quy định pháp luật.
+      </p>
+    } @else {
+      <h1>Chính sách đổi trả</h1>
+      @let data = config();
+      @if (data === undefined) {
+        <p role="status">Đang tải chính sách…</p>
+      } @else if (data) {
         <p>
-          Thời hạn bảo hành tính từ ngày giao thực tế. Số tháng và phạm vi áp dụng được ghi ở từng
-          sản phẩm và phiếu bảo hành.
+          Gửi yêu cầu trong {{ data.policy?.returnDays }} ngày kể từ ngày giao thực tế. Áp dụng cho
+          cả hàng đã lắp đặt; sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem nhãn và
+          hóa đơn.
         </p>
         <p>
-          Khi phát hiện lỗi, hãy gửi mô tả và ảnh/video minh chứng. Trung tâm tiếp nhận, kiểm tra và
-          thông báo kết quả sửa chữa, thay linh kiện, đổi sản phẩm hoặc lý do từ chối.
+          Lỗi sản phẩm, giao sai hoặc hư hại vận chuyển cần video mở hàng. CaraVeso chịu chi phí khi
+          lỗi thuộc CaraVeso. Khi đổi ý, khách chịu phí vận chuyển và phí tháo dỡ nếu có.
         </p>
         <p>
-          Sản phẩm cồng kềnh được xếp lịch bảo hành tại nhà. Sản phẩm nhỏ được gửi về trung tâm;
-          CaraVeso chịu phí hai chiều trong phạm vi bảo hành.
+          Được đổi trả một phần số lượng. Sản phẩm đổi phải còn hàng, có giá ngang hoặc cao hơn số
+          tiền thực trả; khách thanh toán phần chênh lệch. Sản phẩm đổi được cấp phiếu bảo hành mới.
         </p>
-        <a class="button primary" routerLink="/support" [queryParams]="{ view: 'warranty' }">Tra cứu và yêu cầu bảo hành</a>
+        <p>
+          Hoàn tiền về tài khoản ngân hàng đã cung cấp sau kiểm tra, trong
+          {{ data.policy?.refundDaysMin }}–{{ data.policy?.refundDaysMax }} ngày làm việc. Voucher
+          đã dùng không hoàn lượt.
+        </p>
+        <p>Yêu cầu đang chờ xử lý có thể hủy từ trang chi tiết.</p>
       } @else {
-        <h1>Chính sách đổi trả</h1>
-        @let data = config();
-        @if (data === undefined) {
-          <p role="status">Đang tải chính sách…</p>
-        } @else if (data) {
-          <p>
-            Gửi yêu cầu trong {{ data.policy?.returnDays }} ngày kể từ ngày giao thực tế. Áp dụng
-            cho cả hàng đã lắp đặt; sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem
-            nhãn và hóa đơn.
-          </p>
-          <p>
-            Lỗi sản phẩm, giao sai hoặc hư hại vận chuyển cần video mở hàng. CaraVeso chịu chi phí
-            khi lỗi thuộc CaraVeso. Khi đổi ý, khách chịu phí vận chuyển và phí tháo dỡ nếu có.
-          </p>
-          <p>
-            Được đổi trả một phần số lượng. Sản phẩm đổi phải còn hàng, có giá ngang hoặc cao hơn số
-            tiền thực trả; khách thanh toán phần chênh lệch. Sản phẩm đổi được cấp phiếu bảo hành
-            mới.
-          </p>
-          <p>
-            Hoàn tiền về tài khoản ngân hàng đã cung cấp sau kiểm tra, trong
-            {{ data.policy?.refundDaysMin }}–{{ data.policy?.refundDaysMax }} ngày làm việc. Voucher
-            đã dùng không hoàn lượt.
-          </p>
-          <p>Yêu cầu đang chờ xử lý có thể hủy từ trang chi tiết.</p>
-        } @else {
-          <p class="error" role="alert">
-            Không tải được chính sách hiện tại. Vui lòng tải lại trang.
-          </p>
-        }
-        <a class="button primary" routerLink="/support" [queryParams]="{ view: 'return' }">Quản lý đổi trả</a>
+        <p class="error" role="alert">
+          Không tải được chính sách hiện tại. Vui lòng tải lại trang.
+        </p>
       }
-    </div>
-  </section>
+      <a class="button primary" routerLink="/support" [queryParams]="{ view: 'return' }"
+        >Quản lý đổi trả</a
+      >
+    }
+  </div>
+</section>

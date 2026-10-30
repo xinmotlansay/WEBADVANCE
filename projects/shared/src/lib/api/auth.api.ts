@@ -95,7 +95,3 @@ export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
 }
-
-export interface RegisterResponse extends AuthResponse {
-  message?: string;
-}

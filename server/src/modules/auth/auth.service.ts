@@ -25,7 +25,10 @@ export interface AuthResult {
   accessToken: string;
 }
 
-export type AuthUserSource = Pick<IUser, 'email' | 'phoneNumber' | 'avatar' | 'profile' | 'security'> & {
+export type AuthUserSource = Pick<
+  IUser,
+  'email' | 'phoneNumber' | 'avatar' | 'profile' | 'security'
+> & {
   _id: unknown;
   roleId: IRole;
 };
@@ -40,6 +43,29 @@ export function mapUser(user: AuthUserSource): AuthUserDto {
     roleName: user.roleId.name as RoleName,
     mustChangePassword: user.security.mustChangePassword,
   };
+}
+
+/** Tài khoản bị admin khóa hoặc đã ẩn danh thì không được đăng nhập / cấp phiên mới. */
+export function assertAccountUsable(user: Pick<IUser, 'status' | 'lockInfo'>): void {
+  if (user.status === UserStatus.LOCKED) {
+    throw new AppError(
+      'ACCOUNT_LOCKED_BY_ADMIN',
+      403,
+      user.lockInfo?.reason || 'Tài khoản đã bị khóa bởi quản trị viên',
+    );
+  }
+  if (user.status === UserStatus.ANONYMIZED) {
+    throw new AppError('UNAUTHORIZED', 401, 'Tài khoản đã bị xóa');
+  }
+}
+
+export async function startSession(user: AuthUserSource, res: Response): Promise<AuthResult> {
+  const dto = mapUser(user);
+  const accessToken = await issueSession(
+    { id: dto.id, roleName: dto.roleName, mustChangePassword: dto.mustChangePassword },
+    res,
+  );
+  return { user: dto, accessToken };
 }
 
 export async function ensureCustomerRole(): Promise<IRole> {
@@ -66,18 +92,20 @@ export interface RegisterInput {
 }
 
 export async function register(input: RegisterInput, res: Response): Promise<AuthResult> {
-  const otp = await consumeVerifiedOtp(input.otpId, OtpPurpose.REGISTER);
-
   const email = input.email ? normalizeIdentifier(input.email) : null;
   const phoneNumber = input.phoneNumber ? normalizeIdentifier(input.phoneNumber) : null;
   const target = email ?? phoneNumber;
-
-  if (!target || target !== otp.target) {
-    throw new AppError('VALIDATION_ERROR', 400, 'Email hoặc số điện thoại không khớp với mã xác thực');
+  // Kiểm tra hết trước khi dùng OTP, để lỗi dữ liệu không làm mất mã đã xác thực.
+  const pendingOtp = await OtpModel.findById(input.otpId).select('target').lean();
+  if (!target || (pendingOtp && target !== pendingOtp.target)) {
+    throw new AppError(
+      'VALIDATION_ERROR',
+      400,
+      'Email hoặc số điện thoại không khớp với mã xác thực',
+    );
   }
-
-  const duplicate = await UserModel.findOne(email ? { email } : { phoneNumber });
-  if (duplicate) {
+  // Hai request song song vẫn lọt qua đây thì unique index chặn, error middleware đổi 11000 → 409.
+  if (await UserModel.exists(email ? { email } : { phoneNumber })) {
     throw new AppError(
       email ? 'EMAIL_EXISTS' : 'PHONE_EXISTS',
       409,
@@ -88,6 +116,15 @@ export async function register(input: RegisterInput, res: Response): Promise<Aut
   const role = await ensureCustomerRole();
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
   const dateOfBirth = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
+
+  const otp = await consumeVerifiedOtp(input.otpId, OtpPurpose.REGISTER);
+  if (otp.target !== target) {
+    throw new AppError(
+      'VALIDATION_ERROR',
+      400,
+      'Email hoặc số điện thoại không khớp với mã xác thực',
+    );
+  }
 
   const user = await UserModel.create({
     roleId: role._id,
@@ -105,15 +142,10 @@ export async function register(input: RegisterInput, res: Response): Promise<Aut
     status: UserStatus.ACTIVE,
   });
 
-  await OtpModel.updateOne({ _id: otp._id }, { $set: { userId: user._id } });
-
-  const dto = mapUser({ ...(user.toObject() as unknown as AuthUserSource), _id: user._id, roleId: role });
-  const accessToken = await issueSession(
-    { id: dto.id, roleName: dto.roleName, mustChangePassword: dto.mustChangePassword },
+  return startSession(
+    { ...(user.toObject() as unknown as AuthUserSource), _id: user._id, roleId: role },
     res,
   );
-
-  return { user: dto, accessToken };
 }
 
 export interface LoginInput {
@@ -123,30 +155,25 @@ export interface LoginInput {
 
 export async function login(input: LoginInput, res: Response): Promise<AuthResult> {
   const identifier = normalizeIdentifier(input.identifier);
-  const query = identifier.includes('@')
-    ? { email: identifier }
-    : { phoneNumber: identifier };
+  const query = identifier.includes('@') ? { email: identifier } : { phoneNumber: identifier };
 
   const user = await UserModel.findOne(query)
     .select('+passwordHash')
     .populate<{ roleId: IRole }>('roleId', 'name');
 
-  if (!user || !user.passwordHash) {
+  if (!user) {
     throw new AppError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không đúng', {
       remainingAttempts: MAX_LOGIN_ATTEMPTS,
     });
   }
 
-  if (user.status === UserStatus.LOCKED) {
+  // Tài khoản tạo bằng Google chưa đặt mật khẩu: hướng dẫn dùng Google thay vì báo sai mật khẩu.
+  if (!user.passwordHash) {
     throw new AppError(
-      'ACCOUNT_LOCKED_BY_ADMIN',
-      403,
-      user.lockInfo?.reason || 'Tài khoản đã bị khóa bởi quản trị viên',
+      'PASSWORD_NOT_SET',
+      400,
+      'Tài khoản này chưa đặt mật khẩu, vui lòng đăng nhập bằng Google hoặc đặt mật khẩu qua Quên mật khẩu',
     );
-  }
-
-  if (user.status === UserStatus.ANONYMIZED) {
-    throw new AppError('UNAUTHORIZED', 401, 'Tài khoản đã bị xóa');
   }
 
   const now = Date.now();
@@ -161,43 +188,36 @@ export async function login(input: LoginInput, res: Response): Promise<AuthResul
   const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);
 
   if (!passwordMatches) {
-    const userDoc = await UserModel.findById(user._id).select('+passwordHash');
-    if (!userDoc) {
-      throw new AppError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không đúng');
-    }
+    user.security.failedLoginCount += 1;
 
-    userDoc.security.failedLoginCount += 1;
-
-    if (userDoc.security.failedLoginCount >= MAX_LOGIN_ATTEMPTS) {
-      userDoc.security.lockCount += 1;
-      const lockSeconds = computeLockDurationSeconds(userDoc.security.lockCount);
-      userDoc.security.lockedUntil = new Date(Date.now() + lockSeconds * 1000);
-      userDoc.security.failedLoginCount = 0;
-      await userDoc.save();
+    if (user.security.failedLoginCount >= MAX_LOGIN_ATTEMPTS) {
+      user.security.lockCount += 1;
+      const lockSeconds = computeLockDurationSeconds(user.security.lockCount);
+      user.security.lockedUntil = new Date(Date.now() + lockSeconds * 1000);
+      user.security.failedLoginCount = 0;
+      await user.save();
 
       throw new AppError('ACCOUNT_LOCKED', 423, `Bạn đã nhập sai quá ${MAX_LOGIN_ATTEMPTS} lần`, {
-        lockedUntil: userDoc.security.lockedUntil.toISOString(),
+        lockedUntil: user.security.lockedUntil.toISOString(),
         remainingSeconds: lockSeconds,
       });
     }
 
-    await userDoc.save();
+    await user.save();
     throw new AppError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không đúng', {
-      remainingAttempts: MAX_LOGIN_ATTEMPTS - userDoc.security.failedLoginCount,
+      remainingAttempts: MAX_LOGIN_ATTEMPTS - user.security.failedLoginCount,
     });
   }
 
+  // Chỉ báo trạng thái khóa/xóa khi đã đúng mật khẩu, tránh lộ thông tin cho người không có mật khẩu.
+  assertAccountUsable(user);
+
   user.security.failedLoginCount = 0;
+  user.security.lockCount = 0;
   user.security.lockedUntil = null;
   await user.save();
 
-  const dto = mapUser(user as unknown as AuthUserSource);
-  const accessToken = await issueSession(
-    { id: dto.id, roleName: dto.roleName, mustChangePassword: dto.mustChangePassword },
-    res,
-  );
-
-  return { user: dto, accessToken };
+  return startSession(user as unknown as AuthUserSource, res);
 }
 
 export async function getCurrentUser(userId: string): Promise<AuthUserDto> {
