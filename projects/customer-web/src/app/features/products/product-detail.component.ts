@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CatalogApiService, type ProductDetail, type ProductListItem, type ProductReviewPage, type StockStatus } from 'shared';
+import {
+  CatalogApiService,
+  type ProductDetail,
+  type ProductListItem,
+  type ProductReviewPage,
+  type StockStatus,
+} from 'shared';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { saveBuyNow } from '../../core/cart/buy-now';
 import { CartStore } from '../../core/cart/cart.store';
@@ -65,8 +71,13 @@ interface DetailView {
   technicalDetails: { label: string; value: string }[];
 }
 
-function formatDimensions(dimensions: { length?: number; width?: number; height?: number; unit: string } | null | undefined, fallback = 'Thông tin đang cập nhật'): string {
-  const size = [dimensions?.length, dimensions?.width, dimensions?.height].filter((value) => value !== undefined).join(' × ');
+function formatDimensions(
+  dimensions: { length?: number; width?: number; height?: number; unit: string } | null | undefined,
+  fallback = 'Thông tin đang cập nhật',
+): string {
+  const size = [dimensions?.length, dimensions?.width, dimensions?.height]
+    .filter((value) => value !== undefined)
+    .join(' × ');
   return size ? `${size} ${dimensions?.unit ?? 'cm'}` : fallback;
 }
 
@@ -79,8 +90,15 @@ function formatReviewDate(value: string): string {
 }
 
 /** Đủ cả ba chiều thì mới vẽ được; thiếu chiều nào coi như chưa có kích thước. */
-function toDimensions(value: { length?: number; width?: number; height?: number; unit: string } | null | undefined): Dimensions {
-  return { length: value?.length ?? 0, width: value?.width ?? 0, height: value?.height ?? 0, unit: value?.unit ?? 'cm' };
+function toDimensions(
+  value: { length?: number; width?: number; height?: number; unit: string } | null | undefined,
+): Dimensions {
+  return {
+    length: value?.length ?? 0,
+    width: value?.width ?? 0,
+    height: value?.height ?? 0,
+    unit: value?.unit ?? 'cm',
+  };
 }
 
 function toView(detail: ProductDetail): DetailView {
@@ -91,7 +109,9 @@ function toView(detail: ProductDetail): DetailView {
   if (detail.thumbnail && !images.includes(detail.thumbnail)) images.push(detail.thumbnail);
 
   const variants = detail.variants.map((variant, index): VariantOption => {
-    const own = detail.media.find((media) => media.type === 'IMAGE' && media.variantId === variant.id)?.url;
+    const own = detail.media.find(
+      (media) => media.type === 'IMAGE' && media.variantId === variant.id,
+    )?.url;
     const name = variant.color?.trim() || `Phiên bản ${index + 1}`;
     return {
       variantId: variant.id,
@@ -110,9 +130,12 @@ function toView(detail: ProductDetail): DetailView {
   });
 
   const technicalDetails: DetailView['technicalDetails'] = [];
-  if (detail.productCode) technicalDetails.push({ label: 'Mã sản phẩm', value: detail.productCode });
-  if (detail.warranty?.months) technicalDetails.push({ label: 'Bảo hành', value: `${detail.warranty.months} tháng` });
-  if (detail.warranty?.terms) technicalDetails.push({ label: 'Điều kiện bảo hành', value: detail.warranty.terms });
+  if (detail.productCode)
+    technicalDetails.push({ label: 'Mã sản phẩm', value: detail.productCode });
+  if (detail.warranty?.months)
+    technicalDetails.push({ label: 'Bảo hành', value: `${detail.warranty.months} tháng` });
+  if (detail.warranty?.terms)
+    technicalDetails.push({ label: 'Điều kiện bảo hành', value: detail.warranty.terms });
 
   const paragraphs = [detail.shortDescription, ...(detail.description ?? '').split(/\n+/)]
     .map((paragraph) => paragraph?.trim())
@@ -144,7 +167,14 @@ function toView(detail: ProductDetail): DetailView {
 
 @Component({
   selector: 'app-product-detail',
-  imports: [FormsModule, RouterLink, DimensionDrawingComponent, IconComponent, ProductCardComponent, ScrollCarouselComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    DimensionDrawingComponent,
+    IconComponent,
+    ProductCardComponent,
+    ScrollCarouselComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './product-detail.component.html',
   styleUrl: './product-detail.component.css',
@@ -205,7 +235,9 @@ export class ProductDetailComponent {
     const detail = this.product();
     return detail ? toView(detail) : null;
   });
-  protected readonly selectedVariant = computed(() => this.view()?.variants[this.selectedVariantIndex()] ?? null);
+  protected readonly selectedVariant = computed(
+    () => this.view()?.variants[this.selectedVariantIndex()] ?? null,
+  );
   protected readonly isFavorite = computed(() => {
     const view = this.view();
     return view ? this.wishlist.ids().includes(view.id) : false;
@@ -218,11 +250,14 @@ export class ProductDetailComponent {
     return view.box.map((item) => {
       // Số đo từng bộ phận là dữ liệu nội bộ (API Design 5.2): chỉ vẽ bản vẽ cho cả sản phẩm.
       const dimensions = item.isProduct ? variant?.dimensions : undefined;
-      const drawable = dimensions && dimensions.length > 0 && dimensions.width > 0 && dimensions.height > 0;
+      const drawable =
+        dimensions && dimensions.length > 0 && dimensions.width > 0 && dimensions.height > 0;
       return { ...item, dimensions: drawable ? dimensions : null };
     });
   });
-  protected readonly rating = computed(() => this.product()?.ratingSummary ?? { average: 0, count: 0 });
+  protected readonly rating = computed(
+    () => this.product()?.ratingSummary ?? { average: 0, count: 0 },
+  );
   protected readonly specifications = computed(() => {
     const view = this.view();
     const variant = this.selectedVariant();
@@ -260,7 +295,10 @@ export class ProductDetailComponent {
     const category = detail.categories.at(-1);
     if (!category) return;
     this.api.getProducts({ categoryIds: [category.id], limit: RELATED_LIMIT + 1 }).subscribe({
-      next: (page) => this.relatedProducts.set(page.items.filter((item) => item.id !== detail.id).slice(0, RELATED_LIMIT)),
+      next: (page) =>
+        this.relatedProducts.set(
+          page.items.filter((item) => item.id !== detail.id).slice(0, RELATED_LIMIT),
+        ),
       error: () => this.relatedProducts.set([]),
     });
   }
@@ -282,7 +320,10 @@ export class ProductDetailComponent {
   }
 
   protected reviewVariantLabel(review: ProductReviewPage['items'][number]): string {
-    return [review.variant?.color, review.variant ? formatDimensions(review.variant.dimensions, '') : '']
+    return [
+      review.variant?.color,
+      review.variant ? formatDimensions(review.variant.dimensions, '') : '',
+    ]
       .filter(Boolean)
       .join(', ');
   }
@@ -350,11 +391,18 @@ export class ProductDetailComponent {
   protected async addToCart(): Promise<void> {
     const variant = this.selectedVariant();
     if (!variant || this.pendingAction()) return;
+    if (!this.auth.isAuthenticated()) {
+      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
     const quantity = this.quantity();
     this.pendingAction.set('cart');
     try {
       await this.cart.add({ variantId: variant.variantId, quantity, hasInstallation: false });
-      this.notice.set({ text: `Đã thêm ${quantity} sản phẩm (${variant.name}) vào giỏ hàng.`, type: 'success' });
+      this.notice.set({
+        text: `Đã thêm ${quantity} sản phẩm (${variant.name}) vào giỏ hàng.`,
+        type: 'success',
+      });
     } catch (error) {
       this.notice.set({ text: apiErrorMessage(error), type: 'error' });
     } finally {
@@ -365,7 +413,9 @@ export class ProductDetailComponent {
   protected buyNow(): void {
     const variant = this.selectedVariant();
     if (!variant) return;
-    saveBuyNow([{ variantId: variant.variantId, quantity: this.quantity(), hasInstallation: false }]);
+    saveBuyNow([
+      { variantId: variant.variantId, quantity: this.quantity(), hasInstallation: false },
+    ]);
     void this.router.navigate(['/checkout'], { queryParams: { source: 'buy-now' } });
   }
 }

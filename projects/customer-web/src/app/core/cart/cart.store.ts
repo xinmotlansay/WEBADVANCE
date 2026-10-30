@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import {
   CartApiService,
   type AddCartItemRequest,
@@ -7,6 +7,7 @@ import {
   type VoucherCheckResult,
 } from 'shared';
 import { firstValueFrom, type Observable } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * Giỏ hàng dùng chung cho header (badge), popup chọn biến thể và trang giỏ.
@@ -15,6 +16,9 @@ import { firstValueFrom, type Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class CartStore {
   private readonly api = inject(CartApiService);
+  private readonly auth = inject(AuthService);
+  /** So theo id (không theo object) để mỗi lần refresh token không làm tải lại giỏ. */
+  private readonly userId = computed(() => this.auth.user()?.id ?? null);
 
   readonly cart = signal<Cart | null>(null);
   readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -25,7 +29,21 @@ export class CartStore {
     this.count() > 0 ? `Giỏ hàng, ${this.count()} sản phẩm` : 'Giỏ hàng',
   );
 
+  constructor() {
+    // Đăng nhập, đăng xuất hoặc đổi tài khoản: bỏ giỏ cũ để badge không hiện giỏ của người trước.
+    effect(() => {
+      this.userId();
+      untracked(() => {
+        this.cart.set(null);
+        this.status.set('idle');
+        this.ensureLoaded();
+      });
+    });
+  }
+
   load(): void {
+    // Giỏ hàng cần đăng nhập: khách gọi API sẽ nhận 401 và bị interceptor đẩy sang trang đăng nhập.
+    if (!this.auth.isAuthenticated()) return;
     this.status.set('loading');
     this.api.get().subscribe({
       next: (cart) => {
