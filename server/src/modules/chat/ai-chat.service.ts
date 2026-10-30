@@ -1,6 +1,6 @@
 import { config } from '../../config/index.js';
 import { logger } from '../../lib/logger.js';
-import { redis } from '../../lib/redis.js';
+import { hitRateCounter } from '../../lib/rate-counter.js';
 import { ChatMode, ChatSenderType, ChatSessionStatus } from '../../lib/shared-enums.js';
 import { generateChatAnswer } from '../../integrations/gemini.js';
 import {
@@ -70,15 +70,14 @@ async function loadHistory(sessionId: string, excludedMessageId: string): Promis
 }
 
 async function isAiRateLimited(customerId: string): Promise<boolean> {
-  const key = `rl:chat:ai:${customerId}`;
   try {
-    const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, config.chatAiRateWindowSeconds);
-    }
+    const { count } = await hitRateCounter(
+      `rl:chat:ai:${customerId}`,
+      config.chatAiRateWindowSeconds,
+    );
     return count > config.chatAiRateLimit;
   } catch (error) {
-    // Redis lỗi không nên chặn khách chat với AI.
+    // Không đếm được thì không nên chặn khách chat với AI.
     logger.warn({ err: error, customerId }, 'Không kiểm tra được giới hạn AI, cho phép tiếp tục');
     return false;
   }

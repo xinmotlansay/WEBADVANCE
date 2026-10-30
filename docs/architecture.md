@@ -6,7 +6,7 @@ Tài liệu mô tả kiến trúc hệ thống ở mức đồ án, suy ra từ 
 
 ## 1. Tổng quan kiến trúc
 
-Hệ thống gồm hai ứng dụng Angular (khách hàng và admin), một backend Node.js + Express cung cấp REST API và Socket.IO, một worker xử lý tác vụ nền, MongoDB Atlas làm cơ sở dữ liệu và Redis làm bộ nhớ đệm/hàng đợi.
+Hệ thống gồm hai ứng dụng Angular (khách hàng và admin), một backend Node.js + Express cung cấp REST API và Socket.IO, một worker xử lý tác vụ nền và MongoDB Atlas làm cơ sở dữ liệu.
 
 ```mermaid
 flowchart LR
@@ -96,7 +96,6 @@ caraveso/
 ├── server/              # Express API + worker
 ├── uploads/             # file tải lên (không commit)
 ├── .github/             # pull_request_template.md
-├── docker-compose.yml   # Redis chạy local
 ├── README.md  .env.example  .gitignore
 └── package.json
 ```
@@ -156,7 +155,7 @@ Mô hình phân lớp: `route → middleware → controller → service → mode
 | `rbac` | Kiểm quyền theo ma trận cố định, mặc định chỉ Super Admin | FR mục 5, NF-A03 |
 | `validate` | Kiểm tra body, query, param | API 0.3 |
 | `idempotency` | Lưu `Idempotency-Key` trong Redis, trả lại kết quả cũ | NF-08 |
-| `rateLimit` | Giới hạn OTP, tìm ảnh, AI cho Guest (lưu Redis) | NF-16 |
+| `rateLimit` | Giới hạn OTP, tìm ảnh, AI cho Guest (lưu MongoDB `ratecounters`) | NF-16 |
 | `audit` | Ghi `audit_logs`, bỏ mật khẩu và số tài khoản | NF-A04 |
 | `error` | Chuẩn hóa lỗi theo `error.code` | API 0.4 |
 
@@ -178,10 +177,11 @@ Mô hình phân lớp: `route → middleware → controller → service → mode
 - Webhook xác thực bằng secret trong header, luôn trả `200`, xử lý **một lần** theo `bankTransactionCode` (unique index).
 - Giao dịch khớp: ghi `payment_transactions`, chuyển đơn sang `PENDING_CONFIRMATION`, đẩy socket `order:payment-updated`. Giao dịch lệch (sai nội dung, thiếu/thừa tiền, sau hạn): lưu để Order Admin đối soát (OA-08) và tạo thông báo `RECONCILIATION`.
 
-### 5.3. Xác thực và phiên (Redis)
+### 5.3. Xác thực và phiên
 
-- Access token JWT sống 15 phút. Refresh token là chuỗi ngẫu nhiên, lưu **bản băm** trong Redis kèm TTL, gửi qua cookie `httpOnly; Secure; SameSite=Strict`.
-- Nhờ Redis nên **không cần collection `refresh_tokens`**: logout, khóa tài khoản, ẩn danh hóa chỉ cần xóa khóa Redis tương ứng.
+- Access token JWT sống 15 phút. Refresh token là chuỗi ngẫu nhiên, lưu **bản băm** trong collection `authsessions` (`tokenHash`, `userId`, `expiresAt`, TTL index tự dọn), gửi qua cookie `httpOnly; Secure; SameSite=Strict`.
+- Mỗi lần refresh xóa phiên cũ bằng `findOneAndDelete` (nguyên tử, chống dùng lại token) rồi tạo phiên mới. Logout xóa một phiên; đổi/quên mật khẩu xóa mọi phiên theo `userId`.
+- Giới hạn tần suất (NF-16) đếm trong collection `ratecounters` (cửa sổ cố định, TTL index). Dự án không dùng Redis: chỉ cần MongoDB Atlas.
 - Admin: mỗi lần refresh đặt lại TTL 30 phút. Quá 30 phút không thao tác thì refresh trả `401 SESSION_EXPIRED` (NF-A02).
 - Khóa đăng nhập sai (FR-02): đếm lần sai và thời gian khóa trong `users.security`, tính thời gian còn lại từ `lockedUntil`.
 - OTP email gửi bằng Resend. OTP số điện thoại mô phỏng: ghi mã ra log, không gửi SMS. Mã chỉ lưu dạng băm trong `otps`.
@@ -308,10 +308,10 @@ sequenceDiagram
 
 | Giai đoạn | Cách chạy |
 | :-- | :-- |
-| Demo local | MongoDB Atlas (cần internet), Redis chạy bằng `docker-compose`, chạy theo bảng "Cách chạy" ở mục 3 |
+| Demo local | MongoDB Atlas (cần internet), chạy theo bảng "Cách chạy" ở mục 3 |
 | Demo online (khi hoàn thiện) | Cả dự án lên **Render** (một web service chạy server và file tĩnh, một worker chạy BullMQ), Redis dùng dịch vụ Redis của Render hoặc Upstash. **Không dùng Vercel** vì Socket.IO và BullMQ cần tiến trình chạy liên tục |
 
-Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `REDIS_URL`, `JWT_SECRET`, `COOKIE_SECRET`, `RESEND_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`. Cùng origin nên không cần cấu hình CORS ở production, chỉ cần ở dev nếu không dùng proxy.
+Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`, `RESEND_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`. Cùng origin nên không cần cấu hình CORS ở production, chỉ cần ở dev nếu không dùng proxy.
 
 Lưu ý khi deploy online: thư mục `uploads/` trên Render mặc định **mất khi redeploy**. Trước khi demo online cần gắn ổ đĩa lưu trữ hoặc chuyển sang Cloudinary (đổi ở `StorageService`).
 
@@ -324,8 +324,8 @@ Lưu ý khi deploy online: thư mục `uploads/` trên Render mặc định **m�
 | 1 | Vector ảnh sản phẩm | Thêm collection `product_image_embeddings` (`productId`, `mediaUrl`, `embedding[]`, `model`, `updatedAt`) và Vector Search index |
 | 2 | Từ điển đồng nghĩa | Thêm collection `search_synonyms` (`mappingType`, `synonyms[]`) làm nguồn cho Atlas Search |
 | 3 | Atlas Search index | Ghi tên index và cấu hình analyzer vào Database Design |
-| 4 | `refresh_tokens` | **Không cần** collection, dùng Redis. Cập nhật mục 15 điểm 1 của API Contract |
-| 5 | Bộ đếm AI Guest | **Không cần** collection, dùng Redis. Cập nhật mục 15 điểm 3 của API Contract |
+| 4 | `refresh_tokens` | Đã làm bằng collection `authsessions` (mục 5.3). Cập nhật mục 15 điểm 1 của API Contract |
+| 5 | Bộ đếm AI | Đã làm bằng collection `ratecounters` (mục 5.3). Cập nhật mục 15 điểm 3 của API Contract |
 | 6 | `ChatMessage.messageType` | Bỏ giá trị `FILE` khỏi enum nếu không dùng |
 
 ---

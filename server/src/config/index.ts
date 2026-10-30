@@ -6,7 +6,6 @@ export const config = {
   vectorIndex: process.env['VECTOR_SEARCH_INDEX'] ?? 'product_image_vector',
   port: Number(process.env['PORT'] ?? 3000),
   mongodbUri: process.env['MONGODB_URI'] ?? '',
-  redisUrl: process.env['REDIS_URL'] ?? '',
   jwtSecret: (process.env['JWT_SECRET'] ?? '').trim(),
   cookieSecret: process.env['COOKIE_SECRET'] ?? '',
   resendApiKey: process.env['RESEND_API_KEY'] ?? '',
@@ -32,9 +31,7 @@ export const config = {
     }).filter(([, value]) => value?.trim()),
   ) as Partial<Record<'bankId' | 'bankName' | 'accountNumber' | 'accountHolder', string>>,
   isProduction: process.env['NODE_ENV'] === 'production',
-  /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
-  devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
-  otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
+  otpEmailFrom: process.env['OTP_EMAIL_FROM'] || 'CaraVeso <onboarding@resend.dev>',
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
   allowedOrigins: (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:4200,http://localhost:4201')
     .split(',')
