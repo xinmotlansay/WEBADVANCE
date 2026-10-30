@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import mongoose, { Types } from 'mongoose';
 import { config } from '../src/config/index.js';
 import { BannerModel } from '../src/modules/banners/banner.model.js';
@@ -6,7 +8,11 @@ import { CollectionModel } from '../src/modules/collections/collection.model.js'
 import { SystemConfigModel } from '../src/modules/config/system-config.model.js';
 import { InspirationModel } from '../src/modules/inspirations/inspiration.model.js';
 import { ProductModel, type ProductDoc } from '../src/modules/products/product.model.js';
-import { VariantModel, type VariantDoc } from '../src/modules/products/variant.model.js';
+import {
+  VariantModel,
+  type VariantDoc,
+  type VariantPackage,
+} from '../src/modules/products/variant.model.js';
 import { PromotionModel } from '../src/modules/promotions/promotion.model.js';
 import { ShowroomModel, type ShowroomDoc } from '../src/modules/showrooms/showroom.model.js';
 
@@ -55,7 +61,13 @@ const PHOTO = {
 const NO_USER = new Types.ObjectId('000000000000000000000000');
 
 async function seedCategories(): Promise<Map<string, Types.ObjectId>> {
-  const defs: { slug: string; name: string; type: 'PRODUCT_CATEGORY' | 'ROOM'; photo: string }[] = [
+  const defs: {
+    slug: string;
+    name: string;
+    type: 'PRODUCT_CATEGORY' | 'ROOM';
+    photo: string;
+    parent?: string;
+  }[] = [
     { slug: 'ghe', name: 'Ghế', type: 'PRODUCT_CATEGORY', photo: PHOTO.greenSofa },
     {
       slug: 'dem-va-chan-ga',
@@ -72,6 +84,13 @@ async function seedCategories(): Promise<Map<string, Types.ObjectId>> {
       photo: PHOTO.livingMacrame,
     },
     { slug: 'tu', name: 'Tủ', type: 'PRODUCT_CATEGORY', photo: PHOTO.livingSideboard },
+    {
+      slug: 'tu-quan-ao',
+      name: 'Tủ quần áo',
+      type: 'PRODUCT_CATEGORY',
+      photo: PHOTO.bedroomGreen,
+      parent: 'tu',
+    },
     { slug: 'phong-ngu', name: 'Phòng ngủ', type: 'ROOM', photo: PHOTO.bedTufted },
     { slug: 'phong-khach', name: 'Phòng khách', type: 'ROOM', photo: PHOTO.livingRound },
     { slug: 'phong-bep', name: 'Phòng bếp', type: 'ROOM', photo: PHOTO.dining },
@@ -81,6 +100,7 @@ async function seedCategories(): Promise<Map<string, Types.ObjectId>> {
   const ids = new Map<string, Types.ObjectId>();
   for (const def of defs) {
     const created = await CategoryModel.create({
+      parentId: def.parent ? ids.get(def.parent) : null,
       name: def.name,
       slug: def.slug,
       type: def.type,
@@ -101,7 +121,14 @@ interface ProductSeed {
   original: number;
   colors: string[];
   bestSeller?: boolean;
+  /** Kiện hàng cho Fit your home. Không khai báo thì suy từ kích thước tổng thể. */
+  packages?: VariantPackage[];
 }
+
+const DEFAULT_DIMENSIONS = { length: 200, width: 90, height: 80, unit: 'cm' };
+const DEFAULT_PACKAGES: VariantPackage[] = [
+  { index: 1, name: 'Kiện hàng', length: 205, width: 95, height: 85, weight: 45 },
+];
 
 const PRODUCTS: ProductSeed[] = [
   {
@@ -313,12 +340,55 @@ const PRODUCTS: ProductSeed[] = [
   {
     name: 'Tủ quần áo Mori',
     short: 'Tủ 3 cánh, thanh treo và ngăn kéo, 1.8m',
-    category: 'tu',
+    category: 'tu-quan-ao',
     rooms: ['phong-ngu'],
     photo: PHOTO.livingSideboard,
     price: 19800000,
     original: 22000000,
     colors: ['Trắng', 'Gỗ sồi'],
+    packages: [
+      { index: 1, name: 'Kiện thân tủ', length: 205, width: 62, height: 32, weight: 72 },
+      { index: 2, name: 'Kiện cánh tủ', length: 205, width: 64, height: 16, weight: 36 },
+    ],
+  },
+  // Ba tủ quần áo dưới đây có giá gần Tủ OSLO (seed/data) để thử "sản phẩm tương tự" của Fit your home.
+  {
+    name: 'Tủ quần áo Kanso',
+    short: 'Tủ 2 cánh gọn gàng cho phòng nhỏ, 1.2m',
+    category: 'tu-quan-ao',
+    rooms: ['phong-ngu'],
+    photo: PHOTO.bedroomGreen,
+    price: 14900000,
+    original: 16500000,
+    colors: ['Gỗ sồi'],
+    packages: [{ index: 1, name: 'Kiện tủ', length: 205, width: 55, height: 25, weight: 55 }],
+  },
+  {
+    name: 'Tủ quần áo Haru',
+    short: 'Tủ 4 cánh cao 2.1m, khoang treo kép',
+    category: 'tu-quan-ao',
+    rooms: ['phong-ngu'],
+    photo: PHOTO.bedWood,
+    price: 18500000,
+    original: 20900000,
+    colors: ['Trắng', 'Óc chó'],
+    packages: [
+      { index: 1, name: 'Kiện thân tủ', length: 215, width: 62, height: 32, weight: 85 },
+      { index: 2, name: 'Kiện cánh tủ', length: 215, width: 60, height: 18, weight: 45 },
+    ],
+  },
+  {
+    name: 'Tủ quần áo Lund',
+    short: 'Tủ liền khối giao nguyên chiếc, không cần lắp ráp',
+    category: 'tu-quan-ao',
+    rooms: ['phong-ngu'],
+    photo: PHOTO.bedroomGreen,
+    price: 16800000,
+    original: 18200000,
+    colors: ['Kem'],
+    packages: [
+      { index: 1, name: 'Tủ nguyên chiếc', length: 200, width: 110, height: 65, weight: 140 },
+    ],
   },
   {
     name: 'Tủ tivi Oda',
@@ -386,8 +456,9 @@ async function seedProducts(
       productId: created._id,
       sku: `${productCode}.${String(i + 1).padStart(2, '0')}`,
       color,
-      dimensions: { length: 200, width: 90, height: 80, unit: 'cm' },
+      dimensions: DEFAULT_DIMENSIONS,
       shippingTier: 3,
+      packages: seed.packages ?? DEFAULT_PACKAGES,
       originalPrice: seed.original,
       salePrice: seed.price,
       stockQuantity: 25,
@@ -398,6 +469,48 @@ async function seedProducts(
     await VariantModel.insertMany(variants);
   }
   return ids;
+}
+
+/** Sản phẩm mẫu dạng JSON đúng cấu trúc dữ liệu thật (server/seed/data). */
+interface ProductFixture {
+  categorySlugs: string[];
+  product: Omit<ProductDoc, '_id' | 'categoryIds' | 'media' | 'listedAt'> & {
+    listedAt: string;
+    media: (Omit<ProductDoc['media'][number], 'variantId'> & { variantSku: string | null })[];
+  };
+  variants: Omit<VariantDoc, '_id' | 'productId'>[];
+}
+
+const FIXTURES = ['tu-quan-ao-oslo.json'];
+
+async function seedFixtureProducts(
+  categories: Map<string, Types.ObjectId>,
+  ids: Map<string, Types.ObjectId>,
+): Promise<void> {
+  for (const file of FIXTURES) {
+    const raw = await readFile(path.resolve('server/seed/data', file), 'utf-8');
+    const { categorySlugs, product, variants } = JSON.parse(raw) as ProductFixture;
+
+    const productId = new Types.ObjectId();
+    const variantIds = new Map(variants.map((v) => [v.sku, new Types.ObjectId()]));
+
+    await ProductModel.create({
+      ...product,
+      _id: productId,
+      listedAt: new Date(product.listedAt),
+      categoryIds: categorySlugs.flatMap((slug) => categories.get(slug) ?? []),
+      media: product.media.map(({ variantSku, ...media }) => ({
+        ...media,
+        variantId: variantSku ? (variantIds.get(variantSku) ?? null) : null,
+        // Ảnh thật chưa có trong repo: tạm dùng ảnh Unsplash, giữ nguyên link model 3D.
+        url: media.type === 'IMAGE' ? img(PHOTO.bedroomGreen, 800) : media.url,
+      })),
+    });
+    await VariantModel.insertMany(
+      variants.map((v) => ({ ...v, _id: variantIds.get(v.sku), productId })),
+    );
+    ids.set(product.name, productId);
+  }
 }
 
 async function seedPromotion(
@@ -705,6 +818,7 @@ async function main(): Promise<void> {
 
   const categories = await seedCategories();
   const products = await seedProducts(categories);
+  await seedFixtureProducts(categories, products);
   await seedPromotion(categories, products);
   await seedBanners();
   await seedCollections(products);

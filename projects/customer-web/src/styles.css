@@ -39,6 +39,11 @@
   --font-size-display: clamp(36px, 4vw, 56px);
   --font-size-display-sm: clamp(28px, 2.8vw, 40px);
 
+  /* Trạng thái Fit your home (đã chốt với nhóm). "Không vừa" dùng màu nhấn. */
+  --color-status-pass: #80ff59;
+  --color-status-caution: #ffde23;
+  --color-status-fail: var(--color-accent);
+
   /* Lề trang thu nhỏ theo màn hình, tối đa bằng lề của style guide. */
   --page-gutter: clamp(16px, 5.5vw, var(--layout-margin));
   --page-max: 1440px;
@@ -128,4 +133,17 @@ ul {
   max-width: var(--page-max);
   margin-inline: auto;
   padding-inline: var(--page-gutter);
+}
+
+/* Ẩn khỏi màn hình nhưng trình đọc màn hình vẫn đọc được. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

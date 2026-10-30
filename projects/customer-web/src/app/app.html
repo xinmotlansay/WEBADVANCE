@@ -1,6 +1,10 @@
-<app-header />
+@if (!compact()) {
+  <app-header />
+}
 <main>
   <router-outlet />
 </main>
 <app-footer />
-<app-floating-actions />
+@if (!compact()) {
+  <app-floating-actions />
+}

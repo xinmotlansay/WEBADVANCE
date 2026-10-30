@@ -181,6 +181,7 @@ Collection: `products` (trước đây: `SANPHAM`, kèm các bảng `SANPHAM_DAN
 | 30 | media[].url | String | Y | Đường dẫn file |
 | 31 | media[].format | String | | JPG, PNG, MP4, GLB... |
 | 32 | media[].displayOrder | Number | Y | Thứ tự hiển thị |
+| 33 | media[].purpose | String | | `MAIN` (ảnh đại diện), `VARIANT`, `LIFESTYLE` (phối cảnh), `DIMENSION` (kích thước), `PART` (bộ phận), `MODEL` (model 3D) |
 
 ### Thực thể 8: Biến thể sản phẩm (ProductVariant)
 

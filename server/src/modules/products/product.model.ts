@@ -3,12 +3,25 @@ import { Schema, model, type Types } from 'mongoose';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'HIDDEN' | 'DISCONTINUED';
 export type ManualBadge = 'ON' | 'OFF' | null;
 
+export type MediaPurpose = 'MAIN' | 'VARIANT' | 'LIFESTYLE' | 'DIMENSION' | 'PART' | 'MODEL';
+
 export interface ProductMedia {
   variantId?: Types.ObjectId | null;
   type: 'IMAGE' | 'VIDEO_360' | 'MODEL_3D';
   url: string;
   format?: string;
   displayOrder: number;
+  purpose?: MediaPurpose;
+}
+
+export interface ProductPart {
+  _id: Types.ObjectId;
+  name: string;
+  description?: string;
+  quantity: number;
+  image?: string;
+  displayOrder?: number;
+  isDetachable: boolean;
 }
 
 export interface ProductDoc {
@@ -20,6 +33,7 @@ export interface ProductDoc {
   description?: string;
   searchKeywords?: string;
   tags: string[];
+  seo?: { title?: string; description?: string };
   categoryIds: Types.ObjectId[];
   manualBadges: { isNew: ManualBadge; isBestSeller: ManualBadge };
   isAutoBestSeller: boolean;
@@ -28,6 +42,7 @@ export interface ProductDoc {
   warrantyTerms?: string;
   status: ProductStatus;
   media: ProductMedia[];
+  parts: ProductPart[];
 }
 
 const productSchema = new Schema<ProductDoc>(
@@ -39,6 +54,7 @@ const productSchema = new Schema<ProductDoc>(
     description: String,
     searchKeywords: String,
     tags: [String],
+    seo: { title: String, description: String },
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'categories' }],
     manualBadges: {
       isNew: { type: String, enum: ['ON', 'OFF', null], default: null },
@@ -62,6 +78,20 @@ const productSchema = new Schema<ProductDoc>(
         url: { type: String, required: true },
         format: String,
         displayOrder: { type: Number, required: true },
+        purpose: {
+          type: String,
+          enum: ['MAIN', 'VARIANT', 'LIFESTYLE', 'DIMENSION', 'PART', 'MODEL'],
+        },
+      },
+    ],
+    parts: [
+      {
+        name: { type: String, required: true },
+        description: String,
+        quantity: { type: Number, required: true, min: 1 },
+        image: String,
+        displayOrder: Number,
+        isDetachable: { type: Boolean, default: false },
       },
     ],
   },

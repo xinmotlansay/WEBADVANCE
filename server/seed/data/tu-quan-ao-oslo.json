@@ -1,0 +1,111 @@
+{
+  "categorySlugs": ["phong-ngu", "tu-quan-ao"],
+  "product": {
+    "name": "Tủ Quần Áo Gỗ Sồi OSLO",
+    "slug": "tu-quan-ao-go-soi-oslo",
+    "productCode": "200.001",
+    "shortDescription": "Tủ quần áo OSLO 3 cánh bản lớn 180cm, tay nắm thanh đen mảnh, phù hợp không gian tối giản, hiện đại và Japandi.",
+    "description": "Tủ quần áo OSLO sở hữu thiết kế 3 cánh phẳng với đường nét gọn gàng, tay nắm thanh kim loại đen mảnh tạo điểm nhấn tinh tế. Bề mặt vân gỗ tự nhiên mang lại cảm giác ấm áp, kết hợp chân đế thụt vào giúp tủ nhẹ nhàng và dễ vệ sinh sàn. Bên trong chia ba khoang gồm khoang kệ ngăn, khoang treo đồ dài với thanh treo chắc chắn và khoang kệ lửng, đáp ứng nhu cầu cất giữ của cả gia đình. Phù hợp với không gian nội thất tối giản, hiện đại và Japandi.",
+    "searchKeywords": "tủ quần áo, tủ quần áo gỗ, tủ 3 cánh, tủ quần áo 1m8, tủ gỗ sồi, wardrobe, japandi, tối giản",
+    "tags": ["Gỗ sồi", "Japandi", "3 cánh"],
+    "seo": {
+      "title": "Tủ Quần Áo Gỗ Sồi OSLO",
+      "description": "Tủ quần áo OSLO 3 cánh 180cm, vân gỗ tự nhiên, phong cách Japandi và hiện đại."
+    },
+    "manualBadges": { "isNew": null, "isBestSeller": null },
+    "isAutoBestSeller": false,
+    "listedAt": "2026-10-20T08:00:00.000Z",
+    "warrantyMonths": 24,
+    "warrantyTerms": "Bảo hành 24 tháng kể từ ngày giao thực tế, áp dụng cho lỗi do nhà sản xuất. Không bảo hành đối với hư hại do va đập, lắp đặt sai hoặc sử dụng sai cách.",
+    "status": "ACTIVE",
+    "parts": [
+      { "name": "Thân tủ", "description": "Khung thân, vách ngăn và hậu tủ", "quantity": 1, "displayOrder": 1, "isDetachable": false },
+      { "name": "Cánh tủ", "description": "Cánh phẳng phủ vân gỗ, bản lề giảm chấn", "quantity": 3, "displayOrder": 2, "isDetachable": true },
+      { "name": "Kệ ngăn", "description": "Kệ ngăn có thể tháo lắp", "quantity": 12, "displayOrder": 3, "isDetachable": true },
+      { "name": "Thanh treo đồ", "description": "Thanh treo kim loại đen", "quantity": 1, "displayOrder": 4, "isDetachable": true },
+      { "name": "Tay nắm", "description": "Tay nắm thanh kim loại đen", "quantity": 3, "displayOrder": 5, "isDetachable": true },
+      { "name": "Chân đế", "description": "Phào chân đế thụt vào", "quantity": 1, "displayOrder": 6, "isDetachable": false }
+    ],
+    "media": [
+      { "variantSku": "200.001.01", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/soi-1.jpg", "format": "JPG", "displayOrder": 1, "purpose": "MAIN" },
+      { "variantSku": "200.001.01", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/soi-2.jpg", "format": "JPG", "displayOrder": 2, "purpose": "VARIANT" },
+      { "variantSku": "200.001.02", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/oc-cho-1.jpg", "format": "JPG", "displayOrder": 1, "purpose": "VARIANT" },
+      { "variantSku": "200.001.02", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/oc-cho-2.jpg", "format": "JPG", "displayOrder": 2, "purpose": "VARIANT" },
+      { "variantSku": "200.001.03", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/kem-1.jpg", "format": "JPG", "displayOrder": 1, "purpose": "VARIANT" },
+      { "variantSku": "200.001.03", "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/kem-2.jpg", "format": "JPG", "displayOrder": 2, "purpose": "VARIANT" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/phoi-canh-1.jpg", "format": "JPG", "displayOrder": 1, "purpose": "LIFESTYLE" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/phoi-canh-2.jpg", "format": "JPG", "displayOrder": 2, "purpose": "LIFESTYLE" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/phoi-canh-3.jpg", "format": "JPG", "displayOrder": 3, "purpose": "LIFESTYLE" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/kich-thuoc.jpg", "format": "JPG", "displayOrder": 1, "purpose": "DIMENSION" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-than-tu.jpg", "format": "JPG", "displayOrder": 1, "purpose": "PART" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-canh-tu.jpg", "format": "JPG", "displayOrder": 2, "purpose": "PART" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-ke-ngan.jpg", "format": "JPG", "displayOrder": 3, "purpose": "PART" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-thanh-treo.jpg", "format": "JPG", "displayOrder": 4, "purpose": "PART" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-tay-nam.jpg", "format": "JPG", "displayOrder": 5, "purpose": "PART" },
+      { "variantSku": null, "type": "IMAGE", "url": "/assets/images/products/tu-quan-ao-oslo/bo-phan-chan-de.jpg", "format": "JPG", "displayOrder": 6, "purpose": "PART" },
+      { "variantSku": null, "type": "MODEL_3D", "url": "/assets/models/tu-quan-ao-oslo.glb", "format": "GLB", "displayOrder": 1, "purpose": "MODEL" }
+    ]
+  },
+  "variants": [
+    {
+      "sku": "200.001.01",
+      "color": "Màu sồi",
+      "material": "Gỗ sồi (MDF phủ veneer sồi)",
+      "dimensions": { "length": 180, "width": 57, "height": 200, "unit": "cm" },
+      "weight": 108,
+      "shippingTier": 4,
+      "packages": [
+        { "index": 1, "name": "Kiện thân tủ", "length": 205, "width": 60, "height": 30, "weight": 70 },
+        { "index": 2, "name": "Kiện cánh tủ và phụ kiện", "length": 205, "width": 65, "height": 15, "weight": 38 }
+      ],
+      "partDimensions": [],
+      "originalPrice": 24500000,
+      "salePrice": 17900000,
+      "stockQuantity": 6,
+      "lowStockThreshold": 3,
+      "installationService": "REQUIRED",
+      "installationFee": 800000,
+      "status": "ACTIVE"
+    },
+    {
+      "sku": "200.001.02",
+      "color": "Màu óc chó",
+      "material": "MDF phủ veneer óc chó",
+      "dimensions": { "length": 180, "width": 57, "height": 200, "unit": "cm" },
+      "weight": 108,
+      "shippingTier": 4,
+      "packages": [
+        { "index": 1, "name": "Kiện thân tủ", "length": 205, "width": 60, "height": 30, "weight": 70 },
+        { "index": 2, "name": "Kiện cánh tủ và phụ kiện", "length": 205, "width": 65, "height": 15, "weight": 38 }
+      ],
+      "partDimensions": [],
+      "originalPrice": 26500000,
+      "salePrice": 19900000,
+      "stockQuantity": 5,
+      "lowStockThreshold": 3,
+      "installationService": "REQUIRED",
+      "installationFee": 800000,
+      "status": "ACTIVE"
+    },
+    {
+      "sku": "200.001.03",
+      "color": "Màu kem",
+      "material": "MDF phủ melamine màu kem",
+      "dimensions": { "length": 180, "width": 57, "height": 200, "unit": "cm" },
+      "weight": 108,
+      "shippingTier": 4,
+      "packages": [
+        { "index": 1, "name": "Kiện thân tủ", "length": 205, "width": 60, "height": 30, "weight": 70 },
+        { "index": 2, "name": "Kiện cánh tủ và phụ kiện", "length": 205, "width": 65, "height": 15, "weight": 38 }
+      ],
+      "partDimensions": [],
+      "originalPrice": 22500000,
+      "salePrice": 15900000,
+      "stockQuantity": 8,
+      "lowStockThreshold": 3,
+      "installationService": "REQUIRED",
+      "installationFee": 800000,
+      "status": "ACTIVE"
+    }
+  ]
+}

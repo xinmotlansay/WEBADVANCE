@@ -1,0 +1,256 @@
+<app-compact-header [fallbackLink]="backFallback()" [hideOnScroll]="true" />
+
+<section class="page">
+  <div class="container">
+    <header class="intro">
+      <h1>FIT YOUR HOME</h1>
+      <p>
+        Hãy nhập kích thước lối vào của bạn và chúng tôi sẽ so sánh chúng với sản phẩm đã chọn. Tất
+        cả các số đo đều tính bằng centimet.
+      </p>
+    </header>
+
+    <div class="card">
+      <!-- Sản phẩm đang kiểm tra và ô tìm sản phẩm khác -->
+      <div class="top">
+        <div class="product">
+          @if (fit.product().data; as product) {
+            <img class="product__img" [src]="product.thumbnail" [alt]="product.name" />
+            <div class="product__info">
+              <a class="product__name" [routerLink]="['/products', product.slug]">{{
+                product.name
+              }}</a>
+              @if (fit.variant()?.dimensions; as d) {
+                <p class="muted">{{ d.length }} × {{ d.width }} × {{ d.height }}{{ d.unit }}</p>
+              }
+              <p class="product__price">{{ fit.variant()?.price?.final | vnd }}</p>
+              @if (product.variants.length > 1) {
+                <div class="variants" role="radiogroup" aria-label="Chọn biến thể">
+                  @for (v of product.variants; track v.id) {
+                    <button
+                      type="button"
+                      class="chip chip--sm"
+                      role="radio"
+                      [class.chip--active]="v.id === fit.variant()?.id"
+                      [attr.aria-checked]="v.id === fit.variant()?.id"
+                      (click)="selectVariant(v.id)"
+                    >
+                      {{ v.color || v.sku }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (fit.product().loading) {
+            <p class="muted">Đang tải sản phẩm...</p>
+          } @else if (fit.product().error) {
+            <p class="error">{{ fit.product().error }}</p>
+          } @else {
+            <p class="muted">Chọn một sản phẩm để bắt đầu kiểm tra.</p>
+          }
+        </div>
+
+        <div class="search">
+          <label class="search__box">
+            <span class="sr-only">Xem sản phẩm khác</span>
+            <input
+              type="search"
+              placeholder="Xem sản phẩm khác"
+              autocomplete="off"
+              [value]="fit.searchTerm()"
+              (input)="onSearch($event)"
+              (focus)="searchOpen.set(true)"
+              (keydown.escape)="searchOpen.set(false)"
+            />
+            <app-icon name="lucide:search" [size]="20" />
+          </label>
+          @if (searchOpen() && fit.searchResults().length > 0) {
+            <ul class="search__list" role="listbox" aria-label="Kết quả tìm kiếm">
+              @for (item of fit.searchResults(); track item.id) {
+                <li>
+                  <button type="button" (click)="selectProduct(item.slug)">
+                    <img [src]="item.thumbnail" alt="" />
+                    <span>{{ item.name }}</span>
+                    <span class="muted">{{ item.priceFrom | vnd }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      @if (fit.history().length > 0) {
+        <div class="history">
+          <p class="caption">Lịch sử xem</p>
+          <div class="chips">
+            @for (item of fit.history(); track item.slug) {
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="item.slug === fit.slug()"
+                (click)="selectProduct(item.slug)"
+              >
+                {{ item.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="layout">
+        <!-- Cột trái: hồ sơ lối đi -->
+        <div class="walkway">
+          <h2 class="walkway__title">Hồ sơ lối đi</h2>
+
+          @for (p of fit.passages(); track $index; let i = $index) {
+            <div class="passage" [class.passage--editing]="editing() === i">
+              <button type="button" class="passage__body" (click)="editing.set(i)">
+                <strong>{{ i + 1 }}. {{ p.label || typeNames[p.type] }}</strong>
+                <span class="muted">{{ describePassage(p) }}</span>
+              </button>
+              <button
+                type="button"
+                class="passage__remove"
+                [attr.aria-label]="'Xoá điểm ' + (i + 1)"
+                (click)="removePassage(i)"
+              >
+                <app-icon name="lucide:x" [size]="16" />
+              </button>
+            </div>
+          }
+
+          @if (editing() === null) {
+            @if (fit.passages().length < 10) {
+              <button type="button" class="link" (click)="editing.set(-1)">
+                + Thêm điểm lối đi
+              </button>
+            }
+          } @else {
+            <app-passage-form
+              [passage]="editingPassage()"
+              (save)="savePassage($event)"
+              (cancel)="editing.set(null)"
+            />
+          }
+
+          <button
+            type="button"
+            class="btn-save"
+            [disabled]="fit.passages().length === 0"
+            (click)="saveProfile()"
+          >
+            Lưu hồ sơ
+          </button>
+          <p class="muted saved" aria-live="polite">{{ savedMessage() }}</p>
+        </div>
+
+        <!-- Cột phải: kết quả -->
+        <div class="result" aria-live="polite">
+          @if (fit.result().data; as r) {
+            <div class="verdict">
+              <h2>
+                <span class="dot" [attr.data-status]="r.status"></span>{{ statusNames[r.status] }}
+              </h2>
+              <p>{{ statusMessages[r.status] }}</p>
+              @if (r.verdict === 'FITS_BY_PARTS') {
+                <p>Kiện nguyên không qua được, nhưng sản phẩm qua được khi tháo rời các bộ phận.</p>
+              }
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Điểm lối đi</th>
+                    <th scope="col">Kết quả</th>
+                    <th scope="col">Tư thế</th>
+                    <th scope="col">Khe hở nhỏ nhất</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of r.packageCheck.details; track d.index) {
+                    <tr>
+                      <td>{{ d.index }}</td>
+                      <td>
+                        {{ d.passageLabel }}
+                        @if (d.note) {
+                          <small class="note">{{ d.note }}</small>
+                        }
+                      </td>
+                      <td>
+                        <span class="dot dot--sm" [attr.data-status]="d.status"></span>
+                        {{ statusNames[d.status] }}
+                      </td>
+                      <td>{{ d.posture ? postureNames[d.posture] : '—' }}</td>
+                      <td>
+                        {{ d.minClearanceCm === null ? '—' : d.minClearanceCm.toFixed(1) + ' cm' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <p class="muted used">
+              Kích thước đã dùng: {{ r.usedDimensions.packageCount }} kiện hàng, kiện lớn nhất
+              {{ r.usedDimensions.largest.length }} × {{ r.usedDimensions.largest.width }} ×
+              {{ r.usedDimensions.largest.height }} cm. {{ r.disclaimer }}.
+            </p>
+
+            <!-- Sản phẩm tương tự vừa nhà -->
+            <div class="similar">
+              <h3>Các sản phẩm tương tự vừa với nhà của bạn</h3>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  [checked]="fit.includeCaution()"
+                  (change)="fit.includeCaution.set($any($event.target).checked)"
+                />
+                <span class="switch__track" aria-hidden="true"></span>
+                <span class="muted">Bao gồm các sản phẩm "Cần lưu ý"</span>
+              </label>
+
+              @if (fit.similar().data; as items) {
+                @if (items.length > 0) {
+                  <ul class="similar__grid">
+                    @for (item of items; track item.id) {
+                      <li>
+                        <a
+                          class="mini"
+                          [routerLink]="[]"
+                          [queryParams]="{ product: item.slug }"
+                          [replaceUrl]="true"
+                        >
+                          <img [src]="item.thumbnail" [alt]="item.name" loading="lazy" />
+                          <span class="mini__name">{{ item.name }}</span>
+                          <span class="mini__price">{{ item.priceFrom | vnd }}</span>
+                          <span class="mini__status">
+                            <span class="dot dot--sm" [attr.data-status]="item.fitStatus"></span>
+                            {{ statusNames[item.fitStatus] }}
+                          </span>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="muted">Chưa có sản phẩm tương tự phù hợp với lối đi của bạn.</p>
+                }
+              } @else if (fit.similar().error) {
+                <p class="error">{{ fit.similar().error }}</p>
+              }
+            </div>
+          } @else if (fit.result().error) {
+            <p class="error">{{ fit.result().error }}</p>
+          } @else if (fit.passages().length === 0) {
+            <p class="muted empty">Thêm ít nhất một điểm lối đi để xem kết quả.</p>
+          } @else if (fit.product().data) {
+            <p class="muted empty">Đang kiểm tra...</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
