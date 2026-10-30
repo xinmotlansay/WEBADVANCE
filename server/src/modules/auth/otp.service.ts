@@ -24,6 +24,8 @@ export interface SendOtpResult {
   otpId: string;
   expiresAt: string;
   resendAvailableAt: string;
+  /** Mã OTP, chỉ có ngoài production để giả lập SMS (controller chỉ trả ra cho kênh PHONE). */
+  devCode?: string;
 }
 
 const PUBLIC_PURPOSES: OtpPurpose[] = [OtpPurpose.REGISTER, OtpPurpose.FORGOT_PASSWORD];
@@ -162,6 +164,7 @@ export async function sendOtp(
     otpId: String(otp._id),
     expiresAt: expiresAt.toISOString(),
     resendAvailableAt: new Date(now.getTime() + OTP_RESEND_INTERVAL_SECONDS * 1000).toISOString(),
+    devCode: process.env['NODE_ENV'] !== 'production' ? code : undefined,
   };
 }
 
