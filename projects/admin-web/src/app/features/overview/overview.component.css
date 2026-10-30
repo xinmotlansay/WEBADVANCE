@@ -1,0 +1,296 @@
+:host {
+  display: block;
+}
+
+.weekday {
+  text-transform: capitalize;
+}
+
+/* Dải KPI: một khung, chia cột bằng kẻ dọc */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius-lg);
+}
+
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 16px 20px;
+  border-left: 1px solid var(--cv-border);
+  min-width: 0;
+}
+
+.kpi:first-child {
+  border-left: 0;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--cv-muted);
+}
+
+.kpi-num {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi .delta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Biểu đồ cột */
+.card {
+  padding: 20px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius-lg);
+}
+
+.chart-card {
+  margin-bottom: 32px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.unit {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 180px;
+  padding-top: 24px;
+}
+
+.col {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+}
+
+.col-bar {
+  width: 100%;
+  max-width: 48px;
+  min-height: 2px;
+  border-radius: var(--cv-radius-sm) var(--cv-radius-sm) 0 0;
+  background: var(--cv-bar-muted);
+  transition: height 0.3s ease;
+}
+
+.col.current .col-bar {
+  background: var(--cv-accent);
+}
+
+.col-value {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--cv-muted);
+}
+
+.col.current .col-value {
+  color: var(--cv-navy);
+  font-weight: 600;
+}
+
+.col-label {
+  position: absolute;
+  bottom: -20px;
+  font-size: 11px;
+  color: var(--cv-muted);
+}
+
+.col.current .col-label {
+  color: var(--cv-navy);
+  font-weight: 600;
+}
+
+.chart-card .chart {
+  margin-bottom: 20px;
+}
+
+/* Bảng đơn */
+.orders {
+  position: relative;
+  scroll-margin-top: 24px;
+}
+
+.orders-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.orders .alert-box {
+  margin-top: 12px;
+}
+
+app-order-popup {
+  display: contents;
+}
+
+/* Cột tổng quan */
+.hero-sub {
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+
+.hero-num.dim {
+  opacity: 0.5;
+}
+
+.status-list {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-radius: var(--cv-radius-sm);
+  background: none;
+  color: var(--cv-navy);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.status-row:hover .status-name {
+  text-decoration: underline;
+}
+
+.status-row .bar {
+  height: 6px;
+}
+
+.status-row strong {
+  text-align: right;
+  font-weight: 600;
+}
+
+.status-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warn-label {
+  color: var(--cv-warn-text);
+}
+
+.overdue-num {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.overdue-num strong {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.overdue-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.overdue-list li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.overdue-list .cell-link {
+  color: var(--cv-warn-text);
+}
+
+.warn .btn-link {
+  color: var(--cv-warn-text);
+}
+
+.caption {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.activity {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.activity li {
+  display: grid;
+}
+
+.activity strong {
+  font-weight: 600;
+}
+
+.activity .when {
+  color: var(--cv-muted);
+}
+
+@media (max-width: 1023px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi:nth-child(3) {
+    border-left: 0;
+  }
+
+  .kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--cv-border);
+  }
+}
+
+@media (max-width: 767px) {
+  .chart {
+    gap: 6px;
+  }
+
+  .col-value {
+    display: none;
+  }
+}

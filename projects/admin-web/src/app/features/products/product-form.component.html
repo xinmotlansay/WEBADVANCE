@@ -1,0 +1,408 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <a class="back" routerLink="/san-pham">← Sản phẩm</a>
+        <h1>{{ isEdit() ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm' }}</h1>
+        <p class="page-sub">
+          @if (product(); as p) {
+            SKU <span class="tabular">{{ p.productCode }}</span> ·
+            <span [class]="toneClass(productStatus[p.status])">{{ productStatus[p.status]?.label }}</span>
+          } @else if (!isEdit()) {
+            Sản phẩm mới được lưu ở trạng thái Nháp. Nhãn Mới và Bán chạy do hệ thống tự tính.
+          }
+        </p>
+      </div>
+    </header>
+
+    @if (isEdit() && !product() && !error()) {
+      <div class="loading" role="status" aria-label="Đang tải sản phẩm">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="height: 160px"></span>
+        <span class="skeleton" style="height: 240px"></span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save(false)" [class.hidden]="isEdit() && !product()" novalidate>
+      <!-- 1. Thông tin chung -->
+      <section class="card" aria-labelledby="s-general">
+        <h2 id="s-general" class="section-label">Thông tin chung</h2>
+        <div class="grid">
+          <div class="field span-2" [class.err]="invalid(form.controls.name)">
+            <label for="f-name">Tên sản phẩm <span class="req">*</span></label>
+            <input id="f-name" class="input" formControlName="name" maxlength="150" placeholder="Ví dụ: Sofa Linen 3 chỗ" />
+            @if (invalid(form.controls.name)) {
+              <span class="msg">Nhập tên từ 3 đến 150 ký tự.</span>
+            }
+          </div>
+          <div class="field" [class.err]="invalid(form.controls.skuRange)">
+            <label for="f-range">Dãy cấp phát SKU <span class="req">*</span></label>
+            <input
+              id="f-range"
+              class="input tabular"
+              formControlName="skuRange"
+              inputmode="numeric"
+              maxlength="3"
+              [readonly]="isEdit()"
+            />
+            <span class="hint">
+              Mã sản phẩm: <strong class="tabular">{{ skuPreview() }}</strong>
+              {{ isEdit() ? '· không đổi sau khi tạo' : '· PPP do hệ thống cấp' }}
+            </span>
+          </div>
+          <div class="field span-3">
+            <label for="f-short">Mô tả ngắn</label>
+            <input id="f-short" class="input" formControlName="shortDescription" maxlength="500" placeholder="Một câu hiện ở danh sách sản phẩm" />
+          </div>
+          <div class="field span-3">
+            <label for="f-desc">Mô tả chi tiết</label>
+            <textarea id="f-desc" class="input" rows="5" formControlName="description" placeholder="Chất liệu, cấu tạo, cách bảo quản…"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Phân loại -->
+      <section class="card" aria-labelledby="s-cat">
+        <h2 id="s-cat" class="section-label">Phân loại &amp; tìm kiếm</h2>
+        <div class="grid">
+          <div class="field" [class.err]="invalid(form.controls.productType)">
+            <label for="f-type">Loại sản phẩm <span class="req">*</span></label>
+            <select id="f-type" class="input" formControlName="productType">
+              <option value="">Chọn loại</option>
+              @for (c of productTypes(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+            @if (invalid(form.controls.productType)) {
+              <span class="msg">Chọn loại sản phẩm.</span>
+            }
+          </div>
+          <div class="field span-2">
+            <span class="label">Phòng</span>
+            <div class="toggles" role="group" aria-label="Phòng">
+              @for (c of rooms(); track c.id) {
+                <button type="button" class="toggle" [class.on]="form.controls.roomIds.value.includes(c.id)" [attr.aria-pressed]="form.controls.roomIds.value.includes(c.id)" (click)="toggleIn('roomIds', c.id)">
+                  {{ c.name }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (styles().length) {
+            <div class="field span-3">
+              <span class="label">Phong cách</span>
+              <div class="toggles" role="group" aria-label="Phong cách">
+                @for (c of styles(); track c.id) {
+                  <button type="button" class="toggle" [class.on]="form.controls.styleIds.value.includes(c.id)" [attr.aria-pressed]="form.controls.styleIds.value.includes(c.id)" (click)="toggleIn('styleIds', c.id)">
+                    {{ c.name }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+          <div class="field">
+            <label for="f-tags">Nhãn tùy chỉnh</label>
+            <input id="f-tags" class="input" formControlName="tags" placeholder="scandinavian, gỗ sồi" />
+            <span class="hint">Cách nhau bằng dấu phẩy</span>
+          </div>
+          <div class="field span-2">
+            <label for="f-kw">Từ khóa tìm kiếm</label>
+            <input id="f-kw" class="input" formControlName="searchKeywords" maxlength="500" placeholder="sofa ghế bành ghế sofa phòng khách" />
+            <span class="hint">Từ đồng nghĩa khách hay gõ, giúp tìm kiếm chính xác hơn</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Biến thể -->
+      <section class="card" aria-labelledby="s-var">
+        <div class="card-head">
+          <h2 id="s-var" class="section-label">Biến thể ({{ variants.length }})</h2>
+          <span class="hint">SKU <span class="tabular">AAA.PPP.VV</span> do hệ thống cấp</span>
+        </div>
+        <div formArrayName="variants" class="variants">
+          @for (variant of variants.controls; track variant; let i = $index) {
+            <fieldset class="variant" [formGroupName]="i" [class.off]="variant.value.status === 'DISCONTINUED'">
+              <legend>
+                <span>Biến thể {{ i + 1 }}</span>
+                @if (variant.value.sku) {
+                  <span class="tabular muted">· {{ variant.value.sku }}</span>
+                }
+                @if (variant.value.status === 'DISCONTINUED') {
+                  <span class="badge b-danger">Ngừng bán</span>
+                }
+              </legend>
+              <div class="variant-tools">
+                <button type="button" class="btn-link" (click)="addVariant(variant)">Nhân bản</button>
+                @if (variant.value.id) {
+                  <button type="button" class="btn-link" (click)="toggleVariantStatus(variant)">
+                    {{ variant.value.status === 'DISCONTINUED' ? 'Bán lại' : 'Ngừng bán' }}
+                  </button>
+                } @else if (variants.length > 1) {
+                  <button type="button" class="btn-link danger" (click)="removeVariant(i)">Xóa</button>
+                }
+              </div>
+
+              <div class="grid four">
+                <div class="field" [class.err]="invalid(variant.controls['color'])">
+                  <label [for]="'v-color-' + i">Màu <span class="req">*</span></label>
+                  <input class="input" [id]="'v-color-' + i" formControlName="color" placeholder="Xám tro" />
+                </div>
+                <div class="field">
+                  <label [for]="'v-mat-' + i">Chất liệu</label>
+                  <input class="input" [id]="'v-mat-' + i" formControlName="material" placeholder="Vải lanh" />
+                </div>
+                <div class="field" [class.err]="invalid(variant.controls['originalPrice'])">
+                  <label [for]="'v-op-' + i">Giá gốc (đ) <span class="req">*</span></label>
+                  <input class="input num" type="number" min="0" step="1000" [id]="'v-op-' + i" formControlName="originalPrice" />
+                </div>
+                <div class="field" [class.err]="invalid(variant.controls['salePrice']) || (variant.value.salePrice > variant.value.originalPrice)">
+                  <label [for]="'v-sp-' + i">Giá bán (đ) <span class="req">*</span></label>
+                  <input class="input num" type="number" min="0" step="1000" [id]="'v-sp-' + i" formControlName="salePrice" />
+                  @if (variant.value.salePrice > variant.value.originalPrice) {
+                    <span class="msg">Không lớn hơn giá gốc</span>
+                  } @else if (variant.value.salePrice && variant.value.originalPrice > variant.value.salePrice) {
+                    <span class="hint">Giảm {{ (1 - variant.value.salePrice / variant.value.originalPrice) | pct: 0 }}</span>
+                  }
+                </div>
+
+                <div class="field dims span-2" [class.err]="invalid(variant.controls['length']) || invalid(variant.controls['width']) || invalid(variant.controls['height'])">
+                  <span class="label">Kích thước tổng thể D × R × C (cm) <span class="req">*</span></span>
+                  <div class="dims-row">
+                    <input class="input num" type="number" min="1" aria-label="Dài (cm)" placeholder="Dài" formControlName="length" />
+                    <span aria-hidden="true">×</span>
+                    <input class="input num" type="number" min="1" aria-label="Rộng (cm)" placeholder="Rộng" formControlName="width" />
+                    <span aria-hidden="true">×</span>
+                    <input class="input num" type="number" min="1" aria-label="Cao (cm)" placeholder="Cao" formControlName="height" />
+                  </div>
+                </div>
+                <div class="field" [class.err]="invalid(variant.controls['weight'])">
+                  <label [for]="'v-w-' + i">Cân nặng (kg) <span class="req">*</span></label>
+                  <input class="input num" type="number" min="0" step="0.1" [id]="'v-w-' + i" formControlName="weight" />
+                </div>
+                <div class="field" [class.err]="invalid(variant.controls['lowStockThreshold'])">
+                  <label [for]="'v-th-' + i">Ngưỡng cảnh báo tồn <span class="req">*</span></label>
+                  <input class="input num" type="number" min="0" [id]="'v-th-' + i" formControlName="lowStockThreshold" />
+                </div>
+
+                <div class="field span-2" [class.err]="invalid(variant.controls['shippingTier'])">
+                  <label [for]="'v-tier-' + i">Cấp vận chuyển <span class="req">*</span></label>
+                  <select class="input" [id]="'v-tier-' + i" formControlName="shippingTier">
+                    <option [ngValue]="null">Chọn cấp</option>
+                    @for (t of tiers; track t) {
+                      <option [ngValue]="t">{{ tierInfo[t] }}</option>
+                    }
+                  </select>
+                  @if (suggestedTier(variant); as tier) {
+                    @if (tier !== variant.value.shippingTier) {
+                      <span class="hint">
+                        Gợi ý theo kích thước: <strong>Cấp {{ tier }}</strong>
+                        <button type="button" class="btn-link" (click)="applyTier(variant, tier)">Áp dụng</button>
+                      </span>
+                    }
+                  }
+                </div>
+                @if (variant.value.id) {
+                  <div class="field">
+                    <span class="label">Tồn kho</span>
+                    <span class="static tabular">{{ variant.value.stockQuantity | num }} <span class="hint">· đổi ở Nhập kho</span></span>
+                  </div>
+                } @else {
+                  <div class="field">
+                    <label [for]="'v-stock-' + i">Tồn kho ban đầu</label>
+                    <input class="input num" type="number" min="0" [id]="'v-stock-' + i" formControlName="stockQuantity" />
+                  </div>
+                }
+                <div class="field">
+                  <label [for]="'v-inst-' + i">Lắp đặt</label>
+                  <select class="input" [id]="'v-inst-' + i" formControlName="installationService" [attr.disabled]="variant.value.shippingTier >= 3 ? null : ''">
+                    <option value="NONE">Không có</option>
+                    <option value="OPTIONAL">Tùy chọn</option>
+                    <option value="REQUIRED">Bắt buộc</option>
+                  </select>
+                  @if (variant.value.shippingTier < 3) {
+                    <span class="hint">Chỉ cấp 3–4 (đội xe lắp)</span>
+                  }
+                </div>
+                @if (variant.value.installationService !== 'NONE') {
+                  <div class="field" [class.err]="!variant.value.installationFee && submitted()">
+                    <label [for]="'v-fee-' + i">Phí lắp đặt (đ) <span class="req">*</span></label>
+                    <input class="input num" type="number" min="0" step="10000" [id]="'v-fee-' + i" formControlName="installationFee" />
+                  </div>
+                }
+              </div>
+
+              <div class="packages" formArrayName="packages">
+                <div class="pk-head">
+                  <span class="label">Kiện hàng ({{ packagesOf(variant).length }})</span>
+                  <button type="button" class="btn-link" (click)="addPackage(variant)">+ Thêm kiện</button>
+                </div>
+                @for (pkg of packagesOf(variant).controls; track pkg; let k = $index) {
+                  <div class="pk-row" [formGroupName]="k">
+                    <input class="input" aria-label="Tên kiện" [placeholder]="'Kiện ' + (k + 1)" formControlName="name" />
+                    <input class="input num" type="number" min="1" aria-label="Dài (cm)" placeholder="D" formControlName="length" />
+                    <input class="input num" type="number" min="1" aria-label="Rộng (cm)" placeholder="R" formControlName="width" />
+                    <input class="input num" type="number" min="1" aria-label="Cao (cm)" placeholder="C" formControlName="height" />
+                    <input class="input num" type="number" min="0" step="0.1" aria-label="Cân nặng (kg)" placeholder="kg" formControlName="weight" />
+                    <button type="button" class="btn btn-icon" [attr.aria-label]="'Xóa kiện ' + (k + 1)" (click)="removePackage(variant, k)">
+                      <app-icon name="x" [small]="true" />
+                    </button>
+                  </div>
+                } @empty {
+                  <p class="hint">Chưa có kiện. Cần ít nhất một kiện để lên kệ và dùng cho tính năng Fit your home.</p>
+                }
+              </div>
+            </fieldset>
+          }
+        </div>
+        <button type="button" class="btn add" (click)="addVariant()">+ Thêm biến thể</button>
+      </section>
+
+      <!-- 4. Ảnh & 3D -->
+      <section class="card" aria-labelledby="s-media">
+        <div class="card-head">
+          <h2 id="s-media" class="section-label">Ảnh &amp; model 3D</h2>
+          <span class="hint">Ảnh đầu tiên là ảnh đại diện</span>
+        </div>
+        <div class="gallery">
+          @for (url of form.controls.images.value; track url; let i = $index; let first = $first; let last = $last) {
+            <figure class="tile">
+              <img [src]="url" [alt]="'Ảnh ' + (i + 1)" loading="lazy" />
+              @if (first) {
+                <span class="badge b-info main-tag">Ảnh chính</span>
+              }
+              <div class="tile-tools">
+                <button type="button" [disabled]="first" aria-label="Đưa lên trước" (click)="moveImage(i, -1)">←</button>
+                <button type="button" [disabled]="last" aria-label="Đưa ra sau" (click)="moveImage(i, 1)">→</button>
+                <button type="button" aria-label="Xóa ảnh" (click)="removeImage(i)">×</button>
+              </div>
+            </figure>
+          }
+          <label class="drop" [class.busy]="uploading()">
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="upload($any($event.target).files); $any($event.target).value = ''" />
+            <app-icon name="plus" />
+            <span>{{ uploading() ? 'Đang tải ' + uploading() + ' ảnh…' : 'Tải ảnh lên' }}</span>
+            <small>JPG, PNG, WebP ≤ 5 MB</small>
+          </label>
+        </div>
+        <div class="grid">
+          <div class="field span-2">
+            <label for="f-url">Hoặc dán đường dẫn ảnh</label>
+            <div class="inline">
+              <input #urlInput id="f-url" class="input" placeholder="https://…" (keydown.enter)="$event.preventDefault(); addImageUrl(urlInput)" />
+              <button type="button" class="btn" (click)="addImageUrl(urlInput)">Thêm</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-3d">Model 3D (.glb, tùy chọn)</label>
+            <input id="f-3d" class="input" formControlName="model3d" placeholder="/uploads/models/ten.glb" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Bộ phận trong hộp -->
+      <section class="card" aria-labelledby="s-parts">
+        <div class="card-head">
+          <h2 id="s-parts" class="section-label">Bộ phận trong hộp ({{ parts.length }})</h2>
+          <button type="button" class="btn-link" (click)="addPart()">+ Thêm bộ phận</button>
+        </div>
+        <div formArrayName="parts" class="parts">
+          @for (part of parts.controls; track part; let i = $index) {
+            <div class="part-row" [formGroupName]="i">
+              <input class="input" aria-label="Tên bộ phận" placeholder="Mặt ghế" formControlName="name" [class.bad]="invalid(part.controls['name'])" />
+              <input class="input num" type="number" min="1" aria-label="Số lượng" formControlName="quantity" />
+              <label class="check"><input type="checkbox" formControlName="isDetachable" /> Tháo rời được</label>
+              <button type="button" class="btn btn-icon" [attr.aria-label]="'Xóa bộ phận ' + (i + 1)" (click)="parts.removeAt(i)">
+                <app-icon name="x" [small]="true" />
+              </button>
+            </div>
+          } @empty {
+            <p class="hint">Không bắt buộc. Liệt kê chi tiết đi kèm (chân, gối, tay vịn…) để khách kiểm tra khi nhận hàng.</p>
+          }
+        </div>
+      </section>
+
+      <!-- 6. Bảo hành & SEO -->
+      <section class="card" aria-labelledby="s-seo">
+        <h2 id="s-seo" class="section-label">Bảo hành &amp; SEO</h2>
+        <div class="grid">
+          <div class="field" [class.err]="invalid(form.controls.warrantyMonths)">
+            <label for="f-wm">Bảo hành (tháng) <span class="req">*</span></label>
+            <input id="f-wm" class="input num" type="number" min="0" max="120" formControlName="warrantyMonths" />
+          </div>
+          <div class="field span-2">
+            <label for="f-wt">Điều kiện bảo hành</label>
+            <textarea id="f-wt" class="input" rows="3" formControlName="warrantyTerms" placeholder="Bảo hành khung gỗ, không áp dụng vải bọc bị rách do sử dụng…"></textarea>
+          </div>
+          <div class="field">
+            <label for="f-st">Tiêu đề SEO</label>
+            <input id="f-st" class="input" formControlName="seoTitle" maxlength="70" />
+            <span class="hint tabular">{{ form.controls.seoTitle.value.length }}/70</span>
+          </div>
+          <div class="field span-2">
+            <label for="f-sd">Mô tả SEO</label>
+            <input id="f-sd" class="input" formControlName="seoDescription" maxlength="170" />
+            <span class="hint tabular">{{ form.controls.seoDescription.value.length }}/170</span>
+          </div>
+          <div class="serp span-3" aria-label="Xem trước trên Google">
+            <span class="serp-url">caraveso.vn › san-pham</span>
+            <span class="serp-title">{{ form.controls.seoTitle.value || form.controls.name.value || 'Tiêu đề sản phẩm' }}</span>
+            <span class="serp-desc">{{ form.controls.seoDescription.value || form.controls.shortDescription.value || 'Mô tả ngắn hiển thị trên kết quả tìm kiếm.' }}</span>
+          </div>
+        </div>
+      </section>
+    </form>
+  </main>
+
+  <aside class="aside" aria-label="Điều kiện lên kệ và lưu">
+    <section class="ov-block sticky">
+      <h2 class="section-label">Điều kiện lên kệ</h2>
+      <ul class="checklist">
+        @for (item of checklist(); track item.label) {
+          <li [class.ok]="item.ok">
+            <span class="mark" aria-hidden="true">
+              @if (item.ok) {
+                <app-icon name="check" [small]="true" />
+              }
+            </span>
+            <span>{{ item.label }}</span>
+            <span class="sr-only">{{ item.ok ? 'đã đạt' : 'chưa đạt' }}</span>
+          </li>
+        }
+      </ul>
+      <dl class="summary">
+        <div><dt>Biến thể</dt><dd class="tabular">{{ variants.length }}</dd></div>
+        <div>
+          <dt>Giá bán</dt>
+          <dd class="tabular">
+            @if (priceRange(); as r) {
+              {{ r.min | vnd }}{{ r.max > r.min ? ' – ' + (r.max | vnd) : '' }}
+            } @else {
+              —
+            }
+          </dd>
+        </div>
+        <div><dt>Ảnh</dt><dd class="tabular">{{ form.controls.images.value.length }}</dd></div>
+      </dl>
+
+      @if (error()) {
+        <div class="alert-box" role="alert">{{ error() }}</div>
+      }
+
+      <div class="actions">
+        @if (product()?.status === 'ACTIVE') {
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(false)">
+            {{ saving() ? 'Đang lưu…' : 'Lưu thay đổi' }}
+          </button>
+          <button type="button" class="btn" [disabled]="saving()" (click)="setStatus('HIDDEN')">Ẩn khỏi cửa hàng</button>
+        } @else {
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(true)" [title]="readyToList() ? '' : 'Hoàn thành danh sách điều kiện trước'">
+            {{ saving() ? 'Đang lưu…' : 'Lưu & lên kệ' }}
+          </button>
+          <button type="button" class="btn" [disabled]="saving()" (click)="save(false)">
+            {{ product() ? 'Lưu (giữ trạng thái)' : 'Lưu nháp' }}
+          </button>
+        }
+        <a class="btn ghost" routerLink="/san-pham">Hủy</a>
+      </div>
+    </section>
+  </aside>
+</div>

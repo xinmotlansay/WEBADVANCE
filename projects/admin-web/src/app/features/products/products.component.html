@@ -1,0 +1,303 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Sản phẩm</h1>
+        @if (products.value(); as result) {
+          <p class="page-sub">{{ result.meta.total | num }} sản phẩm{{ hasFilters() ? ' khớp bộ lọc' : '' }}</p>
+        }
+      </div>
+      <div class="head-tools">
+        <label class="search">
+          <span class="sr-only">Tìm theo tên hoặc SKU</span>
+          <app-icon name="search" [small]="true" />
+          <input
+            type="search"
+            placeholder="Tên hoặc SKU 100.001.01"
+            [value]="searchText()"
+            (input)="onSearch($any($event.target).value)"
+          />
+        </label>
+        <app-notification-bell [items]="bell()" (picked)="applyAlert($event)" />
+        <a class="btn btn-primary" routerLink="/san-pham/them">
+          <app-icon name="plus" [small]="true" />
+          Thêm sản phẩm
+        </a>
+      </div>
+    </header>
+
+    <div class="filters chips">
+      <app-filter-chip label="Trạng thái" [options]="statusOptions()" [selected]="statusFilter()" (selectedChange)="setFilter('status', $event)" />
+      <app-filter-chip label="Danh mục" [multiple]="false" [options]="categoryOptions()" [selected]="categoryFilter()" (selectedChange)="setFilter('category', $event)" />
+      <app-filter-chip label="Phòng" [multiple]="false" [options]="roomOptions()" [selected]="roomFilter()" (selectedChange)="setFilter('room', $event)" />
+      <app-filter-chip label="Tồn kho" [multiple]="false" [options]="stockOptions" [selected]="stockFilter()" (selectedChange)="setFilter('stock', $event)" />
+      @if (hasFilters()) {
+        <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+      }
+    </div>
+
+    <section class="list" aria-label="Danh sách sản phẩm">
+      @if (openProduct(); as current) {
+        <app-product-popup
+          [productId]="current.id"
+          [productName]="current.name"
+          (closed)="openProduct.set(null)"
+          (changed)="refresh()"
+          (importStock)="openImport([$event])"
+        />
+      }
+
+      @if (products.error()) {
+        <div class="alert-box" role="alert">
+          Không tải được danh sách sản phẩm.
+          <button type="button" class="btn" (click)="products.reload()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col" class="check">
+                  <input type="checkbox" aria-label="Chọn tất cả sản phẩm trong trang" [checked]="allChecked()" [disabled]="!rows().length" (change)="toggleAll()" />
+                </th>
+                <th scope="col">
+                  <button type="button" class="th-sort" [class.on]="sortIcon('name')" (click)="toggleSort('name')">
+                    Sản phẩm
+                    @if (sortIcon('name'); as icon) {
+                      <app-icon [name]="icon" [small]="true" />
+                    }
+                  </button>
+                </th>
+                <th scope="col">SKU</th>
+                <th scope="col">Danh mục</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Cấp VC</th>
+                <th scope="col" class="num">
+                  <button type="button" class="th-sort" [class.on]="sortIcon('price')" (click)="toggleSort('price')">
+                    Giá bán
+                    @if (sortIcon('price'); as icon) {
+                      <app-icon [name]="icon" [small]="true" />
+                    }
+                  </button>
+                </th>
+                <th scope="col" class="num">
+                  <button type="button" class="th-sort" [class.on]="sortIcon('stock')" (click)="toggleSort('stock')">
+                    Tồn
+                    @if (sortIcon('stock'); as icon) {
+                      <app-icon [name]="icon" [small]="true" />
+                    }
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (products.isLoading() && !products.value()) {
+                @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+                  <tr aria-hidden="true">
+                    <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                    <td><span class="skeleton" style="width: 180px"></span></td>
+                    <td><span class="skeleton" style="width: 60px"></span></td>
+                    <td><span class="skeleton" style="width: 70px"></span></td>
+                    <td><span class="skeleton" style="width: 70px"></span></td>
+                    <td><span class="skeleton" style="width: 50px"></span></td>
+                    <td><span class="skeleton" style="width: 90px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                  </tr>
+                }
+              } @else {
+                @for (row of rows(); track row.id) {
+                  <tr [class.selected]="selected().has(row.id)">
+                    <td class="check">
+                      <input type="checkbox" [attr.aria-label]="'Chọn ' + row.name" [checked]="selected().has(row.id)" (change)="toggleRow(row.id)" />
+                    </td>
+                    <td>
+                      <div class="product">
+                        @if (row.thumbnail) {
+                          <img class="thumb" [src]="row.thumbnail" alt="" loading="lazy" />
+                        } @else {
+                          <span class="thumb" aria-hidden="true"></span>
+                        }
+                        <button type="button" class="cell-link name" (click)="openProduct.set({ id: row.id, name: row.name })">{{ row.name }}</button>
+                      </div>
+                    </td>
+                    <td class="tabular">{{ row.productCode }}</td>
+                    <td>{{ row.category ?? '—' }}</td>
+                    <td><span [class]="toneClass(productStatus[row.status])">{{ productStatus[row.status]?.label ?? row.status }}</span></td>
+                    <td>
+                      @if (row.shippingTier) {
+                        <span class="badge b-info">Cấp {{ row.shippingTier }}</span>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td class="num">
+                      @if (row.variantCount > 1) {
+                        <span class="muted from">từ</span>
+                      }
+                      {{ row.priceFrom | vnd }}
+                    </td>
+                    <td class="num">
+                      <span class="stock" [class.low]="row.stockState === 'LOW'" [class.out]="row.stockState === 'OUT'">
+                        {{ row.totalStock | num }}
+                      </span>
+                      @if (row.stockState !== 'OK') {
+                        <span class="sr-only">{{ stockState[row.stockState].label }}</span>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8">
+                      <div class="state">
+                        @if (hasFilters()) {
+                          <p>Không tìm thấy kết quả.</p>
+                          <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                        } @else {
+                          <p>Chưa có sản phẩm nào trong hệ thống.</p>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (products.value(); as result) {
+          @if (result.meta.total > 0) {
+            <nav class="pager" aria-label="Phân trang sản phẩm">
+              <span>
+                {{ (result.meta.page - 1) * result.meta.limit + 1 }}–{{ (result.meta.page - 1) * result.meta.limit + result.data.length }}
+                trong {{ result.meta.total | num }} sản phẩm
+              </span>
+              @if (result.meta.totalPages > 1) {
+                <div class="pager-btns">
+                  <button type="button" class="btn" [disabled]="result.meta.page <= 1" (click)="goPage(result.meta.page - 1)">Trang trước</button>
+                  <span class="tabular page-no">{{ result.meta.page }} / {{ result.meta.totalPages }}</span>
+                  <button type="button" class="btn" [disabled]="result.meta.page >= result.meta.totalPages" (click)="goPage(result.meta.page + 1)">Trang sau</button>
+                </div>
+              }
+            </nav>
+          }
+        }
+      }
+    </section>
+
+    @if (selected().size) {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        <button type="button" class="btn btn-accent" (click)="importSelected()">Nhập kho</button>
+        <button type="button" class="bulk-btn" [disabled]="bulkBusy()" (click)="hidingSelected.set(true)">Ẩn</button>
+        <button type="button" class="bulk-btn" (click)="exportSelected()">Xuất</button>
+      </app-bulk-bar>
+    }
+  </main>
+
+  <aside class="aside" aria-label="Dashboard sản phẩm">
+    @if (dashboard.error() && !dashboard.value()) {
+      <section class="ov-block">
+        <div class="alert-box" role="alert">
+          Không tải được số liệu.
+          <button type="button" class="btn" (click)="dashboard.reload()">Thử lại</button>
+        </div>
+      </section>
+    } @else if (dashboard.value()) {
+      @let data = dashboard.value()!;
+      <section class="ov-block">
+        <h2 class="section-label">Tổng sản phẩm</h2>
+        <p class="hero-num">{{ data.totalProducts | num }}</p>
+        <p class="hero-sub muted">{{ data.categoryCount | num }} danh mục · {{ data.variantCount | num }} biến thể đang bán</p>
+        <div class="bar stack" role="img" [attr.aria-label]="'Tỷ lệ trạng thái sản phẩm'">
+          @for (part of statusStack(); track part.key) {
+            @if (part.count) {
+              <span [class]="part.cls" [style.width.%]="part.width"></span>
+            }
+          }
+        </div>
+        <div class="legend">
+          @for (part of statusStack(); track part.key) {
+            <span><strong>{{ part.count | num }}</strong> {{ part.label }}</span>
+          }
+        </div>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Cảnh báo tồn kho</h2>
+        <ul class="alerts">
+          <li>
+            <button type="button" (click)="applyAlert('LOW')">
+              <span><strong>Sắp hết hàng</strong><small>Dưới ngưỡng cảnh báo</small></span>
+              <span class="badge" [class.b-attn]="data.alerts.lowStock" [class.b-neutral]="!data.alerts.lowStock">{{ data.alerts.lowStock | num }}</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" (click)="applyAlert('OUT')">
+              <span><strong>Hết hàng</strong><small>Cần nhập gấp</small></span>
+              <span class="badge" [class.b-danger]="data.alerts.outOfStock" [class.b-neutral]="!data.alerts.outOfStock">{{ data.alerts.outOfStock | num }}</span>
+            </button>
+          </li>
+          <li class="static">
+            <span><strong>Đánh giá bị báo cáo</strong><small>Chờ kiểm duyệt</small></span>
+            <span class="badge b-neutral">{{ data.alerts.reportedReviews | num }}</span>
+          </li>
+          <li>
+            <button type="button" (click)="applyAlert('DRAFT')">
+              <span><strong>Nháp chưa lên kệ</strong><small>Thiếu ảnh, giá hoặc kiện</small></span>
+              <span class="badge b-neutral">{{ data.alerts.incomplete | num }}</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Tổng quan · 30 ngày</h2>
+        <dl class="grid2">
+          <div><dt>Đã bán (giao thành công)</dt><dd class="tabular">{{ data.last30Days.soldQuantity | num }}</dd></div>
+          <div>
+            <dt>Đánh giá TB</dt>
+            <dd class="tabular">{{ ratingLabel(data.last30Days.averageRating) }}</dd>
+          </div>
+          <div><dt>Nhãn Bán chạy</dt><dd class="tabular">{{ data.last30Days.bestSellers | num }}</dd></div>
+          <div><dt>Nhãn Hàng mới</dt><dd class="tabular">{{ data.last30Days.newProducts | num }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Bán chạy</h2>
+        <p class="caption">Số lượng đặt, 30 ngày gần nhất</p>
+        <ul class="rank">
+          @for (product of data.topSelling; track product.productId; let first = $first) {
+            <li>
+              <span class="name">{{ product.name }}</span>
+              <strong>{{ product.quantity | num }}</strong>
+              <span class="bar"><span [class.accent]="first" [style.width.%]="(product.quantity / topMax()) * 100"></span></span>
+            </li>
+          } @empty {
+            <li class="muted">Chưa có sản phẩm bán ra trong 30 ngày.</li>
+          }
+        </ul>
+      </section>
+    } @else {
+      <section class="ov-block" aria-hidden="true">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 60%; height: 48px; margin: 12px 0"></span>
+        <span class="skeleton"></span>
+      </section>
+    }
+  </aside>
+</div>
+
+@if (importIds(); as ids) {
+  <app-stock-import-dialog [productIds]="ids" (done)="onImported()" (cancelled)="importIds.set(null)" />
+}
+
+@if (hidingSelected()) {
+  <app-confirm-dialog
+    [title]="'Ẩn ' + selected().size + ' sản phẩm?'"
+    message="Sản phẩm bị ẩn sẽ không hiện trên cửa hàng và khách không đặt mua được. Có thể hiện lại bất cứ lúc nào từ popup chi tiết."
+    confirmLabel="Ẩn sản phẩm"
+    [busy]="bulkBusy()"
+    (confirmed)="hideSelected()"
+    (cancelled)="hidingSelected.set(false)"
+  />
+}

@@ -22,7 +22,7 @@ export const ROLE_LABELS: Record<string, string> = {
 export const ADMIN_NAV: Record<string, NavItem[]> = {
   [RoleName.SUPER_ADMIN]: [
     { label: 'Tổng quan', icon: 'home', path: '/' },
-    { label: 'Sản phẩm & tồn kho', icon: 'box', path: null },
+    { label: 'Sản phẩm & tồn kho', icon: 'box', path: '/san-pham' },
     { label: 'Danh mục', icon: 'layers', path: null },
     { label: 'Kiểm duyệt đánh giá', icon: 'star', path: null },
     { label: 'Đơn hàng', icon: 'bag', path: null },
@@ -38,9 +38,8 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Nhật ký & cấu hình', icon: 'log', path: null },
   ],
   [RoleName.PRODUCT_ADMIN]: [
-    { label: 'Dashboard sản phẩm', icon: 'home', path: '/' },
-    { label: 'Sản phẩm', icon: 'box', path: null },
-    { label: 'Thêm sản phẩm', icon: 'plus', path: null },
+    { label: 'Sản phẩm', icon: 'box', path: '/' },
+    { label: 'Thêm sản phẩm', icon: 'plus', path: '/san-pham/them' },
     { label: 'Danh mục & gợi ý phòng', icon: 'layers', path: null },
     { label: 'Tồn kho', icon: 'bag', path: null },
     { label: 'Cấp độ vận chuyển', icon: 'truck', path: null },

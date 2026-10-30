@@ -1,0 +1,170 @@
+:host {
+  display: contents;
+}
+
+.loading {
+  display: grid;
+  gap: 12px;
+}
+
+.info {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cv-border);
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.info p {
+  margin: 0;
+}
+
+.missing {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--cv-warn-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-warn-bg);
+  color: var(--cv-warn-text);
+  font-size: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.tabs button {
+  margin-bottom: -1px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--cv-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: var(--cv-navy);
+  color: var(--cv-navy);
+  font-weight: 600;
+}
+
+.tab-body {
+  min-height: 150px;
+  padding-top: 12px;
+}
+
+.lines {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lines li.off {
+  opacity: 0.55;
+}
+
+.line-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.line-name {
+  font-weight: 500;
+}
+
+.line-sub {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.line-sub.low {
+  color: var(--cv-attn-text);
+}
+
+.line-sub.out {
+  color: var(--cv-danger-text);
+}
+
+.lines strong {
+  font-weight: 600;
+}
+
+.pkg-group {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--cv-border);
+}
+
+.pkg-group:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.pkg-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pkg {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pkg-group p {
+  margin: 0;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.gallery img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface-alt);
+}
+
+.models {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cv-border);
+  font-size: 14px;
+}
+
+.total strong {
+  font-weight: 600;
+}
+
+.grow {
+  flex: 1;
+}

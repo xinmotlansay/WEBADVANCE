@@ -149,7 +149,8 @@
               }
             ],
             "styles": [
-              "projects/admin-web/src/styles.css"
+              "projects/admin-web/src/styles.css",
+              "projects/admin-web/src/admin-ui.css"
             ],
             "polyfills": [
               "zone.js"

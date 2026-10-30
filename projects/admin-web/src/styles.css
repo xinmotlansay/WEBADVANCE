@@ -26,6 +26,22 @@
   --cv-warn-border: #f3c98b;
   --cv-warn-text: #7a4100;
 
+  /* Badge trạng thái (mục 2): nền nhạt + chữ đậm cùng sắc */
+  --cv-ok-bg: #e2f4ea;
+  --cv-ok-text: #1b6b3f;
+  --cv-attn-bg: #fff1db;
+  --cv-attn-text: #8a4b00;
+  --cv-info-bg: #e3eef9;
+  --cv-neutral-bg: #f1f1f4;
+  --cv-neutral-text: #4a5568;
+  --cv-up: #1b7a46;
+  --cv-down: #b42318;
+  --cv-chip-dash: #afc0d2;
+  --cv-line-soft: #eef3f8;
+  --cv-bar-muted: #c9d9ea;
+  --cv-initials-bg: #e3edf7;
+  --cv-shadow: 0 16px 40px rgba(11, 48, 86, 0.2);
+
   --cv-radius-sm: 4px;
   --cv-radius: 6px;
   --cv-radius-lg: 8px;

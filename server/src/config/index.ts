@@ -25,7 +25,11 @@ export const config = {
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
   otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
-  allowedOrigins: (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:4200,http://localhost:4201')
+  allowedOrigins: (
+    process.env['ALLOWED_ORIGINS'] ??
+    // README chạy dev bằng `--host 127.0.0.1`, nên cho phép cả hai dạng host.
+    'http://localhost:4200,http://localhost:4201,http://127.0.0.1:4200,http://127.0.0.1:4201'
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
