@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { classifyTransfer, extractTransferContent } from './bank-transfer.service.js';
 import type { OrderDoc } from './order.model.js';
+import { heldAmount } from './order.service.js';
 
 const dueAt = new Date('2026-10-17T10:15:00Z');
 const before = new Date('2026-10-17T10:07:00Z');
@@ -48,5 +49,26 @@ test('sau hạn hoặc đơn đã hủy là trễ; đơn đã nhận tiền thì
   assert.equal(
     classifyTransfer(order({ status: 'PENDING_CONFIRMATION' }), 30_000_000, before),
     'OVERPAID',
+  );
+});
+
+test('hủy đơn chỉ hoàn phần tiền chưa có lệnh hoàn', () => {
+  assert.equal(heldAmount([]), 0);
+  // Đã trả đủ, sau đó chuyển thừa 1tr (đã tạo lệnh hoàn ngay khi nhận).
+  assert.equal(
+    heldAmount([
+      { type: 'FULL_PAYMENT', amount: 30_000_000 },
+      { type: 'FULL_PAYMENT', amount: 1_000_000 },
+      { type: 'REFUND', amount: 1_000_000 },
+    ]),
+    30_000_000,
+  );
+  // Chuyển thiếu rồi hết hạn: khoản thiếu đã hoàn khi nhận, không hoàn lần hai.
+  assert.equal(
+    heldAmount([
+      { type: 'FULL_PAYMENT', amount: 29_000_000 },
+      { type: 'REFUND', amount: 29_000_000 },
+    ]),
+    0,
   );
 });

@@ -173,7 +173,7 @@ sequenceDiagram
 8. **Sau khi tạo đơn**:
    - COD: đơn `PENDING_CONFIRMATION` / thanh toán `UNPAID` → trang **Đặt hàng thành công**.
    - QR (toàn bộ hoặc cọc): đơn `PENDING_PAYMENT` / `PENDING` → trang **Thanh toán QR** đếm ngược 15 phút.
-9. **Thanh toán QR**: khách quét mã chuyển đúng số tiền và nội dung. Ngân hàng gọi webhook → server đối chiếu → đơn `PENDING_CONFIRMATION`, thanh toán `PAID`/`DEPOSITED` → socket `order:payment-updated` → trang QR tự chuyển sang **Thanh toán thành công**.
+9. **Thanh toán QR**: khách quét mã chuyển đúng số tiền và nội dung. Ngân hàng gọi webhook → server đối chiếu → đơn `PENDING_CONFIRMATION`, thanh toán `PAID`/`DEPOSITED` → trang QR (polling `GET /orders/:id/payment` mỗi 5 giây) tự chuyển sang **Thanh toán thành công**. Chuyển thiếu, thừa hoặc trễ: đơn không đổi trạng thái, server tạo ngay lệnh hoàn (`REFUND`, `PENDING`) cho khoản đó để Order Admin chuyển trả.
 10. **Hết 15 phút chưa nhận tiền** hoặc **khách bấm Hủy đơn** ở trang QR: đơn `CANCELLED`, trả tồn kho, hoàn lượt voucher, trả dòng vào giỏ nếu nguồn `CART`; trang QR báo kết quả và đưa khách về trang trước.
 
 ### 3.3. Quy tắc chọn phương thức thanh toán
@@ -223,21 +223,21 @@ sequenceDiagram
   API->>DB: Transaction: kiểm giá/tồn/voucher, trừ tồn (SALE),<br/>tạo order + shipment + voucher_usage, xóa dòng giỏ
   API-->>FE: 201 { orderCode, payment.qr, dueAt }
   FE->>K: QR, số tiền, nội dung CK, đếm ngược
-  FE->>API: Nghe socket room user:<id> (dự phòng polling GET /orders/:id/payment mỗi 5s)
+  FE->>API: Polling GET /orders/:id/payment mỗi 5s
 
   alt Chuyển khoản đúng, trong hạn
     K->>BANK: Chuyển khoản
     BANK->>API: POST /webhooks/bank-transfer (secret)
     API->>DB: Idempotent theo bankTransactionCode → payment_transactions MATCHED,<br/>payment PAID/DEPOSITED, order PENDING_CONFIRMATION
-    API-->>FE: socket order:payment-updated
+    FE->>API: Lần polling kế tiếp thấy paid
     FE->>K: Thanh toán thành công
   else Sai nội dung / thiếu / thừa / trễ
     BANK->>API: POST /webhooks/bank-transfer
-    API->>DB: Lưu giao dịch WRONG_CONTENT/UNDERPAID/OVERPAID/LATE → đối soát OA-08
+    API->>DB: Lưu giao dịch WRONG_CONTENT/UNDERPAID/OVERPAID/LATE → đối soát OA-08<br/>Thiếu/thừa/trễ: tạo luôn REFUND PENDING bằng số tiền nhận
     Note over FE: Đơn vẫn PENDING_PAYMENT; khách liên hệ CSKH kèm mã đơn
   else Hết 15 phút
     JOB->>DB: Mỗi phút: đơn PENDING_PAYMENT quá dueAt → CANCELLED (SYSTEM),<br/>trả tồn kho, hoàn lượt voucher, trả dòng vào giỏ nếu source CART
-    API-->>FE: socket order:payment-updated (expired)
+    FE->>API: Polling thấy expired (GET cũng tự hủy nếu job chưa quét)
     FE->>K: Báo hết hạn, quay lại trang trước
   end
 ```
@@ -269,7 +269,8 @@ stateDiagram-v2
 | Đơn > 20tr chọn COD | Client chặn trước; server `409 DEPOSIT_REQUIRED` | Lựa chọn COD khóa, ghi chú bắt buộc cọc 30% |
 | Bấm Đặt hàng 2 lần / mạng chập chờn | `Idempotency-Key` | Nút khóa khi đang gửi; gửi lại cùng key trả cùng đơn |
 | Rời trang QR rồi quay lại | `GET /orders/:id/payment` | Mở lại trang QR với thời gian còn lại theo server |
-| Chuyển khoản sai nội dung/số tiền | Webhook | Không tự cập nhật; trang QR gợi ý liên hệ CSKH kèm mã đơn |
+| Chuyển khoản sai nội dung/số tiền | Webhook | Không tự cập nhật; trang QR gợi ý liên hệ CSKH kèm mã đơn. Thiếu/thừa/trễ thì hệ thống tạo lệnh hoàn khoản đó; sai nội dung thì Order Admin đối soát tay |
+| Đơn bị hủy khi đã nhận tiền | Hủy đơn (khách / hết hạn) | Tạo lệnh hoàn phần tiền còn giữ (đã nhận − đã có lệnh hoàn) |
 
 ---
 
@@ -493,6 +494,21 @@ Bước 1–4 đã xong trên nhánh `feature/cart` (2026-10-22).
 3. Thêm sản phẩm vào giỏ hoặc bấm Mua ngay trên thẻ sản phẩm → Thanh toán → Đặt hàng.
 4. Đơn QR: lấy nội dung chuyển khoản và số tiền trên trang QR rồi chạy
    `npm run bank:simulate -- <nội dung CK> <số tiền>`. Trang QR tự chuyển sang Thanh toán thành công trong vòng 5 giây. Gửi sai số tiền hoặc sai nội dung để thử các trường hợp đối soát (`UNDERPAID`, `OVERPAID`, `WRONG_CONTENT`).
-5. Test: `npm run test:server` (tính tiền, ngày giao, phương thức thanh toán, đối chiếu chuyển khoản) và `npm run test:web` (quy tắc trang thanh toán).
+5. Test: `npm run test:server` (tính tiền, ngày giao, phương thức thanh toán, đối chiếu chuyển khoản, payload SePay) và `npm run test:web` (quy tắc trang thanh toán).
+
+### 8.1. Demo QR thật bằng SePay
+
+Quét QR bằng app ngân hàng, chuyển thật; SePay báo tiền về qua `POST /api/v1/webhooks/sepay`.
+
+1. **Tài khoản nhận tiền** trong `.env`: `BANK_ID=MB`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER` (tên không dấu, viết hoa). Có giá trị thì ghi đè `payment.bankAccount` trong DB, nên seed không làm mất.
+2. **SePay**: đăng ký tại sepay.vn, liên kết tài khoản ngân hàng ở trên.
+3. **Tunnel** (chỉ khi chạy local): cài ngrok, lấy domain tĩnh miễn phí ở dashboard ngrok, chạy `ngrok http --url=<domain> 3000`.
+4. **Tạo webhook trên SePay**: URL `https://<domain>/api/v1/webhooks/sepay`, sự kiện **Tiền vào**, payload JSON, xác thực **API Key**. Chép key vào `SEPAY_API_KEY` trong `.env` rồi khởi động lại server.
+5. **Thử không mất tiền**: SePay Test mode → tạo tài khoản và webhook test như bước 4 → giả lập giao dịch tiền vào với đúng nội dung CK và số tiền trên trang QR.
+6. **Thử thật**: tạo đơn QR, quét bằng app ngân hàng, chuyển đúng số tiền. Trong khoảng 10 giây trang báo "Đã nhận thanh toán" và sang trang thành công. Xem log gửi webhook ở trang quản trị SePay nếu chậm.
+
+Dự phòng khi mất mạng hoặc tunnel lỗi lúc thuyết trình: chạy `npm run bank:simulate -- <nội dung CK> <số tiền>` như bước 4 ở trên (không cần Internet trừ MongoDB Atlas).
+
+Khi deploy lên Render: bỏ bước 3, đổi URL webhook trên SePay sang domain Render, đặt các biến trên trong Environment của Render. Gói free của Render ngủ sau khoảng 15 phút; mở web trước khi demo để webhook đầu tiên không quá 30 giây (SePay vẫn tự gửi lại nếu quá).
 
 Lưu ý: `npm run seed` xóa sạch các collection; không chạy vào database dùng chung của nhóm.

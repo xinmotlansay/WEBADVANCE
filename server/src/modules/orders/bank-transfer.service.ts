@@ -95,6 +95,23 @@ export async function handleBankTransfer(
         ],
         { session },
       );
+      // Tiền không được ghi nhận cho đơn (thiếu, thừa, trễ): tạo lệnh hoàn để Order Admin chuyển trả.
+      // Sai nội dung thì không biết đơn nào, Order Admin đối soát tay (OA-08).
+      if (order && result !== 'MATCHED') {
+        await PaymentTransactionModel.create(
+          [
+            {
+              orderId: order._id,
+              type: 'REFUND',
+              amount: event.amount,
+              recordSource: 'AUTO',
+              status: 'PENDING',
+              note: `Hoàn giao dịch ${event.transactionCode} (${result})`,
+            },
+          ],
+          { session },
+        );
+      }
       return result;
     });
     // ponytail: chưa có module notifications cho Admin; giao dịch lệch chỉ ghi log, thêm thông báo

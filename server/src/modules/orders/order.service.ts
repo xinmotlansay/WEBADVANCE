@@ -24,7 +24,11 @@ import { StockHistoryModel, type StockChangeType } from '../products/stock-histo
 import { VariantModel } from '../products/variant.model.js';
 import { consumeVoucher, refundVoucherUsage } from '../vouchers/voucher.service.js';
 import { OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
-import { PaymentTransactionModel, type RefundAccount } from './payment-transaction.model.js';
+import {
+  PaymentTransactionModel,
+  type RefundAccount,
+  type TransactionType,
+} from './payment-transaction.model.js';
 import { getItemActions } from './order-history.js';
 import { ShipmentModel } from './shipment.model.js';
 
@@ -380,6 +384,14 @@ async function returnToCart(order: OrderDoc, session: ClientSession): Promise<vo
   await cart.save({ session });
 }
 
+/**
+ * Tiền khách đã chuyển cho đơn mà chưa có lệnh hoàn. Giao dịch lệch (thiếu, thừa, trễ) đã được tạo
+ * lệnh hoàn ngay khi nhận nên chỉ còn lại khoản đã ghi nhận cho đơn.
+ */
+export function heldAmount(transactions: { type: TransactionType; amount: number }[]): number {
+  return transactions.reduce((sum, t) => sum + (t.type === 'REFUND' ? -t.amount : t.amount), 0);
+}
+
 interface CancelActor {
   cancelledBy: 'CUSTOMER' | 'SYSTEM';
   userId: Types.ObjectId | null;
@@ -421,14 +433,19 @@ async function cancelOrder(
     }
     // Hủy hoặc hết hạn thanh toán thì hoàn lượt voucher và trả voucher về ví (FR-37).
     if (before.voucherId) await refundVoucherUsage(session, before._id, now);
-    if (isPaid(before)) {
+    const transactions = await PaymentTransactionModel.find({ orderId: before._id })
+      .select('type amount')
+      .session(session)
+      .lean();
+    const held = heldAmount(transactions);
+    if (held > 0) {
       // Hoàn 100% (kể cả cọc, phí lắp đặt vì chưa lắp) trong 3–7 ngày làm việc; Order Admin xử lý.
       await PaymentTransactionModel.create(
         [
           {
             orderId: before._id,
             type: 'REFUND',
-            amount: amountDue(before),
+            amount: held,
             recordSource: 'AUTO',
             status: 'PENDING',
             refundAccount: actor.refundAccount,
