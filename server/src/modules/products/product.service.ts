@@ -1,5 +1,6 @@
 import type { Types } from 'mongoose';
-import { CategoryModel } from '../categories/category.model.js';
+import { AppError } from '../../utils/app-error.js';
+import { CategoryModel, type CategoryType } from '../categories/category.model.js';
 import {
   buildPromotionIndex,
   calcPromotionDiscount,
@@ -34,7 +35,7 @@ export interface ProductListItem {
 const NEW_BADGE_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function variantStockStatus(variant: VariantDoc): StockStatus {
+export function variantStockStatus(variant: VariantDoc): StockStatus {
   if (variant.stockQuantity <= 0) return 'OUT_OF_STOCK';
   if (variant.stockQuantity <= variant.lowStockThreshold) return 'LOW_STOCK';
   return 'IN_STOCK';
@@ -60,11 +61,14 @@ function resolveBadges(product: ProductDoc, now: Date): Badge[] {
   return badges;
 }
 
-function pickThumbnail(product: ProductDoc): string {
+export function pickThumbnail(product: ProductDoc): string {
   const images = product.media
     .filter((m) => m.type === 'IMAGE')
     .sort((a, b) => a.displayOrder - b.displayOrder);
-  return (images.find((m) => !m.variantId) ?? images[0])?.url ?? '';
+  return (
+    (images.find((m) => m.purpose === 'MAIN') ?? images.find((m) => !m.variantId) ?? images[0])
+      ?.url ?? ''
+  );
 }
 
 function toListItem(
@@ -147,6 +151,10 @@ async function buildCategoryFilter(categoryIds: string[]): Promise<object[]> {
   return [...byType.values()].map((ids) => ({ categoryIds: { $in: ids } }));
 }
 
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function matchesList(item: ProductListItem, variants: VariantDoc[], q: ProductListQuery): boolean {
   if (q.badge && !item.badges.includes(q.badge)) return false;
   if (q.hasPromotion && !item.hasPromotion) return false;
@@ -170,9 +178,12 @@ export async function listProducts(
   q: ProductListQuery,
 ): Promise<{ items: ProductListItem[]; total: number }> {
   const categoryFilter = await buildCategoryFilter(q.categoryIds ?? []);
+  // ponytail: tìm bằng regex trên tên và từ khóa, đổi sang text index khi dữ liệu lớn.
+  const keyword = q.q ? new RegExp(escapeRegex(q.q), 'i') : null;
   const products = await ProductModel.find({
     status: 'ACTIVE',
     ...(categoryFilter.length > 0 ? { $and: categoryFilter } : {}),
+    ...(keyword ? { $or: [{ name: keyword }, { searchKeywords: keyword }] } : {}),
   }).lean();
 
   // Quy mô đồ án (≤ 2.000 sản phẩm): lọc theo giá, nhãn, khuyến mãi và sắp xếp ở bộ nhớ vì giá
@@ -200,5 +211,139 @@ export async function listProducts(
   return {
     items: filtered.slice(start, start + q.limit).map((e) => e.item),
     total: filtered.length,
+  };
+}
+
+export interface VariantPrice {
+  original: number;
+  sale: number;
+  final: number;
+  promotionId: string | null;
+}
+
+export interface ProductDetail {
+  id: string;
+  name: string;
+  slug: string;
+  productCode: string;
+  shortDescription: string;
+  description: string;
+  thumbnail: string;
+  badges: Badge[];
+  tags: string[];
+  categories: { id: string; name: string; slug: string; type: CategoryType }[];
+  warranty: { months: number; terms: string };
+  seo: { title?: string; description?: string };
+  media: {
+    variantId: string | null;
+    type: string;
+    url: string;
+    displayOrder: number;
+    purpose?: string;
+  }[];
+  has3DModel: boolean;
+  parts: {
+    name: string;
+    description: string;
+    quantity: number;
+    image: string;
+    isDetachable: boolean;
+  }[];
+  variants: {
+    id: string;
+    sku: string;
+    color: string;
+    material: string;
+    dimensions: VariantDoc['dimensions'] | null;
+    price: VariantPrice;
+    stockStatus: StockStatus;
+    shippingTier: number | null;
+    installation: { service: VariantDoc['installationService']; fee: number };
+  }[];
+}
+
+/** Giá cuối cùng của từng biến thể sau khuyến mãi đang chạy. */
+export async function priceVariants(
+  product: ProductDoc,
+  variants: VariantDoc[],
+  now = new Date(),
+): Promise<Map<string, VariantPrice>> {
+  const index = buildPromotionIndex(await findRunningPromotions(now));
+  const applied = resolvePromotion(product._id, product.categoryIds, index);
+  return new Map(
+    variants.map((v) => {
+      const discount = applied ? calcPromotionDiscount(v.salePrice, applied) : 0;
+      const price: VariantPrice = {
+        original: v.originalPrice,
+        sale: v.salePrice,
+        final: v.salePrice - discount,
+        promotionId: discount > 0 && applied ? applied.promotion._id.toString() : null,
+      };
+      return [v._id.toString(), price];
+    }),
+  );
+}
+
+/**
+ * FR-18, API Design 5.2. Chưa trả `shippingFee` (chờ module vận chuyển), `ratingSummary` và
+ * `isWishlisted` (chờ module đánh giá và đăng nhập).
+ */
+export async function getProductDetail(slug: string): Promise<ProductDetail> {
+  const product = await ProductModel.findOne({ slug, status: 'ACTIVE' }).lean();
+  if (!product) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy sản phẩm');
+
+  const now = new Date();
+  const [variants, categories] = await Promise.all([
+    VariantModel.find({ productId: product._id, status: 'ACTIVE' }).lean(),
+    CategoryModel.find({ _id: { $in: product.categoryIds }, status: 'VISIBLE' }).lean(),
+  ]);
+  const prices = await priceVariants(product, variants, now);
+
+  return {
+    id: product._id.toString(),
+    name: product.name,
+    slug: product.slug,
+    productCode: product.productCode,
+    shortDescription: product.shortDescription ?? '',
+    description: product.description ?? '',
+    thumbnail: pickThumbnail(product),
+    badges: resolveBadges(product, now),
+    tags: product.tags ?? [],
+    categories: categories.map((c) => ({
+      id: c._id.toString(),
+      name: c.name,
+      slug: c.slug,
+      type: c.type,
+    })),
+    warranty: { months: product.warrantyMonths, terms: product.warrantyTerms ?? '' },
+    seo: product.seo ?? {},
+    media: product.media.map((m) => ({
+      variantId: m.variantId?.toString() ?? null,
+      type: m.type,
+      url: m.url,
+      displayOrder: m.displayOrder,
+      purpose: m.purpose,
+    })),
+    has3DModel: product.media.some((m) => m.type === 'MODEL_3D'),
+    parts: [...(product.parts ?? [])]
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+      .map((p) => ({
+        name: p.name,
+        description: p.description ?? '',
+        quantity: p.quantity,
+        image: p.image ?? '',
+        isDetachable: p.isDetachable,
+      })),
+    variants: variants.map((v) => ({
+      id: v._id.toString(),
+      sku: v.sku,
+      color: v.color ?? '',
+      material: v.material ?? '',
+      dimensions: v.dimensions ?? null,
+      price: prices.get(v._id.toString()) as VariantPrice,
+      stockStatus: variantStockStatus(v),
+      shippingTier: v.shippingTier ?? null,
+      installation: { service: v.installationService, fee: v.installationFee ?? 0 },
+    })),
   };
 }

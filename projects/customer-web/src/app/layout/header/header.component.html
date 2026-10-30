@@ -106,8 +106,11 @@
         <a class="icon-btn" routerLink="/account" aria-label="Tài khoản">
           <app-icon name="lucide:user" [size]="22" />
         </a>
-        <a class="icon-btn" routerLink="/cart" aria-label="Giỏ hàng">
+        <a class="icon-btn cart-link" routerLink="/cart" [attr.aria-label]="cart.label()">
           <app-icon name="lucide:shopping-cart" [size]="22" />
+          @if (cart.count() > 0) {
+            <span class="cart-badge" aria-hidden="true">{{ cart.badge() }}</span>
+          }
         </a>
       </div>
     </div>

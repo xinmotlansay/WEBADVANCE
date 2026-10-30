@@ -1,0 +1,101 @@
+<form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <label class="field field--full">
+    <span>Loại điểm lối đi</span>
+    <span class="select">
+      <select formControlName="type">
+        @for (option of typeOptions; track option[0]) {
+          <option [value]="option[0]">{{ option[1] }}</option>
+        }
+      </select>
+      <app-icon name="lucide:chevron-down" [size]="18" />
+    </span>
+  </label>
+
+  <label class="field field--full">
+    <span>Tên điểm (không bắt buộc)</span>
+    <input type="text" formControlName="label" placeholder="Ví dụ: Cửa căn hộ" maxlength="50" />
+  </label>
+
+  <label class="field">
+    <span>{{ openingLabels()[0] }} (cm)</span>
+    <input
+      type="number"
+      inputmode="numeric"
+      formControlName="width"
+      [attr.aria-invalid]="invalid('width')"
+    />
+    @if (invalid('width')) {
+      <small class="error">Nhập từ 20 đến 1000 cm</small>
+    }
+  </label>
+  <label class="field">
+    <span>{{ openingLabels()[1] }} (cm)</span>
+    <input
+      type="number"
+      inputmode="numeric"
+      formControlName="height"
+      [attr.aria-invalid]="invalid('height')"
+    />
+    @if (invalid('height')) {
+      <small class="error">Nhập từ 20 đến 1000 cm</small>
+    }
+  </label>
+
+  @if (isElevator()) {
+    <label class="field">
+      <span>Cabin rộng (cm)</span>
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="cabinWidth"
+        [attr.aria-invalid]="invalid('cabinWidth')"
+      />
+      @if (invalid('cabinWidth')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Cabin sâu (cm)</span>
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="cabinLength"
+        [attr.aria-invalid]="invalid('cabinLength')"
+      />
+      @if (invalid('cabinLength')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Cabin cao (cm)</span>
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="cabinHeight"
+        [attr.aria-invalid]="invalid('cabinHeight')"
+      />
+      @if (invalid('cabinHeight')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Tải trọng (kg, không bắt buộc)</span>
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="loadCapacityKg"
+        [attr.aria-invalid]="invalid('loadCapacityKg')"
+      />
+      @if (invalid('loadCapacityKg')) {
+        <small class="error">Nhập từ 1 đến 10000 kg</small>
+      }
+    </label>
+  }
+
+  <div class="actions">
+    <button type="submit" class="btn btn--primary">
+      {{ passage() ? 'Lưu điểm' : 'Thêm điểm' }}
+    </button>
+    <button type="button" class="btn" (click)="cancel.emit()">Huỷ</button>
+  </div>
+</form>

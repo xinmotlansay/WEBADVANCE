@@ -1,0 +1,96 @@
+@let line = item();
+<div class="line">
+  @if (selectable()) {
+    <input
+      #selectBox
+      type="checkbox"
+      class="select"
+      [checked]="line.isSelected"
+      [disabled]="blocked() || saving()"
+      [attr.aria-label]="'Chọn ' + line.product.name + ' để thanh toán'"
+      (change)="toggleSelected(selectBox)"
+    />
+  }
+
+  <a class="thumb" [routerLink]="['/products', line.product.slug]">
+    <img [src]="line.product.thumbnail" [alt]="line.product.name" loading="lazy" />
+  </a>
+
+  <div class="body">
+    <div class="head">
+      <a class="name" [routerLink]="['/products', line.product.slug]">{{ line.product.name }}</a>
+      <button
+        type="button"
+        class="remove"
+        [attr.aria-label]="'Xóa ' + line.product.name"
+        [disabled]="saving()"
+        (click)="remove()"
+      >
+        <app-icon name="lucide:trash-2" [size]="20" />
+      </button>
+    </div>
+
+    <button type="button" class="variant" [disabled]="saving()" (click)="changeVariant()">
+      {{ variantText() || 'Chọn phiên bản' }}
+      <app-icon name="lucide:chevron-down" [size]="16" />
+    </button>
+
+    <div class="price">
+      <span class="price__now">{{ line.currentPrice | vnd }}</span>
+      @if (originalPrice(); as original) {
+        <span class="price__old">{{ original | vnd }}</span>
+      }
+      @if (line.variant.stockStatus === 'LOW_STOCK' && !blocked()) {
+        <span class="badge">Sắp hết hàng</span>
+      }
+    </div>
+
+    @if (has('PRICE_CHANGED')) {
+      <p class="msg">Giá đã thay đổi từ {{ line.priceAtAdd | vnd }} khi bạn thêm vào giỏ.</p>
+    }
+    @if (has('VARIANT_UNAVAILABLE')) {
+      <p class="msg msg--error">Phiên bản này đã ngừng bán. Hãy đổi phiên bản khác hoặc xóa.</p>
+    } @else if (has('OUT_OF_STOCK')) {
+      <p class="msg msg--error">Sản phẩm đã hết hàng, chưa thể thanh toán.</p>
+    } @else if (has('EXCEEDS_STOCK')) {
+      <p class="msg msg--error">
+        Chỉ còn {{ line.available }} sản phẩm.
+        <button type="button" class="link" [disabled]="saving()" (click)="reduceToAvailable()">
+          Giảm về {{ line.available }}
+        </button>
+      </p>
+    }
+
+    <div class="controls">
+      <app-quantity-stepper
+        [value]="quantity()"
+        [disabled]="inactive() || saving()"
+        (changed)="changeQuantity($event)"
+      />
+
+      @switch (line.variant.installationService) {
+        @case ('OPTIONAL') {
+          <label class="install">
+            <input
+              #installBox
+              type="checkbox"
+              [checked]="line.hasInstallation"
+              [disabled]="inactive() || saving()"
+              (change)="toggleInstallation(installBox)"
+            />
+            <span>Lắp đặt</span>
+            <span class="muted">+{{ line.variant.unitInstallationFee * quantity() | vnd }}</span>
+          </label>
+        }
+        @case ('REQUIRED') {
+          <span class="install">
+            <span>Bắt buộc lắp đặt</span>
+            <span class="muted">+{{ line.variant.unitInstallationFee * quantity() | vnd }}</span>
+          </span>
+        }
+      }
+
+      <span class="total">{{ line.currentPrice * quantity() | vnd }}</span>
+    </div>
+  </div>
+</div>

@@ -9,7 +9,8 @@
   z-index: 20;
 }
 
-/* Cuộn xuống, rê chuột vào hoặc mở menu thì header đổi sang nền trắng, chữ đen */
+/* Cuộn xuống, rê chuột vào, mở menu hoặc trang nền trắng thì header đổi sang nền trắng, chữ đen */
+:host(.solid),
 :host(.scrolled),
 :host(:hover),
 :host(.menu-open),
@@ -57,6 +58,7 @@
     color 0.3s ease,
     border-color 0.3s ease;
 }
+:host(.solid) .header,
 :host(.scrolled) .header,
 :host(:hover) .header,
 :host(.menu-open) .header,
@@ -193,6 +195,7 @@
     border-color 0.3s ease,
     background 0.3s ease;
 }
+:host(.solid) .search,
 :host(.scrolled) .search,
 :host(:hover) .search,
 :host(.menu-open) .search,
@@ -235,13 +238,14 @@
   gap: var(--tools-gap);
   width: var(--icons-w);
   margin-left: var(--tools-gap);
-  overflow: hidden;
   transition:
     width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     margin-left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.2s ease;
 }
+/* Chỉ cắt khi thu lại cho ô tìm kiếm; bình thường để badge giỏ hàng tràn ra góc icon. */
 :host(.search-open) .icons {
+  overflow: hidden;
   width: 0;
   margin-left: 0;
   opacity: 0;

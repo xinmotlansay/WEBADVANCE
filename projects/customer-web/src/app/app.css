@@ -1,3 +1,8 @@
 :host {
   display: block;
 }
+
+/* Header chung cố định đè lên trang: trang nền trắng chừa chỗ bằng topbar 34px + header 80px + viền 1px. */
+.under-header {
+  padding-top: 115px;
+}

@@ -1,6 +1,15 @@
-<app-header />
-<main>
+@if (!compact()) {
+  <app-header [solid]="solid()" />
+}
+<main [class.under-header]="solid()">
   <router-outlet />
 </main>
 <app-footer />
-<app-floating-actions />
+@if (!compact()) {
+  <app-floating-actions />
+}
+@if (picker.request(); as request) {
+  <app-variant-picker [request]="request" />
+}
+<app-toast />
+<app-confirm />

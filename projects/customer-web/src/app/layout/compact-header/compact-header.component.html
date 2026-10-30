@@ -1,0 +1,27 @@
+<header class="bar">
+  <button type="button" class="icon-btn back" aria-label="Quay lại trang trước" (click)="back()">
+    <app-icon name="lucide:chevron-left" [size]="26" />
+    @if (minimal()) {
+      <span aria-hidden="true">Quay lại</span>
+    }
+  </button>
+
+  <a class="logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+
+  @if (!minimal()) {
+    <nav class="icons" aria-label="Tài khoản">
+      <a class="icon-btn" routerLink="/wishlist" aria-label="Yêu thích">
+        <app-icon name="lucide:heart" [size]="22" />
+      </a>
+      <a class="icon-btn" routerLink="/account" aria-label="Tài khoản">
+        <app-icon name="lucide:user" [size]="22" />
+      </a>
+      <a class="icon-btn cart-link" routerLink="/cart" [attr.aria-label]="cart.label()">
+        <app-icon name="lucide:shopping-cart" [size]="22" />
+        @if (cart.count() > 0) {
+          <span class="cart-badge" aria-hidden="true">{{ cart.badge() }}</span>
+        }
+      </a>
+    </nav>
+  }
+</header>

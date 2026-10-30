@@ -4,6 +4,7 @@ import {
   ElementRef,
   effect,
   inject,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
@@ -11,6 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { CatalogApiService, type Category } from 'shared';
 import { catchError, of } from 'rxjs';
+import { CartStore } from '../../core/cart/cart.store';
 import { SearchUiService } from '../../core/search/search-ui.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 
@@ -23,6 +25,7 @@ const SCROLL_THRESHOLD = 24;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.scrolled]': 'scrolled()',
+    '[class.solid]': 'solid()',
     '[class.menu-open]': 'menuOpen()',
     '[class.search-open]': 'search.open()',
     '(window:scroll)': 'onScroll()',
@@ -33,7 +36,11 @@ const SCROLL_THRESHOLD = 24;
 export class HeaderComponent {
   private readonly api = inject(CatalogApiService);
 
+  /** Nền trắng chữ đen ngay từ đầu, cho trang không có ảnh lớn đầu trang (giỏ hàng). */
+  readonly solid = input(false);
+
   protected readonly search = inject(SearchUiService);
+  protected readonly cart = inject(CartStore);
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   protected readonly menuOpen = signal(false);
@@ -49,6 +56,8 @@ export class HeaderComponent {
   protected readonly rooms = () => this.categories().filter((c) => c.type === 'ROOM');
 
   constructor() {
+    this.cart.ensureLoaded();
+
     // Có yêu cầu mở tìm kiếm (từ header hoặc nút nổi ở chân trang): thu menu, đưa con trỏ vào ô.
     effect(() => {
       if (this.search.focusRequest() === 0) return;

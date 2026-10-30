@@ -181,6 +181,7 @@ Collection: `products` (trước đây: `SANPHAM`, kèm các bảng `SANPHAM_DAN
 | 30 | media[].url | String | Y | Đường dẫn file |
 | 31 | media[].format | String | | JPG, PNG, MP4, GLB... |
 | 32 | media[].displayOrder | Number | Y | Thứ tự hiển thị |
+| 33 | media[].purpose | String | | `MAIN` (ảnh đại diện), `VARIANT`, `LIFESTYLE` (phối cảnh), `DIMENSION` (kích thước), `PART` (bộ phận), `MODEL` (model 3D) |
 
 ### Thực thể 8: Biến thể sản phẩm (ProductVariant)
 
@@ -218,8 +219,8 @@ Collection: `product_variants` (trước đây: `BIENTHESANPHAM`, kèm `KICH_THU
 | 26 | salePrice | Number | Y | Giá bán hiện tại |
 | 27 | stockQuantity | Number | Y | Min: 0. Số lượng tồn kho, cập nhật bằng `$inc` có điều kiện để không bán vượt |
 | 28 | lowStockThreshold | Number | Y | Ngưỡng cảnh báo sắp hết hàng |
-| 29 | installationService | String | | Default: `NONE`. `NONE` (không có), `OPTIONAL` (tùy chọn), `REQUIRED` (bắt buộc) |
-| 30 | installationFee | Number | | Phí lắp đặt cố định, bắt buộc khi `installationService` khác `NONE` |
+| 29 | installationService | String | | Default: `NONE`. `NONE` (không có), `OPTIONAL` (tùy chọn), `REQUIRED` (bắt buộc). Khác `NONE` chỉ khi `shippingTier` là 3 hoặc 4 (backend kiểm tra) |
+| 30 | installationFee | Number | | Phí lắp đặt cố định cho một sản phẩm (đơn hàng tính phí × số lượng), bắt buộc khi `installationService` khác `NONE` |
 | 31 | status | String | Y | Default: `ACTIVE`. `ACTIVE` (đang bán), `DISCONTINUED` (ngừng kinh doanh). Tình trạng Còn hàng / Sắp hết / Hết hàng suy ra từ `stockQuantity` và `lowStockThreshold`, không lưu |
 
 ### Thực thể 9: Lịch sử kho (StockHistory)
@@ -273,7 +274,7 @@ Collection: `carts` (trước đây: `GIOHANG`, kèm `CHITIETGIOHANG` đã gộp
 | 6 | items[].variantId | ObjectId (ref: product_variants) | Y | Biến thể sản phẩm |
 | 7 | items[].quantity | Number | Y | Min: 1. Số lượng |
 | 8 | items[].isSelected | Boolean | Y | Default: true. Được chọn để thanh toán |
-| 9 | items[].priceAtAdd | Number | Y | Giá lúc thêm vào giỏ, so với giá hiện tại để báo đổi giá |
+| 9 | items[].priceAtAdd | Number | Y | Giá một sản phẩm sau khuyến mãi lúc thêm vào giỏ (hoặc lúc đổi số lượng/biến thể), so với giá hiện tại để báo đổi giá |
 | 10 | items[].hasInstallation | Boolean | | Default: false. Khách chọn dịch vụ lắp đặt |
 | 11 | items[].note | String | | Max 500. Ghi chú tùy chọn |
 
@@ -396,7 +397,7 @@ Collection: `orders` (trước đây: `DONHANG`, kèm `CHI_TIET_DON_HANG`, `LICH
 | # | Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ràng buộc / Mô tả |
 |---|---|---|---|---|
 | 1 | _id | ObjectId | Y | Mã định danh của đơn hàng, do MongoDB tự sinh |
-| 2 | orderCode | String | Y | Unique. Mã đơn dễ đọc để khách và Admin tra cứu |
+| 2 | orderCode | String | Y | Unique. Mã đơn dễ đọc để khách và Admin tra cứu: `CV` + ngày (giờ VN, `YYMMDD`) + số thứ tự 4 chữ số trong ngày, lấy từ collection phụ `counters` (`_id: "order:YYMMDD"`, `seq`) |
 | 3 | userId | ObjectId (ref: users) | Y | Khách hàng đặt đơn |
 | 4 | voucherId | ObjectId (ref: vouchers) | | Voucher áp dụng (nếu có) |
 | 5 | shippingAddress.recipientName | String | Y | Bản sao tên người nhận lúc đặt |
@@ -453,6 +454,14 @@ Collection: `orders` (trước đây: `DONHANG`, kèm `CHI_TIET_DON_HANG`, `LICH
 | 56 | cancellation.cancelledBy | String | | `CUSTOMER`, `ADMIN`, `SYSTEM` (hết hạn thanh toán) |
 | 57 | cancellation.cancelledByUserId | ObjectId (ref: users) | | Người hủy (khách hoặc Admin) |
 | 58 | cancellation.cancelledAt | Date | | Thời điểm hủy |
+| 59 | source | String | Y | `CART` (đặt từ giỏ), `BUY_NOW` (mua nhanh). Đơn `CART` bị hủy khi đang `PENDING_PAYMENT` thì trả các dòng lại vào giỏ |
+| 60 | invoiceInfo.type | String | Y | Default: `NONE`. `NONE` (không lấy hóa đơn), `PERSONAL` (cá nhân), `COMPANY` (công ty) |
+| 61 | invoiceInfo.buyerName | String | | Họ tên người mua (cá nhân) hoặc tên công ty. Bắt buộc khi `type` khác `NONE` |
+| 62 | invoiceInfo.taxCode | String | | Mã số thuế. Bắt buộc với `COMPANY` (10 số hoặc `10 số-3 số`); tùy chọn với `PERSONAL` (MST cá nhân hoặc CCCD) |
+| 63 | invoiceInfo.address | String | | Địa chỉ ghi trên hóa đơn. Bắt buộc khi `type` khác `NONE` |
+| 64 | invoiceInfo.sendEmail | Boolean | | Default: false. Khách chọn nhận hóa đơn qua email (chỉ khi `type` khác `NONE`) |
+| 65 | invoiceInfo.email | String | | Email nhận hóa đơn, bắt buộc khi `sendEmail = true` |
+| 66 | idempotencyKey | String | Y | Header `Idempotency-Key` của `POST /orders`. Unique theo (`userId`, `idempotencyKey`): gửi lại cùng key trả lại đơn cũ (NF-08) |
 
 ### Thực thể 18: Giao dịch thanh toán (PaymentTransaction)
 
@@ -518,6 +527,8 @@ Collection: `invoices` (trước đây: `HOADON`). Chỉ có hóa đơn điện 
 | 4 | issuedAt | Date | Y | Ngày phát hành |
 | 5 | totalAmount | Number | Y | Tổng tiền hóa đơn |
 | 6 | fileUrl | String | | Đường dẫn file hóa đơn điện tử |
+| 7 | emailedTo | String | | Email đã gửi hóa đơn (bản sao `orders.invoiceInfo.email` khi `sendEmail = true`) |
+| 8 | emailSentAt | Date | | Thời điểm gửi email thành công. Null nếu không gửi hoặc gửi lỗi |
 
 ---
 
@@ -809,7 +820,7 @@ Collection: `system_configs` (trước đây: `CAU_HINH_HE_THONG`). Dạng khóa
 | 3 | description | String | | Mô tả ý nghĩa |
 | 4 | updatedBy | ObjectId (ref: users) | Y | Admin cập nhật gần nhất |
 
-**Các khóa cấu hình cần có:** số ngày đổi/trả (7), thời hạn đánh giá (90 ngày), hạn thanh toán QR (15 phút), ngưỡng đặt cọc (20.000.000đ), tỷ lệ cọc (30%), số ngày trễ được bù (2), giá trị voucher bù (100.000đ), hạn voucher bù (30 ngày), thời gian hoàn tiền (3–7 ngày làm việc), số giờ coi đơn chờ xác nhận là quá hạn (cho Dashboard AD-02), số ngày nhãn Mới (30), ngưỡng nhãn Bán chạy (top 10%, tối thiểu 5 sản phẩm đã bán), bảng phí 4 cấp vận chuyển, khung giờ giao, số lần đổi lịch (2), số lần giao lại (2), ngưỡng cảnh báo tồn kho mặc định, số lần đăng nhập sai (3), thời gian khóa (1 phút), hạn OTP (5 phút), số lần nhập sai OTP (5), giới hạn gửi lại OTP (60 giây, 5 lần mỗi giờ), thời gian hết phiên Admin (30 phút), thông tin cửa hàng (gồm giờ làm việc), thông tin hóa đơn, mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho), bật/tắt COD và QR, tài khoản ngân hàng nhận tiền.
+**Các khóa cấu hình cần có:** số ngày đổi/trả (7), thời hạn đánh giá (90 ngày), hạn thanh toán QR (15 phút), ngưỡng đặt cọc (20.000.000đ), tỷ lệ cọc (30%), số ngày trễ được bù (2), giá trị voucher bù (100.000đ), hạn voucher bù (30 ngày), thời gian hoàn tiền (3–7 ngày làm việc), số giờ coi đơn chờ xác nhận là quá hạn (cho Dashboard AD-02), số ngày nhãn Mới (30), ngưỡng nhãn Bán chạy (top 10%, tối thiểu 5 sản phẩm đã bán), bảng phí 4 cấp vận chuyển, số ngày chuẩn bị giao theo cấp (cấp 1–2: 3, cấp 3–4: 5 ngày làm việc), khung giờ giao, số lần đổi lịch (2), số lần giao lại (2), ngưỡng cảnh báo tồn kho mặc định, số lần đăng nhập sai (3), thời gian khóa (1 phút), hạn OTP (5 phút), số lần nhập sai OTP (5), giới hạn gửi lại OTP (60 giây, 5 lần mỗi giờ), thời gian hết phiên Admin (30 phút), thông tin cửa hàng (gồm giờ làm việc), thông tin hóa đơn (gồm thuế suất VAT), mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho, gửi hóa đơn), bật/tắt COD và QR, tài khoản ngân hàng nhận tiền.
 
 ### Thực thể 34: Showroom (Showroom)
 

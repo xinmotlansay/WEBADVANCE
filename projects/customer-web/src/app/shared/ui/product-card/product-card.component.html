@@ -23,10 +23,17 @@
     <p class="price" [class.price--sale]="compact()">{{ product().priceFrom | vnd }}</p>
   </div>
 
-  <!-- TODO(FR-28, FR-32): Mua ngay và thêm giỏ khi có giỏ hàng -->
   <div class="actions">
-    <button type="button" class="buy">MUA NGAY</button>
-    <button type="button" class="cart" aria-label="Thêm vào giỏ hàng">
+    <button type="button" class="buy" [disabled]="soldOut()" (click)="openPicker('buy')">
+      {{ soldOut() ? 'HẾT HÀNG' : 'MUA NGAY' }}
+    </button>
+    <button
+      type="button"
+      class="cart"
+      aria-label="Thêm vào giỏ hàng"
+      [disabled]="soldOut()"
+      (click)="openPicker('add')"
+    >
       <app-icon name="lucide:shopping-cart" [size]="18" />
     </button>
   </div>
