@@ -4,11 +4,12 @@ import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { SessionIdleService } from '../../core/auth/session-idle.service';
 import { ADMIN_NAV, ROLE_LABELS } from '../../core/navigation/admin-nav.config';
 import { AdminSidebarComponent } from '../admin-sidebar/admin-sidebar.component';
+import { ToastHostComponent } from '../../shared/ui/toast';
 
 /** Khung chung của mọi màn sau đăng nhập: sidebar bên trái, nội dung bên phải, theo dõi phiên 30 phút. */
 @Component({
   selector: 'app-admin-shell',
-  imports: [AdminSidebarComponent, RouterOutlet],
+  imports: [AdminSidebarComponent, RouterOutlet, ToastHostComponent],
   templateUrl: './admin-shell.component.html',
   styleUrl: './admin-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

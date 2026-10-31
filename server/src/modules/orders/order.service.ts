@@ -381,7 +381,7 @@ async function returnToCart(order: OrderDoc, session: ClientSession): Promise<vo
 }
 
 interface CancelActor {
-  cancelledBy: 'CUSTOMER' | 'SYSTEM';
+  cancelledBy: 'CUSTOMER' | 'SYSTEM' | 'ADMIN';
   userId: Types.ObjectId | null;
   reason: string;
   refundAccount?: RefundAccount;
@@ -512,6 +512,25 @@ export async function cancelByCustomer(
   const { bankAccount } = await getCheckoutConfig();
   return toPaymentView(cancelled, bankAccount);
 }
+
+/** OA-06: Admin hủy đơn chưa bàn giao, bắt buộc lý do; trả kho và tạo hoàn tiền nếu đã thu. */
+export async function cancelByAdmin(
+  orderId: Types.ObjectId,
+  adminId: Types.ObjectId,
+  reason: string,
+): Promise<OrderDoc> {
+  const cancelled = await cancelOrder(orderId, ADMIN_CANCELLABLE, {
+    cancelledBy: 'ADMIN',
+    userId: adminId,
+    reason,
+  });
+  if (!cancelled) {
+    throw new AppError('ORDER_INVALID_STATE', 409, 'Đơn hàng không thể hủy ở trạng thái hiện tại');
+  }
+  return cancelled;
+}
+
+const ADMIN_CANCELLABLE: OrderStatus[] = ['PENDING_PAYMENT', 'PENDING_CONFIRMATION', 'CONFIRMED'];
 
 /** Job mỗi phút (API Design 14): hủy đơn QR quá hạn. Trả số đơn đã hủy. */
 export async function expireOverduePayments(now = new Date()): Promise<number> {

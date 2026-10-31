@@ -1,0 +1,123 @@
+<app-detail-popup [title]="title()" (closed)="closed.emit()">
+  @if (detail.isLoading() && !detail.value()) {
+    <div class="loading" role="status" aria-label="Đang tải chi tiết sản phẩm">
+      <span class="skeleton" style="width: 55%"></span>
+      <span class="skeleton" style="width: 80%"></span>
+      <span class="skeleton" style="width: 100%; height: 64px"></span>
+    </div>
+  } @else if (detail.error()) {
+    <div class="alert-box" role="alert">
+      Không tải được chi tiết sản phẩm.
+      <button type="button" class="btn" (click)="detail.reload()">Thử lại</button>
+    </div>
+  } @else if (detail.value()) {
+    @let product = detail.value()!;
+    <div class="info">
+      <p class="tabular">SKU {{ product.productCode }} · {{ category() }}</p>
+      <p>
+        Bảo hành {{ product.warrantyMonths }} tháng ·
+        @if (product.installation; as inst) {
+          Lắp đặt: {{ installation[inst.service] }} {{ inst.fee | vnd }}
+        } @else {
+          Không lắp đặt
+        }
+        @if (product.status !== 'ACTIVE') {
+          · <span [class]="toneClass(productStatus[product.status])">{{ productStatus[product.status]?.label }}</span>
+        }
+      </p>
+    </div>
+
+    @if (product.status === 'DRAFT' && product.missingForActive.length) {
+      <p class="missing" role="note">Chưa đủ điều kiện lên kệ: {{ product.missingForActive.join(', ').toLowerCase() }}.</p>
+    }
+
+    <div class="tabs" role="tablist" aria-label="Thông tin sản phẩm">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'variants'" (click)="tab.set('variants')">Biến thể</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'packages'" (click)="tab.set('packages')">Kiện hàng</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'media'" (click)="tab.set('media')">Ảnh &amp; 3D</button>
+    </div>
+
+    <div class="tab-body" role="tabpanel">
+      @switch (tab()) {
+        @case ('variants') {
+          <ul class="lines">
+            @for (variant of product.variants; track variant.id) {
+              <li [class.off]="variant.status !== 'ACTIVE'">
+                <div class="line-main">
+                  <span class="line-name">
+                    {{ variant.color || 'Mặc định' }}{{ variant.material ? ' · ' + variant.material : '' }}
+                  </span>
+                  <span
+                    class="line-sub tabular"
+                    [class.low]="variant.stockQuantity > 0 && variant.stockQuantity <= variant.lowStockThreshold"
+                    [class.out]="variant.stockQuantity === 0"
+                  >
+                    {{ variant.sku }} · tồn {{ variant.stockQuantity | num }}/{{ variant.lowStockThreshold | num }}{{ variant.status !== 'ACTIVE' ? ' · ngừng bán' : '' }}
+                  </span>
+                </div>
+                <strong class="tabular">{{ variant.salePrice | vnd }}</strong>
+              </li>
+            }
+          </ul>
+        }
+        @case ('packages') {
+          @for (variant of product.variants; track variant.id) {
+            <div class="pkg-group">
+              <span class="pkg-title tabular">{{ variant.sku }} · Cấp {{ variant.shippingTier ?? '—' }}</span>
+              @for (pkg of variant.packages; track pkg.index) {
+                <div class="pkg">
+                  <span>{{ pkg.name }}</span>
+                  <span class="muted tabular">{{ pkg.length }}×{{ pkg.width }}×{{ pkg.height }} cm · {{ pkg.weight }} kg</span>
+                </div>
+              } @empty {
+                <p class="muted">Chưa nhập kích thước kiện.</p>
+              }
+            </div>
+          }
+        }
+        @case ('media') {
+          @if (images().length) {
+            <div class="gallery">
+              @for (image of images(); track image.url) {
+                <img [src]="image.url" [alt]="product.name" loading="lazy" />
+              }
+            </div>
+          } @else {
+            <p class="muted">Chưa có ảnh sản phẩm. Cần ít nhất một ảnh để lên kệ.</p>
+          }
+          <p class="muted models">
+            {{ models().length ? models().length + ' tệp 360°/3D' : 'Chưa có model 3D (tùy chọn).' }}
+          </p>
+        }
+      }
+    </div>
+
+    <div class="total">
+      <span>Giá bán:</span>
+      <strong class="tabular">{{ priceRange() ? (priceRange()!.min | vnd) : '—' }}</strong>
+    </div>
+  }
+
+  <ng-container popup-actions>
+    @if (detail.value(); as product) {
+      <a class="btn btn-primary grow" [routerLink]="['/san-pham', product.id, 'sua']">Chỉnh sửa</a>
+      <button type="button" class="btn" [disabled]="busy()" (click)="importStock.emit(product.id)">Nhập kho</button>
+      @if (product.status === 'DISCONTINUED') {
+        <button type="button" class="btn" [disabled]="busy()" (click)="setStatus(product, 'ACTIVE', 'đã bán lại.')">Bán lại</button>
+      } @else {
+        <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="discontinuing.set(true)">Ngừng KD</button>
+      }
+    }
+  </ng-container>
+</app-detail-popup>
+
+@if (discontinuing() && detail.value(); as product) {
+  <app-confirm-dialog
+    [title]="'Ngừng kinh doanh ' + product.name + '?'"
+    message="Sản phẩm bị gỡ khỏi cửa hàng, khách không đặt mua được nữa. Đơn đã đặt và lịch sử vẫn được giữ; có thể bán lại sau."
+    confirmLabel="Ngừng kinh doanh"
+    [busy]="busy()"
+    (confirmed)="setStatus(product, 'DISCONTINUED', 'đã ngừng kinh doanh.')"
+    (cancelled)="discontinuing.set(false)"
+  />
+}

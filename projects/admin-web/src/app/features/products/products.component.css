@@ -1,0 +1,146 @@
+:host {
+  display: block;
+}
+
+.filters {
+  margin-bottom: 12px;
+}
+
+.list {
+  position: relative;
+}
+
+app-product-popup {
+  display: contents;
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 280px;
+}
+
+.thumb {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--cv-radius);
+  background: var(--cv-initials-bg);
+  object-fit: cover;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.from {
+  margin-right: 4px;
+  font-size: 11px;
+}
+
+.stock {
+  font-weight: 500;
+}
+
+.stock.low {
+  color: var(--cv-attn-text);
+  font-weight: 600;
+}
+
+.stock.out {
+  color: var(--cv-danger-text);
+  font-weight: 600;
+}
+
+.page-no {
+  align-self: center;
+  padding: 0 4px;
+}
+
+/* Cột tổng quan */
+.hero-sub {
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+
+.bar .muted-fill {
+  background: var(--cv-bar-muted);
+}
+
+.alerts {
+  display: grid;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alerts li > button,
+.alerts li.static {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--cv-line-soft);
+  background: none;
+  color: var(--cv-navy);
+  text-align: left;
+}
+
+.alerts li:last-child > button,
+.alerts li.static:last-child {
+  border-bottom: 0;
+}
+
+.alerts li > button {
+  cursor: pointer;
+}
+
+.alerts li > button:hover strong {
+  text-decoration: underline;
+}
+
+.alerts strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.alerts small {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 12px 0 0;
+}
+
+.grid2 div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+
+.grid2 dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.grid2 dt {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.caption {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--cv-muted);
+}
