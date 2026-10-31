@@ -169,6 +169,12 @@ export class ProductListComponent {
     ),
     { initialValue: [] },
   );
+  /** Tên danh mục khi khách đang xem đúng một danh mục (từ trang chủ hoặc bộ lọc). */
+  protected readonly categoryName = computed(() => {
+    const ids = (this.params().get('categoryIds') ?? '').split(',').filter(Boolean);
+    if (ids.length !== 1) return '';
+    return this.categories().find((c) => c.id === ids[0])?.name ?? '';
+  });
   protected readonly categoryGroups = computed(() => {
     const available = this.facets() ? this.facetCategoryIds() : null;
     const visible = (c: Category) => !available || available.has(c.id);

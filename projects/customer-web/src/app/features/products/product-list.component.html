@@ -3,7 +3,13 @@
     <ol class="container">
       <li><a routerLink="/">Trang chủ</a></li>
       <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
-      <li aria-current="page">{{ imageSearch() ? 'Tìm bằng ảnh' : term() ? 'Tìm kiếm' : 'Sản phẩm' }}</li>
+      @if (categoryName() && !imageSearch() && !term() && !heading()) {
+        <li><a routerLink="/products">Sản phẩm</a></li>
+        <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+        <li aria-current="page">{{ categoryName() }}</li>
+      } @else {
+        <li aria-current="page">{{ imageSearch() ? 'Tìm bằng ảnh' : term() ? 'Tìm kiếm' : 'Sản phẩm' }}</li>
+      }
     </ol>
   </nav>
 }
@@ -21,7 +27,7 @@
             ? heading()
             : term()
             ? 'Kết quả cho “' + term() + '”'
-            : 'Sản phẩm'
+            : categoryName() || 'Sản phẩm'
       }}</span>
       @if (!result().loading && !result().error) {
         <small class="head-count" aria-live="polite">({{ result().meta.total }} sản phẩm)</small>
