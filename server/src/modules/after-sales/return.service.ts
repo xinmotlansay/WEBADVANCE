@@ -72,6 +72,8 @@ export async function eligibleOrder(order: OrderDoc) {
         variantLabel: variantLabel(item.snapshot),
         thumbnail: thumbs.get(item.variantId.toString()) ?? '',
         quantity: item.quantity,
+        /** Giá thực trả cho 1 sản phẩm (sau giảm giá), dùng để lọc sản phẩm đổi. */
+        unitPrice: Math.round(item.finalAmount / item.quantity),
         returnableQuantity: eligible ? remaining : 0,
         actions: { canReturn: eligible && remaining > 0 },
       };

@@ -4,7 +4,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, startWith, switchMap } from 'rxjs';
 import { CatalogApiService, WarrantyService } from 'shared';
 import { AuthService } from '../../core/auth/auth.service';
-import { ToastService } from '../../core/toast/toast.service';
+import { IconComponent } from '../../shared/ui/icons/icon.component';
 import { SupportIntroComponent } from './support-intro.component';
 import { SupportRequestPanelComponent } from './support-request-panel.component';
 
@@ -16,7 +16,7 @@ type RequestKind = 'warranty' | 'return';
  */
 @Component({
   selector: 'app-after-sales',
-  imports: [RouterLink, SupportIntroComponent, SupportRequestPanelComponent],
+  imports: [RouterLink, IconComponent, SupportIntroComponent, SupportRequestPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './after-sales.component.html',
   styleUrl: './after-sales.component.css',
@@ -25,7 +25,6 @@ export class AfterSalesComponent {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly toast = inject(ToastService);
   private readonly warranty = inject(WarrantyService);
 
   protected readonly params = toSignal(this.route.queryParamMap, {
@@ -61,9 +60,6 @@ export class AfterSalesComponent {
   }
 
   protected onCreated(kind: RequestKind, id: string): void {
-    this.toast.success('Đã gửi yêu cầu. Bạn có thể theo dõi tiến trình trong Tài khoản.');
-    void this.router.navigate(['/account/after-sales'], {
-      queryParams: { kind, request: id },
-    });
+    void this.router.navigate(['/support/success'], { queryParams: { kind, request: id } });
   }
 }

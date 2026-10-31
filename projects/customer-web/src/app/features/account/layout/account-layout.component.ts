@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { IconComponent } from '../../../shared/ui/icons/icon.component';
 import { ReviewQueueService } from '../review-queue.service';
 
 interface AccountNavItem {
@@ -11,7 +12,7 @@ interface AccountNavItem {
 
 @Component({
   selector: 'app-account-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './account-layout.component.html',
   styleUrl: './account-layout.component.css',

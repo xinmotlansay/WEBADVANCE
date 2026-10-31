@@ -245,6 +245,13 @@ button:disabled { opacity: .5; cursor: default; }
 @media (min-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1180px) { .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
+/* Thanh đường dẫn dùng chung (giống trang chi tiết sản phẩm). */
+.page-crumbs { background: var(--color-surface); color: var(--color-muted); }
+.page-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding-block: 5px; list-style: none; }
+.page-crumbs li { display: flex; align-items: center; font-size: var(--font-size-sm); }
+.page-crumbs a:hover { text-decoration: underline; }
+.page-crumbs [aria-current='page'] { color: var(--color-primary); font-weight: var(--font-weight-semibold); }
+
 /* ---- Trang tài khoản (theo thiết kế Figma): các lớp dùng chung của các trang con ---- */
 .account-area .account-screen { min-width: 0; color: #000; font-size: 14px; }
 /* Tiêu đề trang tài khoản: mọi trang cùng cỡ chữ, căn giữa, nội dung cùng bề rộng. */

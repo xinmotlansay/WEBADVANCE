@@ -35,10 +35,12 @@ import {
 } from 'shared';
 import { AuthService } from '../../core/auth/auth.service';
 import { apiErrorMessage } from '../../core/api-error';
+import { ProductPickerComponent, type PickedProduct } from '../../shared/ui/product-picker/product-picker.component';
+import { VndPipe } from '../../shared/pipes/vnd.pipe';
 import { EvidenceUploadComponent } from '../../shared/ui/evidence-upload/evidence-upload.component';
 @Component({
   selector: 'app-return-form',
-  imports: [ReactiveFormsModule, RouterLink, EvidenceUploadComponent, DatePipe],
+  imports: [ReactiveFormsModule, RouterLink, EvidenceUploadComponent, DatePipe, VndPipe, ProductPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-form.component.html',
   styleUrl: '../after-sales/request-form.css',
@@ -107,35 +109,23 @@ export class ReturnFormComponent implements OnInit {
   protected readonly selectedItem = computed(
     () => this.order()?.items.find((item) => item.id === this.selectedItemId()) ?? null,
   );
-  protected readonly replacementSearch = new FormControl('', { nonNullable: true });
-  protected readonly replacementSlug = new FormControl('', { nonNullable: true });
-  protected readonly replacements = toSignal(
-    this.replacementSearch.valueChanges.pipe(
-      startWith(''),
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((q) =>
-        this.catalog.getProducts({ q, inStock: true, limit: 20 }).pipe(
-          map((r) => r.items),
-          catchError(() => of(null)),
-          startWith(undefined),
-        ),
-      ),
+  protected readonly refundDays = toSignal(
+    this.catalog.getPublicConfig().pipe(
+      map((c) => `${c.policy?.refundDaysMin ?? 7}–${c.policy?.refundDaysMax ?? 10}`),
+      catchError(() => of('7–10')),
     ),
+    { initialValue: '7–10' },
   );
-  protected readonly replacementDetail = toSignal(
-    this.replacementSlug.valueChanges.pipe(
-      tap(() => this.form.controls.replacementVariantId.setValue('')),
-      switchMap((slug) =>
-        slug
-          ? this.catalog.getProduct(slug).pipe(
-              catchError(() => of(null)),
-              startWith(null),
-            )
-          : of(null),
-      ),
-    ),
-  );
+  protected readonly pickerOpen = signal(false);
+  protected readonly replacement = signal<PickedProduct | null>(null);
+
+  protected onPicked(pick: PickedProduct): void {
+    this.replacement.set(pick);
+    this.form.controls.replacementVariantId.setValue(pick.variant.id);
+    this.form.controls.replacementVariantId.markAsTouched();
+    this.pickerOpen.set(false);
+  }
+
   constructor() {
     this.form.controls.type.valueChanges
       .pipe(startWith(this.form.controls.type.value), takeUntilDestroyed(this.destroyRef))
@@ -261,7 +251,7 @@ export class ReturnFormComponent implements OnInit {
           if (this.embedded()) {
             this.requestCreated.emit(result.id);
             this.loading.set(false);
-          } else void this.router.navigate(['/account/after-sales'], { queryParams: { kind: 'return', request: result.id } });
+          } else void this.router.navigate(['/support/success'], { queryParams: { kind: 'return', request: result.id } });
         },
         error: (error: unknown) => {
           this.error.set(apiErrorMessage(error));

@@ -1,0 +1,30 @@
+<app-compact-header />
+
+<section class="page">
+  <div class="container">
+    <div class="card">
+      <span class="check" aria-hidden="true"><app-icon name="lucide:check" [size]="32" /></span>
+      <h1 class="title">Gửi yêu cầu {{ isReturn ? 'đổi trả' : 'bảo hành' }} thành công!</h1>
+      <p class="muted">CaraVeso sẽ xem xét và phản hồi bạn sớm nhất có thể.</p>
+
+      @if (request(); as r) {
+        <dl class="rows">
+          <div><dt>Sản phẩm</dt><dd>{{ r.productName }}</dd></div>
+          <div><dt>Ngày gửi</dt><dd>{{ r.requestedAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
+          <div>
+            <dt>Liên hệ</dt>
+            <dd>
+              {{ r.contact.name }} · {{ r.contact.phone }}
+              <span class="muted block">{{ r.contact.address }}</span>
+            </dd>
+          </div>
+        </dl>
+      }
+
+      <div class="actions">
+        <a class="btn btn--primary" routerLink="/account/after-sales" [queryParams]="{ kind: isReturn ? 'return' : 'warranty', request: id }">Theo dõi yêu cầu</a>
+        <a class="btn" routerLink="/">Tiếp tục mua sắm</a>
+      </div>
+    </div>
+  </div>
+</section>

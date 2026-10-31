@@ -1,5 +1,11 @@
+<nav class="page-crumbs" aria-label="Đường dẫn">
+  <ol class="container">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+    <li aria-current="page">Đổi trả &amp; Bảo hành</li>
+  </ol>
+</nav>
 <section class="feature-page container support-page">
-  <p class="eyebrow"><a routerLink="/">Trang chủ</a><span>/</span>Đổi trả &amp; Bảo hành</p>
   <app-support-intro [config]="config()" [activePanel]="panel()" (viewSelected)="togglePanel($event)">
     @if (panel(); as kind) {
       <app-support-request-panel
@@ -12,10 +18,4 @@
       />
     }
   </app-support-intro>
-  @if (auth.user()) {
-    <p class="track-hint">
-      Theo dõi các yêu cầu đã gửi tại
-      <a routerLink="/account/after-sales">Tài khoản › Dịch vụ hậu mãi</a>.
-    </p>
-  }
 </section>

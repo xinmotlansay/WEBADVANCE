@@ -1,6 +1,6 @@
 :host { display: block; }
-.request-panel { margin: 0 0 var(--space-xl, 32px); padding: 0 0 24px; border-bottom: 1px solid var(--color-gray-light); animation: panel-in .2s ease; }
-@keyframes panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.request-panel { margin: 0 0 var(--space-xl, 32px); padding: 0 0 24px; border-bottom: 1px solid var(--color-gray-light); scroll-margin-top: 24px; animation: panel-in .38s cubic-bezier(.2, .7, .2, 1); }
+@keyframes panel-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .request-panel { animation: none; } }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .panel-head h2 { margin: 0; color: var(--color-primary); font-size: 18px; font-weight: 600; }
@@ -29,11 +29,11 @@
 .result-row.disabled { background: #fafafa; }
 .result-row.disabled strong { color: var(--color-muted); }
 .note { flex: none; color: var(--color-muted); font-size: 12px; }
-.panel-state { margin: 14px 0 0; padding: 18px 0; color: var(--color-muted); font-size: 14px; text-align: center; list-style: none; }
-.panel-login { display: inline-flex; align-items: center; min-height: 38px; padding: 0 20px; border-radius: 6px; background: var(--color-primary); color: #fff; font-size: 14px; text-decoration: none; }
-.picked { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding: 12px 16px; border-radius: 6px; background: var(--color-brand-surface, #f3f6f9); }
-.picked strong { display: block; font-size: 14px; font-weight: 600; }
-.picked small { color: var(--color-muted); font-size: 12px; }
+.panel-state { display: grid; justify-items: center; gap: 16px; margin: 0; padding: 28px 0; color: var(--color-muted); font-size: 14px; line-height: 1.6; text-align: center; list-style: none; }
+.panel-state p { margin: 0; }
+.panel-login { display: inline-flex; align-items: center; min-height: 40px; padding: 0 24px; border-radius: 6px; background: var(--color-primary); color: #fff; font-size: 14px; text-decoration: none; }
+.step-head { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.step-head .link { font-size: 14px; }
 @media (max-width: 599px) {
   .request-panel { padding-bottom: 16px; }
   .result-row { flex-wrap: wrap; }

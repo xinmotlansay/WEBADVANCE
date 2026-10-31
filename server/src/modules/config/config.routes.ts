@@ -32,7 +32,7 @@ configRoutes.get(
       shipping: checkout.shipping,
       invoice: checkout.invoice,
       labels: { newDays: Number(byKey.get('labels.newDays') ?? 30) },
-      policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 3), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 7) },
+      policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 7), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 10) },
       limits: { maxImageSizeMb: 5 },
     });
   }),

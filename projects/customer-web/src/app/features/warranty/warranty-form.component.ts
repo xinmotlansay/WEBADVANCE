@@ -109,7 +109,7 @@ export class WarrantyFormComponent implements OnInit {
           if (this.embedded()) {
             this.requestCreated.emit(result.id);
             this.loading.set(false);
-          } else void this.router.navigate(['/account/after-sales'], { queryParams: { kind: 'warranty', request: result.id } });
+          } else void this.router.navigate(['/support/success'], { queryParams: { kind: 'warranty', request: result.id } });
         },
         error: (error: unknown) => {
           this.error.set(apiErrorMessage(error));

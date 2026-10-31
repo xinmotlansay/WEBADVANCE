@@ -86,6 +86,7 @@ export interface EligibleOrder {
     variantLabel?: string;
     thumbnail?: string;
     quantity: number;
+    unitPrice?: number;
     returnableQuantity: number;
     actions: { canReturn: boolean };
   }[];

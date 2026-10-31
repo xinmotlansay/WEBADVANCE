@@ -9,44 +9,8 @@
       <p>Đăng nhập để tìm sản phẩm đã mua và gửi yêu cầu.</p>
       <a class="panel-login" routerLink="/auth/login" [queryParams]="{ returnUrl: '/support?panel=' + kind() }">Đăng nhập</a>
     </div>
-  } @else if (pickedCard() || pickedItem()) {
-    <div class="picked">
-      <div>
-        @if (pickedCard(); as card) {
-          <strong>{{ card.productName }}</strong>
-          <small>Đơn {{ card.orderCode }} · còn {{ card.remainingDays }} ngày bảo hành</small>
-        }
-        @if (pickedItem(); as item) {
-          <strong>{{ item.name }}</strong>
-          <small>Đơn {{ item.orderCode }} · hạn đổi trả {{ item.deadline | date: 'dd/MM/yyyy' : '+0700' }}</small>
-        }
-      </div>
-      <button type="button" class="link" (click)="backToSearch()">Chọn sản phẩm khác</button>
-    </div>
-    @if (kind() === 'warranty') {
-      @defer {
-        <app-warranty-form
-          [embedded]="true"
-          [presetCardId]="pickedCard()!.id"
-          (requestCreated)="requestCreated.emit({ kind: 'warranty', id: $event })"
-        />
-      } @placeholder {
-        <p class="panel-state" role="status">Đang mở form bảo hành…</p>
-      }
-    } @else {
-      @defer {
-        <app-return-form
-          [embedded]="true"
-          [presetOrderId]="pickedItem()!.orderId"
-          [presetItemId]="pickedItem()!.itemId"
-          (requestCreated)="requestCreated.emit({ kind: 'return', id: $event })"
-        />
-      } @placeholder {
-        <p class="panel-state" role="status">Đang mở form đổi trả…</p>
-      }
-    }
   } @else {
-    <form class="panel-search" (submit)="$event.preventDefault(); search(orderInput.value, nameInput.value)">
+    <form #searchForm class="panel-search" data-scroll-target="search" (submit)="$event.preventDefault(); search(orderInput.value, nameInput.value)">
       <label class="lbl lbl-order" for="sr-order">Mã đơn hàng</label>
       <label class="lbl lbl-name" for="sr-name">Tên sản phẩm</label>
       <input #orderInput id="sr-order" class="in-order" type="search" maxlength="100" placeholder="Nhập mã đơn hàng" [value]="orderQuery()" />
@@ -55,7 +19,33 @@
       <button type="submit" class="search-btn">Tìm kiếm</button>
     </form>
 
-    @if (kind() === 'warranty') {
+    @if (pickedCard() || pickedItem()) {
+      <div class="step-head step-target">
+        <button type="button" class="link" (click)="backToSearch()">← Chọn sản phẩm khác</button>
+      </div>
+      @if (kind() === 'warranty') {
+        @defer {
+          <app-warranty-form
+            [embedded]="true"
+            [presetCardId]="pickedCard()!.id"
+            (requestCreated)="requestCreated.emit({ kind: 'warranty', id: $event })"
+          />
+        } @placeholder {
+          <p class="panel-state" role="status">Đang mở form bảo hành…</p>
+        }
+      } @else {
+        @defer {
+          <app-return-form
+            [embedded]="true"
+            [presetOrderId]="pickedItem()!.orderId"
+            [presetItemId]="pickedItem()!.itemId"
+            (requestCreated)="requestCreated.emit({ kind: 'return', id: $event })"
+          />
+        } @placeholder {
+          <p class="panel-state" role="status">Đang mở form đổi trả…</p>
+        }
+      }
+    } @else if (kind() === 'warranty') {
       @let list = cards();
       @if (list === undefined) {
         <p class="panel-state" role="status">Đang tải sản phẩm của bạn…</p>
@@ -71,7 +61,7 @@
                 <small>Đơn {{ card.orderCode }} · Hạn bảo hành {{ card.expiresAt | date: 'dd/MM/yyyy' : '+0700' }}</small>
               </div>
               @if (card.status === 'VALID') {
-                <button type="button" (click)="pickedCardId.set(card.id)">Chọn · còn {{ card.remainingDays }} ngày</button>
+                <button type="button" (click)="pickCard(card.id)">Chọn · còn {{ card.remainingDays }} ngày</button>
               } @else {
                 <span class="note">{{ card.status === 'EXPIRED' ? 'Đã hết hạn bảo hành' : 'Phiếu không còn hiệu lực' }}</span>
               }
@@ -99,7 +89,7 @@
                 <small>Đơn {{ row.orderCode }} · Hạn đổi trả {{ row.deadline | date: 'dd/MM/yyyy' : '+0700' }}</small>
               </div>
               @if (row.canReturn) {
-                <button type="button" (click)="pickedItem.set(row)">Chọn</button>
+                <button type="button" (click)="pickItem(row)">Chọn</button>
               } @else {
                 <span class="note">Hết hạn hoặc không đủ điều kiện</span>
               }
