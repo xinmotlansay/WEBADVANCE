@@ -4,18 +4,30 @@
   aria-label="Trợ lý AI CaraVeso"
 >
   @if (ui.aiOpen()) {
-    <form class="composer" (submit)="onSubmit($event)">
+    <form class="composer" [class.composer--active]="showPanel()" (submit)="onSubmit($event)">
       <textarea
         #input
         rows="1"
         maxlength="2000"
         placeholder="Nhập mô tả đơn giản về sản phẩm (VD: bàn ăn 4 ghế, phù hợp với phòng 50m2,...)"
         [value]="draft()"
-        [disabled]="loading()"
+        [readOnly]="loading()"
         (input)="onInput($event)"
         (keydown)="onKeydown($event)"
         aria-label="Mô tả sản phẩm cần tư vấn"
       ></textarea>
+
+      <button
+        class="composer__toggle"
+        type="button"
+        (click)="togglePanel()"
+        [attr.aria-expanded]="showPanel()"
+        [attr.aria-label]="showPanel() ? 'Thu gọn hộp hội thoại' : 'Mở hộp hội thoại'"
+      >
+        <app-icon name="mdi:chat-processing" [size]="18" />
+        <span>{{ showPanel() ? 'Thu gọn' : 'Hội thoại' }}</span>
+        <app-icon [name]="showPanel() ? 'lucide:chevron-down' : 'lucide:chevron-up'" [size]="14" />
+      </button>
 
       <button class="composer__send" type="submit" [disabled]="!canSend()" aria-label="Gửi câu hỏi">
         @if (loading()) {
@@ -73,8 +85,16 @@
 
                   @if (message.products?.length) {
                     <div class="products">
-                      @for (product of message.products; track product.id) {
-                        <app-ai-product-card [product]="product" />
+                      @for (product of expanded().has(message.id) ? message.products : message.products!.slice(0, INITIAL_PRODUCTS); track product.id) {
+                        <app-ai-product-card [product]="product" (opened)="close()" />
+                      }
+                    </div>
+                    <div class="products-more">
+                      @if (message.products!.length > INITIAL_PRODUCTS && !expanded().has(message.id)) {
+                        <button type="button" (click)="expand(message.id)">Xem thêm {{ message.products!.length - INITIAL_PRODUCTS }} sản phẩm</button>
+                      }
+                      @if (questionBefore(message.id); as q) {
+                        <a routerLink="/products" [queryParams]="{ q }" (click)="close()">Xem tất cả sản phẩm phù hợp</a>
                       }
                     </div>
                   }

@@ -1,15 +1,15 @@
 <article class="product">
-  <div class="product__media">
+  <a class="product__media" [routerLink]="['/products', product().slug]" [attr.aria-label]="'Xem ' + product().name" (click)="opened.emit()">
     @if (product().thumbnail) {
       <img [src]="product().thumbnail" [alt]="product().name" loading="lazy" />
     }
     @if (discountPercent() > 0) {
       <span class="product__tag">-{{ discountPercent() }}%</span>
     }
-  </div>
+  </a>
 
   <div class="product__body">
-    <h4 class="product__name">{{ product().name }}</h4>
+    <h4 class="product__name"><a [routerLink]="['/products', product().slug]" (click)="opened.emit()">{{ product().name }}</a></h4>
 
     @if (product().attributes.length) {
       <ul class="product__attributes">
@@ -32,9 +32,9 @@
 
   <footer class="product__footer">
     <span class="product__actions">
-      <button type="button" disabled title="Chức năng đang phát triển" aria-label="Thêm vào giỏ hàng">
+      <a class="product__cart" [routerLink]="['/products', product().slug]" title="Chọn phân loại và thêm vào giỏ" aria-label="Chọn phân loại và thêm vào giỏ" (click)="opened.emit()">
         <app-icon name="lucide:shopping-cart" [size]="16" />
-      </button>
+      </a>
       <button
         type="button"
         class="product__wish"
