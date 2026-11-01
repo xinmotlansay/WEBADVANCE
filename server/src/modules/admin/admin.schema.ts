@@ -131,6 +131,8 @@ const variantInputSchema = z
     path: ['installationFee'],
   });
 
+const manualBadge = z.enum(['ON', 'OFF']).nullable().default(null);
+
 export const productInputSchema = z.object({
   name: z.string().trim().min(3, 'Tên tối thiểu 3 ký tự').max(150),
   skuRange: z.string().regex(/^\d{3}$/, 'Dãy SKU gồm đúng 3 chữ số').optional(),
@@ -151,6 +153,10 @@ export const productInputSchema = z.object({
         name: z.string().trim().min(1).max(100),
         quantity: z.number().int().min(1).max(999),
         isDetachable: z.boolean().default(false),
+        image: z.string().trim().max(1_000).default(''),
+        length: size.nullable().optional(),
+        width: size.nullable().optional(),
+        height: size.nullable().optional(),
       }),
     )
     .max(50)
@@ -160,6 +166,80 @@ export const productInputSchema = z.object({
     .max(30)
     .default([]),
   variants: z.array(variantInputSchema).min(1, 'Cần ít nhất một biến thể').max(99),
+  /** FR-20: Admin bật/tắt nhãn thủ công; `null` là để hệ thống tự tính (requirements 1.1). */
+  manualBadges: z
+    .object({ isNew: manualBadge, isBestSeller: manualBadge })
+    .default({ isNew: null, isBestSeller: null }),
 });
 
 export type ProductInput = z.infer<typeof productInputSchema>;
+
+// --- Danh mục (PA-07) ---
+export const categoryInputSchema = z.object({
+  name: z.string().trim().min(2, 'Tên tối thiểu 2 ký tự').max(80),
+  type: z.enum(['PRODUCT_CATEGORY', 'ROOM', 'STYLE']).optional(),
+  description: z.string().trim().max(1_000).default(''),
+  image: z.string().trim().max(1_000).default(''),
+  status: z.enum(['VISIBLE', 'HIDDEN']).default('VISIBLE'),
+  typicalCategoryIds: z.array(objectId).max(50).default([]),
+});
+
+export type CategoryInput = z.infer<typeof categoryInputSchema>;
+
+export const categoryStatusSchema = z.object({ status: z.enum(['VISIBLE', 'HIDDEN']) });
+
+// --- Tồn kho (PA-08) ---
+const STOCK_CHANGE_TYPES = ['IMPORT', 'SALE', 'ORDER_CANCEL_RESTORE', 'RETURN_RESTOCK', 'STOCKTAKE', 'ADJUSTMENT'] as const;
+
+export const inventoryQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  state: z.enum(['OK', 'LOW', 'OUT']).optional(),
+  sort: z.enum(['stock', '-stock', 'sku', 'name']).default('stock'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const historyQuerySchema = z.object({
+  variantId: objectId.optional(),
+  changeType: csvEnum(STOCK_CHANGE_TYPES),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const thresholdSchema = z.object({ lowStockThreshold: z.number().int().min(0).max(100_000) });
+
+// --- Kiểm duyệt đánh giá (PA-09) ---
+export const reviewQuerySchema = z.object({
+  queue: z.enum(['PENDING', 'VISIBLE', 'HIDDEN', 'REJECTED']).default('PENDING'),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const moderationBody = {
+  decision: z.enum(['KEEP', 'HIDE', 'REJECT', 'RESTORE']),
+  reason: z.string().trim().max(500).optional(),
+};
+
+const reasonRequired = (body: { decision: string; reason?: string }) =>
+  !['HIDE', 'REJECT'].includes(body.decision) || (body.reason?.length ?? 0) >= 5;
+const reasonIssue = { message: 'Lý do ẩn hoặc từ chối tối thiểu 5 ký tự', path: ['reason'] };
+
+export const moderateSchema = z.object(moderationBody).refine(reasonRequired, reasonIssue);
+
+export const bulkModerateSchema = bulkIdsSchema.extend(moderationBody).refine(reasonRequired, reasonIssue);
+
+// --- Cấp vận chuyển ---
+export const shippingQuerySchema = z.object({
+  tier: z.coerce.number().int().min(1).max(4).optional(),
+  mismatch: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const shippingTierSchema = z.object({ shippingTier: z.number().int().min(1).max(4) });

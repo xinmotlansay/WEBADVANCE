@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.typical,
+.desc {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.legend {
+  flex-wrap: wrap;
+}

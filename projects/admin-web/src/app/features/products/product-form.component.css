@@ -216,8 +216,46 @@ legend {
 }
 
 .part-row {
-  grid-template-columns: minmax(0, 3fr) 96px auto 36px;
+  grid-template-columns: 36px minmax(0, 3fr) repeat(4, 72px) auto 36px;
   align-items: center;
+}
+
+.part-img {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px dashed var(--cv-chip-dash);
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface-alt);
+  color: var(--cv-muted);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.part-img:focus-within {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: 1px;
+}
+
+.part-img.busy {
+  opacity: 0.5;
+}
+
+.part-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1023px) {
+  .part-row {
+    grid-template-columns: 36px minmax(0, 1fr) repeat(4, 64px) 36px;
+  }
+
+  .part-row .check {
+    grid-column: 2 / -1;
+  }
 }
 
 .check {

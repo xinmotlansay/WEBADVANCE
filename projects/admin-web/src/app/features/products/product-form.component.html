@@ -293,7 +293,14 @@
           </div>
           <div class="field">
             <label for="f-3d">Model 3D (.glb, tùy chọn)</label>
-            <input id="f-3d" class="input" formControlName="model3d" placeholder="/uploads/models/ten.glb" />
+            <div class="inline">
+              <input id="f-3d" class="input" formControlName="model3d" placeholder="/uploads/models/ten.glb" />
+              <label class="btn">
+                <input type="file" class="sr-only" accept=".glb,model/gltf-binary" (change)="uploadModel($any($event.target).files); $any($event.target).value = ''" />
+                {{ uploadingModel() ? 'Đang tải…' : 'Tải lên' }}
+              </label>
+            </div>
+            <span class="hint">Dùng cho View your Room. Tối đa 30 MB.</span>
           </div>
         </div>
       </section>
@@ -307,9 +314,20 @@
         <div formArrayName="parts" class="parts">
           @for (part of parts.controls; track part; let i = $index) {
             <div class="part-row" [formGroupName]="i">
+              <label class="part-img" [class.busy]="uploadingPart() === i" [attr.aria-label]="'Ảnh bộ phận ' + (i + 1)">
+                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" (change)="uploadPartImage(i, $any($event.target).files); $any($event.target).value = ''" />
+                @if (part.value.image) {
+                  <img [src]="part.value.image" alt="" />
+                } @else {
+                  <app-icon name="image" [small]="true" />
+                }
+              </label>
               <input class="input" aria-label="Tên bộ phận" placeholder="Mặt ghế" formControlName="name" [class.bad]="invalid(part.controls['name'])" />
               <input class="input num" type="number" min="1" aria-label="Số lượng" formControlName="quantity" />
-              <label class="check"><input type="checkbox" formControlName="isDetachable" /> Tháo rời được</label>
+              <input class="input num" type="number" min="1" aria-label="Dài (cm)" placeholder="D" formControlName="length" />
+              <input class="input num" type="number" min="1" aria-label="Rộng (cm)" placeholder="R" formControlName="width" />
+              <input class="input num" type="number" min="1" aria-label="Cao (cm)" placeholder="C" formControlName="height" />
+              <label class="check"><input type="checkbox" formControlName="isDetachable" /> Tháo rời</label>
               <button type="button" class="btn btn-icon" [attr.aria-label]="'Xóa bộ phận ' + (i + 1)" (click)="parts.removeAt(i)">
                 <app-icon name="x" [small]="true" />
               </button>
@@ -317,12 +335,15 @@
           } @empty {
             <p class="hint">Không bắt buộc. Liệt kê chi tiết đi kèm (chân, gối, tay vịn…) để khách kiểm tra khi nhận hàng.</p>
           }
+          @if (parts.length) {
+            <p class="hint">Ảnh và kích thước D × R × C (cm) của bộ phận dùng cho trang sản phẩm và Fit your home khi kiện nguyên không qua được lối đi.</p>
+          }
         </div>
       </section>
 
       <!-- 6. Bảo hành & SEO -->
       <section class="card" aria-labelledby="s-seo">
-        <h2 id="s-seo" class="section-label">Bảo hành &amp; SEO</h2>
+        <h2 id="s-seo" class="section-label">Bảo hành, nhãn &amp; SEO</h2>
         <div class="grid">
           <div class="field" [class.err]="invalid(form.controls.warrantyMonths)">
             <label for="f-wm">Bảo hành (tháng) <span class="req">*</span></label>
@@ -341,6 +362,26 @@
             <label for="f-sd">Mô tả SEO</label>
             <input id="f-sd" class="input" formControlName="seoDescription" maxlength="170" />
             <span class="hint tabular">{{ form.controls.seoDescription.value.length }}/170</span>
+          </div>
+          <div class="field">
+            <label for="f-bn">Nhãn Hàng mới</label>
+            <select id="f-bn" class="input" formControlName="badgeNew">
+              <option value="">Tự động (30 ngày từ khi lên kệ)</option>
+              <option value="ON">Luôn bật</option>
+              <option value="OFF">Luôn tắt</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-bb">Nhãn Bán chạy</label>
+            <select id="f-bb" class="input" formControlName="badgeBest">
+              <option value="">Tự động{{ product()?.isAutoBestSeller ? ' (đang bật)' : '' }}</option>
+              <option value="ON">Luôn bật</option>
+              <option value="OFF">Luôn tắt</option>
+            </select>
+          </div>
+          <div class="field">
+            <span class="label">Nhãn tự động</span>
+            <span class="hint">Bán chạy: top 10% mỗi danh mục theo số lượng giao thành công 30 ngày, tối thiểu 5 sản phẩm. Chỉ bật/tắt thủ công khi cần.</span>
           </div>
           <div class="serp span-3" aria-label="Xem trước trên Google">
             <span class="serp-url">caraveso.vn › san-pham</span>

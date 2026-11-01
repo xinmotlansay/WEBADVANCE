@@ -8,9 +8,13 @@ import {
 import { VariantModel, type VariantDoc } from '../products/variant.model.js';
 import { StockHistoryModel } from '../products/stock-history.model.js';
 import { CategoryModel } from '../categories/category.model.js';
+import { OrderModel } from '../orders/order.model.js';
+import { CartModel } from '../cart/cart.model.js';
+import { ReviewModel } from '../reviews/review.model.js';
 import { pickThumbnail } from '../products/product.service.js';
 import { AppError } from '../../utils/app-error.js';
 import type { ProductInput } from './admin.schema.js';
+import { notifyStockLevelsInBackground } from './admin-inventory.service.js';
 
 export type StockState = 'OK' | 'LOW' | 'OUT';
 
@@ -204,12 +208,26 @@ export async function getProduct(productId: Types.ObjectId) {
     seo: { title: product.seo?.title ?? '', description: product.seo?.description ?? '' },
     warrantyMonths: product.warrantyMonths,
     warrantyTerms: product.warrantyTerms ?? '',
-    parts: (product.parts ?? []).map((part) => ({
-      id: String(part._id),
-      name: part.name,
-      quantity: part.quantity,
-      isDetachable: part.isDetachable,
-    })),
+    manualBadges: {
+      isNew: product.manualBadges?.isNew ?? null,
+      isBestSeller: product.manualBadges?.isBestSeller ?? null,
+    },
+    isAutoBestSeller: product.isAutoBestSeller ?? false,
+    listedAt: product.listedAt ?? null,
+    parts: (product.parts ?? []).map((part) => {
+      // Kích thước bộ phận lưu theo biến thể (Fit your home); form nhập chung một bộ cho mọi biến thể.
+      const dims = variants.flatMap((v) => v.partDimensions ?? []).find((d) => d.partId.equals(part._id));
+      return {
+        id: String(part._id),
+        name: part.name,
+        quantity: part.quantity,
+        isDetachable: part.isDetachable,
+        image: part.image ?? '',
+        length: dims?.length ?? null,
+        width: dims?.width ?? null,
+        height: dims?.height ?? null,
+      };
+    }),
     thumbnail: pickThumbnail(product),
     categories: categories.map((c) => ({ id: String(c._id), name: c.name, type: c.type })),
     installation: installation
@@ -282,7 +300,8 @@ export async function adjustStock(
   body: StockAdjustment,
   adminId: Types.ObjectId,
 ) {
-  return mongoose.connection.transaction(async (session) => {
+  const notifyAfterCommit: Types.ObjectId[] = [];
+  const result = await mongoose.connection.transaction(async (session) => {
     const variant = await VariantModel.findById(variantId).session(session);
     if (!variant) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy biến thể');
     const before = variant.stockQuantity;
@@ -295,6 +314,7 @@ export async function adjustStock(
     }
     variant.stockQuantity = after;
     await variant.save({ session });
+    if (after < before) notifyAfterCommit.push(variant._id);
     await StockHistoryModel.create(
       [
         {
@@ -317,6 +337,9 @@ export async function adjustStock(
       lowStock: after <= variant.lowStockThreshold,
     };
   });
+  // Cảnh báo tồn kho (PA-08) gửi sau khi giao dịch đã ghi.
+  notifyStockLevelsInBackground(notifyAfterCommit);
+  return result;
 }
 
 /** Danh mục và phòng cho bộ lọc (PA-07, cả danh mục ẩn). */
@@ -364,6 +387,7 @@ async function nextProductCode(range: string): Promise<string> {
 
 function productFields(input: ProductInput) {
   return {
+    manualBadges: input.manualBadges,
     name: input.name,
     shortDescription: input.shortDescription,
     description: input.description,
@@ -381,6 +405,33 @@ function productFields(input: ProductInput) {
       purpose: (m.type === 'IMAGE' ? (index === 0 ? 'MAIN' : 'LIFESTYLE') : 'MODEL') as MediaPurpose,
     })),
   };
+}
+
+type PartWithId = ProductInput['parts'][number] & { _id: Types.ObjectId };
+
+/** Bộ phận kèm `_id` cố định: giữ id cũ khi sửa, cấp mới khi thêm, để gắn kích thước theo biến thể. */
+function partsWithIds(input: ProductInput, keptIds: Set<string>): PartWithId[] {
+  return input.parts.map((part) => ({
+    ...part,
+    _id: part.id && keptIds.has(part.id) ? new Types.ObjectId(part.id) : new Types.ObjectId(),
+  }));
+}
+
+function partDocs(parts: PartWithId[]) {
+  return parts.map((part, index) => ({
+    _id: part._id,
+    name: part.name,
+    quantity: part.quantity,
+    isDetachable: part.isDetachable,
+    image: part.image || undefined,
+    displayOrder: index + 1,
+  }));
+}
+
+function partDimensions(parts: PartWithId[]) {
+  return parts
+    .filter((part) => part.length && part.width && part.height)
+    .map((part) => ({ partId: part._id, length: part.length!, width: part.width!, height: part.height!, unit: 'cm' }));
 }
 
 function variantFields(v: ProductInput['variants'][number]) {
@@ -431,6 +482,7 @@ export async function createProduct(input: ProductInput, adminId: Types.ObjectId
     const productCode = await nextProductCode(range);
     try {
       return await mongoose.connection.transaction(async (session) => {
+        const parts = partsWithIds(input, new Set());
         const [product] = await ProductModel.create(
           [
             {
@@ -438,7 +490,7 @@ export async function createProduct(input: ProductInput, adminId: Types.ObjectId
               slug: await uniqueSlug(input.name),
               productCode,
               status: 'DRAFT',
-              parts: input.parts.map((part, index) => ({ ...part, displayOrder: index + 1 })),
+              parts: partDocs(parts),
             },
           ],
           { session },
@@ -446,6 +498,7 @@ export async function createProduct(input: ProductInput, adminId: Types.ObjectId
         const variants = await VariantModel.create(
           input.variants.map((v, index) => ({
             ...variantFields(v),
+            partDimensions: partDimensions(parts),
             productId: product._id,
             sku: `${productCode}.${String(index + 1).padStart(2, '0')}`,
             stockQuantity: v.stockQuantity,
@@ -489,28 +542,24 @@ export async function updateProduct(productId: Types.ObjectId, input: ProductInp
   await mongoose.connection.transaction(async (session) => {
     product.set(productFields(input));
     if (before.name !== input.name) product.slug = await uniqueSlug(input.name, productId);
-    const keptParts = new Set((product.parts ?? []).map((part) => String(part._id)));
-    product.set(
-      'parts',
-      input.parts.map((part, index) => ({
-        ...(part.id && keptParts.has(part.id) ? { _id: new Types.ObjectId(part.id) } : {}),
-        name: part.name,
-        quantity: part.quantity,
-        isDetachable: part.isDetachable,
-        displayOrder: index + 1,
-      })),
-    );
+    const parts = partsWithIds(input, new Set((product.parts ?? []).map((part) => String(part._id))));
+    product.set('parts', partDocs(parts));
     await product.save({ session });
 
     for (const v of input.variants) {
       if (v.id) {
-        await VariantModel.updateOne({ _id: v.id, productId }, { $set: variantFields(v) }, { session });
+        await VariantModel.updateOne(
+          { _id: v.id, productId },
+          { $set: { ...variantFields(v), partDimensions: partDimensions(parts) } },
+          { session },
+        );
         continue;
       }
       const [created] = await VariantModel.create(
         [
           {
             ...variantFields(v),
+            partDimensions: partDimensions(parts),
             productId,
             sku: `${product.productCode}.${String(nextVv++).padStart(2, '0')}`,
             stockQuantity: v.stockQuantity,
@@ -527,4 +576,36 @@ export async function updateProduct(productId: Types.ObjectId, input: ProductInp
     }
   });
   return { id: String(product._id), name: product.name, before };
+}
+
+/**
+ * PA-06: xóa cứng chỉ khi sản phẩm chưa từng có đơn hàng; đã có đơn thì phải ngừng kinh doanh
+ * để giữ lịch sử đơn, bảo hành và đánh giá.
+ */
+export async function deleteProduct(productId: Types.ObjectId) {
+  const product = await ProductModel.findById(productId).lean<ProductDoc>();
+  if (!product) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy sản phẩm');
+  const variantIds = (await VariantModel.find({ productId }).select('_id').lean()).map((v) => v._id);
+  const [hasOrder, hasReview] = await Promise.all([
+    OrderModel.exists({ 'items.variantId': { $in: variantIds } }),
+    ReviewModel.exists({ productId }),
+  ]);
+  if (hasOrder || hasReview) {
+    throw new AppError(
+      'PRODUCT_HAS_ORDERS',
+      409,
+      `${product.name} đã có đơn hàng nên không xóa được. Chọn "Ngừng kinh doanh" để gỡ khỏi cửa hàng.`,
+    );
+  }
+  await mongoose.connection.transaction(async (session) => {
+    await CartModel.updateMany({}, { $pull: { items: { variantId: { $in: variantIds } } } }, { session });
+    await StockHistoryModel.deleteMany({ variantId: { $in: variantIds } }, { session });
+    await VariantModel.deleteMany({ productId }, { session });
+    await ProductModel.deleteOne({ _id: productId }, { session });
+  });
+  return {
+    id: String(product._id),
+    name: product.name,
+    snapshot: { productCode: product.productCode, status: product.status, variants: variantIds.length },
+  };
 }

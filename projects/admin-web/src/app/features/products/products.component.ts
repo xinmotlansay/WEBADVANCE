@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { AdminApiService, apiMessage, type ProductQuery, type ProductRow } from '../../core/api/admin-api.service';
 import { FORMAT_PIPES, formatDate } from '../../shared/format';
@@ -38,6 +38,7 @@ const STATUS_ORDER = ['ACTIVE', 'DRAFT', 'HIDDEN', 'DISCONTINUED'];
 export class ProductsComponent {
   private readonly api = inject(AdminApiService);
   private readonly toast = inject(ToastService);
+  protected readonly router = inject(Router);
 
   protected readonly productStatus = PRODUCT_STATUS;
   protected readonly stockState = STOCK_STATE;

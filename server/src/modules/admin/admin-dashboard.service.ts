@@ -8,6 +8,7 @@ import { SystemConfigModel } from '../config/system-config.model.js';
 import { UserModel } from '../auth/auth.model.js';
 import { ReviewModel } from '../reviews/review.model.js';
 import { AuditLogModel } from './audit-log.model.js';
+import { PENDING_REPORT_FILTER } from './admin-review.service.js';
 
 export type DashboardPeriod = 'today' | '7d' | '30d' | 'month';
 
@@ -287,14 +288,7 @@ export async function getProductDashboard(now = new Date()) {
   const newCount = await ProductModel.countDocuments({ listedAt: { $gte: newSince } });
   const bestSellerCount = await ProductModel.countDocuments({ isAutoBestSeller: true });
   const [reported, rating] = await Promise.all([
-    ReviewModel.countDocuments({
-      status: 'VISIBLE',
-      'reports.0': { $exists: true },
-      $or: [
-        { reportsReviewedAt: { $exists: false } },
-        { $expr: { $gt: [{ $max: '$reports.reportedAt' }, '$reportsReviewedAt'] } },
-      ],
-    }),
+    ReviewModel.countDocuments(PENDING_REPORT_FILTER),
     ReviewModel.aggregate<{ avg: number }>([
       { $match: { status: 'VISIBLE' } },
       { $group: { _id: null, avg: { $avg: '$rating' } } },

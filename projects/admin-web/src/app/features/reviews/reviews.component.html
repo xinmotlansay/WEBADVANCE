@@ -1,0 +1,262 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Kiểm duyệt đánh giá</h1>
+        <p class="page-sub">Đánh giá đăng ngay khi khách gửi; hàng chờ chỉ gồm đánh giá bị khách báo cáo vi phạm.</p>
+      </div>
+      <div class="head-tools">
+        <label class="search">
+          <span class="sr-only">Tìm theo tên sản phẩm</span>
+          <app-icon name="search" [small]="true" />
+          <input type="search" placeholder="Tên sản phẩm" [value]="searchText()" (input)="onSearch($any($event.target).value)" />
+        </label>
+        <app-notification-bell />
+      </div>
+    </header>
+
+    <div class="tabs-line" role="tablist" aria-label="Hàng đánh giá">
+      @for (q of queues; track q) {
+        <button type="button" role="tab" [attr.aria-selected]="queue() === q" (click)="setQueue(q)">
+          {{ queueLabel[q] }}
+          @if (counts(); as c) {
+            <span class="badge" [class.b-attn]="q === 'PENDING' && c[q]" [class.b-neutral]="q !== 'PENDING' || !c[q]">{{ c[q] | num }}</span>
+          }
+        </button>
+      }
+    </div>
+
+    <div class="filters-row">
+      <app-filter-chip label="Số sao" [multiple]="false" [options]="ratingOptions" [selected]="ratingFilter()" (selectedChange)="setRating($event)" />
+      @if (hasFilters()) {
+        <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+      }
+    </div>
+
+    <section class="list-section" aria-label="Danh sách đánh giá">
+      @if (open(); as review) {
+        <app-detail-popup [title]="review.productName" [kicker]="stars(review.rating)" (closed)="open.set(null)">
+          <div class="info">
+            <p>{{ review.customerName }} · {{ review.createdAt | vnDate }}{{ review.isEdited ? ' · đã sửa' : '' }}</p>
+            <p class="tabular">{{ review.sku }}{{ review.variant ? ' · ' + review.variant : '' }}</p>
+          </div>
+          <p class="comment">{{ review.comment || 'Khách chỉ chấm sao, không viết nội dung.' }}</p>
+          @if (review.images.length) {
+            <div class="gallery">
+              @for (img of review.images; track img) {
+                <a [href]="img" target="_blank" rel="noopener"><img [src]="img" alt="Ảnh khách đính kèm" loading="lazy" /></a>
+              }
+            </div>
+          }
+          @if (review.reportCount) {
+            <h3 class="section-label">Báo cáo ({{ review.reportCount }})</h3>
+            <ul class="reasons">
+              @for (r of review.reportReasons; track r.reason) {
+                <li><span>{{ r.reason }}</span><strong class="tabular">{{ r.count }}</strong></li>
+              }
+            </ul>
+          }
+          @if (review.rejectReason) {
+            <p class="decided">Lý do {{ review.status === 'HIDDEN' ? 'ẩn' : 'từ chối' }}: {{ review.rejectReason }}</p>
+          }
+
+          <ng-container popup-actions>
+            @if (review.status === 'VISIBLE') {
+              <button type="button" class="btn btn-primary grow" [disabled]="busy()" (click)="act('KEEP', [review.id])">
+                {{ review.reportCount ? 'Không vi phạm, giữ' : 'Giữ hiển thị' }}
+              </button>
+              <button type="button" class="btn" [disabled]="busy()" (click)="act('HIDE', [review.id])">Ẩn</button>
+              <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="act('REJECT', [review.id])">Từ chối</button>
+            } @else {
+              <button type="button" class="btn btn-primary grow" [disabled]="busy()" (click)="act('RESTORE', [review.id])">Hiện lại</button>
+              @if (review.status === 'HIDDEN') {
+                <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="act('REJECT', [review.id])">Từ chối</button>
+              }
+            }
+          </ng-container>
+        </app-detail-popup>
+      }
+
+      @if (reviews.error()) {
+        <div class="alert-box" role="alert">
+          Không tải được đánh giá.
+          <button type="button" class="btn" (click)="reviews.reload()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col" class="check">
+                  <input type="checkbox" aria-label="Chọn tất cả đánh giá trong trang" [checked]="allChecked()" [disabled]="!rows().length" (change)="toggleAll()" />
+                </th>
+                <th scope="col">Sản phẩm</th>
+                <th scope="col">Số sao</th>
+                <th scope="col">Nội dung</th>
+                <th scope="col">Khách</th>
+                @if (queue() === 'PENDING') {
+                  <th scope="col">Báo cáo</th>
+                } @else if (queue() !== 'VISIBLE') {
+                  <th scope="col">Lý do</th>
+                }
+                <th scope="col">{{ queue() === 'PENDING' ? 'Báo cáo gần nhất' : 'Cập nhật' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (reviews.isLoading() && !reviews.value()) {
+                @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                  <tr aria-hidden="true">
+                    <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                    <td><span class="skeleton" style="width: 160px"></span></td>
+                    <td><span class="skeleton" style="width: 70px"></span></td>
+                    <td><span class="skeleton" style="width: 220px"></span></td>
+                    <td><span class="skeleton" style="width: 90px"></span></td>
+                    <td><span class="skeleton" style="width: 90px"></span></td>
+                    <td><span class="skeleton" style="width: 50px"></span></td>
+                  </tr>
+                }
+              } @else {
+                @for (row of rows(); track row.id) {
+                  <tr [class.selected]="selected().has(row.id) || open()?.id === row.id">
+                    <td class="check">
+                      <input type="checkbox" [attr.aria-label]="'Chọn đánh giá của ' + row.customerName" [checked]="selected().has(row.id)" (change)="toggleRow(row.id)" />
+                    </td>
+                    <td>
+                      <span class="cell-text">
+                        <button type="button" class="cell-link" (click)="open.set(row)">{{ row.productName }}</button>
+                        <span class="cell-sub tabular">{{ row.sku }}</span>
+                      </span>
+                    </td>
+                    <td><span class="stars" [attr.aria-label]="row.rating + ' sao'">{{ stars(row.rating) }}</span></td>
+                    <td>
+                      <span class="snippet">{{ row.comment || '—' }}</span>
+                      @if (row.images.length) {
+                        <span class="cell-sub"> · {{ row.images.length }} ảnh</span>
+                      }
+                    </td>
+                    <td>{{ row.customerName }}</td>
+                    @if (queue() === 'PENDING') {
+                      <td>
+                        <span class="badge b-attn">{{ row.reportCount }} báo cáo</span>
+                        @if (row.reportReasons[0]; as top) {
+                          <span class="cell-sub top-reason"> {{ top.reason }}</span>
+                        }
+                      </td>
+                    } @else if (queue() !== 'VISIBLE') {
+                      <td><span class="snippet muted">{{ row.rejectReason || '—' }}</span></td>
+                    }
+                    <td class="tabular">{{ (queue() === 'PENDING' ? row.lastReportedAt : row.updatedAt) | vnDate: true }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="queue() === 'VISIBLE' ? 6 : 7">
+                      <div class="state">
+                        @if (hasFilters()) {
+                          <p>Không tìm thấy kết quả.</p>
+                          <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                        } @else if (queue() === 'PENDING') {
+                          <p>Không có đánh giá nào bị báo cáo. Hàng chờ đã xử lý xong.</p>
+                        } @else {
+                          <p>Chưa có đánh giá nào ở mục {{ queueLabel[queue()].toLowerCase() }}.</p>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (reviews.value(); as result) {
+          @if (result.meta.total > 0) {
+            <nav class="pager" aria-label="Phân trang đánh giá">
+              <span>{{ (result.meta.page - 1) * result.meta.limit + 1 }}–{{ (result.meta.page - 1) * result.meta.limit + result.data.length }} trong {{ result.meta.total | num }} đánh giá</span>
+              @if (result.meta.totalPages > 1) {
+                <div class="pager-btns">
+                  <button type="button" class="btn" [disabled]="result.meta.page <= 1" (click)="goPage(result.meta.page - 1)">Trang trước</button>
+                  <span class="tabular page-no">{{ result.meta.page }} / {{ result.meta.totalPages }}</span>
+                  <button type="button" class="btn" [disabled]="result.meta.page >= result.meta.totalPages" (click)="goPage(result.meta.page + 1)">Trang sau</button>
+                </div>
+              }
+            </nav>
+          }
+        }
+      }
+    </section>
+
+    @if (selected().size) {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        @if (queue() === 'PENDING' || queue() === 'VISIBLE') {
+          <button type="button" class="btn btn-accent" [disabled]="busy()" (click)="act('KEEP', selectedIds())">Giữ hiển thị</button>
+          <button type="button" class="bulk-btn" [disabled]="busy()" (click)="act('HIDE', selectedIds())">Ẩn</button>
+          <button type="button" class="bulk-btn" [disabled]="busy()" (click)="act('REJECT', selectedIds())">Từ chối</button>
+        } @else {
+          <button type="button" class="btn btn-accent" [disabled]="busy()" (click)="act('RESTORE', selectedIds())">Hiện lại</button>
+        }
+      </app-bulk-bar>
+    }
+  </main>
+
+  <aside class="aside" aria-label="Tổng quan kiểm duyệt">
+    @if (counts(); as c) {
+      <section class="ov-block" [class.warn]="c.PENDING > 0">
+        <h2 class="section-label">Chờ duyệt</h2>
+        <p class="hero-num">{{ c.PENDING | num }}</p>
+        <p class="hero-sub">đánh giá bị báo cáo chưa xử lý</p>
+        @if (c.PENDING && queue() !== 'PENDING') {
+          <button type="button" class="btn" (click)="setQueue('PENDING')">Xử lý ngay</button>
+        }
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Tổng đánh giá</h2>
+        <dl class="grid2">
+          <div><dt>Đang hiển thị</dt><dd class="tabular">{{ c.VISIBLE | num }}</dd></div>
+          <div><dt>Đã ẩn</dt><dd class="tabular">{{ c.HIDDEN | num }}</dd></div>
+          <div><dt>Đã từ chối</dt><dd class="tabular">{{ c.REJECTED | num }}</dd></div>
+        </dl>
+      </section>
+    }
+
+    @if (queue() === 'PENDING' && reasonTotals().length) {
+      <section class="ov-block">
+        <h2 class="section-label">Lý do báo cáo</h2>
+        <p class="caption">Trong trang đang xem</p>
+        <ul class="rank">
+          @for (r of reasonTotals(); track r.reason; let first = $first) {
+            <li>
+              <span class="name">{{ r.reason }}</span>
+              <strong>{{ r.count | num }}</strong>
+              <span class="bar"><span [class.accent]="first" [style.width.%]="(r.count / reasonMax()) * 100"></span></span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <section class="ov-block">
+      <h2 class="section-label">Nguyên tắc</h2>
+      <ul class="rules">
+        <li><strong>Giữ</strong> khi báo cáo không có căn cứ; đánh giá tiếp tục hiển thị.</li>
+        <li><strong>Ẩn</strong> khi vi phạm nhẹ hoặc cần xác minh; có thể hiện lại.</li>
+        <li><strong>Từ chối</strong> khi vi phạm rõ: xúc phạm, spam, lộ thông tin cá nhân.</li>
+        <li>Không ẩn đánh giá chê chỉ vì điểm thấp.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+@if (pending(); as p) {
+  <app-confirm-dialog
+    [title]="(p.decision === 'HIDE' ? 'Ẩn ' : 'Từ chối ') + p.ids.length + ' đánh giá?'"
+    [message]="pendingMessage(p)"
+    [confirmLabel]="p.decision === 'HIDE' ? 'Ẩn đánh giá' : 'Từ chối đánh giá'"
+    reasonLabel="Lý do vi phạm"
+    [reasonOptions]="reasonOptions"
+    [busy]="busy()"
+    [error]="dialogError()"
+    (confirmed)="confirmPending($event)"
+    (cancelled)="pending.set(null)"
+  />
+}

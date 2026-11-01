@@ -17,6 +17,7 @@ import {
   apiMessage,
   type ProductDetail,
   type ProductInput,
+  type ProductPart,
 } from '../../core/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { PRODUCT_STATUS, toneClass } from '../../shared/status';
@@ -66,6 +67,8 @@ export class ProductFormComponent implements OnInit {
   protected readonly toneClass = toneClass;
   protected readonly saving = signal(false);
   protected readonly uploading = signal(0);
+  protected readonly uploadingModel = signal(false);
+  protected readonly uploadingPart = signal<number | null>(null);
   protected readonly error = signal('');
   protected readonly submitted = signal(false);
   protected readonly product = signal<ProductDetail | null>(null);
@@ -91,6 +94,8 @@ export class ProductFormComponent implements OnInit {
     seoTitle: ['', Validators.maxLength(70)],
     seoDescription: ['', Validators.maxLength(170)],
     model3d: [''],
+    badgeNew: this.fb.control<'' | 'ON' | 'OFF'>(''),
+    badgeBest: this.fb.control<'' | 'ON' | 'OFF'>(''),
     images: this.fb.control<string[]>([]),
     parts: this.fb.array<FormGroup>([]),
     variants: this.fb.array<FormGroup>([]),
@@ -235,15 +240,63 @@ export class ProductFormComponent implements OnInit {
     variant.markAsDirty();
   }
 
-  protected addPart(data?: { id?: string; name: string; quantity: number; isDetachable: boolean }): void {
+  protected addPart(data?: ProductPart): void {
     this.parts.push(
       this.fb.group({
         id: [data?.id ?? ''],
         name: [data?.name ?? '', Validators.required],
         quantity: this.fb.control<Num>(data?.quantity ?? 1, [Validators.required, Validators.min(1)]),
         isDetachable: [data?.isDetachable ?? false],
+        image: [data?.image ?? ''],
+        length: this.fb.control<Num>(data?.length ?? null, Validators.min(1)),
+        width: this.fb.control<Num>(data?.width ?? null, Validators.min(1)),
+        height: this.fb.control<Num>(data?.height ?? null, Validators.min(1)),
       }),
     );
+  }
+
+  /** Ảnh từng bộ phận (FR-18 hiển thị "hình ảnh các chi tiết trong hộp"). */
+  protected uploadPartImage(index: number, files: FileList | null): void {
+    const file = files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      this.toast.show('Chỉ nhận ảnh JPG, PNG, WebP tối đa 5 MB.', 'error');
+      return;
+    }
+    this.uploadingPart.set(index);
+    this.api.uploadProductImage(file).subscribe({
+      next: (url) => {
+        this.uploadingPart.set(null);
+        this.parts.at(index)?.patchValue({ image: url });
+        this.form.markAsDirty();
+      },
+      error: (error: unknown) => {
+        this.uploadingPart.set(null);
+        this.toast.show(apiMessage(error), 'error');
+      },
+    });
+  }
+
+  /** Model 3D (.glb) cho View your Room (FR-23); không có thì khách thấy "chưa hỗ trợ". */
+  protected uploadModel(files: FileList | null): void {
+    const file = files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.glb') || file.size > 30 * 1024 * 1024) {
+      this.toast.show('Chỉ nhận tệp .glb tối đa 30 MB.', 'error');
+      return;
+    }
+    this.uploadingModel.set(true);
+    this.api.uploadProductModel(file).subscribe({
+      next: (url) => {
+        this.uploadingModel.set(false);
+        this.form.controls.model3d.setValue(url);
+        this.form.markAsDirty();
+      },
+      error: (error: unknown) => {
+        this.uploadingModel.set(false);
+        this.toast.show(apiMessage(error), 'error');
+      },
+    });
   }
 
   protected toggleIn(control: 'roomIds' | 'styleIds', id: string): void {
@@ -386,6 +439,8 @@ export class ProductFormComponent implements OnInit {
       seoDescription: product.seo.description,
       model3d: product.media.find((m) => m.type === 'MODEL_3D')?.url ?? '',
       images: product.media.filter((m) => m.type === 'IMAGE').map((m) => m.url),
+      badgeNew: product.manualBadges.isNew ?? '',
+      badgeBest: product.manualBadges.isBestSeller ?? '',
     });
     this.form.markAsPristine();
   }
@@ -409,7 +464,12 @@ export class ProductFormComponent implements OnInit {
         name: String(p['name']).trim(),
         quantity: num(p['quantity']),
         isDetachable: !!p['isDetachable'],
+        image: String(p['image'] ?? ''),
+        length: Number(p['length']) || null,
+        width: Number(p['width']) || null,
+        height: Number(p['height']) || null,
       })),
+      manualBadges: { isNew: v.badgeNew || null, isBestSeller: v.badgeBest || null },
       media: [
         ...v.images.map((url) => ({ url, type: 'IMAGE' as const })),
         ...(v.model3d.trim() ? [{ url: v.model3d.trim(), type: 'MODEL_3D' as const }] : []),

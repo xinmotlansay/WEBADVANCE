@@ -236,9 +236,11 @@
               <span class="badge" [class.b-danger]="data.alerts.outOfStock" [class.b-neutral]="!data.alerts.outOfStock">{{ data.alerts.outOfStock | num }}</span>
             </button>
           </li>
-          <li class="static">
-            <span><strong>Đánh giá bị báo cáo</strong><small>Chờ kiểm duyệt</small></span>
-            <span class="badge b-neutral">{{ data.alerts.reportedReviews | num }}</span>
+          <li>
+            <button type="button" (click)="router.navigateByUrl('/danh-gia')">
+              <span><strong>Đánh giá bị báo cáo</strong><small>Chờ kiểm duyệt</small></span>
+              <span class="badge" [class.b-attn]="data.alerts.reportedReviews" [class.b-neutral]="!data.alerts.reportedReviews">{{ data.alerts.reportedReviews | num }}</span>
+            </button>
           </li>
           <li>
             <button type="button" (click)="applyAlert('DRAFT')">
@@ -275,6 +277,16 @@
           } @empty {
             <li class="muted">Chưa có sản phẩm bán ra trong 30 ngày.</li>
           }
+        </ul>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Quản lý</h2>
+        <ul class="link-list">
+          <li><a routerLink="/ton-kho">Tồn kho &amp; lịch sử biến động</a></li>
+          <li><a routerLink="/danh-muc">Danh mục &amp; gợi ý phòng</a></li>
+          <li><a routerLink="/van-chuyen">Cấp độ vận chuyển</a></li>
+          <li><a routerLink="/danh-gia">Kiểm duyệt đánh giá</a></li>
         </ul>
       </section>
     } @else {

@@ -22,6 +22,7 @@ import { resolvePayment } from '../checkout/pricing.js';
 import { getCheckoutConfig, type BankAccountConfig } from '../config/config.service.js';
 import { StockHistoryModel, type StockChangeType } from '../products/stock-history.model.js';
 import { VariantModel } from '../products/variant.model.js';
+import { notifyStockLevelsInBackground } from '../admin/admin-inventory.service.js';
 import { consumeVoucher, refundVoucherUsage } from '../vouchers/voucher.service.js';
 import { OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
 import { PaymentTransactionModel, type RefundAccount } from './payment-transaction.model.js';
@@ -343,6 +344,8 @@ export async function createOrder(
     }
     throw err;
   }
+  // PA-08: báo Product Admin nếu đơn làm biến thể xuống dưới ngưỡng.
+  notifyStockLevelsInBackground(lines.map((l) => l.ctx.variant._id));
 
   if (body.newAddress?.saveAddress) {
     const { saveAddress: _save, ...newAddress } = body.newAddress;

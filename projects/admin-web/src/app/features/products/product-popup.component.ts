@@ -33,6 +33,8 @@ export class ProductPopupComponent {
   protected readonly tab = signal<Tab>('variants');
   protected readonly busy = signal(false);
   protected readonly discontinuing = signal(false);
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal('');
   protected readonly productStatus = PRODUCT_STATUS;
   protected readonly stockState = STOCK_STATE;
   protected readonly installation = INSTALLATION;
@@ -69,6 +71,26 @@ export class ProductPopupComponent {
         this.busy.set(false);
         this.discontinuing.set(false);
         this.toast.show(apiMessage(error), 'error');
+      },
+    });
+  }
+
+  /** PA-06: xóa cứng; máy chủ từ chối nếu sản phẩm đã có đơn hàng. */
+  protected remove(product: ProductDetail): void {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.deleteError.set('');
+    this.api.deleteProduct(product.id).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.deleting.set(false);
+        this.toast.show(`Đã xóa ${product.name}.`);
+        this.changed.emit();
+        this.closed.emit();
+      },
+      error: (error: unknown) => {
+        this.busy.set(false);
+        this.deleteError.set(apiMessage(error));
       },
     });
   }

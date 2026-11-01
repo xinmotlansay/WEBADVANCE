@@ -3,6 +3,9 @@ import { RoleName } from 'shared';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
+/** Sản phẩm, danh mục, tồn kho, đánh giá, cấp vận chuyển (ma trận mục 5). */
+const productRoles = roleGuard(RoleName.SUPER_ADMIN, RoleName.PRODUCT_ADMIN);
+
 export const routes: Routes = [
   {
     path: 'dang-nhap',
@@ -23,7 +26,7 @@ export const routes: Routes = [
       },
       {
         path: 'san-pham',
-        canActivate: [roleGuard(RoleName.SUPER_ADMIN, RoleName.PRODUCT_ADMIN)],
+        canActivate: [productRoles],
         children: [
           {
             path: '',
@@ -43,6 +46,30 @@ export const routes: Routes = [
               import('./features/products/product-form.component').then((m) => m.ProductFormComponent),
           },
         ],
+      },
+      {
+        path: 'danh-muc',
+        canActivate: [productRoles],
+        loadComponent: () =>
+          import('./features/categories/categories.component').then((m) => m.CategoriesComponent),
+      },
+      {
+        path: 'ton-kho',
+        canActivate: [productRoles],
+        loadComponent: () =>
+          import('./features/inventory/inventory.component').then((m) => m.InventoryComponent),
+      },
+      {
+        path: 'van-chuyen',
+        canActivate: [productRoles],
+        loadComponent: () =>
+          import('./features/shipping/shipping-tiers.component').then((m) => m.ShippingTiersComponent),
+      },
+      {
+        path: 'danh-gia',
+        canActivate: [productRoles],
+        loadComponent: () =>
+          import('./features/reviews/reviews.component').then((m) => m.ReviewsComponent),
       },
     ],
   },

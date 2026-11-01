@@ -96,6 +96,23 @@
       <span>Giá bán:</span>
       <strong class="tabular">{{ priceRange() ? (priceRange()!.min | vnd) : '—' }}</strong>
     </div>
+
+    <div class="more">
+      @switch (product.status) {
+        @case ('ACTIVE') {
+          <button type="button" class="btn-link" [disabled]="busy()" (click)="setStatus(product, 'HIDDEN', 'đã ẩn khỏi cửa hàng.')">Ẩn khỏi cửa hàng</button>
+        }
+        @case ('HIDDEN') {
+          <button type="button" class="btn-link" [disabled]="busy()" (click)="setStatus(product, 'ACTIVE', 'đã hiện lại.')">Hiện lại</button>
+        }
+        @case ('DRAFT') {
+          <button type="button" class="btn-link" [disabled]="busy() || product.missingForActive.length > 0" (click)="setStatus(product, 'ACTIVE', 'đã lên kệ.')">Lên kệ</button>
+        }
+      }
+      @if (product.status === 'DRAFT' || product.status === 'DISCONTINUED') {
+        <button type="button" class="btn-link danger" [disabled]="busy()" (click)="deleting.set(true)">Xóa sản phẩm</button>
+      }
+    </div>
   }
 
   <ng-container popup-actions>
@@ -119,5 +136,17 @@
     [busy]="busy()"
     (confirmed)="setStatus(product, 'DISCONTINUED', 'đã ngừng kinh doanh.')"
     (cancelled)="discontinuing.set(false)"
+  />
+}
+
+@if (deleting() && detail.value(); as product) {
+  <app-confirm-dialog
+    [title]="'Xóa vĩnh viễn ' + product.name + '?'"
+    message="Sản phẩm, toàn bộ biến thể và lịch sử tồn kho bị xóa hẳn, không khôi phục được. Chỉ xóa được khi sản phẩm chưa từng có đơn hàng; đã có đơn thì dùng Ngừng kinh doanh."
+    confirmLabel="Xóa sản phẩm"
+    [busy]="busy()"
+    [error]="deleteError()"
+    (confirmed)="remove(product)"
+    (cancelled)="deleting.set(false)"
   />
 }

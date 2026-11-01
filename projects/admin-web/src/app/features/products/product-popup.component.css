@@ -168,3 +168,16 @@
 .grow {
   flex: 1;
 }
+
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.more .danger {
+  color: var(--cv-danger-text);
+}
