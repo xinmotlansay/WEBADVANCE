@@ -348,7 +348,8 @@
 }
 
 .try-before-buy button,
-.try-before-buy a {
+.try-before-buy a,
+.try-before-buy .tool-disabled {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -865,4 +866,15 @@ button:disabled {
   color: #fff;
   font-size: 14px;
   cursor: pointer;
+}
+
+.try-before-buy .tool-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.action-notice.info {
+  border-color: #d6dde3;
+  background: #f4f6f8;
+  color: #404447;
 }

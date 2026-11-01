@@ -168,7 +168,7 @@ export class ProductDetailComponent {
   protected readonly selectedImageIndex = signal(0);
   protected readonly selectedTab = signal<'description' | 'specifications'>('description');
   protected readonly quantity = signal(1);
-  protected readonly notice = signal<{ text: string; type: 'success' | 'error' } | null>(null);
+  protected readonly notice = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   /** Khóa thao tác đang gửi lên server, dùng để chặn bấm lặp. */
   protected readonly pendingAction = signal<string | null>(null);
   protected readonly stockLabels = STOCK_LABELS;
@@ -205,6 +205,8 @@ export class ProductDetailComponent {
     const detail = this.product();
     return detail ? toView(detail) : null;
   });
+  /** Không đặt tên `product` trong template: `@if (view(); as product)` đã dùng tên đó cho giá trị `view()`. */
+  protected readonly has3D = computed(() => this.product()?.has3DModel ?? false);
   protected readonly selectedVariant = computed(() => this.view()?.variants[this.selectedVariantIndex()] ?? null);
   protected readonly isFavorite = computed(() => {
     const view = this.view();
