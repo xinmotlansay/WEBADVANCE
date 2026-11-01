@@ -1162,6 +1162,7 @@ Mọi chuyển trạng thái ghi `statusHistory` (`changedBy` null nếu hệ th
 | PATCH | `/admin/admins/:id` | AD-12 | Sửa thông tin |
 | POST | `/admin/admins/:id/deactivate` | AD-12 | Vô hiệu hóa (`LOCKED`) |
 | POST | `/admin/admins/:id/activate` | AD-12 | Kích hoạt lại |
+| POST | `/admin/admins/:id/resend-invite` | AD-11 | Gửi lại liên kết đặt mật khẩu (tài khoản chưa đặt mật khẩu, đang hoạt động) |
 | PATCH | `/admin/admins/:id/role` | AD-13 | Đổi vai trò (đúng một vai trò) |
 | GET | `/admin/roles` | AD-14 | Danh sách vai trò (chỉ đọc, ma trận cố định) |
 | GET | `/admin/audit-logs` | AD-10, NF-A04 | Nhật ký (`?userId=&action=&targetType=&from=&to=`) |
@@ -1339,6 +1340,17 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 ## Lịch sử thay đổi
 
+### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
+
+- `GET /admin/dashboard/overview?range=today|7d|30d|month` (mặc định `30d`). Ngoài các trường ở 11b.5 trả thêm: `revenue.selected`, `revenue.selectedChangePercent` (so với kỳ liền trước cùng độ dài, `null` khi kỳ trước bằng 0), `revenue.byMonth[] = { month, year, revenue }` (T1 → tháng hiện tại), `ordersToday { count, changePercent }`, `averageOrderValueChangePercent`, `cancelRateChangePoints`, `returnRateChangePoints`, `overdueConfirmation { thresholdHours, count, items[] }`, `recentOrders[]` (8 đơn mới nhất), `recentAdminActivity[]` (5 dòng nhật ký mới nhất). Doanh thu tính trên đơn không ở `PENDING_PAYMENT`/`CANCELLED`, theo `createdAt`, giờ `Asia/Ho_Chi_Minh`.
+- `GET /admin/admins?q=&roleName=&status=&page=&limit=`: mỗi phần tử có `pendingInvite` (chưa đặt mật khẩu), `lockInfo`; response có thêm `summary { byRole{ROLE: {active, locked}}, pendingInvites }`.
+- `POST /admin/admins` `{ email, fullName, roleName, phoneNumber? }` → `201 { admin, inviteExpiresAt }`. Chỉ hỗ trợ cách gửi liên kết đặt mật khẩu (hạn 48 giờ, lưu `otps` `ADMIN_SET_PASSWORD`, `codeHash` = SHA-256 của token). Email trùng trả `409 EMAIL_EXISTS`.
+- `POST /admin/auth/set-password` `{ token, password }` (P, kiểm `Origin`, giới hạn 10 lần/15 phút/IP): mật khẩu 12–72 ký tự, token dùng một lần. Sai/hết hạn trả `400 INVITE_INVALID`. Liên kết dạng `${ADMIN_WEB_URL}/dat-mat-khau?token=...`.
+- `PATCH /admin/admins/:id` chỉ sửa `fullName`, `phoneNumber` (email là tên đăng nhập). Đổi vai trò và vô hiệu hóa thu hồi mọi phiên của người bị tác động. `POST /admin/admins/:id/deactivate` nhận `{ reason? }`.
+- `GET /admin/roles` → `{ roles[] { name, description, dashboard, activeAdminCount }, matrix[] { key, label, access{ROLE: FULL|VIEW|NONE} } }`.
+- `GET /admin/audit-logs` trả `actor { id, fullName, roleName }`; `from`/`to` là ngày `YYYY-MM-DD` giờ VN, `to` tính hết ngày.
+- `GET /admin/system-configs` → mảng nhóm `{ key, label, items[] { key, label, description, fields[] { path, label, type, unit? }, value, isDefault, updatedAt, updatedByName } }`; khóa chưa lưu trả giá trị mặc định. `PUT /admin/system-configs/:key` `{ value }` kiểm tra theo khóa, khóa lạ trả `404`, sai kiểu trả `400 VALIDATION_ERROR` với `details[].field = value.<path>`.
+
 ### Bổ sung triển khai 2026-10-23
 
 - `GET /warranty-cards?q=`: tìm trong phiếu của người đăng nhập theo serial, mã đơn hoặc điện thoại nhận hàng. Mỗi phiếu trả thêm `id`, `orderCode`, `productName`, `remainingDays`.
@@ -1353,6 +1365,7 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 | Phiên bản | Ngày | Nội dung |
 | :-- | :-- | :-- |
+| 1.10 | 2026-11-01 | Admin cấp cao: dashboard tổng quan theo kỳ, quản lý Admin (thêm `resend-invite`, `set-password`), ma trận quyền, nhật ký, cấu hình hệ thống (chi tiết phía trên); mã lỗi `INVITE_INVALID` |
 | 1.6 | 2026-10-23 | Triển khai tìm kiếm/lọc, collection hotspot, auth CUSTOMER, upload minh chứng, bảo hành và đổi trả; bổ sung tra cứu phiếu, contact/timeline, hủy yêu cầu, session MongoDB và adapter tìm ảnh (chi tiết phía trên) |
 | 1.0 | 2026-10-17 | Bản đầu từ FR và thiết kế MongoDB |
 | 1.1 | 2026-10-17 | Thêm hoàn tiền, state machine đổi/trả và bảo hành, hóa đơn, cấu trúc dashboard, `GET /config/public`, `PATCH /cart/selection`, chi tiết `PATCH /cart/items`, mã lỗi bổ sung, ghi chú bảo mật, sửa tham chiếu mục 8.5, hỗ trợ `userVoucherId` khi đặt hàng |

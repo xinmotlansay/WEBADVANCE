@@ -852,6 +852,12 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 
 ## Phụ lục – Bảng đối chiếu tên
 
+### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
+
+- `system_configs`: tên khóa đã dùng trong code (danh sách đầy đủ ở `server/src/modules/super-admin/system-config.registry.ts`): `store`, `policy.returnDays`, `policy.reviewDays`, `policy.lateCompensationDays`, `policy.lateCompensationValue`, `policy.lateCompensationValidDays`, `policy.refundDaysMin`, `policy.refundDaysMax`, `policy.overdueConfirmationHours`, `payment`, `payment.bankAccount`, `shipping`, `shipping.maxRedelivery`, `inventory.lowStockThreshold`, `security.*` (`maxLoginAttempts`, `loginLockMinutes`, `otpExpireMinutes`, `otpMaxAttempts`, `otpResendSeconds`, `otpMaxSendsPerHour`, `adminSessionMinutes`), `labels.newDays`, `labels.bestSellerTopPercent`, `labels.bestSellerMinSold`, `email.templates`, `invoice` (thêm `sellerName`, `sellerTaxCode`, `sellerAddress`, `symbol`). Giá trị object lưu đầy đủ field; module đọc vẫn trộn với mặc định nếu thiếu.
+- `audit_logs`: model chặn `update*`/`delete*`. Index `{ performedAt: -1 }`, `{ userId: 1, performedAt: -1 }`, `{ targetType: 1, targetId: 1, performedAt: -1 }`. `action` dạng `ĐỐI_TƯỢNG_HÀNH_ĐỘNG`: `ADMIN_CREATE`, `ADMIN_UPDATE`, `ADMIN_ROLE_CHANGE`, `ADMIN_DEACTIVATE`, `ADMIN_ACTIVATE`, `ADMIN_INVITE_RESEND`, `CONFIG_UPDATE`; `targetType`: `ADMIN`, `SYSTEM_CONFIG`. Module khác ghi nhật ký qua `recordAudit(req, {...})` ở `super-admin/audit-log.service.ts` (tự che mật khẩu, số tài khoản).
+- `otps` với `purpose = ADMIN_SET_PASSWORD`: `codeHash` là SHA-256 của token trong liên kết, `expiresAt` 48 giờ, `isVerified = true` sau khi dùng.
+
 ### Bổ sung triển khai 2026-10-23
 
 - `auth_sessions`: `_id` UUID, `userId` ObjectId, `tokenHash` SHA-256 của refresh token ngẫu nhiên, `expiresAt` Date (TTL index). Cookie không chứa mật khẩu, DB không lưu token gốc. Phiên khách tối đa 30 ngày; logout xóa phiên.
