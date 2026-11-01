@@ -1,3 +1,5 @@
+@import './styles/admin-ui.css';
+
 /* Token màu và font theo docs/admin-ui-rule.md (mục 2, 3, phụ lục). Không ghi hex trong component. */
 :root {
   --cv-navy: #0b3056;

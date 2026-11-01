@@ -1,6 +1,14 @@
-<main class="page">
-  <section class="body">
-    <h1>Xin chào, {{ user()?.fullName }}</h1>
-    <p>Bạn đã đăng nhập với vai trò {{ roleLabel() }}. Các màn quản trị sẽ được bổ sung ở các bước tiếp theo.</p>
-  </section>
-</main>
+@if (khongCoQuyen()) {
+  <div class="denied cv-alert" role="alert">Bạn không có quyền mở trang đó nên đã được đưa về trang chủ của vai trò {{ roleLabel() }}.</div>
+}
+
+@if (isSuperAdmin()) {
+  <app-sa-overview />
+} @else {
+  <main class="page">
+    <section class="body">
+      <h1>Xin chào, {{ user()?.fullName }}</h1>
+      <p>Bạn đã đăng nhập với vai trò {{ roleLabel() }}. Các màn quản trị sẽ được bổ sung ở các bước tiếp theo.</p>
+    </section>
+  </main>
+}

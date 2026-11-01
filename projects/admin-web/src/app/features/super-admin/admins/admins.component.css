@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.gap {
+  margin-bottom: 16px;
+}
+
+.cv-skeleton.tall {
+  height: 48px;
+}
+
+.matrix th[scope='row'] {
+  color: var(--cv-navy);
+  font-weight: 500;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rank {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.rank-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.cv-bar.thin {
+  height: 6px;
+}
+
+.rules {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cv-muted);
+}

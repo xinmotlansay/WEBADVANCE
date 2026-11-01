@@ -34,8 +34,8 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Banner & nội dung', icon: 'image', path: null },
     { label: 'Collection & cảm hứng', icon: 'file', path: null },
     { label: 'Báo cáo', icon: 'chart', path: null },
-    { label: 'Quản lý Admin', icon: 'userCog', path: null },
-    { label: 'Nhật ký & cấu hình', icon: 'log', path: null },
+    { label: 'Quản lý Admin', icon: 'userCog', path: '/quan-ly-admin' },
+    { label: 'Nhật ký & cấu hình', icon: 'log', path: '/nhat-ky-cau-hinh' },
   ],
   [RoleName.PRODUCT_ADMIN]: [
     { label: 'Dashboard sản phẩm', icon: 'home', path: '/' },

@@ -43,7 +43,7 @@
             class="ni"
             [routerLink]="item.path"
             routerLinkActive="on"
-            [routerLinkActiveOptions]="{ exact: true }"
+            [routerLinkActiveOptions]="{ exact: item.path === '/' }"
             (click)="closeDrawer()"
           >
             <ng-container *ngTemplateOutlet="content; context: { $implicit: item }" />
