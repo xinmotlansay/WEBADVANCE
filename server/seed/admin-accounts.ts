@@ -18,6 +18,10 @@ const TEST_ADMINS = [
     avatar: '/uploads/avatars/admin.jpg',
     roleName: RoleName.SUPER_ADMIN,
   },
+  // Mỗi vai trò một tài khoản để kiểm tra menu và chặn quyền (admin-ui-rule mục 10).
+  { email: 'product@caraveso.vn', password: 'caraveso-admin-2026', fullName: 'Lan Product', avatar: '', roleName: RoleName.PRODUCT_ADMIN },
+  { email: 'marketing@caraveso.vn', password: 'caraveso-admin-2026', fullName: 'Hà Marketing', avatar: '', roleName: RoleName.MARKETING_ADMIN },
+  { email: 'order@caraveso.vn', password: 'caraveso-admin-2026', fullName: 'Minh Order', avatar: '', roleName: RoleName.ORDER_ADMIN },
 ];
 
 async function seedAdminAccounts(): Promise<void> {

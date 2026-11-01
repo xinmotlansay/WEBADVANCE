@@ -24,6 +24,8 @@ export const config = {
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
   otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
+  /** Địa chỉ trang quản trị, dùng tạo liên kết đặt mật khẩu cho Admin mới (AD-11). */
+  adminWebUrl: (process.env['ADMIN_WEB_URL'] ?? 'http://localhost:4201').replace(/\/+$/, ''),
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
   allowedOrigins: (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:4200,http://localhost:4201')
     .split(',')

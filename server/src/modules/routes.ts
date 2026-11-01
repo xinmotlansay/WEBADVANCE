@@ -24,6 +24,7 @@ import { searchRoutes } from './products/search.routes.js';
 import { warrantyRoutes } from './after-sales/warranty.routes.js';
 import { uploadRoutes } from './after-sales/upload.routes.js';
 import { returnRoutes } from './after-sales/return.routes.js';
+import { superAdminRoutes } from './super-admin/super-admin.routes.js';
 
 export const apiRoutes = Router();
 apiRoutes.use('/search', searchRoutes);
@@ -52,3 +53,4 @@ apiRoutes.use('/users/me/addresses', addressRoutes);
 apiRoutes.use('/users/me', accountRoutes);
 apiRoutes.use('/reviews', reviewRoutes);
 apiRoutes.use('/webhooks', webhookRoutes);
+apiRoutes.use('/admin', superAdminRoutes);
