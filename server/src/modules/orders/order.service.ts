@@ -560,6 +560,10 @@ export async function rescheduleDelivery(
     throw new AppError('SCHEDULE_INVALID', 409, 'Đơn này không hỗ trợ hẹn lịch giao');
   }
   const shipment = await ShipmentModel.findOne({ orderId }).orFail();
+  const estimatedDeliveryDate = shipment.estimatedDeliveryDate;
+  if (!estimatedDeliveryDate) {
+    throw new AppError('SCHEDULE_INVALID', 409, 'Đơn chưa có ngày giao dự kiến');
+  }
   if (shipment.rescheduleCount >= shipping.maxReschedule) {
     throw new AppError(
       'RESCHEDULE_LIMIT',
@@ -569,14 +573,14 @@ export async function rescheduleDelivery(
   }
 
   // Mốc giao hiện tại: ngày hẹn (đầu khung giờ) hoặc ngày dự kiến 8h, giờ Việt Nam.
-  const currentDate = fromDate(shipment.scheduledDate ?? shipment.estimatedDeliveryDate);
+  const currentDate = fromDate(shipment.scheduledDate ?? estimatedDeliveryDate);
   const slotStart = shipping.slots.find((s) => s.code === shipment.scheduledSlot)?.from ?? '08:00';
   const deliveryAt = new Date(`${currentDate}T${slotStart}:00+07:00`);
   if (deliveryAt.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
     throw new AppError('RESCHEDULE_TOO_LATE', 409, 'Chỉ đổi lịch trước giờ giao ít nhất 24 giờ');
   }
 
-  const estimated = fromDate(shipment.estimatedDeliveryDate);
+  const estimated = fromDate(estimatedDeliveryDate);
   const tomorrow = addDays(vnToday(now), 1);
   const quote = {
     estimatedDeliveryDate: estimated,

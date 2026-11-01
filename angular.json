@@ -46,6 +46,7 @@
             "outputPath": "dist/customer-web",
             "index": "projects/customer-web/src/index.html",
             "browser": "projects/customer-web/src/main.ts",
+            "polyfills": ["zone.js"],
             "tsConfig": "projects/customer-web/tsconfig.app.json",
             "inlineStyleLanguage": "css",
             "assets": [
@@ -58,9 +59,6 @@
               "projects/customer-web/src/styles.css",
               "projects/customer-web/src/styles/auth.css",
               "projects/customer-web/src/app/features/auth/components/auth-layout/auth-layout.component.css"
-            ],
-            "polyfills": [
-              "zone.js"
             ]
           },
           "configurations": {
@@ -77,7 +75,15 @@
                   "maximumError": "16kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": false
+              }
             },
             "development": {
               "optimization": false,
@@ -97,7 +103,10 @@
               "buildTarget": "customer-web:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         }
       }
     },
@@ -140,6 +149,7 @@
             "outputPath": "dist/admin-web",
             "index": "projects/admin-web/src/index.html",
             "browser": "projects/admin-web/src/main.ts",
+            "polyfills": ["zone.js"],
             "tsConfig": "projects/admin-web/tsconfig.app.json",
             "inlineStyleLanguage": "css",
             "assets": [
@@ -148,15 +158,11 @@
                 "input": "projects/admin-web/public"
               }
             ],
-            "styles": [
-              "projects/admin-web/src/styles.css"
-            ],
-            "polyfills": [
-              "zone.js"
-            ]
+            "styles": ["projects/admin-web/src/styles.css"]
           },
           "configurations": {
             "production": {
+              "baseHref": "/admin/",
               "budgets": [
                 {
                   "type": "initial",
@@ -165,11 +171,19 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "12kB",
+                  "maximumError": "20kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": false
+              }
             },
             "development": {
               "optimization": false,
@@ -189,7 +203,10 @@
               "buildTarget": "admin-web:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         }
       }
     },

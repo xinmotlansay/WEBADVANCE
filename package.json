@@ -15,7 +15,7 @@
     "dev:redis": "mkdir -p $HOME/.local/var/redis && $HOME/.local/bin/redis-server --daemonize yes --port 6379 --bind 127.0.0.1 --dir $HOME/.local/var/redis --save \"\" --appendonly no --logfile $HOME/.local/var/redis/redis.log",
     "seed": "tsx server/seed/seed.ts",
     "bank:simulate": "tsx server/scripts/simulate-bank-transfer.ts",
-    "test:server": "tsx --test \"server/**/*.test.ts\"",
+    "test:server": "tsx --test \"server/**/*.test.ts\" && vitest run",
     "test:web": "tsx --test \"projects/customer-web/**/*.spec.ts\"",
     "start:api": "node dist/server/src/server.js",
     "start:worker": "node dist/server/src/worker.js",
@@ -23,7 +23,10 @@
     "build:web": "ng build customer-web && ng build admin-web",
     "seed:roles": "tsx server/seed/roles.ts",
     "seed:admin": "tsx server/seed/admin-accounts.ts",
-    "test:auth": "vitest run"
+    "test:auth": "vitest run",
+    "chat:catalog": "tsx scripts/check-chat-catalog.ts",
+    "seed:order-admin": "tsx server/seed/order-admin.seed.ts",
+    "seed:order-admin-user": "tsx server/seed/order-admin-user.seed.ts"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
