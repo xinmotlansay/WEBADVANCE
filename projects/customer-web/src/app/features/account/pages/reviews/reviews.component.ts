@@ -24,6 +24,7 @@ export class ReviewsComponent {
   private readonly confirm = inject(ConfirmService);
 
   protected readonly stars = [1, 2, 3, 4, 5];
+  protected readonly ratingLabels = ['', 'Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'];
   protected readonly activeTab = signal<'pending' | 'submitted'>('pending');
   protected readonly rating = signal(0);
   protected reviewText = '';
