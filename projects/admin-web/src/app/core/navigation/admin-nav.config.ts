@@ -22,9 +22,9 @@ export const ROLE_LABELS: Record<string, string> = {
 export const ADMIN_NAV: Record<string, NavItem[]> = {
   [RoleName.SUPER_ADMIN]: [
     { label: 'Tổng quan', icon: 'home', path: '/' },
-    { label: 'Sản phẩm & tồn kho', icon: 'box', path: null },
-    { label: 'Danh mục', icon: 'layers', path: null },
-    { label: 'Kiểm duyệt đánh giá', icon: 'star', path: null },
+    { label: 'Sản phẩm & tồn kho', icon: 'box', path: '/san-pham' },
+    { label: 'Danh mục', icon: 'layers', path: '/danh-muc' },
+    { label: 'Kiểm duyệt đánh giá', icon: 'star', path: '/danh-gia' },
     { label: 'Đơn hàng', icon: 'bag', path: null },
     { label: 'Thanh toán & vận chuyển', icon: 'card', path: null },
     { label: 'Đổi trả & bảo hành', icon: 'undo', path: null },
@@ -38,13 +38,12 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Nhật ký & cấu hình', icon: 'log', path: null },
   ],
   [RoleName.PRODUCT_ADMIN]: [
-    { label: 'Dashboard sản phẩm', icon: 'home', path: '/' },
-    { label: 'Sản phẩm', icon: 'box', path: null },
-    { label: 'Thêm sản phẩm', icon: 'plus', path: null },
-    { label: 'Danh mục & gợi ý phòng', icon: 'layers', path: null },
-    { label: 'Tồn kho', icon: 'bag', path: null },
-    { label: 'Cấp độ vận chuyển', icon: 'truck', path: null },
-    { label: 'Kiểm duyệt đánh giá', icon: 'star', path: null },
+    { label: 'Sản phẩm', icon: 'box', path: '/' },
+    { label: 'Thêm sản phẩm', icon: 'plus', path: '/san-pham/them' },
+    { label: 'Danh mục & gợi ý phòng', icon: 'layers', path: '/danh-muc' },
+    { label: 'Tồn kho', icon: 'bag', path: '/ton-kho' },
+    { label: 'Cấp độ vận chuyển', icon: 'truck', path: '/van-chuyen' },
+    { label: 'Kiểm duyệt đánh giá', icon: 'star', path: '/danh-gia' },
   ],
   [RoleName.MARKETING_ADMIN]: [
     { label: 'Dashboard marketing', icon: 'home', path: '/' },

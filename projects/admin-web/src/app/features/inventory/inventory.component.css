@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+.cell-text {
+  display: grid;
+  min-width: 0;
+}
+
+td.up {
+  color: var(--cv-up);
+  font-weight: 600;
+}
+
+td.down {
+  color: var(--cv-down);
+  font-weight: 600;
+}
+
+.note {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.variant-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.legend {
+  flex-wrap: wrap;
+}

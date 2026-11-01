@@ -1,25 +1,21 @@
 <main class="login">
   <section class="brand" aria-label="Giới thiệu trang quản trị">
-    <div class="brand-top">
-      <div class="brand-logo">CaraVeso</div>
-      <div class="section-label">Trang quản trị</div>
-    </div>
+    <div class="brand-logo">CaraVeso</div>
 
     <div class="brand-body">
-      <p class="brand-slogan">Kiến tạo không gian sống đẹp</p>
+      <div class="section-label">Trang quản trị</div>
+      <p class="brand-slogan">Quản lý cửa hàng nội thất ở một nơi.</p>
       <p class="brand-text">
-        Sản phẩm, đơn hàng, khuyến mãi và khách hàng được quản lý trong một nơi, đúng phần việc của vai
-        trò bạn.
+        Sản phẩm, đơn hàng, khuyến mãi và khách hàng – mỗi vai trò chỉ thấy đúng phần việc của mình.
       </p>
     </div>
 
-    <footer class="brand-security">
-      <div class="brand-security-label">Lưu ý bảo mật</div>
-      <p>
-        Khu vực chỉ dành cho quản trị viên được cấp quyền. Không chia sẻ mật khẩu và luôn đăng xuất khi
-        dùng máy dùng chung.
-      </p>
-    </footer>
+    <ul class="roles" aria-label="Các vai trò quản trị">
+      <li>Admin cấp cao</li>
+      <li>Product</li>
+      <li>Marketing</li>
+      <li>Order</li>
+    </ul>
   </section>
 
   <section class="panel">
@@ -91,8 +87,9 @@
         {{ loading() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </button>
 
-      <p class="foot">Phiên tự đăng xuất sau 30 phút không thao tác.</p>
-      <p class="foot">Quên mật khẩu? Liên hệ Admin cấp cao.</p>
+      <p class="foot">
+        Phiên tự đăng xuất sau 30 phút không thao tác. Quên mật khẩu? Liên hệ Admin cấp cao.
+      </p>
     </form>
   </section>
 </main>

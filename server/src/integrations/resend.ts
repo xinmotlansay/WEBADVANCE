@@ -81,3 +81,68 @@ export async function sendOtpEmail(to: string, code: string, purpose: string): P
 
   logger.info({ to, purpose, emailId: response.data?.id }, 'Đã gửi mã xác thực qua email');
 }
+
+export interface StockDigestLine {
+  name: string;
+  sku: string;
+  color: string;
+  stock: number;
+  threshold: number;
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+/**
+ * PA-08: email tóm tắt tồn kho hằng ngày cho Product Admin (mẫu email "tóm tắt tồn kho", AD-15).
+ * Dev không có RESEND_API_KEY thì chỉ ghi log, giống email OTP.
+ */
+export async function sendStockDigestEmail(to: string, day: string, lines: StockDigestLine[]): Promise<void> {
+  const dateLabel = day.split('-').reverse().join('/');
+  const out = lines.filter((l) => l.stock === 0).length;
+  if (!config.resendApiKey) {
+    logger.warn({ to, day, low: lines.length - out, out }, 'Email tóm tắt tồn kho (dev, chưa cấu hình Resend)');
+    return;
+  }
+  const rows = lines
+    .map(
+      (l) => `
+        <tr>
+          <td style="padding:8px;border-bottom:1px solid #e3eaf2">${escapeHtml(l.name)}${l.color ? ` · ${escapeHtml(l.color)}` : ''}</td>
+          <td style="padding:8px;border-bottom:1px solid #e3eaf2;font-family:monospace">${escapeHtml(l.sku)}</td>
+          <td style="padding:8px;border-bottom:1px solid #e3eaf2;text-align:right;color:${l.stock === 0 ? '#9b1c1c' : '#8a4b00'}">
+            ${l.stock}/${l.threshold}
+          </td>
+        </tr>`,
+    )
+    .join('');
+  const response = await getClient().emails.send({
+    from: config.otpEmailFrom,
+    to,
+    subject: `[CaraVeso] Tóm tắt tồn kho ${dateLabel}: ${lines.length - out} sắp hết, ${out} hết hàng`,
+    html: `
+      <div style="margin:0;padding:32px 16px;background:#f7fafc;font-family:Arial,Helvetica,sans-serif;color:#0b3056">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:8px;padding:28px">
+          <h2 style="margin:0 0 8px;font-size:20px">Tóm tắt tồn kho ${dateLabel}</h2>
+          <p style="margin:0 0 20px;color:#5a6f84;font-size:14px">
+            ${lines.length - out} biến thể dưới ngưỡng cảnh báo và ${out} biến thể hết hàng.
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="color:#5a6f84;text-align:left">
+                <th style="padding:8px">Sản phẩm</th><th style="padding:8px">SKU</th><th style="padding:8px;text-align:right">Tồn/ngưỡng</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `,
+  });
+  if (response.error) {
+    logger.error({ err: response.error, to }, 'Resend từ chối gửi email tóm tắt tồn kho');
+    return;
+  }
+  logger.info({ to, day, emailId: response.data?.id }, 'Đã gửi email tóm tắt tồn kho');
+}

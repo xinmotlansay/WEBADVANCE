@@ -22,6 +22,7 @@ import { resolvePayment } from '../checkout/pricing.js';
 import { getCheckoutConfig, type BankAccountConfig } from '../config/config.service.js';
 import { StockHistoryModel, type StockChangeType } from '../products/stock-history.model.js';
 import { VariantModel } from '../products/variant.model.js';
+import { notifyStockLevelsInBackground } from '../admin/admin-inventory.service.js';
 import { consumeVoucher, refundVoucherUsage } from '../vouchers/voucher.service.js';
 import { OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
 import { PaymentTransactionModel, type RefundAccount } from './payment-transaction.model.js';
@@ -343,6 +344,8 @@ export async function createOrder(
     }
     throw err;
   }
+  // PA-08: báo Product Admin nếu đơn làm biến thể xuống dưới ngưỡng.
+  notifyStockLevelsInBackground(lines.map((l) => l.ctx.variant._id));
 
   if (body.newAddress?.saveAddress) {
     const { saveAddress: _save, ...newAddress } = body.newAddress;
@@ -381,7 +384,7 @@ async function returnToCart(order: OrderDoc, session: ClientSession): Promise<vo
 }
 
 interface CancelActor {
-  cancelledBy: 'CUSTOMER' | 'SYSTEM';
+  cancelledBy: 'CUSTOMER' | 'SYSTEM' | 'ADMIN';
   userId: Types.ObjectId | null;
   reason: string;
   refundAccount?: RefundAccount;
@@ -512,6 +515,25 @@ export async function cancelByCustomer(
   const { bankAccount } = await getCheckoutConfig();
   return toPaymentView(cancelled, bankAccount);
 }
+
+/** OA-06: Admin hủy đơn chưa bàn giao, bắt buộc lý do; trả kho và tạo hoàn tiền nếu đã thu. */
+export async function cancelByAdmin(
+  orderId: Types.ObjectId,
+  adminId: Types.ObjectId,
+  reason: string,
+): Promise<OrderDoc> {
+  const cancelled = await cancelOrder(orderId, ADMIN_CANCELLABLE, {
+    cancelledBy: 'ADMIN',
+    userId: adminId,
+    reason,
+  });
+  if (!cancelled) {
+    throw new AppError('ORDER_INVALID_STATE', 409, 'Đơn hàng không thể hủy ở trạng thái hiện tại');
+  }
+  return cancelled;
+}
+
+const ADMIN_CANCELLABLE: OrderStatus[] = ['PENDING_PAYMENT', 'PENDING_CONFIRMATION', 'CONFIRMED'];
 
 /** Job mỗi phút (API Design 14): hủy đơn QR quá hạn. Trả số đơn đã hủy. */
 export async function expireOverduePayments(now = new Date()): Promise<number> {

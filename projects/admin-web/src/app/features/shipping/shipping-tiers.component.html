@@ -1,0 +1,199 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Cấp độ vận chuyển</h1>
+        <p class="page-sub">Phí vận chuyển của đơn bằng tổng (phí cấp × số lượng) mỗi dòng. Đơn có dòng cấp 3–4 do đội xe CaraVeso giao.</p>
+      </div>
+      <div class="head-tools">
+        <label class="search">
+          <span class="sr-only">Tìm theo tên hoặc SKU</span>
+          <app-icon name="search" [small]="true" />
+          <input type="search" placeholder="Tên hoặc SKU" [value]="searchText()" (input)="onSearch($any($event.target).value)" />
+        </label>
+        <app-notification-bell [items]="bell()" (picked)="toggleMismatch()" />
+      </div>
+    </header>
+
+    <div class="kpi-strip" role="group" aria-label="Lọc theo cấp">
+      @for (t of tiers(); track t.tier) {
+        <button type="button" class="kpi" [class.on]="tierFilter() === t.tier" [attr.aria-pressed]="tierFilter() === t.tier" (click)="setTier(t.tier)">
+          <span class="kpi-label">Cấp {{ t.tier }} · {{ rules[t.tier].name }}</span>
+          <strong class="tabular">{{ t.fee | vnd }}</strong>
+          <span class="kpi-sub">{{ t.variantCount | num }} biến thể · {{ t.deliveredBy === 'FLEET' ? 'đội xe' : 'đối tác' }}{{ t.leadDays ? ' · chuẩn bị ' + t.leadDays + ' ngày' : '' }}</span>
+        </button>
+      } @empty {
+        @for (i of tierList; track i) {
+          <span class="kpi" aria-hidden="true"><span class="skeleton" style="width: 60%"></span><span class="skeleton" style="height: 28px"></span></span>
+        }
+      }
+    </div>
+
+    <div class="filters-row">
+      <button type="button" class="toggle" [class.on]="mismatchOnly()" [attr.aria-pressed]="mismatchOnly()" (click)="toggleMismatch()">
+        Lệch gợi ý hoặc chưa gán · {{ result.value()?.mismatchCount ?? 0 }}
+      </button>
+      @if (hasFilters()) {
+        <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+      }
+    </div>
+
+    <section class="list-section" aria-label="Cấp vận chuyển theo biến thể">
+      @if (result.error()) {
+        <div class="alert-box" role="alert">
+          Không tải được cấp vận chuyển.
+          <button type="button" class="btn" (click)="result.reload()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col" class="check">
+                  <input type="checkbox" aria-label="Chọn tất cả biến thể trong trang" [checked]="allChecked()" [disabled]="!rows().length" (change)="toggleAll()" />
+                </th>
+                <th scope="col">Sản phẩm</th>
+                <th scope="col">Biến thể</th>
+                <th scope="col" class="num">D×R×C (cm)</th>
+                <th scope="col" class="num">Kg</th>
+                <th scope="col" class="num">Kiện</th>
+                <th scope="col">Cấp hiện tại</th>
+                <th scope="col">Gợi ý</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (result.isLoading() && !result.value()) {
+                @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                  <tr aria-hidden="true">
+                    <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                    <td><span class="skeleton" style="width: 180px"></span></td>
+                    <td><span class="skeleton" style="width: 80px"></span></td>
+                    <td><span class="skeleton" style="width: 80px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 20px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 90px"></span></td>
+                    <td><span class="skeleton" style="width: 70px"></span></td>
+                  </tr>
+                }
+              } @else {
+                @for (row of rows(); track row.variantId) {
+                  <tr [class.selected]="selected().has(row.variantId)">
+                    <td class="check">
+                      <input type="checkbox" [attr.aria-label]="'Chọn ' + row.sku" [checked]="selected().has(row.variantId)" (change)="toggleRow(row.variantId)" />
+                    </td>
+                    <td>
+                      <span class="cell-text">
+                        <a class="cell-link" [routerLink]="['/san-pham', row.productId, 'sua']">{{ row.productName }}</a>
+                        <span class="cell-sub tabular">{{ row.sku }}</span>
+                      </span>
+                    </td>
+                    <td>{{ row.color || 'Mặc định' }}</td>
+                    <td class="num tabular">{{ dims(row) }}</td>
+                    <td class="num tabular">{{ row.weight ?? '—' }}</td>
+                    <td class="num tabular">{{ row.packageCount }}</td>
+                    <td>
+                      <label class="sr-only" [for]="'tier-' + row.variantId">Cấp vận chuyển của {{ row.sku }}</label>
+                      <select class="input tier-select" [id]="'tier-' + row.variantId" [value]="row.shippingTier ?? ''" [disabled]="busy()" (change)="choose(row, $any($event.target).value)">
+                        @if (!row.shippingTier) {
+                          <option value="">Chưa gán</option>
+                        }
+                        @for (t of tierList; track t) {
+                          <option [value]="t" [selected]="row.shippingTier === t">Cấp {{ t }}</option>
+                        }
+                      </select>
+                    </td>
+                    <td>
+                      @if (row.suggestedTier === null) {
+                        <span class="muted">Thiếu kích thước</span>
+                      } @else if (row.mismatch || !row.shippingTier) {
+                        <span class="suggest">
+                          <span class="badge b-attn">Cấp {{ row.suggestedTier }}</span>
+                          <button type="button" class="btn-link" [disabled]="busy()" (click)="choose(row, '' + row.suggestedTier)">Áp dụng</button>
+                        </span>
+                      } @else {
+                        <span class="badge b-ok">Khớp</span>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8">
+                      <div class="state">
+                        @if (hasFilters()) {
+                          <p>Không tìm thấy kết quả.</p>
+                          <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                        } @else {
+                          <p>Chưa có biến thể nào đang bán.</p>
+                          <a class="btn" routerLink="/san-pham/them">Thêm sản phẩm</a>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (result.value(); as r) {
+          @if (r.meta.total > 0) {
+            <nav class="pager" aria-label="Phân trang cấp vận chuyển">
+              <span>{{ (r.meta.page - 1) * r.meta.limit + 1 }}–{{ (r.meta.page - 1) * r.meta.limit + r.data.length }} trong {{ r.meta.total | num }} biến thể</span>
+              @if (r.meta.totalPages > 1) {
+                <div class="pager-btns">
+                  <button type="button" class="btn" [disabled]="r.meta.page <= 1" (click)="goPage(r.meta.page - 1)">Trang trước</button>
+                  <span class="tabular page-no">{{ r.meta.page }} / {{ r.meta.totalPages }}</span>
+                  <button type="button" class="btn" [disabled]="r.meta.page >= r.meta.totalPages" (click)="goPage(r.meta.page + 1)">Trang sau</button>
+                </div>
+              }
+            </nav>
+          }
+        }
+      }
+    </section>
+
+    @if (selected().size) {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        <button type="button" class="btn btn-accent" [disabled]="busy()" (click)="applySelected()">Áp dụng cấp gợi ý</button>
+      </app-bulk-bar>
+    }
+  </main>
+
+  <aside class="aside" aria-label="Quy tắc cấp vận chuyển">
+    <section class="ov-block" [class.warn]="(result.value()?.mismatchCount ?? 0) > 0">
+      <h2 class="section-label">Cần kiểm tra</h2>
+      <p class="hero-num">{{ result.value()?.mismatchCount ?? 0 | num }}</p>
+      <p class="hero-sub">biến thể chưa gán cấp hoặc lệch cấp gợi ý theo kích thước</p>
+      @if ((result.value()?.mismatchCount ?? 0) > 0 && !mismatchOnly()) {
+        <button type="button" class="btn" (click)="toggleMismatch()">Xem danh sách</button>
+      }
+    </section>
+
+    <section class="ov-block">
+      <h2 class="section-label">Quy tắc phân cấp</h2>
+      <ul class="rules">
+        @for (t of tierList; track t) {
+          <li>
+            <strong>Cấp {{ t }} · {{ rules[t].name }}</strong>
+            <span>{{ rules[t].rule }}</span>
+          </li>
+        }
+      </ul>
+      <p class="caption">
+        Gợi ý tính theo kích thước tổng thể, cân nặng và số kiện của biến thể. Chỉ biến thể cấp 3–4 được có dịch vụ lắp đặt.
+        Phí mỗi cấp do Admin cấp cao cấu hình (AD-15).
+      </p>
+    </section>
+  </aside>
+</div>
+
+@if (pendingDowngrade(); as p) {
+  <app-confirm-dialog
+    [title]="'Hạ ' + p.row.sku + ' xuống cấp ' + p.tier + '?'"
+    message="Biến thể đang có dịch vụ lắp đặt. Cấp 1–2 do đối tác giao nên không có lắp đặt; dịch vụ và phí lắp đặt sẽ bị bỏ."
+    confirmLabel="Hạ cấp"
+    [busy]="busy()"
+    (confirmed)="save(p.row, p.tier)"
+    (cancelled)="pendingDowngrade.set(null); result.reload()"
+  />
+}

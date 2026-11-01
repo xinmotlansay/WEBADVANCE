@@ -1,0 +1,370 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Tổng quan</h1>
+        <p class="page-sub"><span class="weekday">{{ weekday }}</span>, {{ today }}</p>
+      </div>
+      <div class="head-tools">
+        <label class="search">
+          <span class="sr-only">Tìm đơn theo mã, tên hoặc số điện thoại</span>
+          <app-icon name="search" [small]="true" />
+          <input
+            type="search"
+            placeholder="Tìm mã đơn, tên, SĐT…"
+            [value]="searchText()"
+            (input)="onSearch($any($event.target).value)"
+          />
+        </label>
+        <app-notification-bell [items]="bell()" (picked)="onBell($event)" />
+        <button type="button" class="btn btn-primary" [disabled]="!overview.value()" (click)="exportReport()">
+          <app-icon name="download" [small]="true" />
+          Xuất báo cáo
+        </button>
+      </div>
+    </header>
+
+    <!-- Dải KPI -->
+    @if (overview.error() && !overview.value()) {
+      <div class="alert-box" role="alert">
+        Không tải được số liệu tổng quan.
+        <button type="button" class="btn" (click)="overview.reload()">Thử lại</button>
+      </div>
+    }
+    <section class="kpis" aria-label="Chỉ số chính">
+      @if (overview.value(); as data) {
+        <div class="kpi">
+          <span class="kpi-label">Đơn hôm nay</span>
+          <strong class="kpi-num">{{ data.kpis.ordersToday | num }}</strong>
+          <span [class]="deltaClass(data.kpis.ordersTodayChange)">{{ changeLabel(data.kpis.ordersTodayChange, 'hôm qua') }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Giá trị TB/đơn</span>
+          <strong class="kpi-num">{{ data.kpis.averageOrderValue | moneyShort }}</strong>
+          <span class="delta flat">30 ngày gần nhất</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Tỷ lệ hủy</span>
+          <strong class="kpi-num">{{ data.kpis.cancelRate | pct }}</strong>
+          <span [class]="deltaClass(data.kpis.cancelRateDelta, false)">{{ pointsLabel(data.kpis.cancelRateDelta) }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Tỷ lệ đổi/trả</span>
+          <strong class="kpi-num">{{ data.kpis.returnRate | pct }}</strong>
+          <span [class]="deltaClass(data.kpis.returnRateDelta, false)">{{ pointsLabel(data.kpis.returnRateDelta) }}</span>
+        </div>
+      } @else {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="kpi" aria-hidden="true">
+            <span class="skeleton" style="width: 50%"></span>
+            <span class="skeleton" style="width: 60%; height: 26px"></span>
+            <span class="skeleton" style="width: 40%"></span>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- Doanh thu theo tháng -->
+    <section class="card chart-card" aria-labelledby="chart-title">
+      <div class="card-head">
+        <h2 id="chart-title" class="section-label">Doanh thu theo tháng</h2>
+        <span class="unit">{{ chartUnit() }}</span>
+      </div>
+      @if (overview.value()) {
+        <div class="chart" role="img" [attr.aria-label]="'Biểu đồ doanh thu 10 tháng gần nhất, đơn vị ' + chartUnit()">
+          @for (month of months(); track month.month) {
+            <div class="col" [class.current]="month.current">
+              <span class="col-value tabular">{{ month.text }}</span>
+              <span class="col-bar" [style.height.%]="month.height"></span>
+              <span class="col-label">{{ month.label }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="chart" aria-hidden="true">
+          @for (i of [40, 55, 48, 62, 66, 60, 72, 78, 80, 88]; track $index) {
+            <div class="col"><span class="col-bar skeleton" [style.height.%]="i"></span></div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Đơn gần đây -->
+    <section id="recent-orders" class="orders" aria-labelledby="orders-title">
+      <div class="orders-head">
+        <h2 id="orders-title" class="section-label">Đơn gần đây</h2>
+        <div class="chips">
+          <app-filter-chip
+            label="Trạng thái"
+            [options]="statusOptions()"
+            [selected]="statusFilter()"
+            (selectedChange)="setFilter('status', $event)"
+          />
+          <app-filter-chip
+            label="Giao bởi"
+            [multiple]="false"
+            [options]="deliveryOptions"
+            [selected]="deliveryFilter()"
+            (selectedChange)="setFilter('delivery', $event)"
+          />
+          <app-filter-chip
+            label="Ngày đặt"
+            [multiple]="false"
+            [options]="dateFilters"
+            [selected]="dateFilter()"
+            (selectedChange)="setFilter('date', $event)"
+          />
+          @if (hasFilters()) {
+            <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+          }
+        </div>
+      </div>
+
+      @if (openOrder(); as current) {
+        <app-order-popup
+          [orderId]="current.id"
+          [orderCode]="current.code"
+          (closed)="openOrder.set(null)"
+          (changed)="refresh()"
+        />
+      }
+
+      @if (orders.error()) {
+        <div class="alert-box" role="alert">
+          Không tải được danh sách đơn.
+          <button type="button" class="btn" (click)="orders.reload()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col" class="check">
+                  <input
+                    type="checkbox"
+                    aria-label="Chọn tất cả đơn trong trang"
+                    [checked]="allChecked()"
+                    [disabled]="!rows().length"
+                    (change)="toggleAll()"
+                  />
+                </th>
+                <th scope="col">Mã đơn</th>
+                <th scope="col">Khách hàng</th>
+                <th scope="col">Giao bởi</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col" class="num">
+                  <button type="button" class="th-sort" [class.on]="sortIcon('totalAmount')" (click)="toggleSort('totalAmount')">
+                    Tổng
+                    @if (sortIcon('totalAmount'); as icon) {
+                      <app-icon [name]="icon" [small]="true" />
+                    }
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="th-sort" [class.on]="sortIcon('createdAt')" (click)="toggleSort('createdAt')">
+                    Ngày
+                    @if (sortIcon('createdAt'); as icon) {
+                      <app-icon [name]="icon" [small]="true" />
+                    }
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (orders.isLoading() && !orders.value()) {
+                @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                  <tr aria-hidden="true">
+                    <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                    <td><span class="skeleton" style="width: 110px"></span></td>
+                    <td><span class="skeleton" style="width: 140px"></span></td>
+                    <td><span class="skeleton" style="width: 60px"></span></td>
+                    <td><span class="skeleton" style="width: 90px"></span></td>
+                    <td><span class="skeleton" style="width: 90px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 40px"></span></td>
+                  </tr>
+                }
+              } @else {
+                @for (row of rows(); track row.id) {
+                  <tr [class.selected]="selected().has(row.id)">
+                    <td class="check">
+                      <input
+                        type="checkbox"
+                        [attr.aria-label]="'Chọn đơn #' + row.orderCode"
+                        [checked]="selected().has(row.id)"
+                        (change)="toggleRow(row.id)"
+                      />
+                    </td>
+                    <td>
+                      <button type="button" class="cell-link tabular" (click)="openOrder.set({ id: row.id, code: row.orderCode })">
+                        #{{ row.orderCode }}
+                      </button>
+                    </td>
+                    <td>
+                      <div class="person">
+                        <span class="initials" aria-hidden="true">{{ row.customerName | initials }}</span>
+                        <span>{{ row.customerName }}</span>
+                      </div>
+                    </td>
+                    <td>{{ deliveredBy[row.deliveredBy] }}</td>
+                    <td><span [class]="toneClass(orderStatus[row.status])">{{ orderStatus[row.status]?.label ?? row.status }}</span></td>
+                    <td class="num">{{ row.totalAmount | vnd }}</td>
+                    <td class="tabular">{{ row.createdAt | vnDate: true }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7">
+                      <div class="state">
+                        @if (hasFilters()) {
+                          <p>Không tìm thấy kết quả.</p>
+                          <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                        } @else {
+                          <p>Chưa có đơn hàng nào. Đơn mới sẽ xuất hiện tại đây khi khách đặt hàng.</p>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (orders.value(); as result) {
+          @if (result.meta.total > 0) {
+            <nav class="pager" aria-label="Phân trang đơn hàng">
+              <span>
+                {{ (result.meta.page - 1) * result.meta.limit + 1 }}–{{ (result.meta.page - 1) * result.meta.limit + result.data.length }}
+                trong {{ result.meta.total | num }} đơn
+              </span>
+              @if (result.meta.totalPages > 1) {
+                <div class="pager-btns">
+                  <button type="button" class="btn" [disabled]="result.meta.page <= 1" (click)="goPage(result.meta.page - 1)">Trang trước</button>
+                  <button type="button" class="btn" [disabled]="result.meta.page >= result.meta.totalPages" (click)="goPage(result.meta.page + 1)">Trang sau</button>
+                </div>
+              }
+            </nav>
+          }
+        }
+      }
+    </section>
+
+    @if (selected().size) {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        <button
+          type="button"
+          class="btn btn-accent"
+          [disabled]="!confirmableCount() || bulkBusy()"
+          [title]="confirmableCount() ? '' : 'Chỉ xác nhận được đơn đang chờ xác nhận'"
+          (click)="bulkConfirm()"
+        >
+          {{ bulkBusy() ? 'Đang xác nhận…' : 'Xác nhận' + (confirmableCount() ? ' (' + confirmableCount() + ')' : '') }}
+        </button>
+        <button type="button" class="bulk-btn" (click)="exportSelected()">Xuất</button>
+        <button type="button" class="bulk-btn" (click)="printSelected()">In</button>
+      </app-bulk-bar>
+    }
+  </main>
+
+  <!-- Cột tổng quan -->
+  <aside class="aside" aria-label="Tổng quan nhanh">
+    <section class="ov-block">
+      <div class="ov-head">
+        <h2 class="section-label">Doanh thu</h2>
+        <div class="seg" role="group" aria-label="Chọn kỳ">
+          @for (p of periods; track p.value) {
+            <button type="button" [class.on]="period() === p.value" [attr.aria-pressed]="period() === p.value" (click)="period.set(p.value)">
+              {{ p.label }}
+            </button>
+          }
+        </div>
+      </div>
+      @if (overview.value(); as data) {
+        <p class="hero-num" [class.dim]="overview.isLoading()">{{ data.revenue.value | moneyShort }}</p>
+        <p class="hero-sub">
+          <span [class]="deltaClass(data.revenue.change)">{{ changeLabel(data.revenue.change, 'kỳ trước') }}</span>
+          <span class="muted"> · {{ periodCaption() }}, {{ data.revenue.orders | num }} đơn</span>
+        </p>
+        <div class="bar stack" role="img" [attr.aria-label]="data.customers.new + ' khách mới, ' + data.customers.returning + ' khách quay lại'">
+          <span [style.width.%]="customerShare()"></span>
+          <span class="accent" [style.flex]="1"></span>
+        </div>
+        <div class="legend">
+          <span><strong>{{ data.customers.new | num }}</strong> khách mới</span>
+          <span><strong>{{ data.customers.returning | num }}</strong> quay lại</span>
+        </div>
+      } @else {
+        <span class="skeleton" style="width: 70%; height: 48px; margin: 12px 0"></span>
+        <span class="skeleton" style="width: 50%"></span>
+      }
+    </section>
+
+    <section class="ov-block">
+      <h2 class="section-label">Đơn theo trạng thái</h2>
+      <ul class="status-list">
+        @for (row of statusBars(); track row.status) {
+          <li>
+            <button type="button" class="status-row" (click)="filterByStatus(row.status)" [attr.aria-label]="row.label + ': ' + row.count + ' đơn, bấm để lọc'">
+              <span class="status-name">{{ row.label }}</span>
+              <span class="bar">
+                <span [class.attn]="row.tone === 'danger'" [style.width.%]="row.width"></span>
+              </span>
+              <strong class="tabular">{{ row.count | num }}</strong>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+
+    @if (overview.value(); as data) {
+      @if (data.overdue.count) {
+        <section class="ov-block warn">
+          <h2 class="section-label warn-label">Đơn chờ xác nhận quá hạn</h2>
+          <p class="overdue-num">
+            <strong class="tabular">{{ data.overdue.count }}</strong>
+            <span>quá {{ data.overdue.thresholdHours }} giờ · ngưỡng ở Cấu hình</span>
+          </p>
+          <ul class="overdue-list">
+            @for (order of data.overdue.orders; track order.id) {
+              <li>
+                <button type="button" class="cell-link" (click)="openOrder.set({ id: order.id, code: order.orderCode })">#{{ order.orderCode }}</button>
+                <strong class="tabular">{{ formatAge(order.createdAt) }}</strong>
+              </li>
+            }
+          </ul>
+          <button type="button" class="btn-link" (click)="showOverdue()">Xem tất cả →</button>
+        </section>
+      }
+
+      <section class="ov-block">
+        <h2 class="section-label">Top sản phẩm</h2>
+        <p class="caption">Số lượng bán, 30 ngày gần nhất</p>
+        <ul class="rank">
+          @for (product of data.topProducts; track product.productId; let first = $first) {
+            <li>
+              <span class="name">{{ product.name }}</span>
+              <strong>{{ product.quantity | num }}</strong>
+              <span class="bar"><span [class.accent]="first" [style.width.%]="(product.quantity / topMax()) * 100"></span></span>
+            </li>
+          } @empty {
+            <li class="muted">Chưa có sản phẩm bán ra trong 30 ngày.</li>
+          }
+        </ul>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Hoạt động admin gần đây</h2>
+        <ul class="activity">
+          @for (item of data.recentActivity; track $index) {
+            <li>
+              <strong>{{ item.actor }}</strong>
+              <span>{{ item.action }} {{ item.target }}</span>
+              <span class="when">{{ item.at | vnTime }} · {{ item.at | vnDate: true }}</span>
+            </li>
+          } @empty {
+            <li class="muted">Chưa có thao tác nào được ghi nhật ký.</li>
+          }
+        </ul>
+      </section>
+    }
+  </aside>
+</div>

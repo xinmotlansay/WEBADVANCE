@@ -1,0 +1,248 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Danh mục &amp; gợi ý phòng</h1>
+        <p class="page-sub">Loại sản phẩm, phòng và phong cách dùng cho menu, bộ lọc và View your Room.</p>
+      </div>
+      <div class="head-tools">
+        <label class="search">
+          <span class="sr-only">Tìm danh mục</span>
+          <app-icon name="search" [small]="true" />
+          <input type="search" placeholder="Tên danh mục" [value]="search()" (input)="setSearch($any($event.target).value)" />
+        </label>
+        <app-notification-bell [items]="bell()" (picked)="openRoomsMissing()" />
+        <button type="button" class="btn btn-primary" (click)="editing.set({ category: null })">
+          <app-icon name="plus" [small]="true" />
+          Thêm danh mục
+        </button>
+      </div>
+    </header>
+
+    <div class="tabs-line" role="tablist" aria-label="Loại danh mục">
+      @for (t of types; track t) {
+        <button type="button" role="tab" [attr.aria-selected]="tab() === t" (click)="setTab(t)">
+          {{ typeLabel[t] }} <span class="badge b-neutral">{{ counts()[t] }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="filters-row">
+      <button type="button" class="toggle" [class.on]="statusFilter() === 'VISIBLE'" [attr.aria-pressed]="statusFilter() === 'VISIBLE'" (click)="setStatus('VISIBLE')">Đang hiển thị</button>
+      <button type="button" class="toggle" [class.on]="statusFilter() === 'HIDDEN'" [attr.aria-pressed]="statusFilter() === 'HIDDEN'" (click)="setStatus('HIDDEN')">Đang ẩn</button>
+      @if (hasFilters()) {
+        <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+      }
+    </div>
+
+    <section class="list-section" aria-label="Danh sách danh mục">
+      @if (categories.error()) {
+        <div class="alert-box" role="alert">
+          Không tải được danh mục.
+          <button type="button" class="btn" (click)="categories.reload()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col" class="check">
+                  <input type="checkbox" aria-label="Chọn tất cả danh mục trong trang" [checked]="allChecked()" [disabled]="!rows().length" (change)="toggleAll()" />
+                </th>
+                <th scope="col">
+                  <button type="button" class="th-sort" [class.on]="sort() === 'name'" (click)="toggleSort('name')">
+                    Tên
+                    @if (sort() === 'name') {
+                      <app-icon name="chevronUp" [small]="true" />
+                    }
+                  </button>
+                </th>
+                @if (tab() === 'ROOM') {
+                  <th scope="col">Nhóm đồ thường có</th>
+                } @else {
+                  <th scope="col">Mô tả</th>
+                }
+                <th scope="col" class="num">
+                  <button type="button" class="th-sort" [class.on]="sort() === '-products'" (click)="toggleSort('-products')">
+                    Sản phẩm
+                    @if (sort() === '-products') {
+                      <app-icon name="chevronDown" [small]="true" />
+                    }
+                  </button>
+                </th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">
+                  <button type="button" class="th-sort" [class.on]="sort() === '-updatedAt'" (click)="toggleSort('-updatedAt')">
+                    Cập nhật
+                    @if (sort() === '-updatedAt') {
+                      <app-icon name="chevronDown" [small]="true" />
+                    }
+                  </button>
+                </th>
+                <th scope="col"><span class="sr-only">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (categories.isLoading() && !categories.value()) {
+                @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                  <tr aria-hidden="true">
+                    <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                    <td><span class="skeleton" style="width: 160px"></span></td>
+                    <td><span class="skeleton" style="width: 200px"></span></td>
+                    <td><span class="skeleton" style="width: 40px; margin-left: auto"></span></td>
+                    <td><span class="skeleton" style="width: 70px"></span></td>
+                    <td><span class="skeleton" style="width: 60px"></span></td>
+                    <td></td>
+                  </tr>
+                }
+              } @else {
+                @for (row of rows(); track row.id) {
+                  <tr [class.selected]="selected().has(row.id)">
+                    <td class="check">
+                      <input type="checkbox" [attr.aria-label]="'Chọn ' + row.name" [checked]="selected().has(row.id)" (change)="toggleRow(row.id)" />
+                    </td>
+                    <td>
+                      <div class="cell-main">
+                        @if (row.image) {
+                          <img class="thumb-sm" [src]="row.image" alt="" loading="lazy" />
+                        } @else {
+                          <span class="thumb-sm" aria-hidden="true"></span>
+                        }
+                        <span class="cell-text">
+                          <button type="button" class="cell-link" (click)="editing.set({ category: row })">{{ row.name }}</button>
+                          <span class="cell-sub tabular">/{{ row.slug }}</span>
+                        </span>
+                      </div>
+                    </td>
+                    @if (tab() === 'ROOM') {
+                      <td>
+                        @if (row.typicalCategories.length) {
+                          <span class="typical" [title]="typicalNames(row)">{{ typicalLabel(row) }}</span>
+                        } @else {
+                          <span class="badge b-attn">Chưa cấu hình</span>
+                        }
+                      </td>
+                    } @else {
+                      <td><span class="desc muted">{{ row.description || '—' }}</span></td>
+                    }
+                    <td class="num tabular">
+                      {{ row.activeProductCount | num }}<span class="muted"> / {{ row.productCount | num }}</span>
+                    </td>
+                    <td>
+                      <span class="badge" [class.b-ok]="row.status === 'VISIBLE'" [class.b-neutral]="row.status === 'HIDDEN'">
+                        {{ row.status === 'VISIBLE' ? 'Hiển thị' : 'Đang ẩn' }}
+                      </span>
+                    </td>
+                    <td class="tabular">{{ row.updatedAt | vnDate: true }}</td>
+                    <td>
+                      <div class="row-actions">
+                        <button type="button" class="btn" (click)="editing.set({ category: row })">Sửa</button>
+                        <button type="button" class="btn" [disabled]="busyId() === row.id" (click)="toggleStatus(row)">
+                          {{ row.status === 'VISIBLE' ? 'Ẩn' : 'Hiện' }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7">
+                      <div class="state">
+                        @if (hasFilters()) {
+                          <p>Không tìm thấy kết quả.</p>
+                          <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                        } @else {
+                          <p>Chưa có danh mục {{ typeLabel[tab()].toLowerCase() }} nào.</p>
+                          <button type="button" class="btn" (click)="editing.set({ category: null })">Thêm danh mục</button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (total() > 0) {
+          <nav class="pager" aria-label="Phân trang danh mục">
+            <span>{{ pageStart() + 1 }}–{{ pageStart() + rows().length }} trong {{ total() | num }} danh mục</span>
+            @if (totalPages() > 1) {
+              <div class="pager-btns">
+                <button type="button" class="btn" [disabled]="page() <= 1" (click)="goPage(page() - 1)">Trang trước</button>
+                <span class="tabular page-no">{{ page() }} / {{ totalPages() }}</span>
+                <button type="button" class="btn" [disabled]="page() >= totalPages()" (click)="goPage(page() + 1)">Trang sau</button>
+              </div>
+            }
+          </nav>
+        }
+      }
+    </section>
+
+    @if (selected().size) {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        <button type="button" class="btn btn-accent" [disabled]="bulkBusy()" (click)="bulkStatus('VISIBLE')">Hiển thị</button>
+        <button type="button" class="bulk-btn" [disabled]="bulkBusy()" (click)="bulkStatus('HIDDEN')">Ẩn</button>
+      </app-bulk-bar>
+    }
+  </main>
+
+  <aside class="aside" aria-label="Tổng quan danh mục">
+    @if (categories.value()) {
+      <section class="ov-block">
+        <h2 class="section-label">Tổng danh mục</h2>
+        <p class="hero-num">{{ all().length | num }}</p>
+        <div class="legend">
+          @for (t of types; track t) {
+            <span><strong>{{ counts()[t] | num }}</strong> {{ typeLabel[t].toLowerCase() }}</span>
+          }
+        </div>
+      </section>
+
+      <section class="ov-block" [class.warn]="roomsMissing().length">
+        <h2 class="section-label">Cần xử lý</h2>
+        <ul class="alerts">
+          <li>
+            <button type="button" (click)="openRoomsMissing()" [disabled]="!roomsMissing().length">
+              <span><strong>Phòng chưa có nhóm đồ</strong><small>Không gợi ý được sản phẩm còn thiếu</small></span>
+              <span class="badge" [class.b-attn]="roomsMissing().length" [class.b-neutral]="!roomsMissing().length">{{ roomsMissing().length }}</span>
+            </button>
+          </li>
+          <li class="static">
+            <span><strong>Đang hiển thị nhưng trống</strong><small>Chưa có sản phẩm nào</small></span>
+            <span class="badge b-neutral">{{ emptyVisible().length }}</span>
+          </li>
+          <li class="static">
+            <span><strong>Đang ẩn</strong><small>Không hiện trên menu và bộ lọc</small></span>
+            <span class="badge b-neutral">{{ hiddenCount() }}</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Loại sản phẩm nhiều hàng nhất</h2>
+        <p class="caption">Số sản phẩm đang bán</p>
+        <ul class="rank">
+          @for (c of top(); track c.id; let first = $first) {
+            <li>
+              <span class="name">{{ c.name }}</span>
+              <strong>{{ c.activeProductCount | num }}</strong>
+              <span class="bar"><span [class.accent]="first" [style.width.%]="(c.activeProductCount / topMax()) * 100"></span></span>
+            </li>
+          } @empty {
+            <li class="muted">Chưa có loại sản phẩm.</li>
+          }
+        </ul>
+      </section>
+    } @else if (categories.isLoading()) {
+      <section class="ov-block" aria-hidden="true">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 60%; height: 48px; margin: 12px 0"></span>
+        <span class="skeleton"></span>
+      </section>
+    }
+  </aside>
+</div>
+
+@if (editing(); as e) {
+  <app-category-dialog [category]="e.category" [defaultType]="tab()" [all]="all()" (saved)="onSaved()" (cancelled)="editing.set(null)" />
+}
