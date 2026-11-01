@@ -12,6 +12,7 @@ export interface ViewRoomLayoutDoc {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   name: string;
+  roomCategoryId?: Types.ObjectId;
   room: {
     length: number;
     width: number;
@@ -28,6 +29,7 @@ const layoutSchema = new Schema<ViewRoomLayoutDoc>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'users', required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 100 },
+    roomCategoryId: { type: Schema.Types.ObjectId, ref: 'categories' },
     room: {
       length: { type: Number, required: true },
       width: { type: Number, required: true },

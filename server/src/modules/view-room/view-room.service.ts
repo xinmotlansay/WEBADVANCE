@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
 import { toObjectId } from '../../utils/object-id.js';
 import { CategoryModel } from '../categories/category.model.js';
-import { buildListItems, type ProductListItem } from '../products/product.service.js';
+import { buildListItems, getProductDetail, type ProductListItem } from '../products/product.service.js';
 import { ProductModel } from '../products/product.model.js';
 import type { LayoutInput, SuggestionInput } from './view-room.schema.js';
 import { ViewRoomLayoutModel, type ViewRoomLayoutDoc } from './view-room.model.js';
@@ -95,6 +95,7 @@ export async function getRoomSuggestions(input: SuggestionInput): Promise<RoomSu
 export interface LayoutDto {
   id: string;
   name: string;
+  roomCategoryId: string | null;
   room: ViewRoomLayoutDoc['room'];
   items: { productId: string; x: number; z: number; rotationY: number }[];
   updatedAt: Date;
@@ -104,6 +105,7 @@ function toLayoutDto(doc: ViewRoomLayoutDoc): LayoutDto {
   return {
     id: doc._id.toString(),
     name: doc.name,
+    roomCategoryId: doc.roomCategoryId?.toString() ?? null,
     room: doc.room,
     items: doc.items.map((item) => ({
       productId: item.productId.toString(),
@@ -122,21 +124,24 @@ export async function listLayouts(userId: string): Promise<LayoutDto[]> {
   return docs.map(toLayoutDto);
 }
 
-export async function createLayout(userId: string, input: LayoutInput): Promise<LayoutDto> {
-  const productIds = [...new Set(input.items.map((item) => item.productId))];
-  if (productIds.length > 0) {
-    const available = await ProductModel.countDocuments({
-      _id: { $in: productIds.map((id) => new Types.ObjectId(id)) },
-      status: 'ACTIVE',
-    });
-    if (available !== productIds.length) {
-      throw new AppError('VALIDATION_ERROR', 400, 'Có sản phẩm không còn bán');
-    }
-  }
+const MAX_SAVED_LAYOUTS = 20;
 
-  const doc = await ViewRoomLayoutModel.create({
-    userId: toObjectId(userId),
+async function assertProductsAvailable(input: LayoutInput): Promise<void> {
+  const productIds = [...new Set(input.items.map((item) => item.productId))];
+  if (productIds.length === 0) return;
+  const available = await ProductModel.countDocuments({
+    _id: { $in: productIds.map((id) => new Types.ObjectId(id)) },
+    status: 'ACTIVE',
+  });
+  if (available !== productIds.length) {
+    throw new AppError('VALIDATION_ERROR', 400, 'Có sản phẩm không còn bán');
+  }
+}
+
+function layoutFields(input: LayoutInput) {
+  return {
     name: input.name,
+    roomCategoryId: input.roomCategoryId ? new Types.ObjectId(input.roomCategoryId) : undefined,
     room: input.room,
     items: input.items.map((item) => ({
       productId: new Types.ObjectId(item.productId),
@@ -144,8 +149,98 @@ export async function createLayout(userId: string, input: LayoutInput): Promise<
       z: item.z,
       rotationY: item.rotationY,
     })),
-  });
+  };
+}
+
+export async function createLayout(userId: string, input: LayoutInput): Promise<LayoutDto> {
+  const owner = toObjectId(userId);
+  if ((await ViewRoomLayoutModel.countDocuments({ userId: owner })) >= MAX_SAVED_LAYOUTS) {
+    throw new AppError(
+      'VALIDATION_ERROR',
+      400,
+      `Bạn chỉ lưu được tối đa ${MAX_SAVED_LAYOUTS} bố cục, hãy xóa bớt bố cục cũ`,
+    );
+  }
+  await assertProductsAvailable(input);
+  const doc = await ViewRoomLayoutModel.create({ userId: owner, ...layoutFields(input) });
   return toLayoutDto(doc.toObject());
+}
+
+/** Ghi đè bố cục đã lưu (lưu lại khi đang sửa một bố cục có sẵn). */
+export async function updateLayout(
+  userId: string,
+  id: string,
+  input: LayoutInput,
+): Promise<LayoutDto> {
+  await assertProductsAvailable(input);
+  const doc = await ViewRoomLayoutModel.findOneAndUpdate(
+    { _id: toObjectId(id), userId: toObjectId(userId) },
+    { $set: layoutFields(input), ...(input.roomCategoryId ? {} : { $unset: { roomCategoryId: 1 } }) },
+    { new: true },
+  ).lean();
+  if (!doc) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy bố cục');
+  return toLayoutDto(doc);
+}
+
+export interface LayoutDetailItem {
+  productId: string;
+  slug: string;
+  name: string;
+  priceFrom: number;
+  model3DUrl: string | null;
+  dimensions: { length: number; width: number; height: number; unit: string } | null;
+  x: number;
+  z: number;
+  rotationY: number;
+}
+
+export interface LayoutDetailDto extends Omit<LayoutDto, 'items'> {
+  items: LayoutDetailItem[];
+  /** Số sản phẩm đã ngừng bán hoặc không còn mô hình 3D nên không đưa lại vào phòng. */
+  skippedCount: number;
+}
+
+/** Mở một bố cục kèm thông tin sản phẩm đủ để dựng lại trong phòng 3D. */
+export async function getLayoutDetail(userId: string, id: string): Promise<LayoutDetailDto> {
+  const doc = await ViewRoomLayoutModel.findOne({
+    _id: toObjectId(id),
+    userId: toObjectId(userId),
+  }).lean();
+  if (!doc) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy bố cục');
+
+  const ids = [...new Set(doc.items.map((item) => item.productId.toString()))];
+  const products = await ProductModel.find({
+    _id: { $in: ids.map((value) => new Types.ObjectId(value)) },
+    status: 'ACTIVE',
+  }).lean();
+  const details = new Map<string, Awaited<ReturnType<typeof getProductDetail>>>();
+  await Promise.all(
+    products.map(async (product) => {
+      try {
+        details.set(product._id.toString(), await getProductDetail(product.slug));
+      } catch {
+        // Sản phẩm vừa bị gỡ: bỏ qua, đếm vào skippedCount.
+      }
+    }),
+  );
+
+  const items: LayoutDetailItem[] = [];
+  for (const item of doc.items) {
+    const detail = details.get(item.productId.toString());
+    if (!detail?.has3DModel || !detail.model3DUrl) continue;
+    items.push({
+      productId: detail.id,
+      slug: detail.slug,
+      name: detail.name,
+      priceFrom: detail.priceFrom,
+      model3DUrl: detail.model3DUrl,
+      dimensions: detail.dimensions,
+      x: item.x,
+      z: item.z,
+      rotationY: item.rotationY,
+    });
+  }
+  return { ...toLayoutDto(doc), items, skippedCount: doc.items.length - items.length };
 }
 
 export async function deleteLayout(userId: string, id: string): Promise<void> {

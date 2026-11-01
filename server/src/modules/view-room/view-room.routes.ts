@@ -6,8 +6,10 @@ import { sendData } from '../../utils/response.js';
 import {
   createLayout,
   deleteLayout,
+  getLayoutDetail,
   getRoomSuggestions,
   listLayouts,
+  updateLayout,
 } from './view-room.service.js';
 import {
   layoutSchema,
@@ -45,6 +47,30 @@ viewRoomRoutes.post(
     );
     res.status(201);
     sendData(res, layout);
+  }),
+);
+
+viewRoomRoutes.get(
+  '/layouts/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    sendData(res, await getLayoutDetail(res.locals['userId'] as string, String(req.params['id'])));
+  }),
+);
+
+viewRoomRoutes.put(
+  '/layouts/:id',
+  requireAuth,
+  validateBody(layoutSchema),
+  asyncHandler(async (req, res) => {
+    sendData(
+      res,
+      await updateLayout(
+        res.locals['userId'] as string,
+        String(req.params['id']),
+        res.locals['body'] as LayoutInput,
+      ),
+    );
   }),
 );
 
