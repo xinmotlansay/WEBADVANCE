@@ -182,6 +182,7 @@ export const categoryInputSchema = z.object({
   image: z.string().trim().max(1_000).default(''),
   status: z.enum(['VISIBLE', 'HIDDEN']).default('VISIBLE'),
   typicalCategoryIds: z.array(objectId).max(50).default([]),
+  parentId: objectId.nullable().optional(),
 });
 
 export type CategoryInput = z.infer<typeof categoryInputSchema>;

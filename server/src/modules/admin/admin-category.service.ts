@@ -72,6 +72,25 @@ async function assertTypical(type: CategoryType, ids: string[], selfId?: string)
   return unique.map((id) => new Types.ObjectId(id));
 }
 
+/** Danh mục cha chỉ áp dụng cho loại sản phẩm, phải là loại sản phẩm khác và không tạo vòng lặp. */
+async function resolveParent(type: CategoryType, parentId: string | null | undefined, selfId?: Types.ObjectId): Promise<Types.ObjectId | null> {
+  if (type !== 'PRODUCT_CATEGORY' || !parentId) return null;
+  if (selfId && parentId === String(selfId)) throw new AppError('VALIDATION_ERROR', 400, 'Danh mục không thể là cha của chính nó');
+  const parent = await CategoryModel.findById(parentId).lean();
+  if (!parent || parent.type !== 'PRODUCT_CATEGORY') {
+    throw new AppError('VALIDATION_ERROR', 400, 'Danh mục cha phải là một loại sản phẩm');
+  }
+  for (let cur = parent, depth = 0; cur.parentId && depth < 20; depth++) {
+    if (selfId && String(cur.parentId) === String(selfId)) {
+      throw new AppError('VALIDATION_ERROR', 400, 'Không thể chọn danh mục con làm danh mục cha');
+    }
+    const next = await CategoryModel.findById(cur.parentId).lean();
+    if (!next) break;
+    cur = next;
+  }
+  return parent._id as Types.ObjectId;
+}
+
 async function assertNameFree(type: CategoryType, name: string, exceptId?: Types.ObjectId): Promise<void> {
   const pattern = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
   const taken = await CategoryModel.exists({ type, name: pattern, ...(exceptId ? { _id: { $ne: exceptId } } : {}) });
@@ -89,6 +108,7 @@ export async function createCategory(input: CategoryInput) {
     image: input.image,
     status: input.status,
     typicalCategoryIds: await assertTypical(input.type, input.typicalCategoryIds),
+    parentId: await resolveParent(input.type, input.parentId),
   });
   return { id: String(category._id), name: category.name };
 }
@@ -105,6 +125,7 @@ export async function updateCategory(id: Types.ObjectId, input: CategoryInput) {
     image: input.image,
     status: input.status,
     typicalCategoryIds: await assertTypical(category.type, input.typicalCategoryIds, String(id)),
+    ...(input.parentId !== undefined ? { parentId: await resolveParent(category.type, input.parentId, id) } : {}),
   });
   await category.save();
   return { id: String(category._id), name: category.name, before };

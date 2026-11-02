@@ -25,7 +25,7 @@ export class CategoriesComponent {
   private readonly toast = inject(ToastService);
 
   protected readonly typeLabel = CATEGORY_TYPE_LABEL;
-  protected readonly types: CategoryType[] = ['PRODUCT_CATEGORY', 'ROOM', 'STYLE'];
+  protected readonly types: CategoryType[] = ['PRODUCT_CATEGORY', 'ROOM'];
 
   protected readonly categories = rxResource({ loader: () => this.api.categories() });
   protected readonly all = computed(() => this.categories.value() ?? []);

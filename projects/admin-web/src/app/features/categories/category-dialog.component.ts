@@ -59,11 +59,24 @@ export const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {
 
           <div class="field">
             <label for="cat-name">Tên danh mục <span class="req">*</span></label>
-            <input id="cat-name" class="input" maxlength="80" [value]="name()" (input)="name.set($any($event.target).value)" placeholder="Ví dụ: Sofa, Phòng khách, Scandinavian" />
+            <input id="cat-name" class="input" maxlength="80" [value]="name()" (input)="name.set($any($event.target).value)" placeholder="Ví dụ: Sofa, Phòng khách" />
             @if (submitted() && name().trim().length < 2) {
               <span class="msg">Nhập tên từ 2 đến 80 ký tự.</span>
             }
           </div>
+
+          @if (type() === 'PRODUCT_CATEGORY') {
+            <div class="field">
+              <label for="cat-parent">Danh mục cha</label>
+              <select id="cat-parent" class="input" [value]="parentId()" (change)="parentId.set($any($event.target).value)">
+                <option value="" [selected]="!parentId()">Không có (danh mục gốc)</option>
+                @for (c of parentOptions(); track c.id) {
+                  <option [value]="c.id" [selected]="parentId() === c.id">{{ c.name }}</option>
+                }
+              </select>
+              <span class="hint">Không bắt buộc. Chọn nếu đây là danh mục con, ví dụ Sofa góc thuộc Sofa.</span>
+            </div>
+          }
 
           <div class="field">
             <label for="cat-desc">Mô tả</label>
@@ -167,7 +180,7 @@ export class CategoryDialogComponent implements AfterViewInit {
   readonly saved = output<void>();
   readonly cancelled = output<void>();
 
-  protected readonly types: CategoryType[] = ['PRODUCT_CATEGORY', 'ROOM', 'STYLE'];
+  protected readonly types: CategoryType[] = ['PRODUCT_CATEGORY', 'ROOM'];
   protected readonly typeLabel = CATEGORY_TYPE_LABEL;
 
   protected readonly type = signal<CategoryType>('PRODUCT_CATEGORY');
@@ -176,12 +189,30 @@ export class CategoryDialogComponent implements AfterViewInit {
   protected readonly image = signal('');
   protected readonly status = signal<'VISIBLE' | 'HIDDEN'>('VISIBLE');
   protected readonly typical = signal<string[]>([]);
+  protected readonly parentId = signal('');
   protected readonly busy = signal(false);
   protected readonly uploading = signal(false);
   protected readonly submitted = signal(false);
   protected readonly error = signal('');
 
   protected readonly productTypes = computed(() => this.all().filter((c) => c.type === 'PRODUCT_CATEGORY'));
+
+  protected readonly parentOptions = computed(() => {
+    const self = this.category()?.id;
+    const all = this.all().filter((c) => c.type === 'PRODUCT_CATEGORY');
+    // Loại bỏ chính nó và toàn bộ con cháu để không tạo vòng lặp.
+    const banned = new Set<string>(self ? [self] : []);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const c of all) {
+        if (c.parentId && banned.has(c.parentId) && !banned.has(c.id)) {
+          banned.add(c.id);
+          grew = true;
+        }
+      }
+    }
+    return all.filter((c) => !banned.has(c.id)).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  });
 
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
@@ -194,6 +225,7 @@ export class CategoryDialogComponent implements AfterViewInit {
       this.image.set(c.image);
       this.status.set(c.status);
       this.typical.set(c.typicalCategories.map((t) => t.id));
+      this.parentId.set(c.parentId ?? '');
     }
     this.dialog().nativeElement.showModal();
   }
@@ -233,6 +265,7 @@ export class CategoryDialogComponent implements AfterViewInit {
       image: this.image(),
       status: this.status(),
       typicalCategoryIds: this.type() === 'ROOM' ? this.typical() : [],
+      parentId: this.type() === 'PRODUCT_CATEGORY' ? this.parentId() || null : null,
     };
     const current = this.category();
     this.busy.set(true);

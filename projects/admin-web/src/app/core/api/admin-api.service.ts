@@ -279,6 +279,7 @@ export interface CategoryInput {
   image: string;
   status: 'VISIBLE' | 'HIDDEN';
   typicalCategoryIds: string[];
+  parentId?: string | null;
 }
 
 export type StockState = 'OK' | 'LOW' | 'OUT';
