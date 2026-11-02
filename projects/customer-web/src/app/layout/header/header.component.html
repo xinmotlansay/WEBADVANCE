@@ -32,10 +32,11 @@
 
     <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Danh mục chính">
       <div class="nav__item nav__item--dropdown">
-        <button type="button" class="nav__link">
+        <a class="nav__link" routerLink="/products" (click)="closeMenu()">
           Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
-        </button>
+        </a>
         <ul class="dropdown">
+          <li><a routerLink="/products" (click)="closeMenu()">Tất cả sản phẩm</a></li>
           @for (category of productCategories(); track category.id) {
             <li>
               <a
