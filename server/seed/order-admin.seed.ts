@@ -48,7 +48,7 @@ async function seedOrderAdmin(): Promise<void> {
       'Đặt ORDER_ADMIN_SEED_PASSWORD có ít nhất 12 ký tự, gồm chữ thường, chữ hoa và chữ số trước khi chạy seed admin.',
     );
   }
-  await mongoose.connect(config.MONGODB_URI);
+  await mongoose.connect(config.mongodbUri);
 
   const roleIds = new Map<RoleName, Types.ObjectId>();
   const descriptions: Record<RoleName, string> = {

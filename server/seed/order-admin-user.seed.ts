@@ -21,7 +21,7 @@ async function seedOrderAdminUser(): Promise<void> {
     );
   }
 
-  await mongoose.connect(config.MONGODB_URI);
+  await mongoose.connect(config.mongodbUri);
 
   const role = await RoleModel.findOneAndUpdate(
     { name: RoleName.ORDER_ADMIN },

@@ -13,6 +13,7 @@
     "dev:server": "tsx watch server/src/server.ts",
     "dev:worker": "tsx watch server/src/worker.ts",
     "dev:redis": "mkdir -p $HOME/.local/var/redis && $HOME/.local/bin/redis-server --daemonize yes --port 6379 --bind 127.0.0.1 --dir $HOME/.local/var/redis --save \"\" --appendonly no --logfile $HOME/.local/var/redis/redis.log",
+    "dev:redis:docker": "docker compose up -d redis",
     "seed": "tsx server/seed/seed.ts",
     "bank:simulate": "tsx server/scripts/simulate-bank-transfer.ts",
     "test:server": "tsx --test \"server/**/*.test.ts\" && vitest run",

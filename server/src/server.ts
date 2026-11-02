@@ -29,6 +29,10 @@ app.get('/api/v1/health', (_req, res) => {
   });
 });
 
+// Phải mount apiRoutes TRƯỚC các router admin: các router admin đều mở đầu bằng
+// `router.use(requireAuth, requireRole(...))` nên nếu mount trước, mọi request /api/v1/admin/*
+// (kể cả /api/v1/admin/auth/login) sẽ bị chặn 401 "Bạn chưa đăng nhập".
+app.use('/api/v1', apiRoutes);
 app.use('/api/v1/admin', orderAdminRouter);
 app.use('/api/v1/admin', paymentAdminRouter);
 app.use('/api/v1/admin', returnAdminRouter);
@@ -36,7 +40,6 @@ app.use('/api/v1/admin', warrantyAdminRouter);
 app.use('/api/v1/admin', customerAdminRouter);
 app.use('/api/v1/admin', dashboardAdminRouter);
 app.use('/api/v1/admin', adminUploadRouter);
-app.use('/api/v1', apiRoutes);
 app.use('/api', notFoundHandler);
 
 app.use('/uploads', express.static(path.resolve('uploads')));

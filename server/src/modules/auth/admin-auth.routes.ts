@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { config } from '../../config/index.js';
 import { checkOrigin, requireAuth } from '../../middlewares/auth.middleware.js';
 import { rateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
@@ -22,6 +23,8 @@ adminAuthRouter.post(
     limit: 20,
     windowSeconds: 15 * 60,
     keyFn: (req) => `${(req.body as { identifier?: string }).identifier ?? 'unknown'}:${req.ip}`,
+    // Ở môi trường dev máy chưa bật Redis vẫn phải đăng nhập được; production vẫn fail-closed.
+    failOpen: !config.isProduction,
   }),
   adminLoginHandler,
 );
