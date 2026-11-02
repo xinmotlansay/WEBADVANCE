@@ -96,7 +96,7 @@ export class AdminAuthService {
       .subscribe();
 
     this.clearSession();
-    void this.router.navigate(['/dang-nhap']);
+    void this.router.navigate(['/admin/login']);
   }
 
   /** Phiên hết hạn do không thao tác: về trang đăng nhập và quay lại đúng trang đang làm sau khi đăng nhập. */
@@ -108,7 +108,7 @@ export class AdminAuthService {
       .subscribe();
 
     this.clearSession();
-    void this.router.navigate(['/dang-nhap'], { queryParams: { reason: 'expired', returnUrl } });
+    void this.router.navigate(['/admin/login'], { queryParams: { expired: '1', returnUrl } });
   }
 
   clearSession(): void {

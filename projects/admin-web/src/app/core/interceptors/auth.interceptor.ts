@@ -30,7 +30,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         catchError((refreshError: unknown) => {
           const returnUrl = router.url;
           auth.clearSession();
-          void router.navigate(['/dang-nhap'], { queryParams: { reason: 'expired', returnUrl } });
+          void router.navigate(['/admin/login'], {
+            queryParams: { expired: '1', returnUrl },
+          });
           return throwError(() => refreshError);
         }),
       );

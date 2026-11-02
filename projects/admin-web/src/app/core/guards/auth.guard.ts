@@ -11,7 +11,7 @@ export const authGuard: CanActivateFn = (_route, state) => {
     return true;
   }
 
-  return router.createUrlTree(['/dang-nhap'], { queryParams: { returnUrl: state.url } });
+  return router.createUrlTree(['/admin/login'], { queryParams: { returnUrl: state.url } });
 };
 
 /** Đã đăng nhập thì không vào lại trang đăng nhập. */
