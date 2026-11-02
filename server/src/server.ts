@@ -29,13 +29,27 @@ app.get('/api/v1/health', (_req, res) => {
   });
 });
 
-app.use('/api/v1/admin', orderAdminRouter);
-app.use('/api/v1/admin', paymentAdminRouter);
-app.use('/api/v1/admin', returnAdminRouter);
-app.use('/api/v1/admin', warrantyAdminRouter);
-app.use('/api/v1/admin', customerAdminRouter);
-app.use('/api/v1/admin', dashboardAdminRouter);
-app.use('/api/v1/admin', adminUploadRouter);
+/**
+ * API Order Admin. Mỗi router có requireAuth + requireRole ở cấp router nên chỉ cho đi qua đúng các đường
+ * dẫn của nó; nếu không, chúng chặn cả /admin/auth/login và API của Product Admin.
+ * `/orders/bulk-confirm` là của adminRouter (Product Admin) nên bỏ ra.
+ */
+const orderAdminApi = express.Router();
+orderAdminApi.use(
+  orderAdminRouter,
+  paymentAdminRouter,
+  returnAdminRouter,
+  warrantyAdminRouter,
+  customerAdminRouter,
+  dashboardAdminRouter,
+  adminUploadRouter,
+);
+const ORDER_ADMIN_PATH =
+  /^\/(customers|dashboard\/orders|late-compensation-requests|orders|payments|reports\/orders|return-requests|warranty-requests|uploads\/refund-proofs)(\/|$)/;
+app.use('/api/v1/admin', (req, res, next) => {
+  if (req.path === '/orders/bulk-confirm' || !ORDER_ADMIN_PATH.test(req.path)) return next();
+  orderAdminApi(req, res, next);
+});
 app.use('/api/v1', apiRoutes);
 app.use('/api', notFoundHandler);
 
