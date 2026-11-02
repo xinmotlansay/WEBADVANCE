@@ -1,0 +1,80 @@
+/* Phần nền cho các màn Order Admin trong khung admin hiện tại (lấy từ base.css và layout.css của nhánh Order Admin, chỉ những gì màn hình cần) */
+
+/* Host của màn hình là hàng ngang: cột chính (.cv-page) và cột tổng quan (.cv-rail) */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+/* Reset nhẹ, độ ưu tiên bằng 0 để không đè style của component */
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(button) {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(table) {
+  border-collapse: collapse;
+  width: 100%;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(img) {
+  max-width: 100%;
+  display: block;
+}
+
+/* Tiện ích dùng chung */
+.cv-muted {
+  color: var(--cv-muted);
+}
+
+.cv-small {
+  font-size: var(--cv-text-small);
+}
+
+.cv-label {
+  font-size: var(--cv-text-label);
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--cv-navy);
+}
+
+.cv-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-right {
+  text-align: right;
+}
+
+.cv-nowrap {
+  white-space: nowrap;
+}
+
+.cv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-4);
+}
+
+.cv-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-2);
+}
+
+.cv-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-space-3);
+}
+
+.cv-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-space-4);
+}
+
