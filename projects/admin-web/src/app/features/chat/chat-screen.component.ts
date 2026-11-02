@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { ChatMessageView, ChatSessionView } from 'shared';
 import { AdminChatApi } from '../../core/api/admin-chat.api';
+import { AdminSocketService } from '../../core/socket/admin-socket.service';
 import { DateVnPipe } from '../../core/format/format.pipes';
 import { NotificationService } from '../../core/ui/notification.service';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
@@ -463,6 +464,7 @@ export class ChatScreenComponent {
   private readonly api = inject(AdminChatApi);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly socket = inject(AdminSocketService);
 
   readonly filters = FILTERS;
   readonly activeFilter = signal<SessionFilter>('WAITING');
@@ -483,6 +485,37 @@ export class ChatScreenComponent {
 
   constructor() {
     this.loadSessions();
+    this.listenRealtime();
+  }
+
+  /** Khách nhắn hoặc phiên đổi trạng thái thì cập nhật ngay, không cần tải lại trang. */
+  private listenRealtime(): void {
+    this.socket.connect();
+    const offMessage = this.socket.on<{ sessionId: string; message: ChatMessageView; session: ChatSessionView }>(
+      'chat:message',
+      ({ sessionId, message, session }) => {
+        this.upsertSession(session);
+        if (this.activeSession()?.id === sessionId) {
+          this.activeSession.set(session);
+          this.messages.update((list) => (list.some((m) => m.id === message.id) ? list : [...list, message]));
+        }
+      },
+    );
+    const offSession = this.socket.on<{ session: ChatSessionView }>('chat:session-updated', ({ session }) => {
+      this.upsertSession(session);
+      if (this.activeSession()?.id === session.id) this.activeSession.set(session);
+    });
+    this.destroyRef.onDestroy(() => {
+      offMessage();
+      offSession();
+    });
+  }
+
+  private upsertSession(session: ChatSessionView): void {
+    this.allSessions.update((list) =>
+      list.some((s) => s.id === session.id) ? list.map((s) => (s.id === session.id ? session : s)) : [session, ...list],
+    );
+    this.applyFilter();
   }
 
   loadSessions(): void {
@@ -594,7 +627,7 @@ export class ChatScreenComponent {
       .subscribe({
         next: (message) => {
           this.busy.set(false);
-          this.messages.update((list) => [...list, message]);
+          this.messages.update((list) => (list.some((m) => m.id === message.id) ? list : [...list, message]));
           this.draft.set('');
         },
         error: () => {
