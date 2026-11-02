@@ -1,0 +1,158 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 8% 4%, rgba(255, 255, 255, 0.94), transparent 34%),
+    radial-gradient(ellipse at 100% 18%, rgba(193, 216, 240, 0.55), transparent 38%),
+    linear-gradient(135deg, var(--cv-page-highlight), var(--cv-page) 52%, var(--cv-page-deep));
+  background-attachment: fixed;
+  background-attachment: fixed;
+  color: var(--cv-navy);
+  font-family: var(--cv-font);
+  font-size: var(--cv-text-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--cv-text-page);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: var(--cv-text-card);
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: 1px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Tiện ích dùng chung */
+.cv-muted {
+  color: var(--cv-muted);
+}
+
+.cv-small {
+  font-size: var(--cv-text-small);
+}
+
+.cv-label {
+  font-size: var(--cv-text-label);
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--cv-navy);
+}
+
+.cv-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-right {
+  text-align: right;
+}
+
+.cv-nowrap {
+  white-space: nowrap;
+}
+
+.cv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-4);
+}
+
+.cv-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-2);
+}
+
+.cv-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-space-3);
+}
+
+.cv-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

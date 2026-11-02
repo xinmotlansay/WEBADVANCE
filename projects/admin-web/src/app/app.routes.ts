@@ -4,6 +4,9 @@ import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
 /** Sản phẩm, danh mục, tồn kho, đánh giá, cấp vận chuyển (ma trận mục 5). */
+/** Đơn hàng, thanh toán, vận chuyển, đổi trả, bảo hành, chat, khách hàng, báo cáo đơn hàng. */
+const orderRoles = roleGuard(RoleName.SUPER_ADMIN, RoleName.ORDER_ADMIN);
+
 const productRoles = roleGuard(RoleName.SUPER_ADMIN, RoleName.PRODUCT_ADMIN);
 
 export const routes: Routes = [
@@ -70,6 +73,66 @@ export const routes: Routes = [
         canActivate: [productRoles],
         loadComponent: () =>
           import('./features/reviews/reviews.component').then((m) => m.ReviewsComponent),
+      },
+      {
+        path: 'admin/dashboard',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/dashboard/dashboard-screen.component').then((m) => m.DashboardScreenComponent),
+      },
+      {
+        path: 'admin/orders',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/orders/orders-screen.component').then((m) => m.OrdersScreenComponent),
+      },
+      {
+        path: 'admin/payments',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/payments/payments-screen.component').then((m) => m.PaymentsScreenComponent),
+      },
+      {
+        path: 'admin/shipping',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/shipping/shipping-screen.component').then((m) => m.ShippingScreenComponent),
+      },
+      {
+        path: 'admin/delivery-failed',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/delivery-failed/delivery-failed-screen.component').then((m) => m.DeliveryFailedScreenComponent),
+      },
+      {
+        path: 'admin/returns',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/returns/returns-screen.component').then((m) => m.ReturnsScreenComponent),
+      },
+      {
+        path: 'admin/warranty',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/warranty/warranty-screen.component').then((m) => m.WarrantyScreenComponent),
+      },
+      {
+        path: 'admin/chat',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/chat/chat-screen.component').then((m) => m.ChatScreenComponent),
+      },
+      {
+        path: 'admin/customers',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/customers/customers-screen.component').then((m) => m.CustomersScreenComponent),
+      },
+      {
+        path: 'admin/reports/orders',
+        canActivate: [orderRoles],
+        loadComponent: () =>
+          import('./features/reports/order-report-screen.component').then((m) => m.OrderReportScreenComponent),
       },
     ],
   },

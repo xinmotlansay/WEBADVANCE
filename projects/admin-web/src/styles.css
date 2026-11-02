@@ -1,3 +1,5 @@
+@import "./styles/components.css";
+
 /* Token màu và font theo docs/admin-ui-rule.md (mục 2, 3, phụ lục). Không ghi hex trong component. */
 :root {
   --cv-navy: #0b3056;
@@ -76,4 +78,59 @@ body {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Token bổ sung cho các màn Order Admin (không ghi đè token đã có ở trên) */
+:root {
+  --cv-page-highlight: #f7faff;
+  --cv-page-deep: #dce8f4;
+  --cv-table-line: #eef3f8;
+  --cv-avatar-bg: #e3edf7;
+  --cv-on-navy-muted: #c8d9ea;
+  --cv-success-bg: #e2f4ea;
+  --cv-success-fg: #1b6b3f;
+  --cv-warning-bg: #fff1db;
+  --cv-warning-fg: #8a4b00;
+  --cv-danger-fg: #9b1c1c;
+  --cv-info-fg: #0b3056;
+  --cv-neutral-fg: #4a5568;
+  --cv-alert-bg: #fff8ec;
+  --cv-alert-border: #f3c98b;
+  --cv-alert-fg: #7a4100;
+  --cv-error-border: #f3b9b9;
+  --cv-shadow-float: 0 16px 40px rgba(11, 48, 86, 0.2);
+  --cv-shadow-sidebar: 10px 0 28px rgba(11, 48, 86, 0.14);
+  --cv-radius-max: 10px;
+  --cv-space-1: 4px;
+  --cv-space-2: 8px;
+  --cv-space-3: 12px;
+  --cv-space-4: 16px;
+  --cv-space-5: 20px;
+  --cv-space-6: 24px;
+  --cv-space-8: 32px;
+  --cv-text-page: 34px;
+  --cv-text-hero: 48px;
+  --cv-text-kpi: 28px;
+  --cv-text-sub: 22px;
+  --cv-text-card: 16px;
+  --cv-text-body: 14px;
+  --cv-text-small: 13px;
+  --cv-text-badge: 12px;
+  --cv-text-label: 11px;
+  --cv-sidebar-collapsed: 72px;
+  --cv-sidebar-rail-width: 56px;
+  --cv-sidebar-expanded: 248px;
+  --cv-rail-width: 340px;
+  --cv-row-height: 56px;
+  --cv-head-height: 44px;
+  --cv-sidebar-expanded-bg: #dce7f3;
+  --cv-sidebar-item-hover: rgba(255, 255, 255, 0.7);
+  --cv-sidebar-section-label: #5a6f84;
+  --cv-kpi-icon-bg: rgba(11, 48, 86, 0.07);
+  --cv-shadow-card: 0 1px 3px rgba(11, 48, 86, 0.08), 0 1px 2px rgba(11, 48, 86, 0.04);
+  --cv-shadow-kpi: 0 4px 12px rgba(11, 48, 86, 0.08);
+  --cv-urgent-bg: #fef2f2;
+  --cv-urgent-fg: #b91c1c;
+  --cv-urgent-border: #fca5a5;
+  --cv-ok-fg: #15803d;
 }

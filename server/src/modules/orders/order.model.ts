@@ -1,4 +1,11 @@
-import { Schema, model, type Types } from 'mongoose';
+import { Schema, model, type HydratedDocument, type Types } from 'mongoose';
+import {
+  CancellationActor,
+  OrderPaymentStatus,
+  OrderStatus as SharedOrderStatus,
+  PaymentCollectionType,
+  PaymentMethod as SharedPaymentMethod,
+} from '../../lib/shared-enums.js';
 import type { PaymentMethod } from '../checkout/pricing.js';
 
 export type OrderStatus =
@@ -17,6 +24,28 @@ export type CollectionType = 'FULL' | 'DEPOSIT';
 export type OrderSource = 'CART' | 'BUY_NOW';
 export type InvoiceType = 'NONE' | 'PERSONAL' | 'COMPANY';
 
+export function toSharedOrderStatus(status: OrderStatus): SharedOrderStatus {
+  return SharedOrderStatus[status];
+}
+
+export function toSharedPaymentStatus(status: PaymentStatus): OrderPaymentStatus {
+  return OrderPaymentStatus[status];
+}
+
+export function toSharedPaymentMethod(method: PaymentMethod): SharedPaymentMethod {
+  return SharedPaymentMethod[method];
+}
+
+export function toSharedCollectionType(type: CollectionType): PaymentCollectionType {
+  return PaymentCollectionType[type];
+}
+
+export function toSharedCancellationActor(
+  actor: NonNullable<OrderDoc['cancellation']>['cancelledBy'],
+): CancellationActor {
+  return CancellationActor[actor];
+}
+
 export interface ShippingAddress {
   recipientName: string;
   recipientPhone: string;
@@ -30,7 +59,14 @@ export interface ShippingAddress {
 export interface OrderItem {
   _id: Types.ObjectId;
   variantId: Types.ObjectId;
-  snapshot: { name: string; sku: string; color?: string; material?: string; dimensions?: string };
+  snapshot: {
+    name: string;
+    sku: string;
+    color?: string;
+    material?: string;
+    dimensions?: string;
+    imageUrl?: string | null;
+  };
   quantity: number;
   unitPrice: number;
   promotionId?: Types.ObjectId | null;
@@ -48,7 +84,7 @@ export interface StatusChange {
   changedBy: Types.ObjectId | null;
   fromStatus?: OrderStatus;
   toStatus: OrderStatus;
-  note?: string;
+  note?: string | null;
   changedAt: Date;
 }
 
@@ -83,15 +119,17 @@ export interface OrderDoc {
     method: PaymentMethod;
     collectionType: CollectionType;
     status: PaymentStatus;
-    depositAmount?: number;
-    codAmount?: number;
-    dueAt?: Date;
-    transferContent?: string;
-    lastTransactionCode?: string;
+    depositAmount?: number | null;
+    codAmount?: number | null;
+    dueAt?: Date | null;
+    transferContent?: string | null;
+    lastTransactionCode?: string | null;
+    receiptImage?: string | null;
     paidAt?: Date;
   };
   cancellation?: {
     reason?: string;
+    note?: string | null;
     cancelledBy: 'CUSTOMER' | 'ADMIN' | 'SYSTEM';
     cancelledByUserId?: Types.ObjectId | null;
     cancelledAt: Date;
@@ -146,6 +184,7 @@ const orderSchema = new Schema<OrderDoc>(
           color: String,
           material: String,
           dimensions: String,
+          imageUrl: { type: String, default: null },
         },
         quantity: { type: Number, required: true, min: 1 },
         unitPrice: { type: Number, required: true },
@@ -166,7 +205,7 @@ const orderSchema = new Schema<OrderDoc>(
         changedBy: { type: Schema.Types.ObjectId, ref: 'users', default: null },
         fromStatus: { type: String, enum: ORDER_STATUSES },
         toStatus: { type: String, enum: ORDER_STATUSES, required: true },
-        note: String,
+        note: { type: String, default: null },
         changedAt: { type: Date, required: true },
       },
     ],
@@ -178,15 +217,17 @@ const orderSchema = new Schema<OrderDoc>(
         required: true,
         enum: ['PENDING', 'DEPOSITED', 'PAID', 'UNPAID', 'FAILED', 'REFUNDED'],
       },
-      depositAmount: Number,
-      codAmount: Number,
-      dueAt: Date,
-      transferContent: String,
-      lastTransactionCode: String,
+      depositAmount: { type: Number, default: null },
+      codAmount: { type: Number, default: null },
+      dueAt: { type: Date, default: null },
+      transferContent: { type: String, default: null },
+      lastTransactionCode: { type: String, default: null },
+      receiptImage: { type: String, default: null },
       paidAt: Date,
     },
     cancellation: {
       reason: String,
+      note: { type: String, default: null },
       cancelledBy: { type: String, enum: ['CUSTOMER', 'ADMIN', 'SYSTEM'] },
       cancelledByUserId: { type: Schema.Types.ObjectId, ref: 'users', default: null },
       cancelledAt: Date,
@@ -218,3 +259,27 @@ orderSchema.index(
 orderSchema.index({ status: 1, 'payment.dueAt': 1 });
 
 export const OrderModel = model<OrderDoc>('orders', orderSchema);
+
+export type OrderDocument = HydratedDocument<OrderDoc>;
+export type OrderItemDoc = OrderItem;
+
+export interface InvoiceDoc {
+  orderId: Types.ObjectId;
+  invoiceNumber: string;
+  issuedAt: Date;
+  totalAmount: number;
+  fileUrl?: string | null;
+}
+
+const invoiceSchema = new Schema<InvoiceDoc>(
+  {
+    orderId: { type: Schema.Types.ObjectId, ref: 'orders', required: true, unique: true },
+    invoiceNumber: { type: String, required: true, unique: true },
+    issuedAt: { type: Date, required: true },
+    totalAmount: { type: Number, required: true, min: 0 },
+    fileUrl: { type: String, default: null },
+  },
+  { timestamps: true, collection: 'invoices' },
+);
+
+export const InvoiceModel = model<InvoiceDoc>('Invoice', invoiceSchema);

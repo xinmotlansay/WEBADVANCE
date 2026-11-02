@@ -18,6 +18,8 @@ const API_BASE = '/api/v1/admin/auth';
 /** Phiên Admin hết hạn sau 30 phút không thao tác (NF-A02), dùng khi server chưa trả giá trị. */
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 1800;
 
+export class AdminAuthError extends Error {}
+
 @Injectable({ providedIn: 'root' })
 export class AdminAuthService {
   private readonly http = inject(HttpClient);
@@ -32,6 +34,7 @@ export class AdminAuthService {
   readonly accessToken = this._accessToken.asReadonly();
   readonly idleTimeoutSeconds = this._idleTimeoutSeconds.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
+  readonly role = computed(() => this._user()?.roleName ?? null);
 
   login(body: LoginRequest): Observable<AdminLoginResponse> {
     return this.http
@@ -47,7 +50,11 @@ export class AdminAuthService {
 
   refresh(): Observable<string> {
     return this.http
-      .post<ApiResponse<{ accessToken: string }>>(`${API_BASE}/refresh`, {}, { withCredentials: true })
+      .post<ApiResponse<{ accessToken: string }>>(
+        `${API_BASE}/refresh`,
+        {},
+        { withCredentials: true },
+      )
       .pipe(
         map((response) => response.data.accessToken),
         tap((token) => this._accessToken.set(token)),
