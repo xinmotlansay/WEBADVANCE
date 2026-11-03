@@ -242,7 +242,7 @@ interface Line {
   priceChangedFrom: number | null;
 }
 
-async function analyze(
+export async function analyze(
   promos: PromotionDoc[],
 ): Promise<Map<string, { lines: Line[]; flags: string[] }>> {
   const all = await loadProducts();

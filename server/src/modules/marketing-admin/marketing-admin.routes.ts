@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { RoleName } from '../../lib/shared-enums.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { requireRole } from '../../middlewares/rbac.middleware.js';
+import { dashboardRoutes } from './dashboard.routes.js';
 import { promotionAdminRoutes } from './promotion-admin.routes.js';
 import { voucherAdminRoutes } from './voucher-admin.routes.js';
 
@@ -9,5 +10,6 @@ import { voucherAdminRoutes } from './voucher-admin.routes.js';
 export const marketingAdminRoutes = Router();
 
 marketingAdminRoutes.use(requireAuth, requireRole(RoleName.MARKETING_ADMIN, RoleName.SUPER_ADMIN));
+marketingAdminRoutes.use('/dashboard', dashboardRoutes);
 marketingAdminRoutes.use('/vouchers', voucherAdminRoutes);
 marketingAdminRoutes.use('/promotions', promotionAdminRoutes);

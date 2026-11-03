@@ -1,6 +1,15 @@
-<main class="page">
-  <section class="body">
-    <h1>Xin chào, {{ user()?.fullName }}</h1>
-    <p>Bạn đã đăng nhập với vai trò {{ roleLabel() }}. Các màn quản trị sẽ được bổ sung ở các bước tiếp theo.</p>
-  </section>
-</main>
+@if (isMarketing()) {
+  @defer {
+    <app-marketing-dashboard />
+  }
+} @else {
+  <main class="page">
+    <section class="body">
+      <h1>Xin chào, {{ user()?.fullName }}</h1>
+      <p>
+        Bạn đã đăng nhập với vai trò {{ roleLabel() }}. Các màn quản trị sẽ được bổ sung ở các bước
+        tiếp theo.
+      </p>
+    </section>
+  </main>
+}
