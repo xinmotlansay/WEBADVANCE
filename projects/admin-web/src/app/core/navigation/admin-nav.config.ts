@@ -51,6 +51,7 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Khuyến mãi', icon: 'tag', path: '/marketing/khuyen-mai' },
     { label: 'Mã giảm giá', icon: 'card', path: '/marketing/ma-giam-gia' },
     { label: 'Banner', icon: 'image', path: '/marketing/banner' },
+    { label: 'Nội dung trang chủ', icon: 'image', path: '/marketing/noi-dung' },
     { label: 'Bài viết & thông báo', icon: 'file', path: '/marketing/bai-viet' },
     { label: 'Collection', icon: 'layers', path: null },
     { label: 'Nguồn cảm hứng', icon: 'star', path: null },

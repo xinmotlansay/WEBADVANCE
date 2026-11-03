@@ -1,0 +1,158 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Nội dung trang chủ</h1>
+  </header>
+
+  <div class="cv-tabs" role="tablist" aria-label="Khu vực nội dung">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'HOME'" (click)="setTab('HOME')">Trang chủ</button>
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'ANNOUNCEMENT_BAR'" (click)="setTab('ANNOUNCEMENT_BAR')">
+      Thanh thông báo
+    </button>
+  </div>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else if (loadError()) {
+    <div class="cv-alert" role="alert">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+    </div>
+  } @else {
+    @for (w of warnings(); track w) {
+      <p class="cv-alert cv-alert--warn" role="status">{{ w }}</p>
+    }
+    @if (scheduledAt(); as at) {
+      <p class="cv-card notice" role="status">Có bản đã hẹn đăng lúc {{ at | date: 'dd/MM/yyyy HH:mm' }}.</p>
+    }
+
+    @if (tab() === 'HOME') {
+      @for (b of blocks(); track b.type; let i = $index) {
+        <section class="cv-card block" [attr.aria-labelledby]="'bt-' + i">
+          <header class="block-head">
+            <h2 [id]="'bt-' + i">{{ LABEL[b.type] }}</h2>
+            <label class="inline">
+              <input type="checkbox" [name]="'on' + i" [(ngModel)]="b.enabled" />
+              Hiển thị
+            </label>
+            <span class="move">
+              <button type="button" class="cv-btn" [disabled]="i === 0" (click)="move(i, -1)" [attr.aria-label]="'Đưa ' + LABEL[b.type] + ' lên'">▲</button>
+              <button type="button" class="cv-btn" [disabled]="i === blocks().length - 1" (click)="move(i, 1)" [attr.aria-label]="'Đưa ' + LABEL[b.type] + ' xuống'">▼</button>
+            </span>
+          </header>
+
+          @if (b.enabled) {
+            <div class="cv-field">
+              <label [for]="'t' + i">Tiêu đề khối (2–80 ký tự)</label>
+              <input [id]="'t' + i" class="cv-input" maxlength="80" [name]="'t' + i" [(ngModel)]="b.title" />
+            </div>
+
+            @switch (b.type) {
+              @case ('BRAND_INTRO') {
+                <div class="cv-field">
+                  <label [for]="'x' + i">Nội dung (tối đa 2.000 ký tự)</label>
+                  <textarea [id]="'x' + i" class="cv-input" rows="4" maxlength="2000" [name]="'x' + i" [(ngModel)]="b.text"></textarea>
+                </div>
+                <div class="cols">
+                  <div class="cv-field">
+                    <label [for]="'im' + i">Ảnh (JPG, PNG, WEBP, tối đa 2 MB)</label>
+                    <input [id]="'im' + i" type="file" accept="image/jpeg,image/png,image/webp" (change)="pickImage(b, $event)" />
+                    @if (b.imageUrl) {
+                      <img class="pic" [src]="b.imageUrl" [alt]="b.imageAlt" />
+                    }
+                  </div>
+                  <div class="cv-field">
+                    <label [for]="'al' + i">Văn bản thay thế (5–100 ký tự)</label>
+                    <input [id]="'al' + i" class="cv-input" maxlength="100" [name]="'al' + i" [(ngModel)]="b.imageAlt" />
+                  </div>
+                </div>
+                <div class="cols">
+                  <div class="cv-field">
+                    <label [for]="'cl' + i">Nút (nhãn)</label>
+                    <input [id]="'cl' + i" class="cv-input" maxlength="30" [name]="'cl' + i" [(ngModel)]="b.ctaLabel" />
+                  </div>
+                  <div class="cv-field">
+                    <label [for]="'cu' + i">Liên kết nút</label>
+                    <input [id]="'cu' + i" class="cv-input" maxlength="500" placeholder="/products hoặc https://…" [name]="'cu' + i" [(ngModel)]="b.ctaUrl" />
+                  </div>
+                </div>
+              }
+              @case ('FEATURED_PRODUCTS') {
+                <app-product-picker label="Sản phẩm nổi bật (4–12 sản phẩm đang kinh doanh)" [inputId]="'fp' + i" [(ids)]="b.productIds" />
+              }
+              @case ('COLLECTIONS') {
+                <fieldset class="checks">
+                  <legend>Danh mục</legend>
+                  @for (c of categories(); track c.id) {
+                    <label class="inline">
+                      <input type="checkbox" [checked]="b.categoryIds.includes(c.id)" (change)="toggleId(b.categoryIds, c.id)" />
+                      {{ c.name }}
+                    </label>
+                  }
+                </fieldset>
+              }
+              @case ('PROMOTION') {
+                <fieldset class="checks">
+                  <legend>Chương trình khuyến mãi (chỉ chương trình đang diễn ra mới hiện)</legend>
+                  @for (p of promotions(); track p.id) {
+                    <label class="inline">
+                      <input type="checkbox" [checked]="b.promotionIds.includes(p.id)" (change)="toggleId(b.promotionIds, p.id)" />
+                      {{ p.code }} · {{ p.name }}
+                    </label>
+                  }
+                </fieldset>
+              }
+              @case ('LATEST_ARTICLES') {
+                <p class="cv-muted">Tự lấy 4 bài viết đã đăng mới nhất.</p>
+              }
+            }
+          }
+        </section>
+      }
+    } @else {
+      <section class="cv-card block">
+        <label class="inline">
+          <input type="checkbox" name="bar-on" [(ngModel)]="bar.enabled" />
+          Hiển thị thanh thông báo
+        </label>
+        <div class="cv-field">
+          <label for="bar-text">Nội dung (5–120 ký tự)</label>
+          <input id="bar-text" class="cv-input" maxlength="120" name="bar-text" [(ngModel)]="bar.text" />
+          <span class="cv-hint">{{ bar.text.length }}/120</span>
+        </div>
+        <div class="cv-field">
+          <label for="bar-link">Liên kết (tùy chọn)</label>
+          <input id="bar-link" class="cv-input" maxlength="500" placeholder="/promotions hoặc https://…" name="bar-link" [(ngModel)]="bar.linkUrl" />
+        </div>
+        <div class="cols">
+          <div class="cv-field">
+            <label for="bar-from">Hiển thị từ (tùy chọn)</label>
+            <input id="bar-from" class="cv-input" type="datetime-local" name="bar-from" [(ngModel)]="bar.startAt" />
+          </div>
+          <div class="cv-field">
+            <label for="bar-to">Đến (tùy chọn)</label>
+            <input id="bar-to" class="cv-input" type="datetime-local" name="bar-to" [(ngModel)]="bar.endAt" />
+          </div>
+        </div>
+      </section>
+    }
+
+    @if (error()) {
+      <p class="cv-alert" role="alert">{{ error() }}</p>
+    }
+    @if (message()) {
+      <p class="cv-card notice" role="status">{{ message() }}</p>
+    }
+
+    <div class="bar">
+      <div class="cv-field when">
+        <label for="at">Giờ đăng (cho "Lên lịch", sau hiện tại ít nhất 5 phút)</label>
+        <input id="at" class="cv-input" type="datetime-local" name="at" [(ngModel)]="publishAt" />
+      </div>
+      <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('DRAFT')">Lưu nháp</button>
+      <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('SCHEDULE')">Lên lịch đăng</button>
+      <button type="button" class="cv-btn cv-btn--primary" [disabled]="saving()" (click)="save('PUBLISH')">
+        {{ saving() ? 'Đang lưu…' : 'Đăng ngay' }}
+      </button>
+    </div>
+  }
+</main>

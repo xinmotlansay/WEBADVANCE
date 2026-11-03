@@ -1,0 +1,65 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 160px;
+}
+.block {
+  max-width: 880px;
+  margin-bottom: 12px;
+}
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.block-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+}
+.move {
+  display: inline-flex;
+  gap: 4px;
+}
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  padding: 8px 12px;
+}
+.pic {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+  margin-top: 8px;
+  object-fit: contain;
+}
+.notice {
+  margin: 0 0 12px;
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 880px;
+}
+.when {
+  flex: 1;
+  margin: 0;
+}

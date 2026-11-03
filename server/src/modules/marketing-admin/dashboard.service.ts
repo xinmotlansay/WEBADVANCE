@@ -13,6 +13,7 @@ import {
   type Summary,
 } from './dashboard.rules.js';
 import { bannerStatus, promotionStatus, voucherStatus } from './effective-status.js';
+import { homeWarnings } from './content-admin.service.js';
 import { analyze } from './promotion-admin.service.js';
 import { warnFlags } from './voucher-admin.rules.js';
 
@@ -76,7 +77,7 @@ export async function getDashboard(q: DashboardQuery, now = new Date()) {
     period(range.prevFrom, range.prevTo),
     PromotionModel.find().lean(),
     VoucherModel.find({ type: { $ne: 'ASSIGNED' } }).lean(),
-    BannerModel.find().lean(),
+    BannerModel.find({ deletedAt: null }).lean(),
   ]);
 
   const pStatus = promos.map((p) => ({ p, s: promotionStatus(p, now) }));
@@ -144,6 +145,8 @@ export async function getDashboard(q: DashboardQuery, now = new Date()) {
       });
     }
   }
+
+  attention.push(...(await homeWarnings()));
 
   const nameOf = new Map<string, string>([
     ...promos.map((p) => [String(p._id), `${p.code ?? ''} ${p.name}`.trim()] as const),

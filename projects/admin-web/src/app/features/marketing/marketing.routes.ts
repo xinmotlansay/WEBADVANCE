@@ -80,4 +80,8 @@ export const MARKETING_ROUTES: Routes = [
       },
     ],
   },
+  {
+    path: 'noi-dung',
+    loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+  },
 ];

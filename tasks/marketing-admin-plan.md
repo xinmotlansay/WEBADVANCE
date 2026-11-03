@@ -278,13 +278,19 @@ Demo được luồng: chấm điểm → xem ma trận → tạo voucher cho ô
 - Soạn nội dung bằng textarea HTML; "Xem trước" dùng bộ lọc của Angular nên không hiện iframe YouTube. Chưa lọc sản phẩm liên quan theo `ACTIVE` lúc lưu (chỉ lọc khi khách xem, đúng FRD).
 - Ảnh bìa lưu ở `uploads/articles/`. Chưa làm: thẻ "Bài viết đã đăng trong tháng" trên dashboard; lịch sử thay đổi; kiểm tra liên kết banner trỏ tới bài viết.
 
-#### Task M12: Nội dung trang chủ + thanh thông báo (FR-015)
-- [ ] Model `content_areas` (khóa `HOME`, `ANNOUNCEMENT_BAR`): danh sách khối bật/tắt + thứ tự + dữ liệu khối; bản nháp và bản đã đăng tách riêng; `publishAt` cho lên lịch (tính lúc đọc, như trạng thái khuyến mãi)
-- [ ] Khối: giới thiệu thương hiệu, sản phẩm nổi bật (4–12, tự ẩn khi < 4 sản phẩm hiển thị + cảnh báo trên dashboard), bộ sưu tập, khối khuyến mãi, bài viết mới
-- [ ] Khóa lạc quan (`version`) → E-COM-05 khi hai người cùng sửa
-- [ ] Trang chủ phía khách đọc bản đã đăng (phối hợp với người làm `feature/home-page`)
+#### Task M12: Nội dung trang chủ + thanh thông báo (FR-015) — xong
+- [x] Model `content_areas` (khóa `HOME`, `ANNOUNCEMENT_BAR`): danh sách khối bật/tắt + thứ tự + dữ liệu khối; bản nháp và bản đã đăng tách riêng; `publishAt` cho lên lịch (tính lúc đọc, như trạng thái khuyến mãi)
+- [x] Khối: giới thiệu thương hiệu, sản phẩm nổi bật (4–12, tự ẩn khi < 4 sản phẩm hiển thị + cảnh báo trên dashboard), bộ sưu tập, khối khuyến mãi, bài viết mới
+- [x] Khóa lạc quan (`version`) → E-COM-05 khi hai người cùng sửa
+- [x] API phía khách đọc bản đã đăng (chưa sửa component trang chủ của `feature/home-page`)
 
 **Quy mô:** L
+
+**Kết quả:** server `content/content.{model,routes}.ts` (khách: `GET /api/v1/content/home`, `GET /api/v1/content/announcement-bar`), `marketing-admin/content-admin.{rules,service,routes}.ts` (`/api/v1/admin/marketing/content/:key` GET/PUT, `images` upload); cảnh báo khối nổi bật thêm vào "cần chú ý" của dashboard (AC4). admin-web `features/marketing/content/`, route `/marketing/noi-dung`, menu "Nội dung trang chủ". 107 test server qua (6 mới), `build:server` và `ng build admin-web` qua. **Chưa chạy thử HTTP/trình duyệt.**
+- Bản hẹn giờ lưu ở `scheduled`, có hiệu lực khi đến giờ (tính lúc đọc, AC2); mỗi khu vực chỉ giữ một bản hẹn, lưu bản mới ghi đè. Đăng ngay xóa bản hẹn.
+- Trang chủ luôn đủ 5 khối (mỗi loại một lần). Khối bật mới bị kiểm; lưu nháp không kiểm. Văn bản là chữ thuần: thẻ HTML bị bỏ và trả cảnh báo E-MKT-015-05.
+- Khối khuyến mãi chỉ hiện chương trình đang diễn ra; khối bài viết mới tự lấy 4 bài mới nhất; khối rỗng sau khi lọc thì bỏ khỏi kết quả.
+- **Chưa làm:** Xem trước desktop/mobile, "Xem khác biệt" khi xung đột phiên bản, lịch sử phiên bản (thuộc M13), trang chủ khách chưa gọi API mới (báo người làm `feature/home-page`).
 
 #### Task M13: Landing page + lịch sử phiên bản (FR-015)
 - [ ] Landing page dùng chung cấu trúc khối với M12, khóa = slug (`/lp/[slug]`), ẩn thay cho xóa, SEO title/meta
