@@ -30,6 +30,8 @@ export interface PromotionDoc {
   everRan?: boolean;
   endedAt?: Date | null;
   pauseReason?: string | null;
+  /** Giá bán các biến thể lúc kích hoạt, để cảnh báo "giá gốc đã đổi" (FR-003 AC3). */
+  priceSnapshot?: { variantId: Types.ObjectId; price: number }[];
   /** Khóa lạc quan (E-COM-05). */
   version?: number;
 }
@@ -40,12 +42,12 @@ const promotionSchema = new Schema<PromotionDoc>(
   {
     name: { type: String, required: true },
     description: String,
-    discountType: { type: String, required: true, enum: ['PERCENT', 'FIXED_AMOUNT'] },
-    discountValue: { type: Number, required: true },
+    discountType: { type: String, enum: ['PERCENT', 'FIXED_AMOUNT'] },
+    discountValue: { type: Number },
     maxDiscountValue: Number,
     minOrderValue: Number,
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
+    startDate: { type: Date },
+    endDate: { type: Date },
     status: {
       type: String,
       required: true,
@@ -67,6 +69,7 @@ const promotionSchema = new Schema<PromotionDoc>(
     everRan: { type: Boolean, default: false },
     endedAt: Date,
     pauseReason: String,
+    priceSnapshot: [{ _id: false, variantId: Schema.Types.ObjectId, price: Number }],
     version: { type: Number, default: 0 },
   },
   { timestamps: true },
