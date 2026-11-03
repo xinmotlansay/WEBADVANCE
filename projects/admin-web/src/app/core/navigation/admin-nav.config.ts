@@ -48,7 +48,8 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
   ],
   [RoleName.MARKETING_ADMIN]: [
     { label: 'Dashboard marketing', icon: 'home', path: '/' },
-    { label: 'Khuyến mãi & mã giảm giá', icon: 'tag', path: '/marketing/ma-giam-gia' },
+    { label: 'Khuyến mãi', icon: 'tag', path: '/marketing/khuyen-mai' },
+    { label: 'Mã giảm giá', icon: 'card', path: '/marketing/ma-giam-gia' },
     { label: 'Banner', icon: 'image', path: null },
     { label: 'Nội dung & bài viết', icon: 'file', path: null },
     { label: 'Collection', icon: 'layers', path: null },
