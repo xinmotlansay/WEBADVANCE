@@ -24,6 +24,72 @@
   display: block;
 }
 
+/* Chữ nền: base.css của Order Admin đặt cỡ chữ, giãn dòng và reset heading ở body; ở đây áp cho phạm vi màn đơn hàng */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) {
+  font-size: var(--cv-text-body);
+  line-height: 1.5;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h1) {
+  font-size: var(--cv-text-page);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h2) {
+  font-size: var(--cv-text-card);
+  font-weight: 600;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+/* Tiêu đề trang không xuống dòng; thanh tìm kiếm co lại hoặc xuống hàng thay vì ép tiêu đề */
+.cv-page-header {
+  flex-wrap: wrap;
+  row-gap: var(--cv-space-3);
+}
+.cv-page-header__title {
+  flex: 1 1 280px;
+}
+.cv-page-header__title h1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-page-header__sub {
+  margin-top: var(--cv-space-2);
+  line-height: 1.5;
+}
+
+/* Popup chi tiết: nội dung được chiếu vào qua <div popupBody|popupFooter> nên gap/flex phải đặt trên div đó */
+.cv-popup__body {
+  line-height: 1.55;
+}
+.cv-popup__footer > [popupFooter] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--cv-space-3);
+}
+.cv-popup__footer > [popupFooter] .cv-btn {
+  flex: 1 1 auto;
+}
+.cv-popup__footer {
+  padding: var(--cv-space-4) var(--cv-space-5);
+}
+.cv-kv {
+  gap: 10px var(--cv-space-4);
+  line-height: 1.5;
+}
+
 /* Tiện ích dùng chung */
 .cv-muted {
   color: var(--cv-muted);
