@@ -53,6 +53,7 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Nội dung & bài viết', icon: 'file', path: null },
     { label: 'Collection', icon: 'layers', path: null },
     { label: 'Nguồn cảm hứng', icon: 'star', path: null },
+    { label: 'Khách hàng rủi ro', icon: 'users', path: null },
     { label: 'Báo cáo Marketing', icon: 'chart', path: null },
   ],
   [RoleName.ORDER_ADMIN]: [
