@@ -51,18 +51,17 @@
   color: inherit;
 }
 
-/* Tiêu đề trang không xuống dòng; thanh tìm kiếm co lại hoặc xuống hàng thay vì ép tiêu đề */
+/* Tiêu đề trang không xuống dòng và không bị cắt; nếu thiếu chỗ thì thanh tìm kiếm và chuông xuống hàng */
 .cv-page-header {
   flex-wrap: wrap;
   row-gap: var(--cv-space-3);
 }
 .cv-page-header__title {
-  flex: 1 1 280px;
+  flex: 1 1 auto;
+  min-width: max-content;
 }
 .cv-page-header__title h1 {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .cv-page-header__sub {
   margin-top: var(--cv-space-2);
