@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import type { AppError } from '../../utils/app-error.js';
 import type { BarData, HomeData } from '../content/content.model.js';
 import {
+  applyRestore,
+  isValidLpSlug,
+  pushVersion,
   barVisible,
   checkPublishable,
   checkSchedule,
@@ -74,4 +77,23 @@ test('HTML trong văn bản bị bỏ kèm cảnh báo E-MKT-015-05; trang chủ
   assert.ok(r.warning);
   assert.equal(cleanText('ANNOUNCEMENT_BAR', defaultData('ANNOUNCEMENT_BAR')).warning, null);
   assert.equal(normalizeHome({ blocks: [emptyBlock('PROMOTION'), emptyBlock('PROMOTION')] }).blocks.length, 5);
+});
+
+test('AC5: khôi phục phiên bản thành bản nháp mới, bản đang đăng không đổi', () => {
+  const v1: BarData = { enabled: true, text: 'phiên bản một', linkUrl: '', startAt: '', endAt: '' };
+  const live: BarData = { ...v1, text: 'đang đăng' };
+  const area = { published: live, draft: live, versions: [{ id: 3, data: v1, savedAt: new Date(), action: 'PUBLISH' as const }] };
+  const r = applyRestore(area, 3);
+  assert.equal((r.draft as BarData).text, 'phiên bản một');
+  assert.equal((r.published as BarData).text, 'đang đăng');
+  assert.throws(() => applyRestore(area, 99), /phiên bản/);
+});
+
+test('chỉ giữ 10 phiên bản gần nhất; slug landing page 3–80 ký tự chữ thường', () => {
+  let list: ReturnType<typeof pushVersion> = [];
+  for (let i = 0; i < 12; i++) list = pushVersion(list, { id: i, data: defaultData('HOME'), savedAt: new Date(), action: 'PUBLISH' });
+  assert.equal(list.length, 10);
+  assert.deepEqual([list[0]?.id, list[9]?.id], [2, 11]);
+  assert.equal(isValidLpSlug('black-friday-2026'), true);
+  for (const bad of ['ab', 'Black-Friday', '-x-', 'a--b', 'a'.repeat(81)]) assert.equal(isValidLpSlug(bad), false, bad);
 });

@@ -292,13 +292,18 @@ Demo được luồng: chấm điểm → xem ma trận → tạo voucher cho ô
 - Khối khuyến mãi chỉ hiện chương trình đang diễn ra; khối bài viết mới tự lấy 4 bài mới nhất; khối rỗng sau khi lọc thì bỏ khỏi kết quả.
 - **Chưa làm:** Xem trước desktop/mobile, "Xem khác biệt" khi xung đột phiên bản, lịch sử phiên bản (thuộc M13), trang chủ khách chưa gọi API mới (báo người làm `feature/home-page`).
 
-#### Task M13: Landing page + lịch sử phiên bản (FR-015)
-- [ ] Landing page dùng chung cấu trúc khối với M12, khóa = slug (`/lp/[slug]`), ẩn thay cho xóa, SEO title/meta
-- [ ] Mỗi lần đăng lưu một phiên bản, giữ 10 bản gần nhất mỗi khu vực; "Khôi phục" tạo bản nháp mới, không đụng bản đang đăng
-- [ ] Route khách `/lp/:slug`, trang 404 thân thiện khi ẩn
-- [ ] Test: khôi phục không đổi bản đăng (AC5), cắt còn 10 phiên bản
+#### Task M13: Landing page + lịch sử phiên bản (FR-015) — xong
+- [x] Landing page dùng chung cấu trúc khối với M12, khóa = slug (`/lp/[slug]`), ẩn thay cho xóa, SEO title/meta
+- [x] Mỗi lần đăng lưu một phiên bản, giữ 10 bản gần nhất mỗi khu vực; "Khôi phục" tạo bản nháp mới, không đụng bản đang đăng
+- [x] Route khách `/lp/:slug`, 404 khi ẩn hoặc chưa đăng
+- [x] Test: khôi phục không đổi bản đăng (AC5), cắt còn 10 phiên bản
 
 **Quy mô:** M
+
+**Kết quả:** landing page là một dòng `content_areas` với khóa `LP:<slug>` (thêm `name`, `seoTitle`, `metaDescription`, `hidden`, `versions`), nên dùng chung luồng lưu/hẹn giờ/khóa lạc quan của M12. Server: `/api/v1/admin/marketing/content/landing-pages` (list, tạo, GET/PUT `:slug`, `hide`/`show`, `versions`, `versions/:id/restore`) và `/content/:key/versions` cho trang chủ + thanh thông báo; khách `GET /api/v1/content/lp/:slug`. admin-web: tab "Landing page" (danh sách + tạo), trang sửa `/marketing/noi-dung/lp/:slug` (khối, tên, SEO), khung "Lịch sử phiên bản" ở mọi khu vực. 109 test server qua (2 mới), `build:server` và `ng build admin-web` qua. **Chưa chạy thử HTTP/trình duyệt.**
+- Phiên bản lưu khi **Đăng ngay hoặc Lên lịch**, không lưu khi Lưu nháp; id phiên bản = `version` của khu vực lúc lưu. Phiên bản đăng trước M13 không có trong lịch sử.
+- "Tạo từ mẫu có sẵn" chỉ có một mẫu (5 khối đều tắt). Landing page dùng đúng 5 loại khối của trang chủ.
+- Landing đã ẩn trả 404 ở API; trang 404 thân thiện có liên kết về trang chủ do phía khách dựng. Chưa có Xem trước, xem khác biệt khi xung đột.
 
 ## Rủi ro
 

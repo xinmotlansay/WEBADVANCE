@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AppError } from '../../utils/app-error.js';
-import type { BarData, ContentAreaDoc, ContentData, ContentKey, HomeBlock, HomeBlockType, HomeData } from '../content/content.model.js';
+import type { AreaKey, BarData, ContentAreaDoc, ContentData, ContentKey, ContentVersion, HomeBlock, HomeBlockType, HomeData } from '../content/content.model.js';
 import { isValidLink } from './banner-admin.rules.js';
 
 /** Quy tắc FR-MKT_AD-015 (trang chủ, thanh thông báo). Hàm thuần để test không cần DB. */
@@ -143,3 +143,40 @@ export const barVisible = (b: BarData | null, now = new Date()): boolean =>
 
 /** Khối nổi bật chỉ hiện khi còn đủ sản phẩm đang kinh doanh. */
 export const featuredVisible = (activeCount: number): boolean => activeCount >= MIN_FEATURED;
+
+// ---- Landing page và lịch sử phiên bản (M13) ----
+
+export const MAX_VERSIONS = 10;
+export const lpKey = (slug: string): AreaKey => `LP:${slug}`;
+/** Cấu trúc dữ liệu của khu vực: landing page dùng chung cấu trúc khối với trang chủ. */
+export const kindOf = (key: AreaKey): ContentKey => (key === 'ANNOUNCEMENT_BAR' ? 'ANNOUNCEMENT_BAR' : 'HOME');
+
+/** E-MKT-015-02: 3–80 ký tự, chữ thường không dấu, số, `-`. */
+export const isValidLpSlug = (s: string): boolean => s.length >= 3 && s.length <= 80 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s);
+
+export const createLandingSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  slug: z.string().trim(),
+});
+export const landingMetaSchema = z.object({
+  name: z.string().trim().max(100).optional(),
+  seoTitle: z.string().trim().max(60).optional(),
+  metaDescription: z.string().trim().max(160).optional(),
+});
+
+export function checkLandingName(name: string | undefined): void {
+  range('Tên landing page', name ?? '', 5, 100);
+}
+
+/** Thêm một phiên bản và chỉ giữ `MAX_VERSIONS` bản gần nhất (cũ → mới). */
+export const pushVersion = (versions: ContentVersion[] | undefined, v: ContentVersion): ContentVersion[] =>
+  [...(versions ?? []), v].slice(-MAX_VERSIONS);
+
+/**
+ * Khôi phục: phiên bản cũ trở thành bản nháp mới, bản đang đăng và bản hẹn giờ giữ nguyên (AC5).
+ */
+export function applyRestore<T extends Pick<ContentAreaDoc, 'versions' | 'draft'>>(area: T, id: number): T {
+  const v = area.versions?.find((x) => x.id === id);
+  if (!v) throw err('NOT_FOUND', 'Không tìm thấy phiên bản này.', 404);
+  return { ...area, draft: v.data };
+}

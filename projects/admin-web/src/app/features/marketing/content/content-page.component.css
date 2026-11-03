@@ -63,3 +63,20 @@
   flex: 1;
   margin: 0;
 }
+
+.history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history li,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.history li {
+  justify-content: space-between;
+}

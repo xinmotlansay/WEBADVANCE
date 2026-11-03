@@ -82,6 +82,15 @@ export const MARKETING_ROUTES: Routes = [
   },
   {
     path: 'noi-dung',
-    loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+      },
+      {
+        path: 'lp/:slug',
+        loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+      },
+    ],
   },
 ];

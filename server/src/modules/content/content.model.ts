@@ -29,15 +29,35 @@ export interface BarData {
 }
 export type ContentData = HomeData | BarData;
 
+/** Khóa khu vực nội dung: HOME, ANNOUNCEMENT_BAR hoặc `LP:<slug>` cho landing page. */
+export type AreaKey = ContentKey | `LP:${string}`;
+
+/** Một phiên bản đã đăng / hẹn đăng. `id` = `version` của khu vực lúc lưu, nên không trùng. */
+export interface ContentVersion {
+  id: number;
+  data: ContentData;
+  savedAt: Date;
+  by?: string;
+  action: 'PUBLISH' | 'SCHEDULE';
+}
+
 export interface ContentAreaDoc {
   _id: Types.ObjectId;
-  key: ContentKey;
+  key: AreaKey;
   /** Bản nháp đang soạn. */
   draft?: ContentData | null;
   /** Bản đã đăng, tách riêng khỏi bản nháp. */
   published?: ContentData | null;
   /** Bản hẹn giờ: có hiệu lực khi `publishAt` đến (tính lúc đọc, không cần job). */
   scheduled?: { data: ContentData; publishAt: Date } | null;
+  /** 10 phiên bản gần nhất, cũ → mới. */
+  versions?: ContentVersion[];
+  /** Chỉ landing page. */
+  name?: string;
+  seoTitle?: string;
+  metaDescription?: string;
+  /** Landing page không xóa, chỉ ẩn. */
+  hidden?: boolean;
   version: number;
   updatedBy?: Types.ObjectId;
   updatedAt?: Date;
@@ -45,10 +65,15 @@ export interface ContentAreaDoc {
 
 const schema = new Schema<ContentAreaDoc>(
   {
-    key: { type: String, enum: ['HOME', 'ANNOUNCEMENT_BAR'], required: true, unique: true },
+    key: { type: String, required: true, unique: true },
     draft: { type: Schema.Types.Mixed, default: null },
     published: { type: Schema.Types.Mixed, default: null },
     scheduled: { type: Schema.Types.Mixed, default: null },
+    versions: { type: Schema.Types.Mixed, default: [] },
+    name: String,
+    seoTitle: String,
+    metaDescription: String,
+    hidden: { type: Boolean, default: false },
     version: { type: Number, default: 0 },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'users' },
   },
