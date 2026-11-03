@@ -21,8 +21,6 @@ export const config = {
   googleClientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
   bankWebhookSecret: process.env['BANK_WEBHOOK_SECRET'] ?? '',
   isProduction: process.env['NODE_ENV'] === 'production',
-  /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
-  devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
   otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
   allowedOrigins: (
