@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 120px;
+}
+.form {
+  max-width: 880px;
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.pic {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  margin-top: 8px;
+  object-fit: contain;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.preview {
+  max-width: 720px;
+  padding: 16px;
+}
+.preview img {
+  max-width: 100%;
+}

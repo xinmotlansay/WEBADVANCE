@@ -41,4 +41,43 @@ export const MARKETING_ROUTES: Routes = [
       },
     ],
   },
+  {
+    path: 'khach-hang-rui-ro',
+    loadComponent: () =>
+      import('./risk/risk-customers.component').then((m) => m.RiskCustomersComponent),
+  },
+  {
+    path: 'banner',
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./banners/banner-list.component').then((m) => m.BannerListComponent),
+      },
+      {
+        path: 'tao-moi',
+        loadComponent: () => import('./banners/banner-form.component').then((m) => m.BannerFormComponent),
+      },
+      {
+        path: ':id/sua',
+        loadComponent: () => import('./banners/banner-form.component').then((m) => m.BannerFormComponent),
+      },
+    ],
+  },
+  {
+    path: 'bai-viet',
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./articles/article-list.component').then((m) => m.ArticleListComponent),
+      },
+      {
+        path: 'tao-moi',
+        loadComponent: () => import('./articles/article-form.component').then((m) => m.ArticleFormComponent),
+      },
+      {
+        path: ':id/sua',
+        loadComponent: () => import('./articles/article-form.component').then((m) => m.ArticleFormComponent),
+      },
+    ],
+  },
 ];

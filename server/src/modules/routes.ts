@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { accountRoutes } from './account/account.routes.js';
 import { addressRoutes } from './addresses/address.routes.js';
 import { adminAuthRouter } from './auth/admin-auth.routes.js';
+import { articleRoutes } from './articles/article.routes.js';
 import { authRouter } from './auth/auth.routes.js';
 import { bannerRoutes } from './banners/banner.routes.js';
 import { cartRoutes } from './cart/cart.routes.js';
@@ -32,6 +33,7 @@ apiRoutes.use('/uploads', uploadRoutes);
 apiRoutes.use(warrantyRoutes);
 apiRoutes.use(returnRoutes);
 
+apiRoutes.use('/articles', articleRoutes);
 apiRoutes.use('/banners', bannerRoutes);
 apiRoutes.use('/cart', cartRoutes);
 apiRoutes.use('/categories', categoryRoutes);
