@@ -1,6 +1,6 @@
 import type { Request, RequestHandler } from 'express';
 import { AppError } from '../lib/app-error.js';
-import { redis } from '../lib/redis.js';
+import { hitRateCounter } from '../lib/rate-counter.js';
 
 export interface RateLimitOptions {
   prefix: string;
@@ -8,35 +8,30 @@ export interface RateLimitOptions {
   windowSeconds: number;
   message?: string;
   keyFn?: (req: Request) => string;
-  /** Bỏ qua giới hạn khi Redis lỗi. Chỉ nên bật cho endpoint không nhạy cảm. */
+  /** Bỏ qua giới hạn khi không đếm được. Chỉ nên bật cho endpoint không nhạy cảm. */
   failOpen?: boolean;
 }
 
-/** Giới hạn tần suất dùng Redis để nhiều tiến trình dùng chung (NF-16). */
+/** Giới hạn tần suất lưu trong MongoDB để nhiều tiến trình dùng chung (NF-16). */
 export function rateLimit(options: RateLimitOptions): RequestHandler {
   return async (req, res, next) => {
     const scope = options.keyFn ? options.keyFn(req) : (req.ip ?? 'unknown');
-    const key = `rl:${options.prefix}:${scope}`;
-    let count: number;
+    let hit;
     try {
-      count = await redis.incr(key);
-      if (count === 1) {
-        await redis.expire(key, options.windowSeconds);
-      }
+      hit = await hitRateCounter(`rl:${options.prefix}:${scope}`, options.windowSeconds);
     } catch (error) {
       if (options.failOpen) return next();
       throw error;
     }
 
-    if (count > options.limit) {
-      const ttl = await redis.ttl(key);
-      const retryAfter = ttl > 0 ? ttl : options.windowSeconds;
-      res.setHeader('Retry-After', String(retryAfter));
+    if (hit.count > options.limit) {
+      res.setHeader('Retry-After', String(hit.retryAfterSeconds));
       throw new AppError(
         'TOO_MANY_REQUESTS',
         429,
-        options.message ?? `Bạn thao tác quá nhanh, vui lòng thử lại sau ${retryAfter} giây`,
-        { retryAfterSeconds: retryAfter },
+        options.message ??
+          `Bạn thao tác quá nhanh, vui lòng thử lại sau ${hit.retryAfterSeconds} giây`,
+        { retryAfterSeconds: hit.retryAfterSeconds },
       );
     }
 

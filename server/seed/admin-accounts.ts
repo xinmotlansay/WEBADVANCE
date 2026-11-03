@@ -18,6 +18,13 @@ const TEST_ADMINS = [
     avatar: '/uploads/avatars/admin.jpg',
     roleName: RoleName.SUPER_ADMIN,
   },
+  {
+    email: 'marketing@caraveso.vn',
+    password: 'caraveso-mkt-2026',
+    fullName: 'Quản trị Marketing',
+    avatar: '',
+    roleName: RoleName.MARKETING_ADMIN,
+  },
 ];
 
 async function seedAdminAccounts(): Promise<void> {
