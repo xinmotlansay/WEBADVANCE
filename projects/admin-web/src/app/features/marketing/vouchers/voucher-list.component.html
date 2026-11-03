@@ -1,0 +1,338 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Mã giảm giá</h1>
+    <button type="button" class="cv-btn" (click)="exportCsv()">Xuất CSV</button>
+    <a routerLink="tao-moi" class="cv-btn cv-btn--primary">Tạo mã giảm giá</a>
+  </header>
+
+  @if (notice()) {
+    <p class="cv-alert cv-alert--warn" role="status">
+      {{ notice() }}
+      <button type="button" class="cv-btn cv-btn--ghost" (click)="notice.set('')">Đóng</button>
+    </p>
+  }
+
+  <form class="filters" (ngSubmit)="submitSearch()" role="search">
+    <div class="cv-field search">
+      <label for="vq">Tìm theo mã hoặc tên</label>
+      <input
+        id="vq"
+        name="q"
+        type="search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        [attr.aria-invalid]="searchError() ? 'true' : null"
+      />
+      @if (searchError()) {
+        <span class="cv-field-error" role="alert">{{ searchError() }}</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="vs">Trạng thái</label>
+      <select
+        id="vs"
+        name="status"
+        [ngModel]="filter().status ?? ''"
+        (ngModelChange)="setFilter({ status: $event })"
+      >
+        <option value="">Tất cả</option>
+        @for (s of statuses; track s[0]) {
+          <option [value]="s[0]">{{ s[1] }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="vt">Loại giảm</label>
+      <select
+        id="vt"
+        name="type"
+        [ngModel]="filter().discountType ?? ''"
+        (ngModelChange)="setFilter({ discountType: $event })"
+      >
+        <option value="">Tất cả</option>
+        <option value="PERCENT">Phần trăm</option>
+        <option value="FIXED_AMOUNT">Số tiền cố định</option>
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="vv">Hình thức phát hành</label>
+      <select
+        id="vv"
+        name="vis"
+        [ngModel]="filter().visibility ?? ''"
+        (ngModelChange)="setFilter({ visibility: $event })"
+      >
+        <option value="">Tất cả</option>
+        <option value="PUBLIC">Công khai</option>
+        <option value="PRIVATE">Riêng</option>
+      </select>
+    </div>
+    <button type="submit" class="cv-btn">Tìm</button>
+    @if (hasFilter()) {
+      <button type="button" class="cv-btn cv-btn--ghost" (click)="clearFilters()">
+        Xóa bộ lọc ({{ filterCount() }})
+      </button>
+    }
+  </form>
+
+  @switch (mode()) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <span class="cv-skeleton sk"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>Không tải được danh sách: {{ error() }}</span>
+        <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+      </div>
+    }
+    @default {
+      @if (rows().length === 0) {
+        <div class="cv-empty">
+          @if (hasFilter()) {
+            <p>Không tìm thấy mã giảm giá phù hợp.</p>
+            <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
+          } @else {
+            <p>Chưa có mã giảm giá nào.</p>
+            <a routerLink="tao-moi" class="cv-btn cv-btn--primary">Tạo mã giảm giá</a>
+          }
+        </div>
+      } @else {
+        <div class="cv-table-wrap">
+          <table class="cv-table">
+            <caption class="sr-only">
+              Danh sách mã giảm giá
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">
+                  <input
+                    type="checkbox"
+                    aria-label="Chọn tất cả mã trên trang"
+                    [checked]="allSelected()"
+                    (change)="toggleAll()"
+                  />
+                </th>
+                <th scope="col">Mã</th>
+                <th scope="col">Tên</th>
+                <th scope="col">Mức giảm</th>
+                <th scope="col" class="cv-num">Đơn tối thiểu</th>
+                <th scope="col" class="cv-num">Đã dùng / Tổng</th>
+                <th scope="col">Hiệu lực</th>
+                <th scope="col">Phát hành</th>
+                <th scope="col">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rows(); track r.id) {
+                <tr [class.is-selected]="selected().has(r.id)">
+                  <td>
+                    <input
+                      type="checkbox"
+                      [attr.aria-label]="'Chọn mã ' + r.code"
+                      [checked]="selected().has(r.id)"
+                      (change)="toggle(r.id)"
+                    />
+                  </td>
+                  <td>
+                    <button type="button" class="cv-link-btn" (click)="open(r, $event)">
+                      {{ r.code }}
+                    </button>
+                  </td>
+                  <td>{{ r.name }}</td>
+                  <td>{{ discountText(r) }}</td>
+                  <td class="cv-num">{{ money(r.minOrderValue) }}</td>
+                  <td class="cv-num">
+                    {{ r.usedCount }}/{{ r.totalUsageLimit ?? '∞' }}
+                    @if (r.flags.includes('NEAR_LIMIT')) {
+                      <span class="cv-badge cv-badge--attention">Sắp hết lượt</span>
+                    }
+                  </td>
+                  <td>
+                    {{ dateTime(r.startDate) }} – {{ dateTime(r.endDate) }}
+                    @if (r.flags.includes('ENDING_SOON')) {
+                      <span class="cv-badge cv-badge--attention">Sắp hết hạn</span>
+                    }
+                  </td>
+                  <td>{{ r.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng' }}</td>
+                  <td>
+                    <span [class]="'cv-badge ' + STATUS_BADGE[r.status]">{{
+                      STATUS_LABEL[r.status]
+                    }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="cv-pager" aria-label="Phân trang">
+          <span>{{ meta().total }} mã · trang {{ meta().page }}/{{ meta().totalPages }}</span>
+          <label class="per-page">
+            Dòng/trang
+            <select
+              class="cv-input"
+              [ngModel]="meta().limit"
+              (ngModelChange)="setFilter({ limit: +$event })"
+            >
+              @for (n of [20, 50, 100]; track n) {
+                <option [value]="n">{{ n }}</option>
+              }
+            </select>
+          </label>
+          <span class="cv-pager__pages">
+            @for (p of pages(); track p) {
+              <button
+                type="button"
+                class="cv-btn"
+                [attr.aria-current]="p === meta().page ? 'page' : null"
+                (click)="setFilter({ page: p })"
+              >
+                {{ p }}
+              </button>
+            }
+          </span>
+        </nav>
+      }
+    }
+  }
+</main>
+
+@if (selected().size > 0) {
+  <div class="cv-bulk-bar" role="toolbar" aria-label="Thao tác hàng loạt">
+    <button
+      type="button"
+      class="cv-btn cv-btn--icon cv-btn--ghost"
+      aria-label="Bỏ chọn"
+      (click)="selected.set(emptySet)"
+    >
+      ✕
+    </button>
+    <span class="cv-bulk-bar__count">Đã chọn: {{ selected().size }}</span>
+    <button type="button" class="cv-btn cv-btn--accent" (click)="disableSelected()">
+      Vô hiệu hóa
+    </button>
+  </div>
+}
+
+@if (detail(); as d) {
+  <aside
+    #popup
+    class="cv-popup"
+    role="dialog"
+    aria-modal="false"
+    [attr.aria-label]="'Chi tiết mã ' + d.code"
+    tabindex="-1"
+  >
+    <div class="cv-popup__head">
+      <h2>{{ d.code }} · {{ STATUS_LABEL[d.status] }}</h2>
+      <button type="button" class="cv-btn cv-btn--icon" aria-label="Đóng" (click)="closePopup()">
+        ✕
+      </button>
+    </div>
+    <div class="cv-popup__body">
+      <p>
+        <strong>{{ d.name }}</strong
+        ><br /><span class="cv-muted">{{ d.description }}</span>
+      </p>
+      <p class="cv-muted">Đã dùng {{ d.usedCount }} / {{ d.totalUsageLimit ?? '∞' }} lượt</p>
+      <div class="cv-bar" role="img" [attr.aria-label]="percent(d) + '% lượt đã dùng'">
+        <span [style.width.%]="percent(d)" [class.is-accent]="percent(d) >= 90"></span>
+      </div>
+      <dl class="info">
+        <dt>Mức giảm</dt>
+        <dd>{{ discountText(d) }}</dd>
+        <dt>Đơn tối thiểu</dt>
+        <dd>{{ money(d.minOrderValue) }}</dd>
+        <dt>Lượt / khách</dt>
+        <dd>{{ d.perUserLimit }}</dd>
+        <dt>Đối tượng</dt>
+        <dd>
+          {{
+            d.customerGroup === 'NEW_CUSTOMER'
+              ? 'Khách hàng mới'
+              : d.customerGroup === 'ACCOUNT'
+                ? 'Khách có tài khoản'
+                : 'Tất cả khách hàng'
+          }}
+        </dd>
+        <dt>Phạm vi</dt>
+        <dd>{{ d.scope.length ? d.scope.length + ' mục chỉ định' : 'Toàn bộ sản phẩm' }}</dd>
+        <dt>Dùng chung khuyến mãi</dt>
+        <dd>{{ d.stackableWithPromotion ? 'Có' : 'Không' }}</dd>
+        <dt>Hiệu lực</dt>
+        <dd>{{ dateTime(d.startDate) }} – {{ dateTime(d.endDate) }}</dd>
+        <dt>Lượt hoàn do hủy đơn</dt>
+        <dd class="cv-num">{{ d.usageRefunded }}</dd>
+        <dt>Tổng tiền đã giảm</dt>
+        <dd class="cv-num">{{ money(d.totalDiscount) }}</dd>
+        @if (d.disableReason) {
+          <dt>Lý do vô hiệu hóa</dt>
+          <dd>{{ d.disableReason }}</dd>
+        }
+      </dl>
+    </div>
+    <div class="cv-popup__foot">
+      <a class="cv-btn cv-btn--primary" [routerLink]="[d.id, 'sua']">Chỉnh sửa</a>
+      <button type="button" class="cv-btn" (click)="copyCode(d.code)">Sao chép mã</button>
+      @if (d.status === 'DISABLED') {
+        <button type="button" class="cv-btn" (click)="openDialog('enable', [d.id])">
+          Kích hoạt lại
+        </button>
+      } @else if (canDisable(d)) {
+        <button type="button" class="cv-btn cv-btn--danger" (click)="openDialog('disable', [d.id])">
+          Vô hiệu hóa
+        </button>
+      }
+    </div>
+  </aside>
+}
+
+<dialog #dialog class="cv-dialog" aria-labelledby="dlg-title">
+  <form class="dlg" (ngSubmit)="confirmDialog()">
+    <h2 id="dlg-title">
+      {{
+        dialogMode() === 'enable' ? 'Kích hoạt lại mã' : 'Vô hiệu hóa ' + dialogIds().length + ' mã'
+      }}
+    </h2>
+    @if (dialogMode() === 'disable') {
+      <p class="cv-muted">
+        Khách không áp dụng được mã từ lúc này; đơn đã đặt giữ nguyên ưu đãi. Mã không bị xóa.
+      </p>
+      <div class="cv-field">
+        <label for="rs">Lý do</label>
+        <select id="rs" name="reason" [(ngModel)]="reason">
+          @for (r of REASONS; track r.value) {
+            <option [value]="r.value">{{ r.label }}</option>
+          }
+        </select>
+      </div>
+    }
+    <div class="cv-field">
+      <label for="nt">{{
+        dialogMode() === 'enable'
+          ? 'Lý do kích hoạt lại'
+          : 'Ghi chú' + (noteRequired() ? ' (bắt buộc, 10–500 ký tự)' : '')
+      }}</label>
+      <textarea id="nt" name="note" rows="3" maxlength="500" [(ngModel)]="note"></textarea>
+    </div>
+    @if (dialogError()) {
+      <p class="cv-alert" role="alert">{{ dialogError() }}</p>
+    }
+    <div class="dlg-foot">
+      <button type="button" class="cv-btn" (click)="dialog.close()">Hủy</button>
+      <button
+        type="submit"
+        class="cv-btn"
+        [class.cv-btn--danger]="dialogMode() === 'disable'"
+        [class.cv-btn--primary]="dialogMode() === 'enable'"
+        [disabled]="busy()"
+      >
+        {{ dialogMode() === 'enable' ? 'Kích hoạt lại' : 'Vô hiệu hóa' }}
+      </button>
+    </div>
+  </form>
+</dialog>

@@ -1,0 +1,290 @@
+<main class="cv-main form-main">
+  <header class="cv-page-head">
+    <h1>{{ id() ? 'Chỉnh sửa mã giảm giá' : 'Tạo mã giảm giá' }}</h1>
+    <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Quay lại danh sách</a>
+  </header>
+
+  @if (loading()) {
+    <div aria-busy="true" aria-label="Đang tải">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <span class="cv-skeleton sk"></span>
+      }
+    </div>
+  } @else if (loadError()) {
+    <div class="cv-alert" role="alert">
+      <span>Không tải được mã giảm giá: {{ loadError() }}</span>
+      <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Về danh sách</a>
+    </div>
+  } @else if (created()) {
+    <div class="cv-card done" role="status">
+      <h3>Tạo mã giảm giá thành công</h3>
+      <p class="cv-hero code">{{ created() }}</p>
+      <div class="actions">
+        <button type="button" class="cv-btn cv-btn--primary" (click)="copy(created()!)">
+          Sao chép mã
+        </button>
+        <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Về danh sách</a>
+      </div>
+    </div>
+  } @else {
+    <form class="cv-card form" (ngSubmit)="save()" #f="ngForm">
+      @if (error()) {
+        <p class="cv-alert" role="alert">{{ error() }}</p>
+      }
+      @if (lockReason('used'); as why) {
+        @if (detail()?.usedCount === 0 || ended) {
+          <p class="cv-alert cv-alert--warn" role="status">{{ why }}</p>
+        } @else {
+          <p class="cv-alert cv-alert--warn" role="status">
+            Mã đã dùng {{ detail()?.usedCount }} lượt: loại giảm, phạm vi, đối tượng và thời gian
+            bắt đầu bị khóa. Đổi giá trị giảm chỉ áp dụng cho lượt dùng sau khi lưu.
+          </p>
+        }
+      }
+
+      <h2 class="group">Thông tin</h2>
+      <div class="cv-field">
+        <label for="code">Mã</label>
+        <div class="row">
+          <input
+            id="code"
+            name="code"
+            [(ngModel)]="m.code"
+            required
+            minlength="4"
+            maxlength="20"
+            pattern="[A-Za-z0-9]+"
+            autocomplete="off"
+            [readOnly]="!!id()"
+          />
+          @if (!id()) {
+            <button type="button" class="cv-btn" (click)="randomCode()">Tạo ngẫu nhiên</button>
+          }
+        </div>
+        <span class="cv-hint">{{
+          lockReason('code') ??
+            '4–20 ký tự, chữ không dấu và số; tự chuyển in hoa, không trùng mã đã có.'
+        }}</span>
+      </div>
+      <div class="cv-field">
+        <label for="name">Tên (dùng nội bộ)</label>
+        <input id="name" name="name" [(ngModel)]="m.name" required minlength="5" maxlength="100" />
+      </div>
+      <div class="cv-field">
+        <label for="desc">Mô tả hiển thị cho khách</label>
+        <textarea
+          id="desc"
+          name="desc"
+          rows="2"
+          [(ngModel)]="m.description"
+          required
+          minlength="10"
+          maxlength="200"
+        ></textarea>
+        <span class="cv-hint">10–200 ký tự, ví dụ "Giảm 10% tối đa 500K cho đơn từ 3 triệu".</span>
+      </div>
+
+      <h2 class="group">Mức giảm</h2>
+      <div class="grid">
+        <div class="cv-field">
+          <label for="type">Loại giảm</label>
+          <select
+            id="type"
+            name="type"
+            [(ngModel)]="m.discountType"
+            [disabled]="!!lockReason('used')"
+          >
+            <option value="PERCENT">Phần trăm</option>
+            <option value="FIXED_AMOUNT">Số tiền cố định</option>
+          </select>
+          @if (lockReason('used'); as why) {
+            <span class="cv-hint">{{ why }}</span>
+          }
+        </div>
+        <div class="cv-field">
+          <label for="val">{{
+            m.discountType === 'PERCENT' ? 'Giá trị (%)' : 'Số tiền giảm (₫)'
+          }}</label>
+          <input
+            id="val"
+            name="val"
+            type="number"
+            [(ngModel)]="m.discountValue"
+            required
+            [readOnly]="ended"
+            [attr.min]="m.discountType === 'PERCENT' ? 1 : 1000"
+            [attr.max]="m.discountType === 'PERCENT' ? 90 : null"
+            [step]="m.discountType === 'PERCENT' ? 1 : 1000"
+          />
+          <span class="cv-hint">{{
+            m.discountType === 'PERCENT'
+              ? 'Số nguyên 1–90.'
+              : 'Bội số của 1.000 và nhỏ hơn đơn tối thiểu.'
+          }}</span>
+        </div>
+        @if (m.discountType === 'PERCENT') {
+          <div class="cv-field">
+            <label for="max">Mức giảm tối đa (₫)</label>
+            <input
+              id="max"
+              name="max"
+              type="number"
+              [(ngModel)]="m.maxDiscountValue"
+              required
+              min="1000"
+              step="1000"
+              [readOnly]="ended"
+            />
+            <span class="cv-hint">Bội số của 1.000.</span>
+          </div>
+        }
+        <div class="cv-field">
+          <label for="min">Đơn tối thiểu (₫)</label>
+          <input
+            id="min"
+            name="min"
+            type="number"
+            [(ngModel)]="m.minOrderValue"
+            min="0"
+            step="1000"
+            [readOnly]="ended"
+          />
+          <span class="cv-hint">Bắt buộc lớn hơn 0 với loại số tiền cố định.</span>
+        </div>
+      </div>
+
+      <h2 class="group">Điều kiện</h2>
+      <div class="cv-field">
+        <span class="label" id="scope-l">Phạm vi áp dụng</span>
+        <p class="cv-hint">
+          Không chọn danh mục nào là áp dụng toàn bộ sản phẩm. {{ lockReason('used') }}
+        </p>
+        <div class="checks" role="group" aria-labelledby="scope-l">
+          @for (c of categories(); track c.id) {
+            <label class="check">
+              <input
+                type="checkbox"
+                [checked]="m.categoryIds.includes(c.id)"
+                [disabled]="!!lockReason('used')"
+                (change)="toggleCategory(c.id)"
+              />
+              {{ c.name }}
+            </label>
+          } @empty {
+            <span class="cv-muted">Chưa tải được danh mục; mã sẽ áp dụng toàn bộ sản phẩm.</span>
+          }
+        </div>
+      </div>
+      <div class="grid">
+        <div class="cv-field">
+          <label for="grp">Đối tượng khách</label>
+          <select
+            id="grp"
+            name="grp"
+            [(ngModel)]="m.customerGroup"
+            [disabled]="!!lockReason('used')"
+          >
+            <option value="ALL">Tất cả khách hàng</option>
+            <option value="NEW_CUSTOMER">Khách hàng mới (chưa có đơn hoàn thành)</option>
+            <option value="ACCOUNT">Khách có tài khoản</option>
+          </select>
+        </div>
+        <div class="cv-field">
+          <label for="tot">Tổng lượt sử dụng</label>
+          <input
+            id="tot"
+            name="tot"
+            type="number"
+            [(ngModel)]="m.totalUsageLimit"
+            required
+            min="1"
+            max="1000000"
+            [readOnly]="ended"
+          />
+          @if (detail(); as d) {
+            <span class="cv-hint">Không nhỏ hơn số lượt đã dùng ({{ d.usedCount }}).</span>
+          }
+        </div>
+        <div class="cv-field">
+          <label for="per">Lượt / khách</label>
+          <input
+            id="per"
+            name="per"
+            type="number"
+            [(ngModel)]="m.perUserLimit"
+            required
+            min="1"
+            max="100"
+            [readOnly]="ended"
+          />
+          <span class="cv-hint"
+            >1–100 và không lớn hơn tổng lượt{{
+              detail()?.usedCount ? '; chỉ được tăng' : ''
+            }}.</span
+          >
+        </div>
+      </div>
+
+      <h2 class="group">Thời gian và phát hành</h2>
+      <div class="grid">
+        @if (!id()) {
+          <div class="cv-field">
+            <label class="check"
+              ><input type="checkbox" name="now" [(ngModel)]="m.startNow" /> Bắt đầu ngay</label
+            >
+          </div>
+        }
+        @if (id() || !m.startNow) {
+          <div class="cv-field">
+            <label for="start">Bắt đầu</label>
+            <input
+              id="start"
+              name="start"
+              type="datetime-local"
+              [(ngModel)]="m.startDate"
+              [required]="!id()"
+              [readOnly]="!!lockReason('used')"
+            />
+          </div>
+        }
+        <div class="cv-field">
+          <label for="end">Kết thúc</label>
+          <input
+            id="end"
+            name="end"
+            type="datetime-local"
+            [(ngModel)]="m.endDate"
+            required
+            [readOnly]="ended"
+          />
+          <span class="cv-hint">Tối đa 365 ngày kể từ lúc bắt đầu.</span>
+        </div>
+        <div class="cv-field">
+          <label for="vis">Hình thức phát hành</label>
+          <select id="vis" name="vis" [(ngModel)]="m.visibility" [disabled]="ended">
+            <option value="PUBLIC">Công khai (hiện ở mục "Ưu đãi")</option>
+            <option value="PRIVATE">Riêng (chỉ ai có mã mới dùng được)</option>
+          </select>
+        </div>
+      </div>
+      <div class="cv-field">
+        <label class="check">
+          <input
+            type="checkbox"
+            name="stack"
+            [(ngModel)]="m.stackableWithPromotion"
+            [disabled]="ended"
+          />
+          Dùng chung với khuyến mãi
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="busy() || f.invalid">
+          {{ id() ? 'Lưu thay đổi' : 'Tạo mã' }}
+        </button>
+        <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Hủy</a>
+      </div>
+    </form>
+  }
+</main>
