@@ -12,7 +12,8 @@ bannerRoutes.get(
     const banners = await BannerModel.find({
       status: 'VISIBLE',
       startDate: { $lte: now },
-      endDate: { $gte: now },
+      // endDate trống là không giới hạn; null khớp cả bản ghi không có field
+      $or: [{ endDate: null }, { endDate: { $gte: now } }],
     })
       .sort({ displayOrder: 1 })
       .lean();
