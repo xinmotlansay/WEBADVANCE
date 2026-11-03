@@ -57,13 +57,16 @@
             </ul>
           }
           @if (review.rejectReason) {
-            <p class="decided">Lý do {{ review.status === 'HIDDEN' ? 'ẩn' : 'từ chối' }}: {{ review.rejectReason }}</p>
+            <p class="decided">
+              {{ review.status === 'PENDING_REVIEW' ? 'Hệ thống giữ lại vì' : review.status === 'HIDDEN' ? 'Lý do ẩn:' : 'Lý do từ chối:' }}
+              {{ review.rejectReason }}
+            </p>
           }
 
           <ng-container popup-actions>
-            @if (review.status === 'VISIBLE') {
+            @if (review.status === 'VISIBLE' || review.status === 'PENDING_REVIEW') {
               <button type="button" class="btn btn-primary grow" [disabled]="busy()" (click)="act('KEEP', [review.id])">
-                {{ review.reportCount ? 'Không vi phạm, giữ' : 'Giữ hiển thị' }}
+                {{ review.status === 'PENDING_REVIEW' ? 'Duyệt, cho hiển thị' : review.reportCount ? 'Không vi phạm, giữ' : 'Giữ hiển thị' }}
               </button>
               <button type="button" class="btn" [disabled]="busy()" (click)="act('HIDE', [review.id])">Ẩn</button>
               <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="act('REJECT', [review.id])">Từ chối</button>
@@ -99,7 +102,7 @@
                 } @else if (queue() !== 'VISIBLE') {
                   <th scope="col">Lý do</th>
                 }
-                <th scope="col">{{ queue() === 'PENDING' ? 'Báo cáo gần nhất' : 'Cập nhật' }}</th>
+                <th scope="col">{{ queue() === 'PENDING' ? 'Báo cáo / gửi lúc' : 'Cập nhật' }}</th>
               </tr>
             </thead>
             <tbody>
@@ -137,15 +140,20 @@
                     <td>{{ row.customerName }}</td>
                     @if (queue() === 'PENDING') {
                       <td>
-                        <span class="badge b-attn">{{ row.reportCount }} báo cáo</span>
-                        @if (row.reportReasons[0]; as top) {
+                        @if (row.status === 'PENDING_REVIEW') {
+                          <span class="badge b-attn">Tự động giữ lại</span>
+                          <span class="cell-sub top-reason"> {{ row.rejectReason }}</span>
+                        } @else {
+                          <span class="badge b-attn">{{ row.reportCount }} báo cáo</span>
+                        }
+                        @if (row.status !== 'PENDING_REVIEW' && row.reportReasons[0]; as top) {
                           <span class="cell-sub top-reason"> {{ top.reason }}</span>
                         }
                       </td>
                     } @else if (queue() !== 'VISIBLE') {
                       <td><span class="snippet muted">{{ row.rejectReason || '—' }}</span></td>
                     }
-                    <td class="tabular">{{ (queue() === 'PENDING' ? row.lastReportedAt : row.updatedAt) | vnDate: true }}</td>
+                    <td class="tabular">{{ (queue() === 'PENDING' ? (row.lastReportedAt ?? row.createdAt) : row.updatedAt) | vnDate: true }}</td>
                   </tr>
                 } @empty {
                   <tr>
@@ -188,7 +196,7 @@
     @if (selected().size) {
       <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
         @if (queue() === 'PENDING' || queue() === 'VISIBLE') {
-          <button type="button" class="btn btn-accent" [disabled]="busy()" (click)="act('KEEP', selectedIds())">Giữ hiển thị</button>
+          <button type="button" class="btn btn-accent" [disabled]="busy()" (click)="act('KEEP', selectedIds())">Duyệt / giữ hiển thị</button>
           <button type="button" class="bulk-btn" [disabled]="busy()" (click)="act('HIDE', selectedIds())">Ẩn</button>
           <button type="button" class="bulk-btn" [disabled]="busy()" (click)="act('REJECT', selectedIds())">Từ chối</button>
         } @else {

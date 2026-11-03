@@ -110,10 +110,10 @@ export class ReviewsComponent {
           this.releasePreviews();
           this.activeTab.set('submitted');
           this.showNotice(
-            result.status === 'REJECTED'
-              ? `Đánh giá chưa được đăng: ${result.rejectReason ?? 'nội dung không phù hợp'}.`
+            result.status === 'PENDING_REVIEW'
+              ? 'Đánh giá của bạn đang chờ kiểm duyệt và sẽ hiển thị sau khi được duyệt.'
               : 'Cảm ơn bạn! Đánh giá đã được gửi.',
-            result.status === 'REJECTED',
+            false,
           );
           this.loadReviews();
         },
@@ -139,10 +139,10 @@ export class ReviewsComponent {
         this.saving.set(false);
         this.editingId.set('');
         this.showNotice(
-          result.status === 'REJECTED'
-            ? `Đánh giá chưa được đăng: ${result.rejectReason ?? 'nội dung không phù hợp'}.`
+          result.status === 'PENDING_REVIEW'
+            ? 'Đánh giá đã cập nhật và đang chờ kiểm duyệt trước khi hiển thị.'
             : 'Đã cập nhật đánh giá.',
-          result.status === 'REJECTED',
+          false,
         );
         this.loadReviews();
       },
@@ -170,6 +170,7 @@ export class ReviewsComponent {
   }
 
   protected statusLabel(review: MyReview): string {
+    if (review.status === 'PENDING_REVIEW') return 'Đang chờ duyệt';
     if (review.status === 'REJECTED') return 'Bị từ chối';
     if (review.status === 'HIDDEN') return 'Đã bị ẩn';
     return '';

@@ -10,7 +10,7 @@ export interface ReviewDoc {
   rating: number;
   comment?: string;
   images: string[];
-  status: 'VISIBLE' | 'HIDDEN' | 'REJECTED' | 'DELETED';
+  status: 'VISIBLE' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED' | 'DELETED';
   rejectReason?: string;
   isEdited: boolean;
   editedAt?: Date;
@@ -32,7 +32,7 @@ const reviewSchema = new Schema<ReviewDoc>(
     status: {
       type: String,
       required: true,
-      enum: ['VISIBLE', 'HIDDEN', 'REJECTED', 'DELETED'],
+      enum: ['VISIBLE', 'PENDING_REVIEW', 'HIDDEN', 'REJECTED', 'DELETED'],
       default: 'VISIBLE',
     },
     rejectReason: String,

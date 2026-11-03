@@ -351,7 +351,7 @@ export interface ReviewRow {
   rating: number;
   comment: string;
   images: string[];
-  status: 'VISIBLE' | 'HIDDEN' | 'REJECTED';
+  status: 'VISIBLE' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED';
   rejectReason: string;
   isEdited: boolean;
   createdAt: string;

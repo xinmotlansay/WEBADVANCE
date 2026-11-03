@@ -6,16 +6,22 @@ import { UserModel } from '../auth/auth.model.js';
 import { AppError } from '../../utils/app-error.js';
 
 /**
- * Đánh giá đang chờ kiểm duyệt (PA-09): đang hiện, có báo cáo, và có báo cáo mới sau lần duyệt trước.
+ * Đánh giá đang chờ kiểm duyệt (PA-09): (1) bị bộ lọc tự động giữ lại vì nghi vi phạm (`PENDING_REVIEW`,
+ * chưa hiện cho khách), hoặc (2) đang hiện, có báo cáo, và có báo cáo mới sau lần duyệt trước.
  * Dùng chung với dashboard sản phẩm.
  */
 export const PENDING_REPORT_FILTER: Record<string, unknown> = {
-  status: 'VISIBLE',
-  'reports.0': { $exists: true },
   $or: [
-    { reportsReviewedAt: { $exists: false } },
-    { reportsReviewedAt: null },
-    { $expr: { $gt: [{ $max: '$reports.reportedAt' }, '$reportsReviewedAt'] } },
+    { status: 'PENDING_REVIEW' },
+    {
+      status: 'VISIBLE',
+      'reports.0': { $exists: true },
+      $or: [
+        { reportsReviewedAt: { $exists: false } },
+        { reportsReviewedAt: null },
+        { $expr: { $gt: [{ $max: '$reports.reportedAt' }, '$reportsReviewedAt'] } },
+      ],
+    },
   ],
 };
 
@@ -124,7 +130,7 @@ export async function reviewCounts() {
 
 /**
  * PA-09: xử lý đánh giá.
- * - KEEP: báo cáo không vi phạm, giữ hiển thị và đóng các báo cáo hiện có.
+ * - KEEP: duyệt đánh giá chờ duyệt (cho hiển thị), hoặc báo cáo không vi phạm thì giữ hiển thị và đóng các báo cáo.
  * - HIDE: tạm ẩn (vi phạm nhẹ, có thể khôi phục). REJECT: gỡ hẳn do vi phạm. Cả hai bắt buộc lý do.
  * - RESTORE: hiện lại đánh giá đã ẩn hoặc từ chối.
  */
@@ -135,10 +141,10 @@ export async function moderateReview(id: Types.ObjectId, decision: ModerationDec
   if ((decision === 'HIDE' || decision === 'REJECT') && !reason?.trim()) {
     throw new AppError('VALIDATION_ERROR', 400, 'Nhập lý do ẩn hoặc từ chối đánh giá');
   }
-  if (decision === 'KEEP' && before !== 'VISIBLE') {
-    throw new AppError('REVIEW_INVALID_STATE', 409, 'Chỉ giữ được đánh giá đang hiển thị');
+  if (decision === 'KEEP' && before !== 'VISIBLE' && before !== 'PENDING_REVIEW') {
+    throw new AppError('REVIEW_INVALID_STATE', 409, 'Chỉ giữ được đánh giá đang hiển thị hoặc đang chờ duyệt');
   }
-  if (decision === 'RESTORE' && before === 'VISIBLE') {
+  if (decision === 'RESTORE' && (before === 'VISIBLE' || before === 'PENDING_REVIEW')) {
     throw new AppError('REVIEW_INVALID_STATE', 409, 'Đánh giá đang hiển thị');
   }
   const now = new Date();

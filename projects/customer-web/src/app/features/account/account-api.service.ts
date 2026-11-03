@@ -113,7 +113,7 @@ export interface MyReview extends ReviewableItem {
   rating: number;
   comment: string;
   images: string[];
-  status: 'VISIBLE' | 'HIDDEN' | 'REJECTED' | 'DELETED';
+  status: 'VISIBLE' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED' | 'DELETED';
   rejectReason: string | null;
   isEdited: boolean;
   createdAt: string;
