@@ -174,115 +174,585 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 
 ---
 
-# PHẦN B – ADMIN FUNCTIONAL REQUIREMENTS
+# PHẦN B – ADMIN FUNCTIONAL REQUIREMENTS (BẢN BÁM CODE)
 
-## 1. Product Admin (Quản trị viên sản phẩm)
+> **Phạm vi tài liệu.** Phần B được viết lại ngày 03/11/2026, mô tả đúng hệ thống admin đang chạy
+> trên nhánh `feature/ad-order-admin` (commit `edbcb52`). Mỗi mục có nhãn trạng thái:
+>
+> - **[ĐÃ TRIỂN KHAI]** – có màn hình/API chạy thật trong code.
+> - **[CHƯA TRIỂN KHAI]** – còn trong phạm vi nghiệp vụ nhưng chưa có code.
+>
+> Phần A (FR-01..FR-45) giữ nguyên. Các sai lệch giữa hành vi code và nghiệp vụ mong muốn được
+> ghi ở **Phụ lục C** để dev không hiểu nhầm là đã đúng.
 
-| Mã | Tính năng | Mô tả |
-| :---- | :---- | :---- |
-| PA-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản được cấp quyền |
-| PA-02 | Dashboard sản phẩm | Tổng số sản phẩm, sắp hết hàng, hết hàng, số danh mục; thống kê bán chạy, tồn kho cao, sắp hết hàng |
-| PA-03 | Xem danh sách và chi tiết sản phẩm | Xem toàn bộ sản phẩm và chi tiết: tên, giá, mô tả, hình ảnh, danh mục, trạng thái, tồn kho (gộp hai tính năng gốc) |
-| PA-04 | Thêm sản phẩm | Phải nhập đầy đủ: (1) thông tin chung: tên, dãy cấp phát mã SKU (mục 1.1 của Phần A), mô tả ngắn và chi tiết, danh mục (loại sản phẩm, phòng, phong cách), nhãn tùy chỉnh (tags), từ khóa tìm kiếm, thông tin SEO, số tháng bảo hành và điều kiện bảo hành; (2) biến thể: SKU (hệ thống tự sinh theo mục 1.1 của Phần A, không nhập tay), màu, chất liệu, kích thước tổng thể, cân nặng, giá gốc, giá bán, tồn kho, ngưỡng cảnh báo, cấp độ vận chuyển (1–4); (3) kiện hàng: một biến thể có thể nhiều kiện, mỗi kiện có kích thước và cân nặng; (4) bộ phận trong hộp: tên, số lượng, kích thước, ảnh, tháo rời được hay không; (5) hình ảnh và model 3D (tùy chọn); (6) dịch vụ lắp đặt (không có, tùy chọn hoặc bắt buộc) và phí. Sản phẩm có trạng thái nháp; chỉ chuyển sang đang bán khi đủ ảnh, giá và kích thước kiện (cần cho Fit your home). Nhãn Mới và Bán chạy do hệ thống tính theo mục 1.1 của Phần A, không nhập ở đây |
-| PA-05 | Chỉnh sửa sản phẩm | Cập nhật mọi thông tin ở PA-04, gồm giá gốc, giá bán và điều kiện bảo hành (Product Admin có quyền sửa giá gốc) |
-| PA-06 | Xóa / ngừng kinh doanh sản phẩm | Ngừng kinh doanh hoặc ẩn sản phẩm; sản phẩm đã có đơn hàng không xóa cứng |
-| PA-07 | Quản lý danh mục | Xem, thêm, sửa tên, mô tả, trạng thái danh mục. Với danh mục loại phòng: chọn các nhóm sản phẩm thường có trong phòng đó (dùng để gợi ý sản phẩm còn thiếu ở View your Room, FR-23) |
-| PA-08 | Quản lý tồn kho | Xem và cập nhật số lượng tồn khi nhập hoặc điều chỉnh (ghi lịch sử biến động). Cảnh báo khi tồn dưới ngưỡng của biến thể, gửi cho Product Admin qua thông báo trong ứng dụng và email tóm tắt hằng ngày |
-| PA-09 | Kiểm duyệt đánh giá | Xem hàng chờ duyệt (các đánh giá bị khách báo cáo vi phạm theo FR-21), duyệt, ẩn hoặc từ chối đánh giá. Chỉ xử lý nội dung vi phạm, không ẩn đánh giá chê chỉ vì điểm thấp |
-| PA-10 | Hạn chế quyền | Không quản lý Admin, không xử lý đơn hàng, không quản lý tiếp thị (banner, mã giảm giá, khuyến mãi) |
+## 0. Quy ước chung
 
-## 2. Marketing Admin (Quản trị viên tiếp thị)
+| Hạng mục | Quy ước |
+| :---- | :---- |
+| Ngôn ngữ, tiền tệ | Tiếng Việt, VND. Tiền hiển thị `24.900.000₫`; ngày `dd/MM/yyyy`, giờ `HH:mm` |
+| Tiền tố API | `/api/v1`; API admin nghiệp vụ nằm dưới `/api/v1/admin` |
+| Định dạng response | Thành công: `{ success: true, data, meta? }`. Lỗi: `{ success: false, error: { code, message, details? } }` |
+| Phân trang | `page` ≥ 1 (mặc định 1), `limit` 1–100 (mặc định 20). `meta` gồm `page, limit, total, totalPages` |
+| Xác thực | Access token JWT 15 phút gửi qua `Authorization: Bearer`; refresh token trong cookie `adminRefreshToken` (httpOnly, sameSite=strict, path `/api/v1/admin/auth`, TTL 30 phút) |
+| Phân quyền | Kiểm tra ở backend bằng `requireAuth` + `requireRole`; ẩn menu chỉ là lớp tiện dụng |
+| Xóa dữ liệu | Không xóa cứng đơn hàng/khách hàng/đổi trả/bảo hành; dùng trạng thái hoặc ẩn |
+| Nhật ký | Ghi qua `writeAuditLog`; lỗi ghi log không chặn nghiệp vụ |
 
-| Mã | Tính năng | Mô tả |
-| :---- | :---- | :---- |
-| MA-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản được phân quyền |
-| MA-02 | Dashboard Marketing | Số chiến dịch, mã giảm giá đang hoạt động, banner, doanh thu tổng hợp theo chương trình và các chỉ số marketing liên quan |
-| MA-03 | Quản lý chương trình khuyến mãi | Xem, tạo, chỉnh sửa, xóa hoặc ngừng chương trình giảm giá theo sản phẩm, danh mục, giá trị đơn hàng hoặc thời gian. Mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi tại cùng một thời điểm (không tính voucher): hệ thống từ chối tạo, sửa hoặc kích hoạt lại chương trình nếu có sản phẩm (kể cả sản phẩm thuộc danh mục áp dụng) đã nằm trong chương trình khác đang sắp diễn ra, đang chạy hoặc tạm dừng có thời gian chồng lấn và báo rõ sản phẩm và chương trình xung đột (gộp bốn tính năng gốc) |
-| MA-04 | Quản lý mã giảm giá | Xem, tạo, chỉnh sửa, vô hiệu hóa voucher. Loại voucher: công khai (nhập mã), thu thập vào ví, gán riêng cho khách. Điều kiện: giá trị giảm, mức giảm tối đa, giá trị đơn tối thiểu (tính sau khuyến mãi), phạm vi sản phẩm hoặc danh mục, nhóm khách (khách mới, sinh nhật trong tháng, gán riêng), cờ cộng với khuyến mãi, tổng lượt dùng, lượt dùng mỗi người, thời hạn. Mỗi đơn tối đa 1 voucher |
-| MA-05 | Quản lý banner | Xem, thêm, chỉnh sửa (hình, nội dung, đường dẫn, thời gian hiển thị), xóa hoặc ngừng hiển thị banner |
-| MA-06 | Quản lý nội dung | Cập nhật nội dung trang chủ, landing page, và thêm, sửa, ẩn bài viết, thông báo, nội dung truyền thông |
-| MA-07 | Quản lý Collection | Tạo, sửa, ẩn collection: tên, slogan, mô tả ngắn và chi tiết, ảnh không gian và ảnh đại diện, thứ tự hiển thị. Đặt hotspot lên ảnh và gắn sản phẩm cho từng hotspot. Liên kết collection với sản phẩm |
-| MA-08 | Quản lý Nguồn cảm hứng | Tạo, sửa, ẩn ảnh nguồn cảm hứng; gắn danh sách sản phẩm và thứ tự hiển thị trong popup |
-| MA-09 | Báo cáo Marketing | Theo dõi lượt dùng mã giảm giá, hiệu quả và doanh thu theo chương trình (số liệu tổng hợp, không xem thông tin cá nhân của khách); theo dõi lượt hiển thị và click banner |
-| MA-10 | Hạn chế quyền | Không xử lý đơn hàng, không phân quyền Admin, không chỉnh cấu hình chung |
+## 1. Vai trò và phân quyền thực tế
+
+Hệ thống có 4 vai trò admin cố định (`RoleName`), mỗi tài khoản đúng một vai trò.
+
+| Vai trò | Đăng nhập admin | Màn hình nghiệp vụ | API nghiệp vụ | Ghi chú |
+| :---- | :---: | :---: | :---: | :---- |
+| `SUPER_ADMIN` (Admin cấp cao) | Có | Có (10 màn hình order admin) | Có toàn bộ | Hiện dùng chung bộ màn hình với Order Admin, chưa có màn hình quản trị Admin/cấu hình |
+| `ORDER_ADMIN` (Order Admin) | Có | Có (10 màn hình) | Có | Vai trò nghiệp vụ duy nhất được triển khai đầy đủ |
+| `PRODUCT_ADMIN` | Có | Không | Không (403 `FORBIDDEN`) | Đăng nhập được, menu rỗng, bị đá sang `/admin/access-denied` |
+| `MARKETING_ADMIN` | Có | Không | Không (403 `FORBIDDEN`) | Như trên |
+| `CUSTOMER` | Không | — | — | Bị từ chối tại `POST /admin/auth/login` với `INVALID_CREDENTIALS` |
+
+**Quy tắc hiện hành:**
+
+- `GET /api/v1/admin/auth/me` cho cả 4 vai trò admin.
+- Mọi API nghiệp vụ còn lại chỉ cho `ORDER_ADMIN | SUPER_ADMIN`.
+- Route frontend khai báo `data.roles`; guard đẩy người sai quyền về `/admin/access-denied`.
+- `SUPER_ADMIN` không có thêm quyền đặc biệt nào so với `ORDER_ADMIN` trong code hiện tại.
+
+## 2. Chức năng dùng chung
+
+### AD-01 · Đăng nhập Admin **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/login` (alias `/dang-nhap` chuyển về route thật) |
+| Quyền | Công khai; chỉ tài khoản admin mới đăng nhập được |
+| Đầu vào | `identifier` = email hợp lệ; `password` 12–72 ký tự |
+| API | `POST /api/v1/admin/auth/login` |
+| Kết quả | `user { id, fullName, email, phoneNumber, avatar, roleName, mustChangePassword }`, `role`, `sessionIdleTimeoutSeconds` (1800), `accessToken`; set cookie refresh |
+| Bảo vệ | `checkOrigin` theo `ALLOWED_ORIGINS`; rate-limit 20 lần / 15 phút theo `identifier:ip`; dev `failOpen` khi Redis lỗi, production fail-closed |
+| Khóa tài khoản | Sai mật khẩu 3 lần liên tiếp → khóa tạm 60 giây × 2^(n−1), tối đa 15 phút. Trả `423 ACCOUNT_LOCKED` kèm `remainingSeconds`. Đăng nhập đúng reset bộ đếm |
+| Lỗi | `400 VALIDATION_ERROR`, `401 INVALID_CREDENTIALS` (kèm `remainingAttempts`), `403 ACCOUNT_LOCKED_BY_ADMIN`, `423 ACCOUNT_LOCKED`, `429 TOO_MANY_REQUESTS` |
+| UI | Hiện/ẩn mật khẩu; khóa nút khi đang gửi; đếm ngược khi bị khóa; thông báo phiên hết hạn khi có `expired=1` |
+| Điều hướng sau đăng nhập | Quay lại `returnUrl` nếu là đường dẫn nội bộ hợp lệ (bắt đầu `/`, không `//`, không `/admin/login`), mặc định `/admin/dashboard` |
+
+### 2.1. Quản lý phiên đăng nhập **[ĐÃ TRIỂN KHAI]**
+
+- Phiên hết hạn sau **30 phút không thao tác** (`sessionIdleTimeoutSeconds = 1800`).
+- Cảnh báo trước 2 phút, cho phép gia hạn hoặc đăng xuất; có keepalive khi người dùng còn hoạt động.
+- Access token hết hạn → interceptor tự gọi `POST /api/v1/admin/auth/refresh` một lần; thất bại thì xóa phiên và chuyển `/admin/login?expired=1&returnUrl=...`.
+- `POST /api/v1/admin/auth/logout` xóa phiên Redis và cookie; luôn trả 200.
+- `POST /api/v1/admin/auth/refresh` xoay vòng refresh token; không có cookie → `401 SESSION_EXPIRED`.
+
+### 2.2. Tải chứng từ hoàn tiền **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API tải lên | `POST /api/v1/admin/uploads/refund-proofs` |
+| API tải xuống | `GET /api/v1/admin/uploads/refund-proofs/:fileName` |
+| Định dạng | JPEG, PNG, PDF; tối đa 5 MB; kiểm tra magic bytes khớp `Content-Type` |
+| Lưu trữ | `private-uploads/refund-proofs/<uuid>.<ext>`; chống path traversal bằng regex tên tệp |
+| Lỗi | `413 FILE_TOO_LARGE`, `415 UNSUPPORTED_FILE_TYPE`, `404 FILE_NOT_FOUND` |
+
+### 2.3. Nhật ký hoạt động **[ĐÃ TRIỂN KHAI MỘT PHẦN]**
+
+- Có ghi audit cho: xác nhận đơn, đổi trạng thái đơn, hủy đơn, cập nhật vận chuyển, giao thành công, giao thất bại, giao lại, hoàn hàng, chốt hoàn, duyệt/từ chối đền bù trễ, xác nhận/từ chối/nhận/hoàn tiền/hoàn tất đổi trả, tiếp nhận/từ chối/đổi trạng thái bảo hành, xử lý ngoại lệ thanh toán.
+- **Chưa ghi audit** cho: đăng nhập/đăng xuất/refresh, chat, khách hàng, dashboard, báo cáo, upload.
+- Chưa có API/màn hình đọc nhật ký.
+
+### 2.4. Trạng thái giao diện chuẩn **[ĐÃ TRIỂN KHAI]**
+
+Mỗi bảng/khối phải có đủ: đang tải (skeleton), trống (giải thích + hành động tiếp theo), không có kết quả lọc (nút xóa bộ lọc), lỗi (`role="alert"` + nút thử lại).
 
 ## 3. Order Admin (Quản trị viên đơn hàng)
 
-| Mã | Tính năng | Mô tả |
+Toàn bộ màn hình dưới đây dùng chung layout: sidebar trái, nội dung giữa, cột tổng quan phải. Quyền truy cập: `ORDER_ADMIN`, `SUPER_ADMIN`.
+
+### OA-01 · Đăng nhập Admin **[ĐÃ TRIỂN KHAI]**
+
+Dùng chung **AD-01**. Sau khi đăng nhập bằng tài khoản `ORDER_ADMIN`, vào thẳng `/admin/dashboard`; nếu tài khoản không thuộc `ORDER_ADMIN`/`SUPER_ADMIN` thì vào dashboard rồi bị guard đẩy sang `/admin/access-denied`.
+
+---
+
+### OA-02 · Dashboard đơn hàng **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/dashboard` |
+| API | `GET /api/v1/admin/dashboard/orders` |
+| KPI | `totalOrders`, `newOrdersToday`, `revenueToday`, `revenueLast7Days`, `paymentExceptionCount`, `pendingReturnCount`, `pendingWarrantyCount`, `pendingRefundCount`, `pendingLateCompensationCount`, `overdueConfirmationCount` |
+| Theo trạng thái | `countsByStatus` cho đủ 9 trạng thái đơn |
+| Danh sách | `topProducts[5]`, `recentOrders[5]`, `updatedAt` |
+| Cảnh báo | Đơn chờ xác nhận quá hạn: `PENDING_CONFIRMATION` cũ hơn **20 giờ** |
+| Đền bù giao trễ | `GET /api/v1/admin/late-compensation-requests`; duyệt `POST /:id/approve`; từ chối `POST /:id/reject` với `reason` 1–500 |
+| Quy tắc | `revenueToday`/`revenueLast7Days` cộng `totalAmount` đơn `DELIVERED` nhưng lọc theo `createdAt`, không theo ngày giao |
+| Lỗi | `404 COMPENSATION_NOT_FOUND`, `409 COMPENSATION_ALREADY_REVIEWED` |
+| Ghi chú code | Ô tìm kiếm trên header chưa nối API; đơn gần đây luôn mở `/admin/orders`; danh sách đền bù tối đa 100, không phân trang |
+
+---
+
+### OA-03 · Xem danh sách, tìm kiếm và chi tiết đơn **[ĐÃ TRIỂN KHAI]**
+
+**Danh sách — `/admin/orders`**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `GET /api/v1/admin/orders` |
+| Bộ lọc | `q` (≤120), `status` (9 trạng thái hoặc `ALL`), `paymentStatus` (6 giá trị hoặc `ALL`), `from`, `to`, `page`, `limit` (1–100), `sort` (`createdAt` hoặc `totalAmount`), `direction` (`asc`/`desc`) |
+| Tìm kiếm | Mã đơn, số điện thoại người nhận, hoặc họ tên/SĐT/email khách (giới hạn 200 user khớp đầu tiên) |
+| Cột | Chọn trang, mã đơn (kèm nhãn quá hạn), khách, SĐT, tổng tiền, trạng thái thanh toán, trạng thái đơn, ngày tạo |
+| Hành động | Xem chi tiết, xác nhận, chuyển trạng thái, hủy, in (chưa nối), xuất CSV, chọn nhiều để xác nhận hàng loạt |
+| Sắp xếp | Theo ngày tạo hoặc tổng tiền; hiển thị mũi tên chiều sắp xếp |
+
+**Chi tiết — popup 4 tab**
+
+| Tab | Nội dung |
+| :---- | :---- |
+| Sản phẩm | Danh sách dòng hàng: ảnh, tên, SKU, biến thể, số lượng, đơn giá, thành tiền |
+| Thanh toán | Phương thức, trạng thái, số tiền đã thu/cọc, mã giao dịch, hóa đơn |
+| Vận chuyển | Đơn vị, mã vận đơn, đội phụ trách, lịch lắp đặt, ngày giao thực tế |
+| Lịch sử trạng thái | Từ trạng thái → đến trạng thái, người thực hiện, thời điểm, ghi chú |
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API chi tiết | `GET /api/v1/admin/orders/:id` |
+| Dữ liệu trả về | `customer`, `shippingAddress`, `items[]`, `totals`, `status`, `allowedNext[]`, `payment`, `shipment`, `statusHistory[]`, `cancellation`, `invoiceNumber` |
+| Lỗi | `404 ORDER_NOT_FOUND`, `404 CUSTOMER_NOT_FOUND` |
+| Ghi chú code | `from`/`to` sai định dạng bị bỏ qua âm thầm, không trả 400 |
+
+---
+
+### OA-04 · Xác nhận đơn hàng **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/orders` → nút "Xác nhận" trên dòng hoặc trong chi tiết |
+| Điều kiện | Chỉ từ `PENDING_CONFIRMATION` |
+| API | `POST /api/v1/admin/orders/:id/confirm` |
+| Kết quả | `status = CONFIRMED`; ghi `statusHistory`; audit `ORDER_CONFIRM` |
+| Lỗi | `409 ORDER_INVALID_STATE` kèm `{ from, to, allowedNext }`; `404 ORDER_NOT_FOUND` |
+| Hàng loạt | Chọn nhiều dòng → chạy song song từng request; báo số lượng thành công |
+| Ghi chú code | Không kiểm tra thanh toán/tồn kho trước khi xác nhận; báo thành công hàng loạt có thể sai nếu một request lỗi |
+
+---
+
+### OA-05 · Cập nhật trạng thái đơn **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/orders` → chi tiết → chọn trạng thái kế tiếp |
+| API chính | `PATCH /api/v1/admin/orders/:id/status` với `status`, `note` (≤500) |
+| API chuyên biệt | `POST /:id/shipment/delivered`, `POST /:id/delivery-failed`, `POST /:id/redeliver`, `POST /:id/return-to-warehouse` |
+| Nguồn trạng thái hợp lệ | UI chỉ hiển thị `allowedNext` do backend trả về |
+| Cấm qua API này | `CANCELLED` → `409 ORDER_INVALID_STATE` (phải dùng OA-06) |
+| Ghi chú bắt buộc | `DELIVERY_FAILED` bắt buộc `note` → `400 VALIDATION_ERROR` |
+| Giao lại | `DELIVERY_FAILED → SHIPPING` tăng `redeliveryCount`; từ lần thứ 3 → `409 REDELIVERY_LIMIT_REACHED` (tối đa 2 lần giao lại) |
+| Giao thành công | `SHIPPING → DELIVERED`: shipment `DELIVERED`, ghi `actualDeliveryDate`, COD → `payment.status = PAID`, tạo hóa đơn |
+| Bàn giao / đang giao / hoàn hàng | Cập nhật trạng thái shipment tương ứng |
+| Audit | `ORDER_STATUS_CHANGE` (và action riêng cho từng endpoint chuyên biệt) |
+
+**State machine đơn hàng (`ORDER_ALLOWED_NEXT`):**
+
+| Từ trạng thái | Được chuyển sang |
+| :---- | :---- |
+| `PENDING_PAYMENT` (Chờ thanh toán) | `PENDING_CONFIRMATION`, `CANCELLED` |
+| `PENDING_CONFIRMATION` (Chờ xác nhận) | `CONFIRMED`, `CANCELLED` |
+| `CONFIRMED` (Đã xác nhận) | `HANDED_OVER`, `CANCELLED` |
+| `HANDED_OVER` (Đã giao đơn vị vận chuyển) | `SHIPPING` |
+| `SHIPPING` (Đang giao) | `DELIVERED`, `DELIVERY_FAILED` |
+| `DELIVERY_FAILED` (Giao thất bại) | `SHIPPING`, `RETURNING` |
+| `RETURNING` (Đang hoàn hàng) | `CANCELLED` |
+| `DELIVERED`, `CANCELLED` | Kết thúc |
+
+---
+
+### OA-06 · Hủy đơn hàng **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/orders` → chi tiết → "Hủy đơn" |
+| Điều kiện | Chỉ `PENDING_PAYMENT`, `PENDING_CONFIRMATION`, `CONFIRMED` |
+| Đầu vào | `reason` (1–200, bắt buộc), `note` (≤500, bắt buộc nếu đã `PAID`/`DEPOSITED`), `refundToCustomer` (bool, mặc định true) |
+| API | `POST /api/v1/admin/orders/:id/cancel` |
+| Kết quả | `status = CANCELLED`, `cancellation.actor = ADMIN`; nếu đã thu tiền và chọn hoàn → `payment.status = REFUNDED`; shipment → `PENDING` |
+| Lỗi | `409 ORDER_CANCEL_NOT_ALLOWED`, `404 ORDER_NOT_FOUND`, `400 VALIDATION_ERROR` |
+| Audit | `ORDER_CANCEL` |
+| Ghi chú code | Không hoàn tồn kho, không hoàn voucher, không tạo `PaymentTransaction` loại `REFUND`, không gửi email |
+
+Đơn quá hạn thanh toán do worker tự hủy (`expireOverduePayments`), không phải thao tác admin.
+
+---
+
+### OA-07 · Xem trạng thái thanh toán **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Hiển thị | Badge trong danh sách đơn và tab Thanh toán của chi tiết |
+| Giá trị | `PENDING` (Chờ thanh toán), `DEPOSITED` (Đã cọc), `PAID` (Đã thanh toán), `UNPAID` (Chưa thanh toán – COD), `FAILED` (Thất bại), `REFUNDED` (Đã hoàn tiền) |
+| Phương thức | `COD` (Thanh toán khi nhận hàng), `BANK_TRANSFER` (Chuyển khoản QR) |
+| API | `GET /api/v1/admin/orders/:id/payment` → `payment`, `allowedNext[]` |
+| Ghi chú code | Endpoint này không tự hủy đơn quá hạn như luồng phía khách |
+
+---
+
+### OA-08 · Đối soát thanh toán **[ĐÃ TRIỂN KHAI]**
+
+**Danh sách giao dịch — `/admin/payments`**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `GET /api/v1/admin/payments` |
+| Bộ lọc | `q` (≤120), `reconciliationStatus` (`MATCHED`, `WRONG_CONTENT`, `UNDERPAID`, `OVERPAID`, `LATE`, `MANUALLY_RESOLVED`, `ALL`), `page`, `limit` |
+| Tìm kiếm | Mã giao dịch ngân hàng, nội dung chuyển khoản, mã đơn, tên khách |
+| Cột | Mã giao dịch, mã đơn, khách, loại giao dịch, số tiền, trạng thái đối soát, nguồn ghi nhận, thời gian |
+| Xuất | CSV theo trang hiện tại |
+
+**Hàng đợi ngoại lệ**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `GET /api/v1/admin/payments/exceptions` |
+| Loại ngoại lệ | `WRONG_CONTENT` (sai nội dung), `UNDERPAID` (thiếu tiền), `OVERPAID` (thừa tiền), `LATE` (chuyển sau hạn) |
+| Dữ liệu | Giao dịch, trạng thái đơn, số tiền mong đợi, số tiền nhận được, lý do, nội dung chuyển khoản |
+| Ghi chú | Không phân trang, trả toàn bộ ngoại lệ |
+
+**Xử lý ngoại lệ**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `POST /api/v1/admin/payments/:transactionId/resolve` |
+| Đầu vào | `orderId` (tùy chọn), `action` (`MARK_PAID`, `REFUND_BACK`, `IGNORE`), `note` (1–500, bắt buộc) |
+| `MARK_PAID` | Cần `orderId`; set đơn `PAID` hoặc `DEPOSITED` nếu là giao dịch cọc và số tiền nhỏ hơn tổng; nếu đơn `PENDING_PAYMENT` → `PENDING_CONFIRMATION` |
+| `REFUND_BACK` | Đánh dấu giao dịch cần hoàn lại khách (`PENDING`) |
+| `IGNORE` | Bỏ qua giao dịch |
+| Kết quả | `recordSource = MANUAL`, lưu `note`, `handledBy`; audit `PAYMENT_RESOLVE` |
+| Lỗi | `404 PAYMENT_TRANSACTION_NOT_FOUND`, `409 PAYMENT_ALREADY_RESOLVED`, `400 ORDER_REQUIRED`, `404 ORDER_NOT_FOUND` |
+
+**Ghi chú code (xem Phụ lục C):** không kiểm tra số tiền trước khi `MARK_PAID`; `REFUND_BACK` không tạo giao dịch hoàn tiền mới.
+
+---
+
+### OA-09 · Quản lý vận chuyển và lịch lắp đặt **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/shipping` |
+| Cách tải | `GET /api/v1/admin/orders?status=ALL&page=1&limit=100` rồi `GET /:id` từng đơn (N+1, tối đa 100) |
+| Giai đoạn hiển thị | `CONFIRMED` (chờ bàn giao), `HANDED_OVER` (đã bàn giao), `SHIPPING` (đang giao), `DELIVERED` (đã giao); lọc phía client |
+| Cột | Mã đơn, khách, đơn vị vận chuyển, mã vận đơn, đội phụ trách, lịch lắp đặt, trạng thái, thao tác |
+| Sửa vận chuyển | `PUT /api/v1/admin/orders/:id/shipment` với `carrier`, `trackingCode`, `assignedTeam`, `installationSchedule`, `handover` |
+| Validate | Đơn vị khác `CaraVeso` thì bắt buộc `trackingCode` |
+| Bàn giao | `handover = true` chỉ chuyển `CONFIRMED → HANDED_OVER`; trạng thái khác bị bỏ qua |
+| Chuyển trạng thái | `PATCH /:id/status` cho `HANDED_OVER`, `SHIPPING`, `DELIVERED` kèm ghi chú |
+| Đền bù trễ | Duyệt/từ chối qua API late-compensation (như OA-02) |
+| Lỗi | `409 ORDER_INVALID_STATE` khi đơn đã `DELIVERED`/`CANCELLED` |
+| Ghi chú code | "In phiếu bàn giao" và "Đồng bộ vận chuyển" chỉ hiện toast, chưa gọi API; danh sách đơn vị hard-code; `handoverToday` đếm toàn bộ `HANDED_OVER`, không theo ngày |
+
+---
+
+### OA-10 · Xử lý giao thất bại và hoàn hàng **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/delivery-failed` |
+| Cách tải | `GET /api/v1/admin/orders?limit=100` + `GET /:id` từng đơn; lọc client còn `DELIVERY_FAILED`, `RETURNING` |
+| Cột | Mã đơn, khách, địa chỉ, lý do thất bại, số lần giao lại `x/2`, trạng thái, thao tác |
+| Giao lại | `PATCH /:id/status` → `SHIPPING`; nút bị vô hiệu khi `redeliveryCount ≥ 2` |
+| Hoàn hàng | `PATCH /:id/status` → `RETURNING` (dialog xác nhận nguy hiểm) |
+| Chốt hoàn | `POST /:id/finalize-return` với `actualShippingCost` ≥ 0, `note` ≤500 |
+| Tiền hoàn dự kiến | Đã thu − chi phí vận chuyển thực tế (không âm); đã thu = `PAID ? total : DEPOSITED ? deposit : 0` |
+| Kết quả chốt hoàn | Đơn → `CANCELLED`; nếu tiền hoàn > 0 → payment `REFUNDED` |
+| Lỗi | `409 ORDER_INVALID_STATE`, `409 REDELIVERY_LIMIT_REACHED` |
+| Ghi chú code | Không có API chuyên biệt cho màn hình; "Đồng bộ vận chuyển" chỉ tải lại dữ liệu; không phân trang; không hoàn tồn kho/voucher, không tạo giao dịch hoàn tiền |
+
+---
+
+### OA-11 · Xem khách hàng **[ĐÃ TRIỂN KHAI – CHỈ ĐỌC]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/customers` |
+| API danh sách | `GET /api/v1/admin/customers` với `q`, `page`, `limit` |
+| API chi tiết | `GET /api/v1/admin/customers/:id` |
+| Bộ lọc | Tìm theo họ tên, email, số điện thoại |
+| Cột | Mã khách, họ tên, SĐT, email, số đơn, tổng chi tiêu, trạng thái, ngày tham gia |
+| Chi tiết | Thông tin khách, địa chỉ, 5 đơn gần nhất |
+| Quy tắc | Chỉ tài khoản role `CUSTOMER` và chưa ẩn danh; `totalSpent` chỉ cộng đơn `DELIVERED` |
+| Lỗi | `404 CUSTOMER_NOT_FOUND` |
+| Ghi chú code | Không có API khóa/mở khóa/xóa khách (khác AD-05); không audit; N+1 khi map danh sách |
+
+---
+
+### OA-12 · Báo cáo đơn hàng **[ĐÃ TRIỂN KHAI]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/reports/orders` |
+| API | `GET /api/v1/admin/reports/orders?period=today\|7d\|30d\|month` (mặc định `30d`) |
+| Chỉ số | `totalOrders`, `totalRevenue`, `averageOrderValue`, `cancelRate`, `returnRate`, `overdueConfirmationCount` |
+| Biểu đồ | Doanh thu theo tháng (`byMonth`), cơ cấu trạng thái (`byStatus`), top 5 sản phẩm |
+| Quy tắc | Doanh thu = đơn `DELIVERED` trong kỳ, lọc theo `createdAt`; `returnRate` = yêu cầu đổi/trả không bị từ chối / tổng đơn |
+| Xuất / in | Xuất CSV; in bằng `window.print()` (chưa có mẫu in riêng) |
+| Ghi chú code | Chưa có khách mới/khách quay lại, so sánh kỳ trước, lọc theo kênh/chi nhánh; tải toàn bộ đơn trong kỳ vào RAM |
+
+---
+
+### OA-13 · Quản lý đổi trả **[ĐÃ TRIỂN KHAI]**
+
+**Danh sách — `/admin/returns`**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `GET /api/v1/admin/return-requests`; chi tiết `GET /:id` (UI hiện dùng item từ danh sách) |
+| Bộ lọc | `status` (6 trạng thái hoặc `ALL`), `type` (`REFUND`, `EXCHANGE`, `ALL`), `q` (≤120), `page`, `limit` |
+| Cột | Mã yêu cầu, mã đơn, khách, loại, lý do, trạng thái, số tiền, ngày yêu cầu |
+| Chi tiết | Sản phẩm, lý do, minh chứng, lịch sử, thông tin hoàn tiền/đổi hàng |
+| Xuất | CSV |
+
+**Hành động theo trạng thái**
+
+| Trạng thái | Hành động | API / đầu vào |
 | :---- | :---- | :---- |
-| OA-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản được cấp |
-| OA-02 | Dashboard đơn hàng | Số đơn mới, đang xử lý, đang giao, thành công, bị hủy; đơn thanh toán lỗi; yêu cầu đổi/trả và bảo hành chờ xử lý |
-| OA-03 | Xem danh sách, tìm kiếm và chi tiết đơn | Xem toàn bộ đơn; tìm theo mã đơn, tên khách, số điện thoại, trạng thái; xem sản phẩm, số lượng, giá trị, khách, địa chỉ, phương thức thanh toán, ghi chú giao hàng, lịch hẹn |
-| OA-04 | Xác nhận đơn hàng | Xác nhận đơn mới sau khi kiểm tra thông tin |
-| OA-05 | Cập nhật trạng thái đơn | Chuyển trạng thái theo đúng thứ tự ở mục 1.3 của Phần A: Chờ xác nhận, Đã xác nhận, Đã giao cho đơn vị vận chuyển, Đang giao, Giao hàng thành công |
-| OA-06 | Hủy đơn hàng | Hủy đơn khi đáp ứng điều kiện hệ thống (ví dụ hết hàng thực tế, nghi gian lận), ghi lý do và hoàn tiền nếu đã thanh toán. Đơn quá hạn thanh toán do hệ thống tự hủy |
-| OA-07 | Xem trạng thái thanh toán | Chờ thanh toán, đã cọc, đã thanh toán, chưa thanh toán (COD), thất bại, đã hoàn tiền |
-| OA-08 | Đối soát thanh toán | Giao dịch QR được hệ thống tự động ghi nhận. Order Admin xử lý ngoại lệ (sai nội dung, thiếu hoặc thừa tiền, chuyển sau hạn) bằng xác nhận thủ công, bắt buộc ghi chú và có nhật ký |
-| OA-09 | Quản lý vận chuyển | Đơn giao qua đối tác: nhập mã vận đơn, theo dõi trạng thái. Hàng cồng kềnh (cấp 3–4): ghi nhận đội xe CaraVeso phụ trách (nhập tên đội xe, ở mức mô phỏng, không quản lý chi tiết phân công), xếp lịch giao và lắp đặt theo lịch khách hẹn, cập nhật trạng thái thủ công và ghi nhận ngày giao thực tế. Duyệt hoặc từ chối yêu cầu voucher bù giao trễ (FR-40) |
-| OA-10 | Xử lý giao thất bại | Liên hệ giao lại tối đa 2 lần. Sau đó hoặc khi khách từ chối nhận: hoàn hàng về kho, kiểm tra, hủy đơn và hoàn tiền trừ chi phí vận chuyển thực tế; tiền cọc xử lý tương tự |
-| OA-11 | Quản lý khách hàng (xem) | Xem thông tin khách và lịch sử mua hàng để phục vụ xác nhận, giao hàng và CSKH |
-| OA-12 | Báo cáo đơn hàng | Thống kê số đơn theo trạng thái, thời gian và tổng giá trị |
-| OA-13 | Quản lý đổi trả | Xem danh sách và chi tiết yêu cầu (đơn, sản phẩm, lý do, minh chứng). Kiểm tra điều kiện và xác nhận; từ chối bắt buộc ghi lý do. Cập nhật trạng thái: Chờ xử lý, Đã xác nhận, Chờ nhận hàng, Đang xử lý, Hoàn tất, Từ chối. Xử lý đổi: ghi nhận sản phẩm thay thế, kiểm tồn, thu chênh lệch, theo dõi gửi hàng mới. Xử lý trả: ghi nhận nhận hàng và kết quả kiểm tra. Xử lý hoàn tiền: ghi nhận đã chuyển khoản kèm chứng từ. Hàng cồng kềnh: đặt lịch đến lấy |
-| OA-14 | Quản lý bảo hành | Xem danh sách và chi tiết yêu cầu (sản phẩm, đơn, thời gian mua, tình trạng, lý do, minh chứng). Kiểm tra còn hạn và thuộc phạm vi (FR-43); xác nhận, hoặc từ chối kèm lý do. Cập nhật trạng thái: Chờ xác nhận, Đã tiếp nhận, Đang kiểm tra, Đang bảo hành, Hoàn tất, Từ chối. Ghi nhận kết quả (sửa chữa, thay linh kiện, đổi sản phẩm, không đủ điều kiện). Theo dõi lịch sử bảo hành. Bảo hành tại nhà được xếp lịch |
-| OA-15 | CSKH qua chat | Nhận phiên chat của khách, trả lời bằng chữ và ảnh, kết thúc phiên, xem lịch sử trò chuyện |
-| OA-16 | Hạn chế quyền | Không quản lý sản phẩm, không quản lý marketing, không phân quyền Admin, không cấu hình hệ thống |
+| `PENDING` | Xác nhận | `POST /:id/confirm` |
+| `PENDING` | Từ chối | `POST /:id/reject` với `rejectReason` 1–500 |
+| `CONFIRMED` | Lưu lịch lấy hàng / phí | `PATCH /:id` với `costBearer`, `returnFee` ≥ 0, `pickupSchedule`, `trackingCode` |
+| `CONFIRMED`, `AWAITING_GOODS` | Nhận hàng | `POST /:id/receive` với `inspectionResult`, `note` |
+| `PROCESSING` + `REFUND` | Hoàn tiền | `POST /:id/refund` với `proofImage`, `transactionAt`, `amount` ≥ 0 |
+| `PROCESSING` + `EXCHANGE` | Hoàn tất đổi | `POST /:id/complete` (cần sản phẩm thay thế + mã vận đơn) |
+
+**Quy tắc nghiệp vụ**
+
+- Trạng thái: `PENDING → CONFIRMED → AWAITING_GOODS → PROCESSING → COMPLETED`; `PENDING|CONFIRMED → REJECTED`.
+- Cập nhật không kèm hàng thay thế luôn đưa yêu cầu về `AWAITING_GOODS`.
+- Hàng thay thế: chỉ `EXCHANGE` ở `PROCESSING`; biến thể phải `ACTIVE` và đủ tồn; sản phẩm phải `ACTIVE`.
+- Hoàn tiền tối đa = tổng đã trả − (khách chịu phí ? phí vận chuyển + phí tháo lắp : 0); vượt → `400 REFUND_AMOUNT_EXCEEDED`.
+- Hoàn tiền tạo `PaymentTransaction` loại `REFUND` trong transaction; đổi hàng trừ tồn biến thể, cấp lại phiếu bảo hành.
+- Chứng từ: `POST /api/v1/admin/uploads/refund-proofs` (JPEG/PNG/PDF ≤ 5 MB).
+- Lỗi: `409 RETURN_INVALID_STATE`, `409 REFUND_ALREADY_COMPLETED`, `409 REPLACEMENT_VARIANT_UNAVAILABLE`, `409 REPLACEMENT_PRODUCT_UNAVAILABLE`, `409 REPLACEMENT_STOCK_UNAVAILABLE`, `400 REPLACEMENT_DETAILS_REQUIRED`, `404 RETURN_REQUEST_NOT_FOUND`.
+
+**Ghi chú code:** chưa chặn hoàn tiền/hoàn tất khi kết quả kiểm tra là `DAMAGED`/`INCOMPLETE`; chưa nhập lại hàng hoàn vào kho; màn hình chưa có ô sửa mã vận đơn lấy hàng; minh chứng chỉ hiện icon, không xem trước.
+
+---
+
+### OA-14 · Quản lý bảo hành **[ĐÃ TRIỂN KHAI]**
+
+**Danh sách — `/admin/warranty`**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| API | `GET /api/v1/admin/warranty-requests`; chi tiết `GET /:id` (UI hiện dùng item từ danh sách) |
+| Bộ lọc | `status` (6 trạng thái hoặc `ALL`), `q` (≤120), `page`, `limit` |
+| Cột | Mã yêu cầu, sản phẩm + khách, ngày mua, ngày hết hạn, trạng thái, ngày yêu cầu |
+| Chi tiết | Tình trạng, lý do, minh chứng, lịch tại nhà, mã vận đơn, kết quả kiểm tra, hướng xử lý, lịch sử |
+| Cảnh báo | `dataIntegrityWarning` chặn toàn bộ hành động nếu dữ liệu bảo hành không nhất quán |
+
+**Hành động**
+
+| Trạng thái | Hành động | API / đầu vào |
+| :---- | :---- | :---- |
+| `PENDING_CONFIRMATION` | Tiếp nhận | `POST /:id/accept` |
+| `PENDING_CONFIRMATION` | Từ chối | `POST /:id/reject` với `rejectReason` 1–500 |
+| `RECEIVED`, `INSPECTING`, `IN_WARRANTY` | Cập nhật | `PATCH /:id/status` với `status`, `inspectionResult`, `resolution`, `homeServiceSchedule`, `trackingCode`, `note` |
+
+**Quy tắc nghiệp vụ**
+
+- Trạng thái: `PENDING_CONFIRMATION → RECEIVED|REJECTED`; `RECEIVED → INSPECTING|REJECTED`; `INSPECTING → IN_WARRANTY|REJECTED`; `IN_WARRANTY → COMPLETED`; `COMPLETED|REJECTED` kết thúc.
+- `COMPLETED` bắt buộc có `resolution` (`REPAIRED`, `PART_REPLACED`, `PRODUCT_REPLACED`, `NOT_ELIGIBLE`); thiếu → `400 WARRANTY_RESOLUTION_REQUIRED`.
+- Lỗi: `409 WARRANTY_INVALID_STATE`, `404 WARRANTY_REQUEST_NOT_FOUND`.
+
+**Ghi chú code:** UI **chưa có đường chuyển `COMPLETED`** dù API cho phép, nên hồ sơ có thể kẹt ở `IN_WARRANTY`; `PRODUCT_REPLACED` không cập nhật tồn kho/phiếu bảo hành; không có dialog xác nhận khi tiếp nhận/từ chối.
+
+---
+
+### OA-15 · CSKH qua chat **[ĐÃ TRIỂN KHAI MỘT PHẦN]**
+
+| Hạng mục | Nội dung |
+| :---- | :---- |
+| Màn hình | `/admin/chat` (3 cột: danh sách phiên, hội thoại, thông tin khách) |
+| API | `GET /api/v1/admin/chat/sessions` (`limit` 1–100, `mode`, `status`), `GET /:id/messages` (`limit`, `before`), `POST /:id/claim`, `POST /:id/messages`, `POST /:id/close` |
+| Phiên | `AI_ACTIVE`, `WAITING`, `IN_PROGRESS`, `CLOSED`; UI ẩn `AI_ACTIVE` khỏi danh sách lọc |
+| Hiển thị | Preview tin cuối, số chưa đọc, badge trạng thái, đếm phiên chờ, lịch sử tin nhắn |
+| Gửi tin | `content` 1–2000; Enter gửi, Shift+Enter xuống dòng; chặn khi phiên đóng/rỗng; phiên `WAITING` phải nhận trước |
+| Nhận phiên | `POST /:id/claim`; đóng phiên `POST /:id/close` |
+| Lỗi | `409 CHAT_SESSION_CLOSED`, `404 CHAT_SESSION_NOT_FOUND` |
+| Ghi chú code | Không realtime (không socket/polling), không gửi ảnh (chỉ toast), không kiểm tra quyền sở hữu phiên, không audit |
+
+---
+
+### OA-16 · Hạn chế quyền **[ĐÃ TRIỂN KHAI]**
+
+Order Admin chỉ truy cập nhóm đơn hàng, thanh toán, vận chuyển, đổi trả, bảo hành, chat, khách hàng (chỉ đọc), báo cáo đơn hàng. Không có màn hình/API quản lý sản phẩm, marketing, quản lý Admin, cấu hình hệ thống. Mọi kiểm tra quyền nằm ở backend.
 
 ## 4. Admin cấp cao
 
-Admin cấp cao có toàn quyền quản lý và xử lý mọi chức năng của ba vai trò còn lại. Bảng dưới chỉ liệt kê các chức năng đặc trưng và trỏ sang mã chi tiết ở các mục sau.
+### AD-01 · Đăng nhập Admin **[ĐÃ TRIỂN KHAI]**
 
-| Mã | Tính năng | Mô tả |
-| :---- | :---- | :---- |
-| AD-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản và mật khẩu hợp lệ (mật khẩu tối thiểu 12 ký tự). Phiên hết hạn sau 30 phút không thao tác |
-| AD-02 | Xem Dashboard tổng quan | Doanh thu (hôm nay, 7 ngày, 30 ngày, theo tháng), số đơn theo trạng thái, giá trị đơn trung bình, tỷ lệ hủy và đổi/trả, top sản phẩm và danh mục, khách mới so với khách quay lại, đơn chờ xác nhận quá hạn (ngưỡng quá hạn cấu hình ở AD-15) |
-| AD-03 | Quản lý sản phẩm, danh mục, tồn kho | Toàn quyền như Product Admin (PA-03 đến PA-08) |
-| AD-04 | Quản lý đơn hàng | Toàn quyền như Order Admin (OA-03 đến OA-10), gồm cập nhật trạng thái theo bộ trạng thái ở mục 1.3 của Phần A |
-| AD-05 | Quản lý khách hàng | Xem thông tin tài khoản, lịch sử mua hàng và hoạt động. Khóa tài khoản bắt buộc ghi lý do; lý do hiển thị cho khách khi đăng nhập bị chặn. Khi khóa: chặn đăng nhập và đặt đơn mới; đơn đã giao cho đơn vị vận chuyển vẫn hoàn tất; đơn chưa bàn giao do Admin xem xét (nghi gian lận thì hủy và hoàn tiền, còn lại vẫn giao). Hậu mãi của đơn cũ xử lý qua email hoặc CSKH. Mở khóa khi cần |
-| AD-06 | Quản lý khuyến mãi, mã giảm giá, banner, nội dung | Toàn quyền như Marketing Admin |
-| AD-07 | Quản lý Collection và Nguồn cảm hứng | Toàn quyền như Marketing Admin |
-| AD-08 | Kiểm duyệt đánh giá | Toàn quyền như Product Admin (PA-09) |
-| AD-09 | Quản lý đổi trả và bảo hành | Toàn quyền như Order Admin, gồm xử lý hoàn tiền |
-| AD-10 | Xem danh sách Admin và lịch sử hoạt động | Xem danh sách tài khoản Admin, vai trò, trạng thái và nhật ký thao tác |
-| AD-11 | Thêm tài khoản Admin | Admin cấp cao nhập email và chọn vai trò; hệ thống gửi liên kết đặt mật khẩu (hạn 24–48 giờ) hoặc cấp mật khẩu tạm bắt buộc đổi ngay lần đăng nhập đầu. Không ai xem được mật khẩu của người khác |
-| AD-12 | Sửa và vô hiệu hóa tài khoản Admin | Cập nhật thông tin hoặc vô hiệu hóa (không xóa cứng để giữ nhật ký). Không được tự khóa, tự xóa hoặc hạ vai trò của chính mình, và không được vô hiệu hóa Admin cấp cao cuối cùng |
-| AD-13 | Gán vai trò | Mỗi tài khoản Admin chỉ có đúng một vai trò (Admin cấp cao, Product Admin, Marketing Admin, Order Admin). Quyền của mỗi vai trò cố định theo ma trận ở mục 5 |
-| AD-14 | Quản lý quyền truy cập | Quy định chức năng từng vai trò được phép, cố định theo ma trận ở mục 5 (không chỉnh sửa động) |
-| AD-15 | Cấu hình hệ thống | Quản lý: thông tin cửa hàng (tên, logo, địa chỉ, MST, hotline, email, giờ làm việc); chính sách (số ngày đổi/trả, thời hạn đánh giá, hạn thanh toán QR, ngưỡng và tỷ lệ cọc, số ngày trễ được bù và giá trị voucher bù, thời gian hoàn tiền, số giờ để coi đơn chờ xác nhận là quá hạn); thanh toán (bật/tắt COD và QR, tài khoản ngân hàng nhận tiền); vận chuyển và lắp đặt (bảng phí 4 cấp, khung giờ giao, số lần đổi lịch, số lần giao lại); tồn kho (ngưỡng cảnh báo mặc định); bảo mật (số lần đăng nhập sai, thời gian khóa, hạn và giới hạn OTP, thời gian hết phiên); nhãn Mới và Bán chạy; mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho); hóa đơn (thông tin bên bán, ký hiệu) |
+Dùng chung **AD-01** ở mục 2.
 
-## 5. Ma trận phân quyền cố định
+### AD-02 · Dashboard tổng quan **[ĐÃ TRIỂN KHAI MỘT PHẦN]**
 
-Ký hiệu: **Có** = toàn quyền, **Xem** = chỉ xem, **—** = không truy cập. Mỗi tài khoản Admin chỉ có một vai trò.
+`SUPER_ADMIN` dùng chung `/admin/dashboard` và `/admin/reports/orders` với Order Admin. Hiện có: doanh thu hôm nay/7 ngày, đơn theo trạng thái, giá trị đơn trung bình, tỷ lệ hủy, tỷ lệ đổi/trả, top sản phẩm, đơn chờ xác nhận quá hạn 20 giờ.
+
+Chưa có: doanh thu 30 ngày/theo tháng trên dashboard (chỉ báo cáo có `period`), top danh mục, khách mới so với khách quay lại, ngưỡng quá hạn cấu hình được.
+
+### AD-03 .. AD-15 · Các chức năng quản trị còn lại **[CHƯA TRIỂN KHAI]**
+
+| Mã | Tính năng | Phạm vi dự kiến | Trạng thái |
+| :---- | :---- | :---- | :---- |
+| AD-03 | Quản lý sản phẩm, danh mục, tồn kho | Toàn quyền như PA-03..PA-08 | Chưa có màn hình/API admin |
+| AD-04 | Quản lý đơn hàng | Toàn quyền OA-03..OA-10 | Đã có (dùng chung Order Admin) |
+| AD-05 | Quản lý khách hàng | Xem, khóa/mở khóa kèm lý do | Chỉ xem; chưa có API khóa/mở |
+| AD-06 | Quản lý khuyến mãi, voucher, banner, nội dung | Toàn quyền MA-03..MA-06, MA-09 | Chưa có |
+| AD-07 | Quản lý Collection và Nguồn cảm hứng | Toàn quyền MA-07, MA-08 | Chưa có |
+| AD-08 | Kiểm duyệt đánh giá | Toàn quyền PA-09 | Chưa có |
+| AD-09 | Quản lý đổi trả và bảo hành | Toàn quyền OA-13, OA-14 | Đã có (dùng chung Order Admin) |
+| AD-10 | Xem danh sách Admin và lịch sử hoạt động | Danh sách tài khoản, vai trò, nhật ký | Chưa có |
+| AD-11 | Thêm tài khoản Admin | Gửi liên kết đặt mật khẩu hoặc mật khẩu tạm | Chưa có |
+| AD-12 | Sửa và vô hiệu hóa tài khoản Admin | Không xóa cứng | Chưa có |
+| AD-13 | Gán vai trò | Mỗi tài khoản một vai trò | Chưa có UI; role có trong DB/seed |
+| AD-14 | Quản lý quyền truy cập | Cố định theo ma trận | Đã cố định trong code, không chỉnh động |
+| AD-15 | Cấu hình hệ thống | Thông tin cửa hàng, chính sách, thanh toán, vận chuyển, bảo mật, hóa đơn | Chưa có |
+
+## 5. Product Admin và Marketing Admin **[CHƯA TRIỂN KHAI]**
+
+Hai vai trò này đăng nhập được nhưng chưa có màn hình/API nghiệp vụ. Bảng dưới giữ nguyên phạm vi
+nghiệp vụ dự kiến; cột trạng thái cho biết mức triển khai thực tế.
+
+### 5.1. Product Admin
+
+| Mã | Tính năng | Mô tả | Trạng thái |
+| :---- | :---- | :---- | :---- |
+| PA-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản được cấp quyền | Chưa có màn hình nghiệp vụ |
+| PA-02 | Dashboard sản phẩm | Tổng số sản phẩm, sắp hết hàng, hết hàng, số danh mục; thống kê bán chạy, tồn kho cao, sắp hết hàng | Chưa triển khai |
+| PA-03 | Xem danh sách và chi tiết sản phẩm | Xem toàn bộ sản phẩm và chi tiết: tên, giá, mô tả, hình ảnh, danh mục, trạng thái, tồn kho | Chưa triển khai |
+| PA-04 | Thêm sản phẩm | Thông tin chung, biến thể, kiện hàng, bộ phận trong hộp, hình ảnh/model 3D, dịch vụ lắp đặt; sản phẩm có trạng thái nháp | Chưa triển khai |
+| PA-05 | Chỉnh sửa sản phẩm | Cập nhật mọi thông tin ở PA-04, gồm giá gốc, giá bán và điều kiện bảo hành | Chưa triển khai |
+| PA-06 | Xóa / ngừng kinh doanh sản phẩm | Ngừng kinh doanh hoặc ẩn sản phẩm; sản phẩm đã có đơn hàng không xóa cứng | Chưa triển khai |
+| PA-07 | Quản lý danh mục | Xem, thêm, sửa tên, mô tả, trạng thái danh mục; cấu hình nhóm sản phẩm thường có trong loại phòng | Chưa triển khai |
+| PA-08 | Quản lý tồn kho | Xem và cập nhật tồn, ghi lịch sử biến động, cảnh báo dưới ngưỡng | Chưa triển khai |
+| PA-09 | Kiểm duyệt đánh giá | Xử lý đánh giá bị khách báo cáo vi phạm (FR-21) | Chưa triển khai |
+| PA-10 | Hạn chế quyền | Không quản lý Admin, đơn hàng, tiếp thị | Chưa áp dụng (chưa có màn hình) |
+
+### 5.2. Marketing Admin
+
+| Mã | Tính năng | Mô tả | Trạng thái |
+| :---- | :---- | :---- | :---- |
+| MA-01 | Đăng nhập Admin | Đăng nhập bằng tài khoản được phân quyền | Chưa có màn hình nghiệp vụ |
+| MA-02 | Dashboard Marketing | Số chiến dịch, voucher đang hoạt động, banner, doanh thu theo chương trình | Chưa triển khai |
+| MA-03 | Quản lý chương trình khuyến mãi | Tạo/sửa/xóa/ngừng chương trình; kiểm tra xung đột một sản phẩm một chương trình | Chưa triển khai |
+| MA-04 | Quản lý mã giảm giá | Voucher công khai/ví/gán riêng, điều kiện, lượt dùng, thời hạn | Chưa triển khai |
+| MA-05 | Quản lý banner | Hình, nội dung, đường dẫn, thời gian hiển thị | Chưa triển khai |
+| MA-06 | Quản lý nội dung | Trang chủ, landing page, bài viết, thông báo | Chưa triển khai |
+| MA-07 | Quản lý Collection | Ảnh, hotspot, sản phẩm, thứ tự hiển thị | Chưa triển khai |
+| MA-08 | Quản lý Nguồn cảm hứng | Ảnh, danh sách sản phẩm, thứ tự trong popup | Chưa triển khai |
+| MA-09 | Báo cáo Marketing | Lượt dùng voucher, doanh thu theo chương trình, hiển thị/click banner | Chưa triển khai |
+| MA-10 | Hạn chế quyền | Không xử lý đơn hàng, không phân quyền Admin, không cấu hình chung | Chưa áp dụng |
+
+## 6. Ma trận phân quyền thực tế
+
+Ký hiệu: **Có** = có màn hình và API; **Xem** = chỉ đọc; **—** = không truy cập; **Chưa có** = chưa triển khai.
 
 | Nhóm chức năng | Admin cấp cao | Product Admin | Marketing Admin | Order Admin |
-| :---- | :---- | :---- | :---- | :---- |
-| Dashboard | Tổng quan | Sản phẩm | Marketing | Đơn hàng |
-| Sản phẩm, danh mục, tồn kho | Có | Có | — | — |
-| Kiểm duyệt đánh giá | Có | Có | — | — |
-| Quy tắc gợi ý, cấp độ vận chuyển | Có | Có | — | — |
+| :---- | :---: | :---: | :---: | :---: |
+| Dashboard đơn hàng | Có | — | — | Có |
 | Đơn hàng, thanh toán, vận chuyển | Có | — | — | Có |
 | Đổi trả, bảo hành, hoàn tiền | Có | — | — | Có |
 | Chat CSKH | Có | — | — | Có |
-| Thông tin khách hàng | Có (gồm khóa/mở) | — | — | Xem |
-| Khuyến mãi, voucher, banner, nội dung | Có | — | Có | — |
-| Collection, Nguồn cảm hứng | Có | — | Có | — |
-| Báo cáo marketing, doanh thu theo chương trình | Có | — | Xem (tổng hợp) | — |
-| Quản lý Admin và gán vai trò | Có | — | — | — |
-| Cấu hình hệ thống, nhật ký hoạt động | Có | — | — | — |
+| Thông tin khách hàng | Xem | — | — | Xem |
+| Báo cáo đơn hàng | Có | — | — | Có |
+| Sản phẩm, danh mục, tồn kho | Chưa có | Chưa có | — | — |
+| Kiểm duyệt đánh giá | Chưa có | Chưa có | — | — |
+| Khuyến mãi, voucher, banner, nội dung | Chưa có | — | Chưa có | — |
+| Collection, Nguồn cảm hứng | Chưa có | — | Chưa có | — |
+| Quản lý Admin và gán vai trò | Chưa có | — | — | — |
+| Cấu hình hệ thống, nhật ký | Chưa có | — | — | — |
 
-*Ghi chú:* "Quy tắc gợi ý" trong ma trận là dữ liệu nhóm sản phẩm thường có trong từng loại phòng (PA-07), dùng cho FR-23.
+**Ghi chú so với bản cũ:** ma trận trước đây cấp Product/Marketing quyền trên giấy; bản này phản ánh
+đúng code. `SUPER_ADMIN` hiện chỉ có thêm quyền đăng nhập, không có màn hình quản trị riêng.
 
-## Admin Non Functional Requirement
+## 7. Admin Non Functional Requirement
 
 | Mã | Nhóm | Yêu cầu |
 | :---- | :---- | :---- |
-| NF-A01 | Hiệu năng | Dashboard và màn hình quản trị phản hồi ≤ 5 giây; tìm kiếm, lọc, cập nhật xử lý nhanh và ổn định |
-| NF-A02 | Bảo mật – xác thực và phiên | Đăng nhập bằng tài khoản hợp lệ; phiên hết hạn sau 30 phút không thao tác; không yêu cầu xác thực hai yếu tố |
-| NF-A03 | Bảo mật – phân quyền | 4 vai trò cố định (Admin cấp cao, Product, Marketing, Order). Mỗi người một vai trò, chỉ thấy và dùng chức năng thuộc quyền (mục 5) |
-| NF-A04 | Nhật ký hoạt động | Ghi lại thao tác quan trọng: thêm/sửa/xóa sản phẩm, giá, đơn hàng, đổi trả, bảo hành, xác nhận thanh toán thủ công, hoàn tiền, khóa/mở khách, tạo/sửa Admin, thay đổi cấu hình. Lưu người thực hiện, thời điểm, giá trị trước và sau, địa chỉ IP; chỉ ghi thêm, không sửa hay xóa; lưu tối thiểu 12 tháng |
-| NF-A05 | Khả năng sử dụng | Giao diện rõ ràng, nhất quán, chỉ hiển thị chức năng phù hợp quyền |
-| NF-A06 | Độ tin cậy và toàn vẹn dữ liệu | Các thao tác cập nhật được ghi nhận chính xác; chỉnh sửa không gây mất, trùng hoặc sai lệch dữ liệu |
-| NF-A07 | Sao lưu và phục hồi | Sao lưu định kỳ (toàn bộ hằng tuần, tăng dần hằng ngày, giữ 7 bản ngày, 4 bản tuần, 3 bản tháng, nén). Thao tác quan trọng không sao lưu toàn bộ mỗi lần mà dùng nhật ký lưu giá trị trước/sau để hoàn tác, nhằm tiết kiệm dung lượng. Mất dữ liệu tối đa 24 giờ, khôi phục trong tối đa 4 giờ; kiểm tra khôi phục định kỳ |
-| NF-A08 | Bảo trì, giám sát, mở rộng, trình duyệt | Cấu trúc rõ để dễ nâng cấp; ghi nhận lỗi, theo dõi hiệu năng, phát hiện hoạt động bất thường; ổn định khi dữ liệu tăng; chạy ổn định trên Chrome, Edge, Safari, Firefox |
+| NF-A01 | Hiệu năng | Màn hình quản trị phản hồi ≤ 5 giây với dữ liệu đồ án. Danh sách dùng phân trang server (mặc định 20, tối đa 100). Dashboard/báo cáo hiện tải toàn bộ đơn trong kỳ vào bộ nhớ; shipping/delivery-failed tải tối đa 100 đơn rồi gọi chi tiết từng đơn (N+1) – cần tối ưu khi dữ liệu tăng |
+| NF-A02 | Bảo mật – xác thực và phiên | Mật khẩu admin tối thiểu 12 ký tự; access token 15 phút; refresh token 30 phút; phiên hết hạn sau 30 phút không thao tác; sai 3 lần khóa tạm tăng dần (tối đa 15 phút); rate-limit đăng nhập 20 lần/15 phút; không yêu cầu 2FA |
+| NF-A03 | Bảo mật – phân quyền | 4 vai trò cố định, mỗi tài khoản một vai trò. Backend kiểm tra bằng `requireAuth` + `requireRole`; frontend ẩn menu theo `data.roles`. Hiện chỉ `ORDER_ADMIN` và `SUPER_ADMIN` có quyền nghiệp vụ |
+| NF-A04 | Nhật ký hoạt động | Ghi thao tác quan trọng trên đơn hàng, thanh toán, đổi trả, bảo hành. Lưu người thực hiện, thời điểm, dữ liệu liên quan; chỉ ghi thêm. Chưa ghi cho đăng nhập, chat, khách hàng, dashboard, upload; chưa có màn hình đọc nhật ký |
+| NF-A05 | Khả năng sử dụng | Tuân theo `docs/admin-ui-rule.md`: bento, một màu nhấn, không dùng màu đen, chữ Việt, VND, desktop 1280–1440px, đủ 4 trạng thái tải/trống/không kết quả/lỗi |
+| NF-A06 | Độ tin cậy và toàn vẹn dữ liệu | Thao tác quan trọng phải ghi nhận chính xác. Hiện các lệnh đơn hàng admin chưa dùng transaction; hủy đơn/hoàn hàng chưa hoàn tồn kho, voucher (xem Phụ lục C) |
+| NF-A07 | Sao lưu và phục hồi | Sao lưu định kỳ theo quy định dự án; nhật ký lưu giá trị trước/sau để hỗ trợ khôi phục. Chưa có công cụ sao lưu trong repo |
+| NF-A08 | Bảo trì, giám sát, mở rộng, trình duyệt | Cấu trúc module rõ ràng; chạy ổn định trên Chrome, Edge, Safari, Firefox; có health check `GET /api/v1/health` |
+
+## 8. Phụ lục A – Đối chiếu mã chức năng, màn hình và API
+
+| Mã | Màn hình | API chính |
+| :---- | :---- | :---- |
+| AD-01, OA-01 | `/admin/login` | `POST /api/v1/admin/auth/login`, `/refresh`, `/logout`, `GET /me` |
+| OA-02, AD-02 | `/admin/dashboard` | `GET /admin/dashboard/orders`; `GET\|POST /admin/late-compensation-requests` |
+| OA-03, OA-04, OA-05, OA-06 | `/admin/orders` | `GET /admin/orders`, `GET /:id`, `POST /:id/confirm`, `PATCH /:id/status`, `POST /:id/cancel`, `PUT /:id/shipment`, `POST /:id/finalize-return` |
+| OA-07, OA-08 | `/admin/payments` | `GET /admin/payments`, `GET /admin/payments/exceptions`, `POST /admin/payments/:id/resolve`; `GET /admin/orders/:id/payment` |
+| OA-09 | `/admin/shipping` | `GET /admin/orders`, `GET /admin/orders/:id`, `PUT /:id/shipment`, `PATCH /:id/status` |
+| OA-10 | `/admin/delivery-failed` | `PATCH /admin/orders/:id/status`, `POST /:id/finalize-return` |
+| OA-11 | `/admin/customers` | `GET /admin/customers`, `GET /admin/customers/:id` |
+| OA-12 | `/admin/reports/orders` | `GET /admin/reports/orders` |
+| OA-13 | `/admin/returns` | `GET /admin/return-requests`, `POST /:id/confirm\|reject\|receive\|refund\|complete`, `PATCH /:id` |
+| OA-14 | `/admin/warranty` | `GET /admin/warranty-requests`, `POST /:id/accept\|reject`, `PATCH /:id/status` |
+| OA-15 | `/admin/chat` | `GET /admin/chat/sessions`, `GET /:id/messages`, `POST /:id/claim\|messages\|close` |
+| — | `/admin/access-denied` | Không gọi API |
+
+## 9. Phụ lục B – Danh sách chưa triển khai
+
+- **Product Admin:** PA-02..PA-09 (dashboard, sản phẩm, danh mục, tồn kho, kiểm duyệt đánh giá).
+- **Marketing Admin:** MA-02..MA-09 (dashboard, khuyến mãi, voucher, banner, nội dung, collection, nguồn cảm hứng, báo cáo).
+- **Admin cấp cao:** AD-03, AD-05 (khóa/mở khách), AD-06..AD-08, AD-10..AD-13, AD-15.
+- **Dùng chung:** màn hình nhật ký hoạt động; API khóa/mở khóa khách hàng; cấu hình hệ thống; thông báo trong ứng dụng; đổi mật khẩu admin bắt buộc.
+
+## 10. Phụ lục C – Sai lệch và rủi ro đã biết
+
+Các mục dưới đây là hành vi **hiện tại của code**, không phải đặc tả mong muốn. Dev cần biết trước khi
+xây tiếp hoặc demo.
+
+### 10.1. Đơn hàng và tiền
+
+1. Hủy đơn admin và `finalize-return` **không hoàn tồn kho, không hoàn voucher, không tạo
+   `PaymentTransaction` loại `REFUND`**; chỉ đổi `payment.status`.
+2. Các lệnh đơn hàng admin (xác nhận, đổi trạng thái, hủy, vận chuyển, chốt hoàn) **không dùng
+   transaction**, dễ race với webhook thanh toán hoặc khách hủy.
+3. `finalize-return` không lưu số tiền hoàn vào đơn; shipment vẫn giữ `RETURNING` dù đơn đã `CANCELLED`.
+4. Duyệt đền bù giao trễ **không thực sự phát voucher** cho khách.
+5. Đối soát thanh toán **không kiểm tra số tiền** trước khi `MARK_PAID`; `REFUND_BACK` không tạo
+   giao dịch hoàn tiền; có thể ghi nhận nhầm giao dịch `REFUND` thành đã thanh toán.
+6. Admin có thể chuyển `PENDING_PAYMENT → PENDING_CONFIRMATION` thủ công, bỏ qua thanh toán.
+
+### 10.2. Đổi trả và bảo hành
+
+7. UI bảo hành **không có đường chuyển `COMPLETED`**, dù API cho phép; hồ sơ có thể kẹt ở `IN_WARRANTY`.
+8. Đổi trả cho phép hoàn tiền/hoàn tất dù kết quả kiểm tra là `DAMAGED`/`INCOMPLETE`; không nhập lại
+   hàng hoàn vào kho.
+9. Model đổi trả/bảo hành admin yêu cầu các trường (`code`, `orderId`, `condition`…) mà luồng khách
+   (`after-sales`) không tạo. Danh sách vẫn đọc được nhưng thao tác ghi có thể lỗi `500 INTERNAL_ERROR`
+   do validation, thay vì lỗi nghiệp vụ 4xx.
+10. `PRODUCT_REPLACED` trong bảo hành không cập nhật tồn kho/phiếu bảo hành.
+
+### 10.3. Hiệu năng và dữ liệu
+
+11. Dashboard và báo cáo **tải toàn bộ đơn** trong kỳ vào RAM để đếm.
+12. Shipping/delivery-failed tải tối đa 100 đơn rồi gọi `GET /orders/:id` từng đơn (N+1), không phân trang.
+13. Danh sách đổi trả/bảo hành/khách hàng có N+1; một bản ghi thiếu dữ liệu có thể làm hỏng cả trang.
+14. `GET /admin/payments/exceptions` trả toàn bộ, không phân trang.
+15. `from`/`to` sai định dạng trong danh sách đơn bị bỏ qua âm thầm.
+
+### 10.4. Bảo mật và nhật ký
+
+16. `checkOrigin` bỏ qua khi request không có header `Origin`.
+17. Không rate-limit `refresh`/`logout`; không audit đăng nhập/đăng xuất/chat/khách hàng/upload.
+18. Chat admin không kiểm tra người đang giữ phiên: mọi `ORDER_ADMIN`/`SUPER_ADMIN` đều gửi tin/đóng được.
+19. `mustChangePassword` bị chặn ở mọi endpoint do điều kiện `req.path` sai khi router lồng; chưa có
+    endpoint đổi mật khẩu admin riêng.
+
+### 10.5. Giao diện
+
+20. Ô tìm kiếm ở dashboard không nối API; đơn gần đây luôn mở `/admin/orders`.
+21. "In phiếu bàn giao", "Đồng bộ vận chuyển", gửi ảnh trong chat chỉ hiện toast, chưa gọi API.
+22. Icon `shield`, `check-circle`, `x-circle` chưa có trong bộ icon, rơi về icon mặc định.
 
 ---
 
