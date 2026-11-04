@@ -18,14 +18,13 @@
 }
 
 .check {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border: 1.5px solid var(--color-success);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--color-success) 6%, var(--color-white));
-  color: var(--color-success);
+  width: 88px;
+  height: 88px;
+  fill: none;
+  stroke: #00c443;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .title {
@@ -107,8 +106,8 @@
 
 @media (max-width: 640px) {
   .check {
-    width: 64px;
-    height: 64px;
+    width: 76px;
+    height: 76px;
   }
   .page {
     padding-block: 40px 80px;

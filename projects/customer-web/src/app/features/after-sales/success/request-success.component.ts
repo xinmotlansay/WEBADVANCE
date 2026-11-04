@@ -5,12 +5,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { ReturnExchangeService, WarrantyService } from 'shared';
 import { CompactHeaderComponent } from '../../../layout/compact-header/compact-header.component';
-import { IconComponent } from '../../../shared/ui/icons/icon.component';
 
 /** Gửi yêu cầu bảo hành / đổi trả thành công, kèm lối sang trang theo dõi. */
 @Component({
   selector: 'app-request-success',
-  imports: [RouterLink, DatePipe, CompactHeaderComponent, IconComponent],
+  imports: [RouterLink, DatePipe, CompactHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-success.component.html',
   styleUrl: './request-success.component.css',
