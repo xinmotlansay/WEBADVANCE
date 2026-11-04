@@ -210,12 +210,13 @@ const PERIODS: Array<{ value: ReportPeriod; label: string }> = [
               }
             </div>
 
+            @let r = report();
             @if (reportError()) {
               <p class="cv-small cv-muted">
                 {{ reportError() }}
                 <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary" (click)="loadReport()">Thử lại</button>
               </p>
-            } @else if (report(); as r) {
+            } @else if (r) {
               <div class="cv-kpi" aria-label="Chỉ số báo cáo" [class.is-loading]="reportLoading()">
                 <div class="cv-kpi__cell">
                   <p class="cv-kpi__label">Doanh thu</p>
