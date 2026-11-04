@@ -88,6 +88,10 @@ export interface TimelineEntry {
 }
 export interface WarrantyRequestDoc {
   _id: Types.ObjectId;
+  /** Mã yêu cầu (BH-...), có chỉ mục unique dùng chung với màn Order Admin. */
+  code?: string;
+  orderId?: Types.ObjectId;
+  orderItemId?: Types.ObjectId;
   userId: Types.ObjectId;
   warrantyCardId: Types.ObjectId;
   defectType?: string;
@@ -115,6 +119,9 @@ export const WarrantyRequestModel = model<WarrantyRequestDoc>(
   'warranty_requests',
   new Schema<WarrantyRequestDoc>(
     {
+      code: String,
+      orderId: Schema.Types.ObjectId,
+      orderItemId: Schema.Types.ObjectId,
       userId: { type: Schema.Types.ObjectId, required: true, index: true },
       warrantyCardId: { type: Schema.Types.ObjectId, required: true },
       defectType: String,
@@ -135,6 +142,8 @@ export const WarrantyRequestModel = model<WarrantyRequestDoc>(
 );
 export interface ReturnRequestDoc {
   _id: Types.ObjectId;
+  /** Mã yêu cầu (RT-...), có chỉ mục unique dùng chung với màn Order Admin. */
+  code?: string;
   userId: Types.ObjectId;
   orderId: Types.ObjectId;
   orderItemId: Types.ObjectId;
@@ -159,6 +168,7 @@ export const ReturnRequestModel = model<ReturnRequestDoc>(
   'return_requests',
   new Schema<ReturnRequestDoc>(
     {
+      code: String,
       userId: { type: Schema.Types.ObjectId, required: true, index: true },
       orderId: Schema.Types.ObjectId,
       orderItemId: Schema.Types.ObjectId,

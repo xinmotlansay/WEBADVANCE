@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { nextRequestCode } from './request-code.js';
 import { AppError } from '../../utils/app-error.js';
 import {
   OrderModel,
@@ -104,6 +105,9 @@ export async function createWarranty(userId: Types.ObjectId, body: z.infer<typeo
   await validateEvidence(userId, body.evidence, 'WARRANTY_EVIDENCE');
   return WarrantyRequestModel.create({
     ...body,
+    code: await nextRequestCode('BH', WarrantyRequestModel as never),
+    orderId: card.orderId,
+    orderItemId: card.orderItemId,
     userId,
     status: 'PENDING_CONFIRMATION',
     requestedAt: new Date(),

@@ -1,4 +1,5 @@
 import { thumbnailsByVariant, variantLabel } from './item-display.js';
+import { nextRequestCode } from './request-code.js';
 import mongoose, { type Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
 import {
@@ -151,6 +152,7 @@ export async function createReturn(userId: Types.ObjectId, body: z.infer<typeof 
       [
         {
           ...input,
+          code: await nextRequestCode('RT', ReturnRequestModel as never),
           userId,
           status: 'PENDING',
           replacement,
