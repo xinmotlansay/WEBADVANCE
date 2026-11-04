@@ -73,7 +73,8 @@ const warrantyRequestSchema = new Schema<WarrantyRequestDoc>(
     orderItemId: { type: Schema.Types.ObjectId, required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     defectDescription: { type: String, required: true },
-    condition: { type: String, required: true },
+    // Yêu cầu do khách gửi chỉ có loại lỗi và mô tả, không có trường này.
+    condition: { type: String, default: '' },
     evidence: { type: [String], default: [] },
     status: {
       type: String,
