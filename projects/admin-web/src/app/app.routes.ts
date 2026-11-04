@@ -1,5 +1,7 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { RoleName } from 'shared';
+import { AdminAuthService } from './core/auth/admin-auth.service';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
@@ -25,6 +27,13 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
+        // Order Admin không có trang chủ riêng: vào thẳng Tổng quan đơn hàng.
+        canActivate: [
+          () =>
+            inject(AdminAuthService).user()?.roleName === RoleName.ORDER_ADMIN
+              ? inject(Router).createUrlTree(['/admin/dashboard'])
+              : true,
+        ],
         loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
       },
       {
