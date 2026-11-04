@@ -2,38 +2,34 @@
 
 <section class="page">
   <div class="container">
-    <div class="card">
-      <span class="check" aria-hidden="true"><app-icon name="lucide:check" [size]="28" /></span>
-      <p class="eyebrow">{{ isReturn ? 'Đổi trả' : 'Bảo hành' }}</p>
-      <h1 class="title">Đã gửi yêu cầu thành công</h1>
-      <p class="lead">CaraVeso sẽ xem xét và phản hồi bạn sớm nhất có thể.</p>
+    <div class="done">
+      <span class="check" aria-hidden="true"><app-icon name="lucide:check" [size]="52" /></span>
+      <h1 class="title">Yêu cầu {{ isReturn ? 'đổi trả' : 'bảo hành' }} thành công</h1>
 
       @if (request(); as r) {
-        <dl class="rows">
-          <div>
-            <dt>Sản phẩm</dt>
-            <dd class="strong">{{ r.productName }}</dd>
-          </div>
-          <div>
-            <dt>Ngày gửi</dt>
-            <dd>{{ r.requestedAt | date: 'dd/MM/yyyy · HH:mm' : '+0700' }}</dd>
-          </div>
-          <div>
-            <dt>Liên hệ</dt>
-            <dd>
-              {{ r.contact.name }} · {{ r.contact.phone }}
-              @if (r.contact.address) {
-                <span class="sub">{{ r.contact.address }}</span>
-              }
-            </dd>
-          </div>
-        </dl>
+        @if (r.code) {
+          <p class="code">
+            Mã {{ isReturn ? 'đổi trả' : 'bảo hành' }}:
+            <a class="code__value" routerLink="/account/after-sales" [queryParams]="{ kind: isReturn ? 'return' : 'warranty', request: id }">#{{ r.code }}</a>
+          </p>
+        }
+        <p class="meta">
+          {{ r.productName }} · gửi lúc {{ r.requestedAt | date: 'HH:mm dd/MM/yyyy' : '+0700' }}
+        </p>
       }
 
-      <div class="actions">
-        <a class="action action--primary" routerLink="/account/after-sales" [queryParams]="{ kind: isReturn ? 'return' : 'warranty', request: id }">Theo dõi yêu cầu</a>
-        <a class="action" routerLink="/">Tiếp tục mua sắm</a>
-      </div>
+      <p class="text">
+        Cảm ơn bạn đã gửi yêu cầu {{ isReturn ? 'đổi trả' : 'bảo hành' }} tại CaraVeso. Chúng tôi đã tiếp nhận thông tin của bạn
+        và sẽ cập nhật tiến trình xử lý trong mục theo dõi yêu cầu. Nếu cần hỗ trợ gấp, vui lòng liên hệ đội ngũ CaraVeso để được
+        giúp đỡ kịp thời.
+      </p>
+      <p class="text">
+        Bạn có thể kiểm tra trạng thái xử lý {{ isReturn ? 'đổi trả' : 'bảo hành' }} trong
+        <a class="link" routerLink="/account/after-sales" [queryParams]="{ kind: isReturn ? 'return' : 'warranty', request: id }">Dịch vụ hậu mãi</a>
+        sau khi cập nhật.
+      </p>
+
+      <a class="cta" routerLink="/">Tiếp tục mua hàng</a>
     </div>
   </div>
 </section>

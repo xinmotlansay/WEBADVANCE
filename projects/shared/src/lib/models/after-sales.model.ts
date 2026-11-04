@@ -33,6 +33,8 @@ export interface WarrantySubmission {
 }
 export interface AfterSalesRequest {
   id: string;
+  /** Mã yêu cầu hiển thị cho khách (BH-... hoặc RT-...). */
+  code?: string;
   status: string;
   productName: string;
   requestedAt: string;

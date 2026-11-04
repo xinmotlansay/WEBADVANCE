@@ -171,6 +171,7 @@ export async function returnRequestDto(request: ReturnRequestDoc) {
   // Explicit public DTO prevents internal bank data and admin notes from leaking.
   return {
     id: request._id.toString(),
+    code: request.code ?? '',
     orderId: request.orderId.toString(),
     orderItemId: request.orderItemId.toString(),
     productName:

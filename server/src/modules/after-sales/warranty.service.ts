@@ -119,6 +119,7 @@ export async function warrantyRequestDto(request: WarrantyRequestDoc) {
   const order = card ? await OrderModel.findById(card.orderId).lean() : null;
   return {
     id: request._id.toString(),
+    code: request.code ?? '',
     warrantyCardId: request.warrantyCardId.toString(),
     productName:
       order?.items.find((i) => i._id.equals(card?.orderItemId))?.snapshot.name ?? 'Sản phẩm',
