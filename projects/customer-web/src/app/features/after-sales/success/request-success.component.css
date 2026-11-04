@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 480px;
+  max-width: 640px;
   margin-inline: auto;
   text-align: center;
 }
@@ -60,7 +60,7 @@
 
 .text {
   margin: 24px 0 0;
-  max-width: 420px;
+  max-width: 580px;
   font-size: var(--font-size-sm);
   line-height: 1.75;
   color: var(--color-muted);
