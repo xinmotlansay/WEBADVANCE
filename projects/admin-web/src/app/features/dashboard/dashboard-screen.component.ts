@@ -4,13 +4,17 @@ import { RouterLink } from '@angular/router';
 import {
   ORDER_STATUS_LABEL,
   AdminOrderStatus as OrderStatus,
+  REPORT_PERIOD_LABEL,
   type LateCompensationRequest,
   type OrderDashboardSummary,
+  type OrderReport,
+  type ReportPeriod,
 } from 'shared';
-import { AdminDashboardApi } from '../../core/api/admin-dashboard.api';
+import { AdminDashboardApi, AdminReportApi } from '../../core/api/admin-dashboard.api';
+import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, PercentVnPipe, ShortVndPipe, VndPipe } from '../../core/format/format.pipes';
 import { NotificationService } from '../../core/ui/notification.service';
-import { BarListComponent, RatioBarComponent } from '../../shared/ui/charts/charts.component';
+import { BarChartComponent, BarListComponent, RatioBarComponent } from '../../shared/ui/charts/charts.component';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header/page-header.component';
@@ -29,6 +33,13 @@ const RATIO_ORDER: OrderStatus[] = [
   OrderStatus.CANCELLED,
 ];
 
+const PERIODS: Array<{ value: ReportPeriod; label: string }> = [
+  { value: 'today', label: 'Hôm nay' },
+  { value: '7d', label: '7 ngày' },
+  { value: '30d', label: '30 ngày' },
+  { value: 'month', label: 'Tháng này' },
+];
+
 @Component({
   selector: 'app-dashboard-screen',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +49,7 @@ const RATIO_ORDER: OrderStatus[] = [
     IconComponent,
     RatioBarComponent,
     BarListComponent,
+    BarChartComponent,
     StatusBadgeComponent,
     ErrorStateComponent,
     TableSkeletonComponent,
@@ -51,7 +63,7 @@ const RATIO_ORDER: OrderStatus[] = [
     <div class="cv-page">
       <app-page-header
         title="Tổng quan đơn hàng"
-        subtitle="Theo dõi đơn mới, doanh thu và các việc cần xử lý trong ngày."
+        subtitle="Đơn mới, việc cần xử lý, doanh thu và báo cáo theo kỳ trong một màn hình."
         searchId="dashboard-search"
         searchPlaceholder="Tìm mã đơn, khách hàng…"
         [searchValue]="keyword()"
@@ -61,6 +73,14 @@ const RATIO_ORDER: OrderStatus[] = [
         <button type="button" class="cv-btn cv-btn--secondary" (click)="load()" [disabled]="loading()">
           <app-icon name="refresh-cw" size="sm" />
           Làm mới
+        </button>
+        <button type="button" class="cv-btn cv-btn--secondary" (click)="print()">
+          <app-icon name="printer" size="sm" />
+          In báo cáo
+        </button>
+        <button type="button" class="cv-btn cv-btn--secondary" (click)="exportCsv()" [disabled]="!report()">
+          <app-icon name="download" size="sm" />
+          Xuất CSV
         </button>
         <a class="cv-btn cv-btn--primary" routerLink="/admin/orders">
           <app-icon name="shopping-bag" size="sm" />
@@ -166,55 +186,127 @@ const RATIO_ORDER: OrderStatus[] = [
             </div>
           </section>
 
-          <div class="cv-grid-2">
-            <section class="cv-panel" aria-labelledby="late-title">
-              <div class="cv-panel__head">
-                <h2 class="cv-panel__title" id="late-title">Voucher bù giao trễ</h2>
-                <span class="cv-tag">{{ pendingCompensations().length }} chờ duyệt</span>
-              </div>
+          <section class="cv-panel" aria-labelledby="report-title">
+            <div class="cv-panel__head">
+              <h2 class="cv-panel__title" id="report-title">Báo cáo theo kỳ</h2>
+              <span class="cv-small cv-muted">
+                @if (report(); as r) {
+                  {{ r.range.from | dateVn }} – {{ r.range.to | dateVn }}
+                }
+              </span>
+            </div>
 
-              @if (pendingCompensations().length === 0) {
-                <p class="cv-small cv-muted">Không còn yêu cầu nào chờ duyệt.</p>
-              } @else {
-                <ul class="late-list">
-                  @for (item of pendingCompensations(); track item.id) {
-                    <li class="late-item">
-                      <div style="min-width: 0">
-                        <p class="late-item__code">#{{ item.orderCode }} · {{ item.customerName }}</p>
-                        <p class="cv-small cv-muted">
-                          Trễ {{ item.daysLate }} ngày · voucher {{ item.voucherValue | vnd }}
-                        </p>
-                      </div>
-                      <div class="late-item__actions">
-                        <button
-                          type="button"
-                          class="cv-btn cv-btn--sm cv-btn--secondary"
-                          (click)="openReject(item)"
-                        >
-                          Từ chối
-                        </button>
-                        <button
-                          type="button"
-                          class="cv-btn cv-btn--sm cv-btn--accent"
-                          [disabled]="busyId() === item.id"
-                          (click)="approve(item)"
-                        >
-                          Duyệt
-                        </button>
-                      </div>
-                    </li>
-                  }
-                </ul>
+            <div class="cv-filter-row" role="group" aria-label="Khoảng thời gian báo cáo">
+              @for (period of periods; track period.value) {
+                <button
+                  type="button"
+                  class="cv-chip"
+                  [class.cv-chip--active]="activePeriod() === period.value"
+                  [attr.aria-pressed]="activePeriod() === period.value"
+                  (click)="selectPeriod(period.value)"
+                >
+                  {{ period.label }}
+                </button>
               }
-            </section>
+            </div>
 
-            <section class="cv-panel" aria-labelledby="top-title">
-              <div class="cv-panel__head">
-                <h2 class="cv-panel__title" id="top-title">Top sản phẩm theo doanh thu</h2>
+            @if (reportError()) {
+              <p class="cv-small cv-muted">
+                {{ reportError() }}
+                <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary" (click)="loadReport()">Thử lại</button>
+              </p>
+            } @else if (report(); as r) {
+              <div class="cv-kpi" aria-label="Chỉ số báo cáo" [class.is-loading]="reportLoading()">
+                <div class="cv-kpi__cell">
+                  <p class="cv-kpi__label">Doanh thu</p>
+                  <p class="cv-kpi__value">{{ r.totalRevenue | shortVnd }}</p>
+                  <p class="cv-kpi__delta cv-kpi__delta--up">Đơn đã giao thành công</p>
+                </div>
+                <div class="cv-kpi__cell">
+                  <p class="cv-kpi__label">Đơn trong kỳ</p>
+                  <p class="cv-kpi__value">{{ r.totalOrders }}</p>
+                  <p class="cv-kpi__delta">{{ r.range.label }}</p>
+                </div>
+                <div class="cv-kpi__cell">
+                  <p class="cv-kpi__label">Giá trị đơn TB</p>
+                  <p class="cv-kpi__value">{{ r.averageOrderValue | shortVnd }}</p>
+                  <p class="cv-kpi__delta">Trên đơn đã giao</p>
+                </div>
+                <div class="cv-kpi__cell">
+                  <p class="cv-kpi__label">Tỷ lệ hủy</p>
+                  <p class="cv-kpi__value">{{ r.cancelRate | percentVn }}</p>
+                  <p class="cv-kpi__delta" [class.cv-kpi__delta--down]="r.cancelRate > 5">Mục tiêu dưới 5%</p>
+                </div>
+                <div class="cv-kpi__cell">
+                  <p class="cv-kpi__label">Tỷ lệ đổi/trả</p>
+                  <p class="cv-kpi__value">{{ r.returnRate | percentVn }}</p>
+                  <p class="cv-kpi__delta">Trên tổng đơn trong kỳ</p>
+                </div>
               </div>
-              <app-bar-list [items]="topProducts()" />
-            </section>
-          </div>
+
+              <div class="cv-grid-2" style="margin-top: 16px">
+                <div>
+                  <div class="cv-panel__head">
+                    <h3 class="cv-panel__title">Doanh thu theo tháng</h3>
+                    <span class="cv-tag">VND</span>
+                  </div>
+                  <app-bar-chart label="" unit="VND" [data]="monthBars()" />
+                </div>
+                <div>
+                  <div class="cv-panel__head">
+                    <h3 class="cv-panel__title">Top sản phẩm theo doanh thu</h3>
+                  </div>
+                  <app-bar-list [items]="r.topProducts" />
+                </div>
+              </div>
+              <p class="cv-small cv-muted" style="margin-top: 12px">
+                Doanh thu chỉ tính đơn đã giao thành công. Tỷ lệ hủy = đơn hủy / tổng đơn trong kỳ. Báo cáo không chứa thông tin cá nhân của khách.
+              </p>
+            } @else {
+              <app-table-skeleton [rows]="[1, 2, 3]" />
+            }
+          </section>
+
+          <section class="cv-panel" aria-labelledby="late-title">
+            <div class="cv-panel__head">
+              <h2 class="cv-panel__title" id="late-title">Voucher bù giao trễ</h2>
+              <span class="cv-tag">{{ pendingCompensations().length }} chờ duyệt</span>
+            </div>
+
+            @if (pendingCompensations().length === 0) {
+              <p class="cv-small cv-muted">Không còn yêu cầu nào chờ duyệt.</p>
+            } @else {
+              <ul class="late-list">
+                @for (item of pendingCompensations(); track item.id) {
+                  <li class="late-item">
+                    <div style="min-width: 0">
+                      <p class="late-item__code">#{{ item.orderCode }} · {{ item.customerName }}</p>
+                      <p class="cv-small cv-muted">
+                        Trễ {{ item.daysLate }} ngày · voucher {{ item.voucherValue | vnd }}
+                      </p>
+                    </div>
+                    <div class="late-item__actions">
+                      <button
+                        type="button"
+                        class="cv-btn cv-btn--sm cv-btn--secondary"
+                        (click)="openReject(item)"
+                      >
+                        Từ chối
+                      </button>
+                      <button
+                        type="button"
+                        class="cv-btn cv-btn--sm cv-btn--accent"
+                        [disabled]="busyId() === item.id"
+                        (click)="approve(item)"
+                      >
+                        Duyệt
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
         </div>
         }
       }
@@ -411,6 +503,7 @@ const RATIO_ORDER: OrderStatus[] = [
 })
 export class DashboardScreenComponent {
   private readonly api = inject(AdminDashboardApi);
+  private readonly reportApi = inject(AdminReportApi);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -431,7 +524,18 @@ export class DashboardScreenComponent {
     return data?.totalOrders ? (data.countsByStatus.DELIVERED / data.totalOrders) * 100 : 0;
   });
 
-  readonly topProducts = computed(() => this.summary()?.topProducts ?? []);
+  readonly periods = PERIODS;
+  readonly activePeriod = signal<ReportPeriod>('30d');
+  readonly report = signal<OrderReport | null>(null);
+  readonly reportLoading = signal(true);
+  readonly reportError = signal('');
+  readonly monthBars = computed(() =>
+    (this.report()?.byMonth ?? []).map((item, index, all) => ({
+      label: item.label,
+      value: item.revenue,
+      current: index === all.length - 1,
+    })),
+  );
   readonly recentOrders = computed(() =>
     (this.summary()?.recentOrders ?? []).map(
       (order) => `#${order.orderCode} · ${ORDER_STATUS_LABEL[order.status]}`,
@@ -440,11 +544,40 @@ export class DashboardScreenComponent {
 
   constructor() {
     this.load();
+    this.loadReport();
+  }
+
+  selectPeriod(period: ReportPeriod): void {
+    this.activePeriod.set(period);
+    this.loadReport();
+  }
+
+  loadReport(): void {
+    this.reportLoading.set(true);
+    this.reportError.set('');
+    this.reportApi
+      .get(this.activePeriod())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (report) => {
+          this.report.set(report);
+          this.reportLoading.set(false);
+        },
+        error: () => {
+          this.reportError.set('Không tải được báo cáo theo kỳ.');
+          this.reportLoading.set(false);
+        },
+      });
+  }
+
+  print(): void {
+    window.print();
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set('');
+    if (this.report()) this.loadReport();
 
     this.api
       .summary()
@@ -514,5 +647,57 @@ export class DashboardScreenComponent {
           this.notifications.show('Không từ chối được voucher, vui lòng thử lại.', 'error');
         },
       });
+  }
+
+  exportCsv(): void {
+    const report = this.report();
+    if (!report) {
+      this.notifications.show('Chưa có dữ liệu báo cáo để xuất.', 'error');
+      return;
+    }
+
+    const rows = [
+      { section: 'Tổng quan', name: 'Thời gian', value: report.range.label },
+      { section: 'Tổng quan', name: 'Tổng đơn', value: report.totalOrders },
+      { section: 'Tổng quan', name: 'Doanh thu', value: report.totalRevenue },
+      { section: 'Tổng quan', name: 'Giá trị đơn trung bình', value: report.averageOrderValue },
+      { section: 'Tổng quan', name: 'Tỷ lệ hủy', value: `${report.cancelRate}%` },
+      { section: 'Tổng quan', name: 'Tỷ lệ đổi trả', value: `${report.returnRate}%` },
+      {
+        section: 'Tổng quan',
+        name: 'Đơn quá hạn xác nhận',
+        value: report.overdueConfirmationCount,
+      },
+      ...Object.entries(report.byStatus).map(([status, count]) => ({
+        section: 'Theo trạng thái',
+        name: ORDER_STATUS_LABEL[status as OrderStatus],
+        value: count,
+      })),
+      ...report.byMonth.map((item) => ({
+        section: 'Doanh thu theo tháng',
+        name: item.label,
+        value: item.revenue,
+      })),
+      ...report.topProducts.map((item) => ({
+        section: 'Sản phẩm bán chạy',
+        name: item.name,
+        value: item.value,
+      })),
+    ];
+    const downloaded = downloadCsv(
+      `bao-cao-don-hang-${this.activePeriod()}-${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        { label: 'Nhóm', value: (row) => row.section },
+        { label: 'Chỉ số', value: (row) => row.name },
+        { label: 'Giá trị', value: (row) => row.value },
+      ],
+      rows,
+    );
+    this.notifications.show(
+      downloaded
+        ? `Đã tải xuống báo cáo ${REPORT_PERIOD_LABEL[this.activePeriod()]}.`
+        : 'Không có dữ liệu báo cáo để xuất.',
+      downloaded ? 'info' : 'error',
+    );
   }
 }

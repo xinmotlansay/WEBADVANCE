@@ -35,7 +35,6 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Khuyến mãi & voucher', icon: 'tag', path: null },
     { label: 'Banner & nội dung', icon: 'image', path: null },
     { label: 'Collection & cảm hứng', icon: 'file', path: null },
-    { label: 'Báo cáo đơn hàng', icon: 'chart', path: '/admin/reports/orders' },
     { label: 'Quản lý Admin', icon: 'userCog', path: null },
     { label: 'Nhật ký & cấu hình', icon: 'log', path: null },
   ],
@@ -57,7 +56,7 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Báo cáo Marketing', icon: 'chart', path: null },
   ],
   [RoleName.ORDER_ADMIN]: [
-    { label: 'Dashboard đơn hàng', icon: 'home', path: '/admin/dashboard' },
+    { label: 'Tổng quan & báo cáo', icon: 'home', path: '/admin/dashboard' },
     { label: 'Đơn hàng', icon: 'bag', path: '/admin/orders' },
     { label: 'Thanh toán & đối soát', icon: 'card', path: '/admin/payments' },
     { label: 'Vận chuyển & lịch giao', icon: 'truck', path: '/admin/shipping' },
@@ -66,6 +65,5 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Bảo hành', icon: 'shield', path: '/admin/warranty' },
     { label: 'Chat CSKH', icon: 'chat', path: '/admin/chat' },
     { label: 'Khách hàng (xem)', icon: 'users', path: '/admin/customers' },
-    { label: 'Báo cáo đơn hàng', icon: 'chart', path: '/admin/reports/orders' },
   ],
 };

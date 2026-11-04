@@ -128,12 +128,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/customers/customers-screen.component').then((m) => m.CustomersScreenComponent),
       },
-      {
-        path: 'admin/reports/orders',
-        canActivate: [orderRoles],
-        loadComponent: () =>
-          import('./features/reports/order-report-screen.component').then((m) => m.OrderReportScreenComponent),
-      },
+      { path: 'admin/reports/orders', redirectTo: 'admin/dashboard' },
     ],
   },
   { path: '**', redirectTo: '' },
