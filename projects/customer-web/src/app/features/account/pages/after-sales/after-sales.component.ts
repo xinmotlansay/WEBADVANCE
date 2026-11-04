@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CatalogApiService, ReturnExchangeService, WarrantyService } from 'shared';
+import {
+  CatalogApiService,
+  ReturnExchangeService,
+  WARRANTY_INSPECTION_LABEL,
+  WARRANTY_RESOLUTION_LABEL,
+  WarrantyService,
+} from 'shared';
 import { catchError, combineLatest, map, of, startWith, Subject, switchMap } from 'rxjs';
 import { apiErrorMessage } from '../../../../core/api-error';
 import { VndPipe } from '../../../../shared/pipes/vnd.pipe';
@@ -29,6 +35,14 @@ export class AfterSalesComponent {
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
 
   protected readonly labels = STATUS_LABELS;
+
+  protected inspectionLabel(value: string): string {
+    return (WARRANTY_INSPECTION_LABEL as Record<string, string>)[value] ?? value;
+  }
+
+  protected resolutionLabel(value: string): string {
+    return (WARRANTY_RESOLUTION_LABEL as Record<string, string>)[value] ?? value;
+  }
   /** Địa chỉ cửa hàng (phía nhận/gửi hàng còn lại của yêu cầu). */
   protected readonly store = toSignal(
     this.catalogApi.getPublicConfig().pipe(

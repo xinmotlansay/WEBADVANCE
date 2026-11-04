@@ -48,6 +48,19 @@ export function timeline(request: {
       : []),
   ];
 }
+/**
+ * Tiến trình cho khách: ưu tiên lịch sử do Order Admin ghi (có đủ từng bước và ghi chú), thiếu thì dùng
+ * `timeline(...)` suy ra từ trạng thái hiện tại.
+ */
+function customerTimeline(request: WarrantyRequestDoc) {
+  const history = request.history ?? [];
+  if (!history.length) return timeline(request);
+  const first = { status: 'PENDING_CONFIRMATION', at: request.requestedAt };
+  return [
+    ...(history.some((entry) => entry.status === 'PENDING_CONFIRMATION') ? [] : [first]),
+    ...history.map((entry) => ({ status: entry.status, at: entry.at, ...(entry.note ? { note: entry.note } : {}) })),
+  ];
+}
 export async function warrantyCards(userId: Types.ObjectId, query?: string, status?: string) {
   const orders = await OrderModel.find({ userId }).lean();
   const byId = new Map(orders.map((o) => [o._id.toString(), o]));
@@ -138,6 +151,8 @@ export async function warrantyRequestDto(request: WarrantyRequestDoc) {
     rejectReason: request.rejectReason,
     inspectionResult: request.inspectionResult,
     resolution: request.resolution,
-    timeline: timeline(request),
+    homeServiceSchedule: request.homeServiceSchedule ?? null,
+    trackingCode: request.returnShipment?.trackingCode ?? request.customerShipment?.trackingCode ?? null,
+    timeline: customerTimeline(request),
   };
 }

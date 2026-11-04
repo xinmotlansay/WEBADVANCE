@@ -108,6 +108,9 @@ export interface WarrantyRequestDoc {
   timeline: TimelineEntry[];
   /** Lịch sử xử lý ghi bởi Order Admin. */
   history?: { at: Date; status: string; note?: string | null }[];
+  homeServiceSchedule?: Date | null;
+  customerShipment?: { trackingCode?: string | null };
+  returnShipment?: { trackingCode?: string | null };
 }
 const contactSchema = new Schema<Contact>(
   { name: String, phone: String, email: String, address: String },
@@ -140,6 +143,9 @@ export const WarrantyRequestModel = model<WarrantyRequestDoc>(
       timeline: [timelineSchema],
       // Lịch sử xử lý do Order Admin ghi (cùng collection với màn Bảo hành bên admin).
       history: [{ _id: false, at: Date, status: String, note: String }],
+      homeServiceSchedule: Date,
+      customerShipment: { trackingCode: String },
+      returnShipment: { trackingCode: String },
     },
     { timestamps: true },
   ),

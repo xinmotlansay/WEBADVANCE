@@ -40,7 +40,22 @@
           }
         </dl>
         @if (request.rejectReason) { <p class="api-error">Lý do từ chối: {{ request.rejectReason }}</p> }
-        @if (request.inspectionResult) { <p>Kết quả kiểm tra: {{ request.inspectionResult }}</p> }
+        @if (request.homeServiceSchedule || request.trackingCode || request.inspectionResult || request.resolution) {
+          <dl class="result">
+            @if (request.homeServiceSchedule) {
+              <div><dt>Lịch kiểm tra tại nhà</dt><dd>{{ request.homeServiceSchedule | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
+            }
+            @if (request.trackingCode) {
+              <div><dt>Mã vận đơn gửi về kho</dt><dd>{{ request.trackingCode }}</dd></div>
+            }
+            @if (request.inspectionResult) {
+              <div><dt>Kết quả kiểm tra</dt><dd>{{ inspectionLabel(request.inspectionResult) }}</dd></div>
+            }
+            @if (request.resolution) {
+              <div><dt>Hướng xử lý</dt><dd>{{ resolutionLabel(request.resolution) }}</dd></div>
+            }
+          </dl>
+        }
         <div class="evidence-list">
           @for (url of request.evidence; track url) {
             @if (isVideo(url)) {

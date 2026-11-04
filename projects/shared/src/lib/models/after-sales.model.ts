@@ -44,6 +44,8 @@ export interface AfterSalesRequest {
   rejectReason?: string;
   inspectionResult?: string;
   resolution?: string;
+  homeServiceSchedule?: string | null;
+  trackingCode?: string | null;
   defectDescription?: string;
   description?: string;
   canCancel?: boolean;
