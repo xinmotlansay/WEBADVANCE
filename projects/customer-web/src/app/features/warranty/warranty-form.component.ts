@@ -9,6 +9,7 @@ import {
   OnInit,
   output,
 } from '@angular/core';
+import { invalidFieldMessages } from '../after-sales/form-problems';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -40,6 +41,7 @@ export class WarrantyFormComponent implements OnInit {
   protected readonly evidence = signal<string[]>([]);
   protected readonly uploading = signal(false);
   protected readonly loading = signal(false);
+  protected readonly problems = signal<string[]>([]);
   protected readonly error = signal('');
   protected readonly defectTypes = [
     'Lỗi kết cấu khung / chân ghế',
@@ -91,7 +93,10 @@ export class WarrantyFormComponent implements OnInit {
   }
   protected submit(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid || !this.evidence().length || this.loading() || this.uploading()) return;
+    const problems = invalidFieldMessages(this.form);
+    if (!this.evidence().length) problems.push('Tải lên ít nhất một ảnh hoặc video minh chứng.');
+    this.problems.set([...new Set(problems)]);
+    if (problems.length || this.loading() || this.uploading()) return;
     const raw = this.form.getRawValue();
     this.error.set('');
     this.loading.set(true);

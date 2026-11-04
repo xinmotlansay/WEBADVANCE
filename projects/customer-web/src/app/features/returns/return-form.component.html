@@ -197,6 +197,16 @@
             />
           </label>
         </div>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
+        }
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }

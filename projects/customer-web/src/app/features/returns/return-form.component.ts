@@ -9,6 +9,7 @@ import {
   OnInit,
   output,
 } from '@angular/core';
+import { invalidFieldMessages } from '../after-sales/form-problems';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -200,20 +201,22 @@ export class ReturnFormComponent implements OnInit {
   protected hasEligibleItems(): boolean {
     return this.order()?.items.some((i) => i.actions.canReturn) ?? false;
   }
+  protected readonly problems = signal<string[]>([]);
   protected submit(): void {
     this.form.markAllAsTouched();
     this.error.set('');
     if (this.loading() || this.uploading() || this.orderLoading()) return;
     const value = this.form.getRawValue();
-    if (
-      this.form.invalid ||
-      !this.evidence().length ||
-      !this.order()?.items.some((i) => i.id === value.orderItemId && i.actions.canReturn) ||
-      value.quantity > this.maxQuantity()
-    ) {
-      this.error.set(
-        'Chọn sản phẩm đủ điều kiện, số lượng hợp lệ, thêm minh chứng và điền đủ mô tả, thông tin liên hệ.',
-      );
+    this.problems.set([]);
+    const problems = invalidFieldMessages(this.form);
+    if (!this.order()?.items.some((i) => i.id === value.orderItemId && i.actions.canReturn)) {
+      problems.unshift('Chọn sản phẩm còn đủ điều kiện đổi trả.');
+    } else if (value.quantity > this.maxQuantity()) {
+      problems.push(`Số lượng tối đa có thể đổi trả là ${this.maxQuantity()}.`);
+    }
+    if (!this.evidence().length) problems.push('Tải lên ít nhất một ảnh hoặc video minh chứng.');
+    if (problems.length) {
+      this.problems.set([...new Set(problems)]);
       return;
     }
     if (

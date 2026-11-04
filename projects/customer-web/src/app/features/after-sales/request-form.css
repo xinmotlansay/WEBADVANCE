@@ -55,3 +55,5 @@ h3 { margin: 28px 0 0; color: #111; font-size: 18px; font-weight: 600; }
 .pick-body small { color: #6b7280; font-size: 13px; }
 .pick-change { border: 0; background: none; color: var(--color-primary); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 @media (max-width: 767px) { .pick-selected { grid-template-columns: 56px 1fr; } .pick-thumb { width: 56px; height: 56px; } .pick-change { grid-column: 1 / -1; justify-self: start; } }
+.error ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.error p + ul { margin-top: 6px; }

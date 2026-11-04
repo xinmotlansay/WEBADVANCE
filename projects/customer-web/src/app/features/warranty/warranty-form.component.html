@@ -114,11 +114,15 @@
             <a routerLink="/policies/warranty" target="_blank">chính sách bảo hành</a> của CaraVeso
           </span>
         </label>
-        @if (form.touched && (form.invalid || !evidence().length)) {
-          <p class="error" role="alert">
-            Vui lòng điền đủ thông tin bắt buộc (mô tả tối thiểu 10 ký tự), tải ít nhất một minh chứng và
-            đồng ý chính sách bảo hành.
-          </p>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
         }
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
