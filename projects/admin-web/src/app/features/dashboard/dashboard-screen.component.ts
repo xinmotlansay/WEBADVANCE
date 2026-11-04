@@ -95,7 +95,7 @@ const PERIODS: Array<{ value: ReportPeriod; label: string }> = [
       } @else if (summary()) {
         @if (summary(); as data) {
         <div class="cv-stack">
-          <section class="cv-kpi" aria-label="Chỉ số đơn hàng">
+          <section class="cv-kpi cv-kpi--3" aria-label="Chỉ số đơn hàng">
             <div class="cv-kpi__cell">
               <div class="cv-kpi__icon"><app-icon name="package" size="sm" /></div>
               <p class="cv-kpi__label">Đơn mới hôm nay</p>
@@ -115,18 +115,6 @@ const PERIODS: Array<{ value: ReportPeriod; label: string }> = [
               <p class="cv-kpi__label">Đang giao</p>
               <p class="cv-kpi__value">{{ data.countsByStatus.SHIPPING }}</p>
               <p class="cv-kpi__delta">{{ data.countsByStatus.HANDED_OVER }} đơn đã bàn giao</p>
-            </div>
-            <div class="cv-kpi__cell cv-kpi__cell--ok">
-              <div class="cv-kpi__icon"><app-icon name="check-circle" size="sm" /></div>
-              <p class="cv-kpi__label">Giao thành công</p>
-              <p class="cv-kpi__value">{{ data.countsByStatus.DELIVERED }}</p>
-              <p class="cv-kpi__delta">Tỷ lệ đã giao {{ deliveredRate() | percentVn }}</p>
-            </div>
-            <div class="cv-kpi__cell">
-              <div class="cv-kpi__icon"><app-icon name="x-circle" size="sm" /></div>
-              <p class="cv-kpi__label">Đã hủy</p>
-              <p class="cv-kpi__value">{{ data.countsByStatus.CANCELLED }}</p>
-              <p class="cv-kpi__delta">Trong tổng {{ data.totalOrders }} đơn</p>
             </div>
           </section>
 
@@ -520,10 +508,6 @@ export class DashboardScreenComponent {
   readonly pendingCompensations = computed(() =>
     this.compensations().filter((item) => item.status === 'PENDING'),
   );
-  readonly deliveredRate = computed(() => {
-    const data = this.summary();
-    return data?.totalOrders ? (data.countsByStatus.DELIVERED / data.totalOrders) * 100 : 0;
-  });
 
   readonly periods = PERIODS;
   readonly activePeriod = signal<ReportPeriod>('30d');

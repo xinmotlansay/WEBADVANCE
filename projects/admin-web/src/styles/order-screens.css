@@ -143,3 +143,10 @@
   gap: var(--cv-space-4);
 }
 
+
+/* Hàng chỉ số 3 ô (Tổng quan đơn hàng: đơn mới, chờ xác nhận, đang giao) */
+@media (min-width: 768px) {
+  .cv-kpi--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
