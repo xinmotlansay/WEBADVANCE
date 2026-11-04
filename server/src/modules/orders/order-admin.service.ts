@@ -22,6 +22,7 @@ import {
   toSharedOrderStatus,
   type OrderDocument,
 } from './order.model.js';
+import { issueWarrantyCards } from '../warranty/warranty-issue.js';
 import { ShipmentModel } from './shipment.model.js';
 import {
   LateCompensationRequestModel,
@@ -333,6 +334,7 @@ export async function updateOrderStatus(
 
   if (input.status === OrderStatus.DELIVERED) {
     await ensureInvoice(order);
+    await issueWarrantyCards(order);
   }
 
   await writeAuditLog({
@@ -442,6 +444,7 @@ export async function markDelivered(id: string, actor: ActorContext): Promise<Or
   appendHistory(order, OrderStatus.DELIVERED, actor.userId, 'Ghi nhận giao thành công');
   await order.save();
   await ensureInvoice(order);
+  await issueWarrantyCards(order);
 
   await writeAuditLog({
     userId: actor.userId,
