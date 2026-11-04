@@ -20,11 +20,12 @@
 .check {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
+  border: 1.5px solid var(--color-success);
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-white);
+  background: color-mix(in srgb, var(--color-success) 6%, var(--color-white));
+  color: var(--color-success);
 }
 
 .title {
@@ -105,6 +106,10 @@
 }
 
 @media (max-width: 640px) {
+  .check {
+    width: 64px;
+    height: 64px;
+  }
   .page {
     padding-block: 40px 80px;
   }
