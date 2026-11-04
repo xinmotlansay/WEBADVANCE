@@ -38,6 +38,10 @@ export interface ReturnRequestDoc {
     transactionAt?: Date | null;
     completed: boolean;
   };
+  /** Thông tin liên hệ và tài khoản nhận hoàn tiền do khách nhập khi gửi yêu cầu. */
+  contact?: { name?: string; phone?: string; email?: string; address?: string } | null;
+  refundAccount?: { bankName?: string; accountNumber?: string; accountHolder?: string } | null;
+  history: { at: Date; status: string; note?: string | null }[];
   requestedAt: Date;
   approvedAt?: Date | null;
   completedAt?: Date | null;
@@ -58,7 +62,7 @@ const returnRequestSchema = new Schema<ReturnRequestDoc>(
     evidence: { type: [String], default: [] },
     status: {
       type: String,
-      enum: ['PENDING', 'CONFIRMED', 'AWAITING_GOODS', 'PROCESSING', 'COMPLETED', 'REJECTED'],
+      enum: ['PENDING', 'CONFIRMED', 'AWAITING_GOODS', 'PROCESSING', 'COMPLETED', 'REJECTED', 'CANCELLED'],
       default: 'PENDING',
       index: true,
     },
@@ -92,6 +96,12 @@ const returnRequestSchema = new Schema<ReturnRequestDoc>(
       proofImage: { type: String, default: null },
       transactionAt: { type: Date, default: null },
       completed: { type: Boolean, default: false },
+    },
+    contact: { name: String, phone: String, email: String, address: String },
+    refundAccount: { bankName: String, accountNumber: String, accountHolder: String },
+    history: {
+      type: [{ _id: false, at: { type: Date, required: true }, status: { type: String, required: true }, note: { type: String, default: null } }],
+      default: [],
     },
     requestedAt: { type: Date, required: true, index: true },
     approvedAt: { type: Date, default: null },

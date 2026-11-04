@@ -1,4 +1,5 @@
 import { thumbnailsByVariant, variantLabel } from './item-display.js';
+import { emitToAgents } from '../../socket/index.js';
 import { nextRequestCode } from './request-code.js';
 import mongoose, { type Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
@@ -158,12 +159,24 @@ export async function createReturn(userId: Types.ObjectId, body: z.infer<typeof 
           replacement,
           requestedAt: new Date(),
           timeline: [{ status: 'PENDING', at: new Date() }],
+          history: [{ status: 'PENDING', at: new Date(), note: null }],
         },
       ],
       { session },
     );
+    // Báo cho Order Admin đang mở màn Đổi trả để danh sách tự làm mới.
+    emitToAgents('return:created', { id: request._id.toString(), code: request.code });
     return { id: request._id.toString(), status: request.status };
   });
+}
+/** Tiến trình cho khách: dùng lịch sử do Order Admin ghi (đủ từng bước), thiếu thì suy ra từ trạng thái. */
+function customerReturnTimeline(request: ReturnRequestDoc) {
+  const history = request.history ?? [];
+  if (!history.length) return timeline(request, 'PENDING');
+  return [
+    ...(history.some((entry) => entry.status === 'PENDING') ? [] : [{ status: 'PENDING', at: request.requestedAt }]),
+    ...history.map((entry) => ({ status: entry.status, at: entry.at, ...(entry.note ? { note: entry.note } : {}) })),
+  ];
 }
 export async function returnRequestDto(request: ReturnRequestDoc) {
   const order = await OrderModel.findById(request.orderId).lean();
@@ -195,6 +208,24 @@ export async function returnRequestDto(request: ReturnRequestDoc) {
         }
       : undefined,
     canCancel: request.status === 'PENDING',
-    timeline: timeline(request, 'PENDING'),
+    inspectionResult: request.inspectionResult ?? undefined,
+    pickupSchedule: request.pickupSchedule ?? null,
+    trackingCode: request.customerShipment?.trackingCode ?? null,
+    costBearer: request.costBearer ?? null,
+    returnShippingFee: request.returnShippingFee ?? 0,
+    replacementInfo:
+      request.replacement?.productName || request.replacement?.sku
+        ? {
+            productName: request.replacement.productName ?? '',
+            sku: request.replacement.sku ?? '',
+            quantity: request.replacement.quantity ?? 1,
+            trackingCode: request.replacement.trackingCode ?? null,
+            deliveredAt: request.replacement.deliveredAt ?? null,
+          }
+        : null,
+    refundInfo: request.refund?.completed
+      ? { amount: request.refundAmount ?? 0, transactionAt: request.refund.transactionAt ?? null }
+      : null,
+    timeline: customerReturnTimeline(request),
   };
 }

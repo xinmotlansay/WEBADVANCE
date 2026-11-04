@@ -171,7 +171,24 @@ export interface ReturnRequestDoc {
   refundAmount?: number;
   resolution?: string;
   refundAccount?: { bankName: string; accountNumber: string; accountHolder: string };
-  replacement?: { variantId: Types.ObjectId; quantity: number; unitPrice: number };
+  /** Các trường do Order Admin ghi khi xử lý (cùng collection). */
+  history?: { at: Date; status: string; note?: string | null }[];
+  inspectionResult?: string | null;
+  pickupSchedule?: Date | null;
+  costBearer?: string | null;
+  returnShippingFee?: number;
+  customerShipment?: { trackingCode?: string | null };
+  returnShipment?: { trackingCode?: string | null };
+  refund?: { proofImage?: string | null; transactionAt?: Date | null; completed?: boolean };
+  replacement?: {
+    variantId: Types.ObjectId;
+    quantity: number;
+    unitPrice: number;
+    productName?: string | null;
+    sku?: string | null;
+    trackingCode?: string | null;
+    deliveredAt?: Date | null;
+  };
   timeline: TimelineEntry[];
 }
 export const ReturnRequestModel = model<ReturnRequestDoc>(

@@ -17,6 +17,7 @@ export enum ReturnStatus {
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
 }
 
 export const RETURN_STATUS_LABEL: Record<ReturnStatus, string> = {
@@ -26,6 +27,7 @@ export const RETURN_STATUS_LABEL: Record<ReturnStatus, string> = {
   [ReturnStatus.PROCESSING]: 'Đang xử lý',
   [ReturnStatus.COMPLETED]: 'Hoàn tất',
   [ReturnStatus.REJECTED]: 'Từ chối',
+  [ReturnStatus.CANCELLED]: 'Khách đã hủy',
 };
 
 export const RETURN_STATUS_TONE: Record<ReturnStatus, OrderBadgeTone> = {
@@ -35,6 +37,7 @@ export const RETURN_STATUS_TONE: Record<ReturnStatus, OrderBadgeTone> = {
   [ReturnStatus.PROCESSING]: 'info',
   [ReturnStatus.COMPLETED]: 'success',
   [ReturnStatus.REJECTED]: 'danger',
+  [ReturnStatus.CANCELLED]: 'neutral',
 };
 
 export enum ReturnCostBearer {

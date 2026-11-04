@@ -47,6 +47,10 @@ export interface ReturnRequest {
   } | null;
   rejectReason?: string | null;
   note?: string | null;
+  /** Tài khoản nhận hoàn tiền khách nhập (đủ số tài khoản, chỉ dành cho admin). */
+  refundAccount?: { bankName: string; accountNumber: string; accountHolder: string } | null;
+  contact?: { name: string; phone: string; address: string } | null;
+  history: { at: string; status: string; note?: string | null }[];
 }
 
 export interface ReturnListQuery {

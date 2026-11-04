@@ -115,7 +115,10 @@ returnRoutes.post(
       },
       {
         $set: { status: 'CANCELLED' },
-        $push: { timeline: { status: 'CANCELLED', at: new Date() } },
+        $push: {
+          timeline: { status: 'CANCELLED', at: new Date() },
+          history: { status: 'CANCELLED', at: new Date(), note: 'Khách đã hủy yêu cầu' },
+        },
       },
       { new: true },
     ).lean();

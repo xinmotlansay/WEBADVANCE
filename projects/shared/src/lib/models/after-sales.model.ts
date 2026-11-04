@@ -46,6 +46,18 @@ export interface AfterSalesRequest {
   resolution?: string;
   homeServiceSchedule?: string | null;
   trackingCode?: string | null;
+  /** Đổi trả: lịch lấy hàng, bên chịu phí, sản phẩm thay thế, thông tin hoàn tiền do shop ghi. */
+  pickupSchedule?: string | null;
+  costBearer?: 'CARAVESO' | 'CUSTOMER' | null;
+  returnShippingFee?: number;
+  replacementInfo?: {
+    productName: string;
+    sku: string;
+    quantity: number;
+    trackingCode?: string | null;
+    deliveredAt?: string | null;
+  } | null;
+  refundInfo?: { amount: number; transactionAt?: string | null } | null;
   defectDescription?: string;
   description?: string;
   canCancel?: boolean;

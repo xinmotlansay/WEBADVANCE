@@ -5,6 +5,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import {
   CatalogApiService,
   ReturnExchangeService,
+  INSPECTION_RESULT_LABEL,
   WARRANTY_INSPECTION_LABEL,
   WARRANTY_RESOLUTION_LABEL,
   WarrantyService,
@@ -37,7 +38,9 @@ export class AfterSalesComponent {
   protected readonly labels = STATUS_LABELS;
 
   protected inspectionLabel(value: string): string {
-    return (WARRANTY_INSPECTION_LABEL as Record<string, string>)[value] ?? value;
+    return (
+      ({ ...WARRANTY_INSPECTION_LABEL, ...INSPECTION_RESULT_LABEL }) as Record<string, string>
+    )[value] ?? value;
   }
 
   protected resolutionLabel(value: string): string {

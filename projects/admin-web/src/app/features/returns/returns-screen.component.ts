@@ -24,6 +24,7 @@ import { loadAllPages } from '../../core/api/load-all-pages';
 import { parseApiError } from '../../core/auth/auth-error';
 import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, OrderCodePipe, VndPipe } from '../../core/format/format.pipes';
+import { AdminSocketService } from '../../core/socket/admin-socket.service';
 import { NotificationService } from '../../core/ui/notification.service';
 import { ConfirmDialogComponent } from '../../shared/ui/dialogs/confirm-dialog.component';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
@@ -60,6 +61,14 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
   value,
   label,
 }));
+
+const STEPS: Array<{ status: ReturnStatus; label: string }> = [
+  { status: ReturnStatus.PENDING, label: 'Chờ xử lý' },
+  { status: ReturnStatus.CONFIRMED, label: 'Đã xác nhận' },
+  { status: ReturnStatus.AWAITING_GOODS, label: 'Chờ nhận hàng' },
+  { status: ReturnStatus.PROCESSING, label: 'Đang xử lý' },
+  { status: ReturnStatus.COMPLETED, label: 'Hoàn tất' },
+];
 
 @Component({
   selector: 'app-returns-screen',
@@ -243,11 +252,35 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
             <span class="cv-small cv-muted">{{ typeLabel(item) }}</span>
           </div>
 
+          @if (item.status === 'REJECTED' || item.status === 'CANCELLED') {
+            <div class="cv-error" role="alert">
+              {{ item.status === 'CANCELLED' ? 'Khách đã hủy yêu cầu' : 'Đã từ chối' }}{{ item.rejectReason ? ': ' + item.rejectReason : '' }}
+            </div>
+          } @else {
+            <ol class="steps" aria-label="Tiến trình đổi trả">
+              @for (step of steps; track step.status; let i = $index) {
+                <li
+                  class="steps__item"
+                  [class.steps__item--done]="stepIndex(item) > i"
+                  [class.steps__item--current]="stepIndex(item) === i"
+                  [attr.aria-current]="stepIndex(item) === i ? 'step' : null"
+                >
+                  <span class="steps__dot" aria-hidden="true">{{ stepIndex(item) > i ? '✓' : i + 1 }}</span>
+                  <span class="steps__label">{{ step.label }}</span>
+                </li>
+              }
+            </ol>
+          }
+
           <dl class="cv-kv">
             <dt>Đơn gốc</dt>
             <dd>{{ item.orderCode | orderCode }}</dd>
             <dt>Khách hàng</dt>
             <dd>{{ item.customerName }} · {{ item.customerPhone }}</dd>
+            @if (item.contact?.address) {
+              <dt>Địa chỉ lấy hàng</dt>
+              <dd>{{ item.contact?.address }}</dd>
+            }
             <dt>Ngày yêu cầu</dt>
             <dd>{{ item.requestedAt | dateVn: 'datetime' }}</dd>
             <dt>Bên chịu phí</dt>
@@ -272,11 +305,16 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
                 </p>
                 <p class="cv-small" style="color: var(--cv-danger-fg)">Lý do: {{ line.reason }}</p>
                 @if (line.evidence.length) {
-                  <div class="evidence-row">
-                    @for (image of line.evidence; track image) {
-                      <span class="evidence" [attr.aria-label]="'Minh chứng ' + image">
-                        <app-icon name="image" size="sm" />
-                      </span>
+                  <div class="evidence-grid">
+                    @for (file of line.evidence; track file) {
+                      <a class="evidence" [href]="file" target="_blank" rel="noopener" aria-label="Mở minh chứng">
+                        @if (isVideo(file)) {
+                          <video [src]="file" preload="metadata" muted></video>
+                          <span class="evidence__badge">Video</span>
+                        } @else {
+                          <img [src]="file" alt="Minh chứng đổi trả" loading="lazy" />
+                        }
+                      </a>
                     }
                   </div>
                 } @else {
@@ -285,6 +323,20 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
               </div>
             }
           </section>
+
+          @if (item.type === 'REFUND' && item.refundAccount) {
+            <section class="cv-popup__section">
+              <p class="cv-label" style="margin-bottom: 8px">Tài khoản nhận hoàn tiền</p>
+              <dl class="cv-kv">
+                <dt>Ngân hàng</dt>
+                <dd>{{ item.refundAccount.bankName }}</dd>
+                <dt>Chủ tài khoản</dt>
+                <dd>{{ item.refundAccount.accountHolder }}</dd>
+                <dt>Số tài khoản</dt>
+                <dd class="cv-num">{{ item.refundAccount.accountNumber }}</dd>
+              </dl>
+            </section>
+          }
 
           @if (item.inspectionResult) {
             <div class="cv-alert-box">
@@ -393,6 +445,24 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
               />
             </div>
           }
+
+          <section class="cv-popup__section">
+            <p class="cv-label" style="margin-bottom: 8px">Lịch sử phiếu</p>
+            <ol class="timeline">
+              @for (entry of item.history; track entry.at + entry.status) {
+                <li class="timeline__item">
+                  <span class="timeline__dot" aria-hidden="true"></span>
+                  <div>
+                    <p class="cv-small" style="font-weight: 600">{{ statusLabel(entry.status) }}</p>
+                    <p class="cv-small cv-muted">{{ entry.at | dateVn: 'datetime' }}</p>
+                    @if (entry.note) {
+                      <p class="cv-small">{{ entry.note }}</p>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
 
           @if (activeError()) {
             <div class="cv-error" role="alert">{{ activeError() }}</div>
@@ -586,21 +656,111 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
         border-bottom: 0;
       }
 
-      .evidence-row {
-        display: flex;
-        gap: 6px;
-        margin-top: 6px;
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
       }
 
       .evidence {
-        width: 44px;
-        height: 44px;
-        display: grid;
-        place-items: center;
+        position: relative;
+        display: block;
+        aspect-ratio: 1;
+        overflow: hidden;
         border: 1px solid var(--cv-border);
         border-radius: var(--cv-radius);
         background: var(--cv-surface-alt);
+      }
+
+      .evidence img,
+      .evidence video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .evidence__badge {
+        position: absolute;
+        left: 6px;
+        bottom: 6px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: var(--cv-navy);
+        color: var(--cv-on-navy);
+        font-size: 11px;
+      }
+
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .steps__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.3;
         color: var(--cv-muted);
+      }
+
+      .steps__dot {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid var(--cv-border-strong);
+        background: var(--cv-surface);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .steps__item--done .steps__dot {
+        border-color: var(--cv-navy);
+        background: var(--cv-navy);
+        color: var(--cv-on-navy);
+      }
+
+      .steps__item--current {
+        color: var(--cv-navy);
+        font-weight: 600;
+      }
+
+      .steps__item--current .steps__dot {
+        border-color: var(--cv-navy);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--cv-navy) 15%, transparent);
+        color: var(--cv-navy);
+      }
+
+      .timeline {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .timeline__item {
+        display: flex;
+        gap: 10px;
+      }
+
+      .timeline__dot {
+        width: 8px;
+        height: 8px;
+        margin-top: 6px;
+        flex: 0 0 8px;
+        border-radius: 2px;
+        background: var(--cv-navy);
       }
     `,
   ],
@@ -609,6 +769,7 @@ export class ReturnsScreenComponent {
   private readonly api = inject(AdminReturnApi);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly socket = inject(AdminSocketService);
 
   readonly statusOptions = STATUS_OPTIONS;
   readonly typeOptions = TYPE_OPTIONS;
@@ -665,6 +826,26 @@ export class ReturnsScreenComponent {
 
   constructor() {
     this.load();
+    // Khách vừa gửi yêu cầu mới thì làm mới danh sách (khi đang ở trang đầu, không mở khung chi tiết).
+    this.socket.connect();
+    const off = this.socket.on('return:created', () => {
+      if (this.page() === 1 && !this.active() && !this.loading()) this.load();
+    });
+    this.destroyRef.onDestroy(off);
+  }
+
+  readonly steps = STEPS;
+
+  stepIndex(item: ReturnRequest): number {
+    return STEPS.findIndex((step) => step.status === item.status);
+  }
+
+  statusLabel(status: string): string {
+    return (RETURN_STATUS_LABEL as Record<string, string>)[status] ?? status;
+  }
+
+  isVideo(url: string): boolean {
+    return /\.(mp4|mov|webm)(\?|$)/i.test(url);
   }
 
   load(): void {

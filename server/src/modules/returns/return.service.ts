@@ -96,8 +96,30 @@ async function toDto(doc: ReturnRequestDocument): Promise<ReturnRequest> {
       : null,
     rejectReason: doc.rejectReason ?? null,
     note: doc.description ?? null,
+    refundAccount: doc.refundAccount?.accountNumber
+      ? {
+          bankName: doc.refundAccount.bankName ?? '',
+          accountNumber: doc.refundAccount.accountNumber,
+          accountHolder: doc.refundAccount.accountHolder ?? '',
+        }
+      : null,
+    contact: doc.contact?.name ? { name: doc.contact.name ?? '', phone: doc.contact.phone ?? '', address: doc.contact.address ?? '' } : null,
+    history: toHistory(doc),
   };
   return dto;
+}
+
+/** Ghi một bước vào lịch sử phiếu; yêu cầu do khách gửi chưa có dòng đầu tiên nên được bù khi đọc (`toHistory`). */
+function pushHistory(doc: { history: { at: Date; status: string; note?: string | null }[] }, status: string, note?: string | null): void {
+  doc.history.push({ at: new Date(), status, note: note ?? null });
+}
+
+function toHistory(doc: ReturnRequestDoc) {
+  const entries = doc.history ?? [];
+  const list = entries.some((entry) => entry.status === 'PENDING')
+    ? entries
+    : [{ at: doc.requestedAt, status: 'PENDING', note: null }, ...entries];
+  return list.map((entry) => ({ at: entry.at.toISOString(), status: entry.status, note: entry.note ?? null }));
 }
 
 async function requireReturn(id: string): Promise<ReturnRequestDocument> {
@@ -158,6 +180,7 @@ export async function confirmReturn(id: string, actor: ActorContext): Promise<Re
   }
   doc.status = ReturnStatus.CONFIRMED;
   doc.approvedAt = new Date();
+  pushHistory(doc, ReturnStatus.CONFIRMED, 'Đã xác nhận yêu cầu');
   await doc.save();
   await audit('RETURN_CONFIRMED', doc, actor);
   return toDto(doc);
@@ -170,6 +193,7 @@ export async function rejectReturn(id: string, input: RejectReturnInput, actor: 
   }
   doc.status = ReturnStatus.REJECTED;
   doc.rejectReason = input.rejectReason;
+  pushHistory(doc, ReturnStatus.REJECTED, input.rejectReason);
   await doc.save();
   await audit('RETURN_REJECTED', doc, actor);
   return toDto(doc);
@@ -209,7 +233,10 @@ export async function updateReturn(id: string, input: UpdateReturnInput, actor: 
   if (input.returnFee !== undefined) doc.returnShippingFee = input.returnFee;
   if (input.pickupSchedule !== undefined) doc.pickupSchedule = input.pickupSchedule ? new Date(input.pickupSchedule) : null;
   if (input.trackingCode !== undefined) doc.customerShipment.trackingCode = input.trackingCode;
-  if (!input.replacement) doc.status = ReturnStatus.AWAITING_GOODS;
+  if (!input.replacement) {
+    doc.status = ReturnStatus.AWAITING_GOODS;
+    pushHistory(doc, ReturnStatus.AWAITING_GOODS, doc.pickupSchedule ? 'Đã đặt lịch lấy hàng' : 'Chờ nhận hàng từ khách');
+  }
   await doc.save();
   await audit('RETURN_UPDATED', doc, actor);
   return toDto(doc);
@@ -223,6 +250,7 @@ export async function receiveReturn(id: string, input: ReceiveReturnInput, actor
   doc.inspectionResult = input.inspectionResult;
   doc.description = input.note ?? doc.description;
   doc.status = ReturnStatus.PROCESSING;
+  pushHistory(doc, ReturnStatus.PROCESSING, input.note ?? 'Đã nhận hàng và kiểm tra');
   await doc.save();
   await audit('RETURN_RECEIVED', doc, actor);
   return toDto(doc);
@@ -265,6 +293,7 @@ export async function refundReturn(id: string, input: RefundReturnInput, actor: 
       current.refund.completed = true;
       current.status = ReturnStatus.COMPLETED;
       current.completedAt = new Date();
+      pushHistory(current, ReturnStatus.COMPLETED, 'Đã hoàn tiền cho khách');
       await current.save({ session });
 
       const handler = await UserModel.findById(actor.userId).select('profile').session(session);
@@ -342,6 +371,7 @@ export async function completeReturn(id: string, actor: ActorContext): Promise<R
         {
           $set: {
             startsAt: completedAt,
+            activatedAt: completedAt,
             expiresAt: new Date(new Date(completedAt).setMonth(completedAt.getMonth() + warrantyMonths)),
             warrantyMonths,
             productName: replacementProduct.name,
@@ -357,6 +387,7 @@ export async function completeReturn(id: string, actor: ActorContext): Promise<R
       );
       current.status = ReturnStatus.COMPLETED;
       current.completedAt = completedAt;
+      pushHistory(current, ReturnStatus.COMPLETED, 'Đã giao sản phẩm thay thế');
       await current.save({ session });
       Object.assign(doc, current.toObject());
     });
