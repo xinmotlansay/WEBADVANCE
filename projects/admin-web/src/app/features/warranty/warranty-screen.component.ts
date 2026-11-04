@@ -14,12 +14,14 @@ import {
   WarrantyInspectionResult,
   WarrantyResolution,
   WarrantyStatus,
+  type UpdateWarrantyStatusRequest,
   type WarrantyRequest,
 } from 'shared';
 import { AdminWarrantyApi } from '../../core/api/admin-warranty.api';
 import { loadAllPages } from '../../core/api/load-all-pages';
 import { DateVnPipe, OrderCodePipe } from '../../core/format/format.pipes';
 import { downloadCsv } from '../../core/format/csv-export';
+import { AdminSocketService } from '../../core/socket/admin-socket.service';
 import { NotificationService } from '../../core/ui/notification.service';
 import { parseApiError } from '../../core/auth/auth-error';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
@@ -52,6 +54,14 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
   value,
   label,
 }));
+
+const STEPS: Array<{ status: WarrantyStatus; label: string }> = [
+  { status: WarrantyStatus.PENDING_CONFIRMATION, label: 'Chờ xác nhận' },
+  { status: WarrantyStatus.RECEIVED, label: 'Đã tiếp nhận' },
+  { status: WarrantyStatus.INSPECTING, label: 'Đang kiểm tra' },
+  { status: WarrantyStatus.IN_WARRANTY, label: 'Đang bảo hành' },
+  { status: WarrantyStatus.COMPLETED, label: 'Hoàn tất' },
+];
 
 @Component({
   selector: 'app-warranty-screen',
@@ -226,6 +236,26 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
             <span class="cv-small cv-muted">{{ item.productName }}</span>
           </div>
 
+          @if (item.status === WarrantyStatus.REJECTED) {
+            <div class="cv-error" role="alert">
+              Đã từ chối{{ item.rejectReason ? ': ' + item.rejectReason : '' }}
+            </div>
+          } @else {
+            <ol class="steps" aria-label="Tiến trình bảo hành">
+              @for (step of steps; track step.status; let i = $index) {
+                <li
+                  class="steps__item"
+                  [class.steps__item--done]="stepIndex(item) > i"
+                  [class.steps__item--current]="stepIndex(item) === i"
+                  [attr.aria-current]="stepIndex(item) === i ? 'step' : null"
+                >
+                  <span class="steps__dot" aria-hidden="true">{{ stepIndex(item) > i ? '✓' : i + 1 }}</span>
+                  <span class="steps__label">{{ step.label }}</span>
+                </li>
+              }
+            </ol>
+          }
+
           <dl class="cv-kv">
             <dt>Đơn gốc</dt>
             <dd>{{ item.orderCode | orderCode }}</dd>
@@ -235,26 +265,12 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
             <dd>{{ item.purchasedAt | dateVn }}</dd>
             <dt>Bảo hành</dt>
             <dd>{{ item.warrantyMonths }} tháng · hết hạn {{ item.expiresAt | dateVn }}</dd>
-            <dt>Tình trạng</dt>
-            <dd>{{ item.condition }}</dd>
-            <dt>Lý do</dt>
+            @if (item.condition) {
+              <dt>Tình trạng</dt>
+              <dd>{{ item.condition }}</dd>
+            }
+            <dt>Lỗi khách báo</dt>
             <dd>{{ item.reason }}</dd>
-            <dt>Lịch tại nhà</dt>
-            <dd>
-              {{
-                item.homeServiceSchedule
-                  ? (item.homeServiceSchedule | dateVn: 'datetime')
-                  : 'Chưa đặt'
-              }}
-            </dd>
-            <dt>Mã vận đơn</dt>
-            <dd>{{ item.trackingCode || '—' }}</dd>
-            <dt>Kết quả kiểm tra</dt>
-            <dd>
-              {{ item.inspectionResult ? inspectionLabel(item.inspectionResult) : 'Chưa có' }}
-            </dd>
-            <dt>Hướng xử lý</dt>
-            <dd>{{ item.resolution ? resolutionLabel(item.resolution) : 'Chưa có' }}</dd>
           </dl>
 
           @if (item.dataIntegrityWarning) {
@@ -262,88 +278,138 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
           }
 
           <section class="cv-popup__section">
-            <p class="cv-label" style="margin-bottom: 8px">Minh chứng</p>
+            <p class="cv-label" style="margin-bottom: 8px">Minh chứng của khách</p>
             @if (item.evidence.length) {
-              <div class="evidence-row">
-                @for (image of item.evidence; track image) {
-                  <span class="evidence" [attr.aria-label]="'Minh chứng ' + image"
-                    ><app-icon name="image" size="sm"
-                  /></span>
+              <div class="evidence-grid">
+                @for (file of item.evidence; track file) {
+                  <a class="evidence" [href]="file" target="_blank" rel="noopener" [attr.aria-label]="'Mở minh chứng ' + (\$index + 1)">
+                    @if (isVideo(file)) {
+                      <video [src]="file" preload="metadata" muted></video>
+                      <span class="evidence__badge">Video</span>
+                    } @else {
+                      <img [src]="file" alt="Minh chứng bảo hành" loading="lazy" />
+                    }
+                  </a>
                 }
               </div>
+              <p class="cv-small cv-muted" style="margin-top: 6px">Bấm vào ảnh để xem kích thước đầy đủ.</p>
             } @else {
-              <p class="cv-small cv-muted">Khách chưa gửi ảnh minh chứng.</p>
+              <p class="cv-small cv-muted">Khách chưa gửi ảnh hoặc video minh chứng.</p>
             }
           </section>
 
-          @if (item.rejectReason) {
-            <div class="cv-error" role="alert">Lý do từ chối: {{ item.rejectReason }}</div>
-          }
-
-          @if (canUpdate(item) && !item.dataIntegrityWarning) {
-            <div class="cv-field">
-              <label class="cv-field__label" for="warranty-inspection">Kết quả kiểm tra</label>
-              <select
-                class="cv-select"
-                id="warranty-inspection"
-                [value]="inspection()"
-                (change)="inspection.set($any($event.target).value)"
-              >
-                @for (option of inspectionOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="warranty-resolution">Hướng xử lý</label>
-              <select
-                class="cv-select"
-                id="warranty-resolution"
-                [value]="resolution()"
-                (change)="resolution.set($any($event.target).value)"
-              >
-                @for (option of resolutionOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="warranty-schedule">Lịch tại nhà</label>
-              <input
-                class="cv-input"
-                id="warranty-schedule"
-                type="datetime-local"
-                [value]="schedule()"
-                (input)="schedule.set($any($event.target).value)"
-              />
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="warranty-tracking"
-                >Mã vận đơn (nếu gửi về kho)</label
-              >
-              <input
-                class="cv-input"
-                id="warranty-tracking"
-                [value]="tracking()"
-                (input)="tracking.set($any($event.target).value)"
-              />
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="warranty-note">Ghi chú xử lý</label>
-              <textarea
-                class="cv-textarea"
-                id="warranty-note"
-                [value]="note()"
-                (input)="note.set($any($event.target).value)"
-                placeholder="Ví dụ: đã thay 4 bản lề, hẹn hoàn tất trong 3 ngày"
-              ></textarea>
-            </div>
+          @if (!item.dataIntegrityWarning) {
+            @switch (item.status) {
+              @case (WarrantyStatus.PENDING_CONFIRMATION) {
+                <p class="hint">
+                  Xem ảnh minh chứng và thời hạn bảo hành, rồi chọn <strong>Tiếp nhận</strong> hoặc
+                  <strong>Từ chối</strong> kèm lý do.
+                </p>
+              }
+              @case (WarrantyStatus.RECEIVED) {
+                <section class="cv-popup__section stage">
+                  <p class="cv-label">Bước tiếp theo: kiểm tra sản phẩm</p>
+                  <div class="seg" role="radiogroup" aria-label="Hình thức kiểm tra">
+                    <button type="button" role="radio" class="seg__btn" [class.seg__btn--on]="method() === 'HOME'" [attr.aria-checked]="method() === 'HOME'" (click)="method.set('HOME')">Kiểm tra tại nhà</button>
+                    <button type="button" role="radio" class="seg__btn" [class.seg__btn--on]="method() === 'WAREHOUSE'" [attr.aria-checked]="method() === 'WAREHOUSE'" (click)="method.set('WAREHOUSE')">Nhận về kho</button>
+                  </div>
+                  @if (method() === 'HOME') {
+                    <div class="cv-field">
+                      <label class="cv-field__label" for="warranty-schedule">Lịch hẹn tại nhà</label>
+                      <input class="cv-input" id="warranty-schedule" type="datetime-local" [value]="schedule()" (input)="schedule.set($any($event.target).value)" />
+                    </div>
+                  } @else {
+                    <div class="cv-field">
+                      <label class="cv-field__label" for="warranty-tracking">Mã vận đơn gửi về kho</label>
+                      <div class="inline">
+                        <input class="cv-input" id="warranty-tracking" [value]="tracking()" (input)="tracking.set($any($event.target).value)" placeholder="Nhập mã hoặc tạo tự động" />
+                        <button type="button" class="cv-btn cv-btn--secondary" (click)="tracking.set(generateTracking(item))">Tạo mã</button>
+                      </div>
+                    </div>
+                  }
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-note">Ghi chú (không bắt buộc)</label>
+                    <textarea class="cv-textarea" id="warranty-note" [value]="note()" (input)="note.set($any($event.target).value)" placeholder="Ví dụ: hẹn khách 9h sáng, mang theo bản lề dự phòng"></textarea>
+                  </div>
+                </section>
+              }
+              @case (WarrantyStatus.INSPECTING) {
+                <section class="cv-popup__section stage">
+                  <p class="cv-label">Ghi nhận kết quả kiểm tra</p>
+                  <dl class="cv-kv">
+                    <dt>Hình thức</dt>
+                    <dd>
+                      @if (item.homeServiceSchedule) {
+                        Tại nhà · {{ item.homeServiceSchedule | dateVn: 'datetime' }}
+                      } @else if (item.trackingCode) {
+                        Nhận về kho · mã vận đơn {{ item.trackingCode }}
+                      } @else {
+                        Chưa ghi nhận
+                      }
+                    </dd>
+                  </dl>
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-inspection">Kết quả kiểm tra</label>
+                    <select class="cv-select" id="warranty-inspection" [value]="inspection()" (change)="inspection.set($any($event.target).value)">
+                      <option value="">Chọn kết quả…</option>
+                      @for (option of inspectionOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-resolution">Hướng xử lý</label>
+                    <select class="cv-select" id="warranty-resolution" [value]="resolution()" (change)="resolution.set($any($event.target).value)">
+                      <option value="">Chọn hướng xử lý…</option>
+                      @for (option of resolutionOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-note">Ghi chú (không bắt buộc)</label>
+                    <textarea class="cv-textarea" id="warranty-note" [value]="note()" (input)="note.set($any($event.target).value)" placeholder="Ví dụ: ghế lỏng chân do ốc bị tuột, cần siết lại"></textarea>
+                  </div>
+                  <p class="hint">Sản phẩm không thuộc phạm vi bảo hành? Dùng nút <strong>Từ chối, ngoài phạm vi</strong> bên dưới.</p>
+                </section>
+              }
+              @case (WarrantyStatus.IN_WARRANTY) {
+                <section class="cv-popup__section stage">
+                  <p class="cv-label">Hoàn tất bảo hành</p>
+                  <dl class="cv-kv">
+                    <dt>Kết quả kiểm tra</dt>
+                    <dd>{{ item.inspectionResult ? inspectionLabel(item.inspectionResult) : 'Chưa có' }}</dd>
+                  </dl>
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-resolution">Kết quả xử lý</label>
+                    <select class="cv-select" id="warranty-resolution" [value]="resolution()" (change)="resolution.set($any($event.target).value)">
+                      <option value="">Chọn kết quả xử lý…</option>
+                      @for (option of resolutionOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="cv-field">
+                    <label class="cv-field__label" for="warranty-note">Ghi chú hoàn tất (không bắt buộc)</label>
+                    <textarea class="cv-textarea" id="warranty-note" [value]="note()" (input)="note.set($any($event.target).value)" placeholder="Ví dụ: đã thay 4 bản lề, khách nhận lại hàng ngày 06/11"></textarea>
+                  </div>
+                </section>
+              }
+              @default {
+                <dl class="cv-kv">
+                  <dt>Kết quả kiểm tra</dt>
+                  <dd>{{ item.inspectionResult ? inspectionLabel(item.inspectionResult) : '—' }}</dd>
+                  <dt>Hướng xử lý</dt>
+                  <dd>{{ item.resolution ? resolutionLabel(item.resolution) : '—' }}</dd>
+                </dl>
+              }
+            }
           }
 
           <section class="cv-popup__section">
             <p class="cv-label" style="margin-bottom: 8px">Lịch sử phiếu</p>
             <ol class="timeline">
-              @for (entry of item.history; track entry.at) {
+              @for (entry of item.history; track entry.at + entry.status) {
                 <li class="timeline__item">
                   <span class="timeline__dot" aria-hidden="true"></span>
                   <div>
@@ -363,40 +429,25 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
           }
         </div>
         <div popupFooter>
-          @if (item.status === WarrantyStatus.PENDING_CONFIRMATION) {
-            <button
-              type="button"
-              class="cv-btn cv-btn--danger"
-              [disabled]="busy() || !!item.dataIntegrityWarning"
-              (click)="rejecting.set(item)"
-            >
-              Từ chối
-            </button>
-            <button
-              type="button"
-              class="cv-btn cv-btn--accent"
-              [disabled]="busy() || !!item.dataIntegrityWarning"
-              (click)="accept(item)"
-            >
-              Tiếp nhận
-            </button>
-          }
-          @if (canUpdate(item) && !item.dataIntegrityWarning) {
-            <button
-              type="button"
-              class="cv-btn cv-btn--primary"
-              [disabled]="busy()"
-              (click)="save(item)"
-            >
-              Lưu cập nhật
-            </button>
-          }
-          @if (
-            item.status === WarrantyStatus.COMPLETED || item.status === WarrantyStatus.REJECTED
-          ) {
-            <button type="button" class="cv-btn cv-btn--secondary" (click)="active.set(null)">
-              Đóng
-            </button>
+          @switch (item.status) {
+            @case (WarrantyStatus.PENDING_CONFIRMATION) {
+              <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy() || !!item.dataIntegrityWarning" (click)="rejecting.set(item)">Từ chối</button>
+              <button type="button" class="cv-btn cv-btn--primary" [disabled]="busy() || !!item.dataIntegrityWarning" (click)="accept(item)">Tiếp nhận</button>
+            }
+            @case (WarrantyStatus.RECEIVED) {
+              <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy()" (click)="rejecting.set(item)">Từ chối</button>
+              <button type="button" class="cv-btn cv-btn--primary" [disabled]="busy()" (click)="startInspection(item)">Bắt đầu kiểm tra</button>
+            }
+            @case (WarrantyStatus.INSPECTING) {
+              <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy()" (click)="rejecting.set(item)">Từ chối, ngoài phạm vi</button>
+              <button type="button" class="cv-btn cv-btn--primary" [disabled]="busy()" (click)="confirmWarranty(item)">Xác nhận bảo hành</button>
+            }
+            @case (WarrantyStatus.IN_WARRANTY) {
+              <button type="button" class="cv-btn cv-btn--primary" [disabled]="busy()" (click)="complete(item)">Hoàn tất bảo hành</button>
+            }
+            @default {
+              <button type="button" class="cv-btn cv-btn--secondary" (click)="active.set(null)">Đóng</button>
+            }
           }
         </div>
       </app-detail-popup>
@@ -439,20 +490,141 @@ const RESOLUTION_OPTIONS = Object.entries(WARRANTY_RESOLUTION_LABEL).map(([value
         gap: 6px;
       }
 
-      .evidence-row {
-        display: flex;
-        gap: 6px;
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .evidence {
-        width: 44px;
-        height: 44px;
-        display: grid;
-        place-items: center;
+        position: relative;
+        display: block;
+        aspect-ratio: 1;
+        overflow: hidden;
         border: 1px solid var(--cv-border);
         border-radius: var(--cv-radius);
         background: var(--cv-surface-alt);
+      }
+
+      .evidence img,
+      .evidence video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .evidence__badge {
+        position: absolute;
+        left: 6px;
+        bottom: 6px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: var(--cv-navy);
+        color: var(--cv-on-navy);
+        font-size: 11px;
+      }
+
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .steps__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.3;
         color: var(--cv-muted);
+      }
+
+      .steps__dot {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid var(--cv-border-strong);
+        background: var(--cv-surface);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .steps__item--done .steps__dot {
+        border-color: var(--cv-navy);
+        background: var(--cv-navy);
+        color: var(--cv-on-navy);
+      }
+
+      .steps__item--current {
+        color: var(--cv-navy);
+        font-weight: 600;
+      }
+
+      .steps__item--current .steps__dot {
+        border-color: var(--cv-navy);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--cv-navy) 15%, transparent);
+        color: var(--cv-navy);
+      }
+
+      .stage {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .hint {
+        margin: 0;
+        padding: 10px 12px;
+        border-radius: var(--cv-radius);
+        background: var(--cv-surface-alt);
+        color: var(--cv-muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .seg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 3px;
+        border: 1px solid var(--cv-border-strong);
+        border-radius: var(--cv-radius);
+        background: var(--cv-surface-alt);
+      }
+
+      .seg__btn {
+        height: 34px;
+        border: 0;
+        border-radius: var(--cv-radius-sm);
+        background: transparent;
+        color: var(--cv-muted);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .seg__btn--on {
+        background: var(--cv-surface);
+        color: var(--cv-navy);
+        font-weight: 600;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--cv-navy) 14%, transparent);
+      }
+
+      .inline {
+        display: flex;
+        gap: 8px;
+      }
+
+      .inline .cv-input {
+        flex: 1 1 auto;
+        min-width: 0;
       }
 
       .timeline {
@@ -484,6 +656,7 @@ export class WarrantyScreenComponent {
   private readonly api = inject(AdminWarrantyApi);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly socket = inject(AdminSocketService);
 
   readonly WarrantyStatus = WarrantyStatus;
   readonly statusOptions = STATUS_OPTIONS;
@@ -504,8 +677,10 @@ export class WarrantyScreenComponent {
   readonly busy = signal(false);
   readonly activeError = signal('');
 
-  readonly inspection = signal<WarrantyInspectionResult>(WarrantyInspectionResult.UNDER_REPAIR);
-  readonly resolution = signal<WarrantyResolution>(WarrantyResolution.REPAIRED);
+  readonly steps = STEPS;
+  readonly method = signal<'HOME' | 'WAREHOUSE'>('HOME');
+  readonly inspection = signal<WarrantyInspectionResult | ''>('');
+  readonly resolution = signal<WarrantyResolution | ''>('');
   readonly schedule = signal('');
   readonly tracking = signal('');
   readonly note = signal('');
@@ -530,6 +705,25 @@ export class WarrantyScreenComponent {
 
   constructor() {
     this.load();
+    // Khách vừa gửi yêu cầu mới thì làm mới danh sách (khi đang ở trang đầu, không mở khung chi tiết).
+    this.socket.connect();
+    const off = this.socket.on('warranty:created', () => {
+      if (this.page() === 1 && !this.active() && !this.loading()) this.load();
+    });
+    this.destroyRef.onDestroy(off);
+  }
+
+  stepIndex(item: WarrantyRequest): number {
+    return STEPS.findIndex((step) => step.status === item.status);
+  }
+
+  isVideo(url: string): boolean {
+    return /\.(mp4|mov|webm)(\?|$)/i.test(url);
+  }
+
+  /** Mã nội bộ để đối chiếu hàng gửi về kho (chưa tích hợp hãng vận chuyển). */
+  generateTracking(item: WarrantyRequest): string {
+    return `VD-${item.code}`;
   }
 
   load(): void {
@@ -632,19 +826,12 @@ export class WarrantyScreenComponent {
     return WARRANTY_RESOLUTION_LABEL[value];
   }
 
-  canUpdate(item: WarrantyRequest): boolean {
-    return [
-      WarrantyStatus.RECEIVED,
-      WarrantyStatus.INSPECTING,
-      WarrantyStatus.IN_WARRANTY,
-    ].includes(item.status);
-  }
-
   open(item: WarrantyRequest): void {
     this.active.set(item);
     this.activeError.set('');
-    this.inspection.set(item.inspectionResult ?? WarrantyInspectionResult.UNDER_REPAIR);
-    this.resolution.set(item.resolution ?? WarrantyResolution.REPAIRED);
+    this.method.set(item.trackingCode && !item.homeServiceSchedule ? 'WAREHOUSE' : 'HOME');
+    this.inspection.set(item.inspectionResult ?? '');
+    this.resolution.set(item.resolution && item.resolution !== WarrantyResolution.NOT_ELIGIBLE ? item.resolution : '');
     this.schedule.set(item.homeServiceSchedule ? item.homeServiceSchedule.slice(0, 16) : '');
     this.tracking.set(item.trackingCode ?? '');
     this.note.set('');
@@ -668,42 +855,64 @@ export class WarrantyScreenComponent {
       });
   }
 
-  save(item: WarrantyRequest): void {
-    if (
-      item.status === WarrantyStatus.IN_WARRANTY &&
-      this.resolution() === WarrantyResolution.NOT_ELIGIBLE
-    ) {
-      this.activeError.set(
-        'Phiếu đã được xác nhận trong phạm vi bảo hành, không thể chuyển sang từ chối.',
-      );
+  /** Đã tiếp nhận → Đang kiểm tra: ghi hình thức kiểm tra (tại nhà hoặc nhận về kho). */
+  startInspection(item: WarrantyRequest): void {
+    if (this.method() === 'HOME' && !this.schedule()) {
+      this.activeError.set('Chọn lịch hẹn kiểm tra tại nhà.');
       return;
     }
+    if (this.method() === 'WAREHOUSE' && !this.tracking().trim()) {
+      this.activeError.set('Nhập hoặc tạo mã vận đơn gửi về kho.');
+      return;
+    }
+    this.send(item, WarrantyStatus.INSPECTING, {
+      homeServiceSchedule: this.method() === 'HOME' ? new Date(this.schedule()).toISOString() : null,
+      trackingCode: this.method() === 'WAREHOUSE' ? this.tracking().trim() : null,
+    }, `Đã chuyển phiếu ${item.code} sang kiểm tra.`);
+  }
 
-    const nextStatus =
-      item.status === WarrantyStatus.IN_WARRANTY
-        ? WarrantyStatus.IN_WARRANTY
-        : item.status === WarrantyStatus.RECEIVED
-          ? WarrantyStatus.INSPECTING
-          : this.resolution() === WarrantyResolution.NOT_ELIGIBLE
-            ? WarrantyStatus.REJECTED
-            : WarrantyStatus.IN_WARRANTY;
+  /** Đang kiểm tra → Đang bảo hành: bắt buộc có kết quả kiểm tra và hướng xử lý. */
+  confirmWarranty(item: WarrantyRequest): void {
+    const inspection = this.inspection();
+    const resolution = this.resolution();
+    if (!inspection || !resolution) {
+      this.activeError.set('Chọn kết quả kiểm tra và hướng xử lý trước khi xác nhận bảo hành.');
+      return;
+    }
+    if (resolution === WarrantyResolution.NOT_ELIGIBLE) {
+      this.activeError.set('Không đủ điều kiện thì dùng nút "Từ chối, ngoài phạm vi".');
+      return;
+    }
+    this.send(item, WarrantyStatus.IN_WARRANTY, { inspectionResult: inspection, resolution }, `Phiếu ${item.code} đã vào bảo hành.`);
+  }
 
+  /** Đang bảo hành → Hoàn tất: bắt buộc chọn kết quả xử lý. */
+  complete(item: WarrantyRequest): void {
+    const resolution = this.resolution();
+    if (!resolution) {
+      this.activeError.set('Chọn kết quả xử lý trước khi hoàn tất.');
+      return;
+    }
+    this.send(item, WarrantyStatus.COMPLETED, { resolution }, `Đã hoàn tất phiếu ${item.code}.`);
+  }
+
+  private send(
+    item: WarrantyRequest,
+    status: WarrantyStatus,
+    extra: Partial<UpdateWarrantyStatusRequest>,
+    success: string,
+  ): void {
+    this.activeError.set('');
     this.busy.set(true);
     this.api
-      .updateStatus(item.id, {
-        status: nextStatus,
-        inspectionResult: this.inspection(),
-        resolution: this.resolution(),
-        homeServiceSchedule: this.schedule() ? new Date(this.schedule()).toISOString() : null,
-        trackingCode: this.tracking().trim() || null,
-        note: this.note().trim() || undefined,
-      })
+      .updateStatus(item.id, { status, ...extra, note: this.note().trim() || undefined })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.busy.set(false);
           this.patch(updated);
-          this.notifications.show(`Đã cập nhật phiếu ${updated.code}.`);
+          this.open(updated);
+          this.notifications.show(success);
         },
         error: (error: unknown) => {
           this.busy.set(false);

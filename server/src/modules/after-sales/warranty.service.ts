@@ -1,5 +1,6 @@
 import type { Types } from 'mongoose';
 import { nextRequestCode } from './request-code.js';
+import { emitToAgents } from '../../socket/index.js';
 import { AppError } from '../../utils/app-error.js';
 import {
   OrderModel,
@@ -103,16 +104,21 @@ export async function createWarranty(userId: Types.ObjectId, body: z.infer<typeo
   if (card.status !== 'VALID' || card.expiresAt.getTime() < Date.now())
     throw new AppError('WARRANTY_EXPIRED', 409, 'Phiếu đã hết hạn hoặc không còn hiệu lực');
   await validateEvidence(userId, body.evidence, 'WARRANTY_EVIDENCE');
-  return WarrantyRequestModel.create({
+  const now = new Date();
+  const request = await WarrantyRequestModel.create({
     ...body,
     code: await nextRequestCode('BH', WarrantyRequestModel as never),
     orderId: card.orderId,
     orderItemId: card.orderItemId,
     userId,
     status: 'PENDING_CONFIRMATION',
-    requestedAt: new Date(),
-    timeline: [{ status: 'PENDING_CONFIRMATION', at: new Date() }],
+    requestedAt: now,
+    timeline: [{ status: 'PENDING_CONFIRMATION', at: now }],
+    history: [{ at: now, status: 'PENDING_CONFIRMATION', note: null }],
   });
+  // Báo cho Order Admin đang mở màn Bảo hành để danh sách tự làm mới.
+  emitToAgents('warranty:created', { id: String(request._id), code: request.code });
+  return request;
 }
 export async function warrantyRequestDto(request: WarrantyRequestDoc) {
   const card = await WarrantyCardModel.findById(request.warrantyCardId).lean();

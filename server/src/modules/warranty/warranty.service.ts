@@ -82,7 +82,11 @@ async function toDto(doc: WarrantyRequestDocument): Promise<WarrantyRequest> {
     resolution: doc.resolution ?? null,
     rejectReason: doc.rejectReason ?? null,
     dataIntegrityWarning,
-    history: doc.history.map((entry) => ({
+    // Yêu cầu do khách gửi chưa có dòng đầu tiên trong lịch sử, bù bằng thời điểm gửi.
+    history: (doc.history.some((entry) => entry.status === WarrantyStatus.PENDING_CONFIRMATION)
+      ? doc.history
+      : [{ at: doc.requestedAt, status: WarrantyStatus.PENDING_CONFIRMATION, note: null }, ...doc.history]
+    ).map((entry) => ({
       at: entry.at.toISOString(),
       status: entry.status,
       note: entry.note ?? null,
@@ -168,7 +172,9 @@ export async function rejectWarranty(
   actor: ActorContext,
 ): Promise<WarrantyRequest> {
   const doc = await requireWarranty(id);
-  if (![WarrantyStatus.PENDING_CONFIRMATION, WarrantyStatus.RECEIVED].includes(doc.status)) {
+  if (
+    ![WarrantyStatus.PENDING_CONFIRMATION, WarrantyStatus.RECEIVED, WarrantyStatus.INSPECTING].includes(doc.status)
+  ) {
     throw new AppError(
       'WARRANTY_INVALID_STATE',
       409,
@@ -196,6 +202,9 @@ export async function updateWarrantyStatus(
       400,
       'Chọn kết quả xử lý trước khi hoàn tất',
     );
+  }
+  if (input.status === WarrantyStatus.IN_WARRANTY && !(input.inspectionResult ?? doc.inspectionResult)) {
+    throw new AppError('WARRANTY_INSPECTION_REQUIRED', 400, 'Nhập kết quả kiểm tra trước khi xác nhận bảo hành');
   }
   if (input.inspectionResult) doc.inspectionResult = input.inspectionResult;
   if (input.resolution) doc.resolution = input.resolution;
