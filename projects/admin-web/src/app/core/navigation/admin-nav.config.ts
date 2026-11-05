@@ -32,7 +32,7 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Khách hàng', icon: 'users', path: null },
     { label: 'Khuyến mãi & voucher', icon: 'tag', path: null },
     { label: 'Banner & nội dung', icon: 'image', path: null },
-    { label: 'Collection & cảm hứng', icon: 'file', path: null },
+    { label: 'Collection & cảm hứng', icon: 'file', path: '/marketing/collection' },
     { label: 'Báo cáo', icon: 'chart', path: null },
     { label: 'Quản lý Admin', icon: 'userCog', path: null },
     { label: 'Nhật ký & cấu hình', icon: 'log', path: null },

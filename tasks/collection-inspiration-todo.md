@@ -91,9 +91,9 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** Route khách `GET /inspirations` sắp theo `displayOrder, _id` (thay `_id`). Kiểm tra client không cache cứng danh sách collection/inspiration (sửa ở admin → tải lại thấy ngay). Mục "Collection & cảm hứng" của SUPER_ADMIN trỏ `/marketing/collection` (guard marketing đã cho SUPER_ADMIN?). Cập nhật `docs/api-design.md` (endpoint admin), `docs/database-design.md` (field mới), cuối plan ghi kết quả.
 
 **Tiêu chí:**
-- [ ] Đổi thứ tự ở admin → thứ tự gallery trang chủ đổi theo
-- [ ] SUPER_ADMIN vào được cả hai trang
-- [ ] Tài liệu khớp code
+- [x] Đổi thứ tự ở admin → thứ tự gallery trang chủ đổi theo (route khách sắp `displayOrder, _id`; client không cache)
+- [x] SUPER_ADMIN vào được cả hai trang (guard đã cho; menu → Collection, nút chuyển qua lại giữa hai trang)
+- [x] Tài liệu khớp code
 
 **Kiểm tra:** `npm run build:server`, `npm run build:web`; thủ công cả hai vai trò.
 

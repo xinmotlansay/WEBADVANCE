@@ -715,6 +715,7 @@ Collection: `product_collections` (trước đây: `COLLECTION`, kèm `HINH_ANH_
 | 21 | images[].hotspots[].x | Number | Y | Tọa độ ngang theo tỷ lệ ảnh (0–1) |
 | 22 | images[].hotspots[].y | Number | Y | Tọa độ dọc theo tỷ lệ ảnh (0–1) |
 | 23 | images[].hotspots[].displayOrder | Number | | Thứ tự ưu tiên khi có nhiều hotspot |
+| 24 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 28: Nguồn cảm hứng (Inspiration)
 
@@ -730,6 +731,8 @@ Collection: `inspirations` (trước đây: `NGUON_CAM_HUNG`, kèm `SANPHAM_NGUO
 | 4 | products | Array\<Object\> | | Sản phẩm xuất hiện trong ảnh, hiển thị ở popup |
 | 5 | products[].productId | ObjectId (ref: products) | Y | Sản phẩm |
 | 6 | products[].displayOrder | Number | Y | Thứ tự trong danh sách popup |
+| 7 | displayOrder | Number | | Default: 0. Thứ tự trong lưới khách (trang Nguồn cảm hứng, gallery trang chủ) |
+| 8 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 29: Banner (Banner)
 

@@ -88,3 +88,11 @@ rules + model (version, displayOrder)
 1. Quy tắc nghiệp vụ: làm theo đề xuất ở trên.
 2. Khối CMS "Bộ sưu tập" trang chủ chọn **collection** thay vì danh mục → Task 8.
 3. **Cho xóa**: xóa cứng (có hộp xác nhận ở UI). Route khách và bộ lọc `?collection=` không phải sửa. Khối CMS trỏ collection đã xóa thì bỏ qua lúc resolve. Ảnh đã tải lên giữ lại trên đĩa.
+
+## Kết quả (2026-11-05)
+
+- T1–T7 xong. API admin dưới `/api/v1/admin/marketing/{collections,inspirations}`; UI ở `/marketing/collection`, `/marketing/nguon-cam-hung`.
+- Mã lỗi: `E-MKT-020-01..04` (Collection: slug, hiện khi rỗng, xóa khi đang hiện, ảnh), `E-MKT-021-02..03` (cảm hứng: hiện khi chưa có sản phẩm, xóa khi đang hiện), `E-COM-05` (sửa trùng).
+- Bản nháp (Ẩn) được lưu khi chưa có ảnh/sản phẩm; điều kiện tối thiểu chỉ áp khi Hiện hoặc sửa bản đang Hiện.
+- SUPER_ADMIN: mục "Collection & cảm hứng" mở Collection, hai trang danh sách có nút chuyển qua lại.
+- Còn lại: thử thủ công T6 + Checkpoint A/B, Task 8 (khối CMS chọn collection).

@@ -15,7 +15,10 @@ type Load = { state: 'loading' } | { state: 'error'; message: string } | { state
     <main class="cv-main">
       <header class="cv-page-head">
         <h1>Nguồn cảm hứng</h1>
-        <a class="cv-btn cv-btn--primary" routerLink="tao-moi">Thêm ảnh cảm hứng</a>
+        <div class="tile__btns">
+          <a class="cv-btn" routerLink="/marketing/collection">Collection</a>
+          <a class="cv-btn cv-btn--primary" routerLink="tao-moi">Thêm ảnh cảm hứng</a>
+        </div>
       </header>
 
       <div class="cv-field filter">

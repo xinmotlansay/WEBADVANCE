@@ -12,7 +12,7 @@ export const inspirationRoutes = Router();
 inspirationRoutes.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const inspirations = await InspirationModel.find({ status: 'VISIBLE' }).sort({ _id: 1 }).lean();
+    const inspirations = await InspirationModel.find({ status: 'VISIBLE' }).sort({ displayOrder: 1, _id: 1 }).lean();
     sendData(
       res,
       inspirations.map((i) => ({ id: i._id.toString(), imageUrl: i.imageUrl })),
