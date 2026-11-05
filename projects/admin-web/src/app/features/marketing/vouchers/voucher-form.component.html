@@ -1,7 +1,7 @@
 <main class="cv-main form-main">
+  <a class="cv-back" routerLink="/marketing/ma-giam-gia"><span aria-hidden="true">←</span> Mã giảm giá</a>
   <header class="cv-page-head">
     <h1>{{ id() ? 'Chỉnh sửa mã giảm giá' : 'Tạo mã giảm giá' }}</h1>
-    <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Quay lại danh sách</a>
   </header>
 
   @if (loading()) {
@@ -27,10 +27,7 @@
       </div>
     </div>
   } @else {
-    <form class="cv-card form" (ngSubmit)="save()" #f="ngForm">
-      @if (error()) {
-        <p class="cv-alert" role="alert">{{ error() }}</p>
-      }
+    <form class="cv-card form" (ngSubmit)="save(f)" #f="ngForm">
       @if (lockReason('used'); as why) {
         @if (detail()?.usedCount === 0 || ended) {
           <p class="cv-alert cv-alert--warn" role="status">{{ why }}</p>
@@ -171,7 +168,7 @@
               {{ c.name }}
             </label>
           } @empty {
-            <span class="cv-muted">Chưa tải được danh mục; mã sẽ áp dụng toàn bộ sản phẩm.</span>
+            <span class="cv-muted">Không có danh mục nào để chọn.</span>
           }
         </div>
       </div>
@@ -279,11 +276,14 @@
         </label>
       </div>
 
-      <div class="actions">
-        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="busy() || f.invalid">
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Hủy</a>
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="busy()">
           {{ id() ? 'Lưu thay đổi' : 'Tạo mã' }}
         </button>
-        <a routerLink="/marketing/ma-giam-gia" class="cv-btn">Hủy</a>
       </div>
     </form>
   }

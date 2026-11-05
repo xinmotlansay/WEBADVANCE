@@ -1,6 +1,6 @@
 import type { VoucherRow, VoucherStatus } from './voucher.api';
 
-const vnd = new Intl.NumberFormat('vi-VN');
+const vnd = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 export const money = (n: number): string => `${vnd.format(n)} ₫`;
 export const dateTime = (iso: string): string =>
   new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });

@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
@@ -200,8 +200,14 @@ export class VoucherFormComponent {
     return patch;
   }
 
-  protected async save(): Promise<void> {
+  protected async save(form: NgForm): Promise<void> {
     this.error.set('');
+    if (form.invalid) {
+      const n = Object.values(form.controls).filter((c) => c.invalid).length;
+      this.error.set(`Còn ${n} ô chưa hợp lệ (viền đỏ). Sửa rồi bấm lại.`);
+      document.querySelector<HTMLElement>('form .ng-invalid:not(form)')?.focus();
+      return;
+    }
     this.busy.set(true);
     const body = this.body();
     try {

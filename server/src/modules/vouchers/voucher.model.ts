@@ -38,6 +38,10 @@ export interface VoucherDoc {
   visibility?: 'PUBLIC' | 'PRIVATE';
   disabledAt?: Date | null;
   disableReason?: string | null;
+  /** Voucher của chiến dịch giữ khách theo phân khúc ML (Task M9); không có = voucher thường. */
+  mlSegment?: 'RETAIN' | 'NURTURE' | 'NO_SPEND' | 'LET_BE';
+  /** Nhóm đối chứng chốt lúc gửi (chấm lại sau đó đổi phân khúc cũng không làm đổi nhóm này). */
+  mlControlIds?: Types.ObjectId[];
   /** Khóa lạc quan (E-COM-05). */
   version?: number;
 }
@@ -75,6 +79,8 @@ const voucherSchema = new Schema<VoucherDoc>(
     visibility: { type: String, enum: ['PUBLIC', 'PRIVATE'], default: 'PUBLIC' },
     disabledAt: Date,
     disableReason: String,
+    mlSegment: { type: String, enum: ['RETAIN', 'NURTURE', 'NO_SPEND', 'LET_BE'] },
+    mlControlIds: { type: [Schema.Types.ObjectId], default: undefined },
     version: { type: Number, default: 0 },
   },
   { timestamps: true },

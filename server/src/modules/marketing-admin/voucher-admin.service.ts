@@ -142,6 +142,17 @@ export async function getVoucher(id: string, now = new Date()) {
 }
 
 export async function createVoucher(actorId: string, input: CreateVoucherInput, now = new Date()) {
+  const doc = await insertVoucher(actorId, input, now);
+  return await getVoucher(String(doc._id), now);
+}
+
+/** Tạo voucher; `extra` ghi đè field (chiến dịch ML dùng để đặt type ASSIGNED, mlSegment). */
+export async function insertVoucher(
+  actorId: string,
+  input: CreateVoucherInput,
+  now = new Date(),
+  extra: Partial<VoucherDoc> = {},
+) {
   const v = withDefaults(input);
   const startDate = resolveStart(v, now);
   checkVoucherValues({ ...v, startDate });
@@ -170,9 +181,10 @@ export async function createVoucher(actorId: string, input: CreateVoucherInput, 
       startDate,
       endDate: v.endDate,
       status: 'ACTIVE',
+      ...extra,
     });
     logAdminAction(actorId, 'VOUCHER_CREATE', v.code, { large }, large); // cờ LARGE_DISCOUNT_ACTIVATED
-    return await getVoucher(String(doc._id), now);
+    return doc;
   } catch (e) {
     if ((e as { code?: number }).code === 11000) throw dupCode(v.code);
     throw e;

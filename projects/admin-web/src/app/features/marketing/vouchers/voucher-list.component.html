@@ -96,8 +96,11 @@
             <p>Không tìm thấy mã giảm giá phù hợp.</p>
             <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
           } @else {
-            <p>Chưa có mã giảm giá nào.</p>
-            <a routerLink="tao-moi" class="cv-btn cv-btn--primary">Tạo mã giảm giá</a>
+            <strong>Chưa có mã giảm giá nào</strong>
+            <p>
+              Bấm "Tạo mã giảm giá" ở góc trên. Mã gửi riêng cho phân khúc khách xem ở trang
+              <a routerLink="/marketing/khach-hang-rui-ro">Khách hàng rủi ro</a>.
+            </p>
           }
         </div>
       } @else {

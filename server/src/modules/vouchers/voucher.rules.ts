@@ -107,3 +107,11 @@ export function checkVoucher(voucher: VoucherDoc, ctx: VoucherContext): VoucherC
   const base = eligible.reduce((total, l) => total + l.finalAmount, 0);
   return { valid: true, discount: calcVoucherDiscount(rule, base), rule };
 }
+
+/**
+ * Voucher cần báo cho khách (dải thông báo): voucher được tặng (chiến dịch giữ chân),
+ * chưa dùng, còn hạn (`status` đã tính hạn) và khách chưa xem. Voucher bù giao trễ không tính.
+ */
+export function isNewGift(v: { source: string; status: string; seenAt: string | null }): boolean {
+  return v.source === 'GIFTED' && v.status === 'UNUSED' && !v.seenAt;
+}
