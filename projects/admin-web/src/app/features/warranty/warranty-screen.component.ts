@@ -158,11 +158,9 @@ const STEPS: Array<{ status: WarrantyStatus; label: string }> = [
               </thead>
               <tbody>
                 @for (item of items(); track item.id) {
-                  <tr>
+                  <tr class="cv-table__row--clickable" (click)="open(item)">
                     <td>
-                      <button type="button" class="cv-table__link" (click)="open(item)">
-                        {{ item.code }}
-                      </button>
+                      <button type="button" class="cv-table__link">{{ item.code }}</button>
                     </td>
                     <td>
                       <span class="cv-table__customer">{{ item.productName }}</span>

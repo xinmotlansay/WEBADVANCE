@@ -236,6 +236,10 @@
   background: #f0f6ff;
 }
 
+.cv-table tbody tr.cv-table__row--clickable {
+  cursor: pointer;
+}
+
 .cv-table tbody tr.cv-table__row--selected td {
   background: var(--cv-row-selected);
 }
