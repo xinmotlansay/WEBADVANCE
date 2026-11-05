@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile } from '../../utils/file-upload.js';
+import { CollectionModel } from '../collections/collection.model.js';
 import { ContentAreaModel, type AreaKey, type ContentData, type ContentKey, type ContentVersion } from '../content/content.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { logAdminAction } from './admin-log.js';
@@ -37,11 +38,22 @@ export async function countActiveProducts(ids: string[]): Promise<number> {
 const featuredIds = (d: ContentData | null): string[] =>
   d && 'blocks' in d ? (d.blocks.find((b) => b.type === 'FEATURED_PRODUCTS' && b.enabled)?.productIds ?? []) : [];
 
+const collectionIdsOf = (d: ContentData | null): string[] =>
+  d && 'blocks' in d ? (d.blocks.find((b) => b.type === 'COLLECTIONS' && b.enabled)?.collectionIds ?? []) : [];
+
+/** Số collection đã chọn nhưng không còn hiển thị (đã ẩn hoặc xóa). */
+async function countMissingCollections(ids: string[]): Promise<number> {
+  const valid = ids.filter((i) => Types.ObjectId.isValid(i));
+  if (!valid.length) return ids.length;
+  return ids.length - (await CollectionModel.countDocuments({ _id: { $in: valid }, status: 'VISIBLE' }));
+}
+
 export async function getContent(key: AreaKey, now = new Date()) {
   const doc = await ContentAreaModel.findOne({ key }).lean();
   if (isLp(key) && !doc) throw notFound();
   const published = effectivePublished(doc, now);
   const activeFeatured = await countActiveProducts(featuredIds(published));
+  const missingCollections = await countMissingCollections(collectionIdsOf(published));
   return {
     key,
     draft: doc?.draft ?? published ?? defaultData(kindOf(key)),
@@ -53,10 +65,14 @@ export async function getContent(key: AreaKey, now = new Date()) {
     seoTitle: doc?.seoTitle ?? '',
     metaDescription: doc?.metaDescription ?? '',
     hidden: doc?.hidden ?? false,
-    warnings:
-      featuredIds(published).length && !featuredVisible(activeFeatured)
+    warnings: [
+      ...(featuredIds(published).length && !featuredVisible(activeFeatured)
         ? ['Khối Sản phẩm nổi bật đang tự ẩn vì còn dưới 4 sản phẩm đang kinh doanh.']
-        : [],
+        : []),
+      ...(missingCollections
+        ? [`Khối Bộ sưu tập có ${missingCollections} collection đã ẩn hoặc bị xóa; khách sẽ không thấy chúng.`]
+        : []),
+    ],
   };
 }
 

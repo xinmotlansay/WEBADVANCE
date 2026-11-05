@@ -104,9 +104,9 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** Khối `COLLECTIONS` ở `content.model` thêm `collectionIds` (giữ `categoryIds` cho dữ liệu cũ). `content-admin.rules` bắt buộc ≥ 1 collection thay vì danh mục; `resolveBlocks()` trả tile từ collection `VISIBLE` (ảnh đại diện, tên, link `/collections/<slug>`), bỏ qua id đã xóa/ẩn. Form nội dung trang chủ ở admin đổi ô chọn danh mục → chọn collection.
 
 **Tiêu chí:**
-- [ ] Chọn 3 collection → khối trên trang chủ khách hiện đúng 3 tile theo thứ tự đã chọn, bấm vào ra trang collection
-- [ ] Collection bị ẩn/xóa → tile biến mất, không lỗi; admin thấy cảnh báo
-- [ ] Khối cũ chỉ có `categoryIds` vẫn hiện như trước
+- [ ] Chọn 3 collection → khối trên trang chủ khách hiện đúng 3 tile theo thứ tự đã chọn, bấm vào ra trang collection (code xong, chờ thử thủ công)
+- [x] Collection bị ẩn/xóa → tile biến mất, không lỗi; admin thấy cảnh báo
+- [x] Khối cũ chỉ có `categoryIds` vẫn hiện như trước
 
 **Kiểm tra:** sửa `content-admin.test.ts`; `npm run test:server`, `npm run build:web`.
 

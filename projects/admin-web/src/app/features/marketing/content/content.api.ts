@@ -28,7 +28,9 @@ export interface HomeBlock {
   ctaLabel: string;
   ctaUrl: string;
   productIds: string[];
+  /** Dữ liệu cũ của khối Bộ sưu tập; khối mới dùng `collectionIds`. */
   categoryIds: string[];
+  collectionIds: string[];
   promotionIds: string[];
 }
 export interface BarData {

@@ -5,7 +5,8 @@ import { asyncHandler } from '../../utils/async-handler.js';
 import { sendData } from '../../utils/response.js';
 import { ArticleModel } from '../articles/article.model.js';
 import { CategoryModel } from '../categories/category.model.js';
-import { barVisible, effectivePublished, featuredVisible, lpKey } from '../marketing-admin/content-admin.rules.js';
+import { CollectionModel } from '../collections/collection.model.js';
+import { barVisible, collectionTile, effectivePublished, featuredVisible, lpKey } from '../marketing-admin/content-admin.rules.js';
 import { promotionStatus } from '../marketing-admin/effective-status.js';
 import { ProductModel } from '../products/product.model.js';
 import { PromotionModel } from '../promotions/promotion.model.js';
@@ -32,7 +33,13 @@ async function resolveBlocks(home: HomeData | null, now: Date) {
       const products = inOrder(b.productIds, await ProductModel.find({ _id: { $in: ids(b.productIds) }, status: 'ACTIVE' }, 'name slug media').lean());
       if (!featuredVisible(products.length)) continue; // dưới 4 sản phẩm: khối tự ẩn
       items = products.map((p) => ({ id: String(p._id), name: p.name, slug: p.slug, imageUrl: p.media.find((m) => m.type === 'IMAGE')?.url ?? '' }));
+    } else if (b.type === 'COLLECTIONS' && b.collectionIds?.length) {
+      // Collection đã ẩn/xóa bị bỏ qua; hết collection thì khối tự ẩn.
+      const cols = inOrder(b.collectionIds, await CollectionModel.find({ _id: { $in: ids(b.collectionIds) }, status: 'VISIBLE' }, 'name slug images').lean());
+      if (!cols.length) continue;
+      items = cols.map(collectionTile);
     } else if (b.type === 'COLLECTIONS') {
+      // Khối cũ chọn theo danh mục.
       const cats = inOrder(b.categoryIds, await CategoryModel.find({ _id: { $in: ids(b.categoryIds) }, status: 'VISIBLE' }, 'name slug image').lean());
       items = cats.map((c) => ({ id: String(c._id), name: c.name, slug: c.slug, imageUrl: c.image }));
     } else if (b.type === 'PROMOTION') {

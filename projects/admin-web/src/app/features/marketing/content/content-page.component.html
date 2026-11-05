@@ -149,12 +149,21 @@
               }
               @case ('COLLECTIONS') {
                 <fieldset class="checks">
-                  <legend>Danh mục</legend>
-                  @for (c of categories(); track c.id) {
+                  <legend>Collection (thứ tự chọn là thứ tự hiển thị; collection đang ẩn sẽ không hiện cho khách)</legend>
+                  @if (b.categoryIds.length && !b.collectionIds.length) {
+                    <p class="cv-alert cv-alert--warn">Khối này đang dùng danh mục (dữ liệu cũ). Chọn collection để thay; khi đăng lại cần ít nhất 1 collection.</p>
+                  }
+                  @for (c of collections(); track c.id) {
                     <label class="inline">
-                      <input type="checkbox" [checked]="b.categoryIds.includes(c.id)" (change)="toggleId(b.categoryIds, c.id)" />
+                      <input type="checkbox" [checked]="b.collectionIds.includes(c.id)" (change)="toggleId(b.collectionIds, c.id)" />
                       {{ c.name }}
+                      @if (c.status === 'HIDDEN') {
+                        <span class="cv-muted">(đang ẩn)</span>
+                      }
+                      <strong>{{ rank(b.collectionIds, c.id) }}</strong>
                     </label>
+                  } @empty {
+                    <p class="cv-muted">Chưa có collection nào. Tạo ở mục Collection.</p>
                   }
                 </fieldset>
               }

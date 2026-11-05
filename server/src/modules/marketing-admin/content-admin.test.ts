@@ -10,6 +10,7 @@ import {
   checkPublishable,
   checkSchedule,
   cleanText,
+  collectionTile,
   defaultData,
   effectivePublished,
   emptyBlock,
@@ -96,4 +97,23 @@ test('chỉ giữ 10 phiên bản gần nhất; slug landing page 3–80 ký t�
   assert.deepEqual([list[0]?.id, list[9]?.id], [2, 11]);
   assert.equal(isValidLpSlug('black-friday-2026'), true);
   for (const bad of ['ab', 'Black-Friday', '-x-', 'a--b', 'a'.repeat(81)]) assert.equal(isValidLpSlug(bad), false, bad);
+});
+
+test('khối Bộ sưu tập cần ≥ 1 collection; khối cũ chỉ có danh mục không đăng lại được', () => {
+  const block = { ...emptyBlock('COLLECTIONS'), enabled: true, title: 'Bộ sưu tập' };
+  assert.deepEqual(block.collectionIds, []);
+  assert.equal(code(() => checkPublishable('HOME', { blocks: [{ ...block, categoryIds: ['c1'] }] })), 'E-MKT-015-01');
+  assert.equal(code(() => checkPublishable('HOME', { blocks: [{ ...block, collectionIds: ['k1'] }] })), null);
+  assert.deepEqual(normalizeHome({ blocks: [] }).blocks.find((b) => b.type === 'COLLECTIONS')?.collectionIds, []);
+});
+
+test('tile collection: ảnh đại diện (không có → ảnh đầu theo thứ tự), link /collections/<slug>', () => {
+  const images = [
+    { url: '/b.jpg', isThumbnail: false, displayOrder: 2 },
+    { url: '/a.jpg', isThumbnail: false, displayOrder: 1 },
+  ];
+  const c = { _id: 'k1', name: 'ODA', slug: 'oda', images };
+  assert.deepEqual(collectionTile(c), { id: 'k1', name: 'ODA', slug: 'oda', imageUrl: '/a.jpg', link: '/collections/oda' });
+  assert.equal(collectionTile({ ...c, images: [...images, { url: '/t.jpg', isThumbnail: true, displayOrder: 3 }] }).imageUrl, '/t.jpg');
+  assert.equal(collectionTile({ ...c, images: [] }).imageUrl, '');
 });

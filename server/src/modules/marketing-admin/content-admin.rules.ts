@@ -30,6 +30,7 @@ const blockSchema = z.object({
   ctaUrl: z.string().trim().max(500).default(''),
   productIds: z.array(z.string()).max(50).default([]),
   categoryIds: z.array(z.string()).max(50).default([]),
+  collectionIds: z.array(z.string()).max(20).default([]),
   promotionIds: z.array(z.string()).max(20).default([]),
 });
 export const homeSchema = z.object({ blocks: z.array(blockSchema).max(BLOCK_TYPES.length) });
@@ -51,7 +52,7 @@ export type SaveInput = z.infer<typeof saveSchema>;
 
 export const emptyBlock = (type: HomeBlockType): HomeBlock => ({
   type, enabled: false, title: '', text: '', imageUrl: '', imageAlt: '', ctaLabel: '', ctaUrl: '',
-  productIds: [], categoryIds: [], promotionIds: [],
+  productIds: [], categoryIds: [], collectionIds: [], promotionIds: [],
 });
 export const defaultData = (key: ContentKey): ContentData =>
   key === 'HOME'
@@ -121,9 +122,16 @@ export function checkPublishable(key: ContentKey, d: ContentData, activeProducts
     if (b.type === 'FEATURED_PRODUCTS' && (b.productIds.length > MAX_FEATURED || activeProducts < MIN_FEATURED)) {
       throw err('E-MKT-015-03', 'Khối Sản phẩm nổi bật cần từ 4 đến 12 sản phẩm đang kinh doanh.');
     }
-    if (b.type === 'COLLECTIONS' && !b.categoryIds.length) throw err('E-MKT-015-01', 'Khối Bộ sưu tập cần chọn ít nhất 1 danh mục.');
+    if (b.type === 'COLLECTIONS' && !b.collectionIds?.length) throw err('E-MKT-015-01', 'Khối Bộ sưu tập cần chọn ít nhất 1 collection.');
     if (b.type === 'PROMOTION' && !b.promotionIds.length) throw err('E-MKT-015-01', 'Khối Khuyến mãi cần chọn ít nhất 1 chương trình.');
   }
+}
+
+/** Tile của khối Bộ sưu tập: ảnh đại diện (không chọn → ảnh đầu theo thứ tự), link trang collection. */
+export function collectionTile(c: { _id: unknown; name: string; slug: string; images: { url: string; isThumbnail: boolean; displayOrder: number }[] }) {
+  const images = [...c.images].sort((a, b) => a.displayOrder - b.displayOrder);
+  const thumb = images.find((i) => i.isThumbnail) ?? images[0];
+  return { id: String(c._id), name: c.name, slug: c.slug, imageUrl: thumb?.url ?? '', link: `/collections/${c.slug}` };
 }
 
 /** E-MKT-015-04. */

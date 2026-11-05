@@ -13,7 +13,10 @@ export interface HomeBlock {
   ctaLabel: string;
   ctaUrl: string;
   productIds: string[];
+  /** Dữ liệu cũ của khối Bộ sưu tập (trước khi chọn theo collection); vẫn hiển thị nếu chưa có `collectionIds`. */
   categoryIds: string[];
+  /** Khối Bộ sưu tập: collection theo thứ tự đã chọn. Bản ghi cũ có thể thiếu. */
+  collectionIds: string[];
   promotionIds: string[];
 }
 export interface HomeData {

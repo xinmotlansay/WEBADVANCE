@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { ProductPickerComponent } from '../shared/product-picker.component';
 import { PromotionApi, type PromotionRow } from '../promotions/promotion.api';
-import { VoucherApi, type CategoryOption } from '../vouchers/voucher.api';
+import { CollectionApi, type CollectionRow } from '../collections/collection.api';
 import {
   BLOCK_LABEL,
   ContentApi,
@@ -56,7 +56,7 @@ export class ContentPageComponent {
   protected readonly error = signal('');
   protected readonly message = signal('');
   protected readonly blocks = signal<HomeBlock[]>([]);
-  protected readonly categories = signal<CategoryOption[]>([]);
+  protected readonly collections = signal<CollectionRow[]>([]);
   protected readonly promotions = signal<PromotionRow[]>([]);
   protected readonly warnings = signal<string[]>([]);
   protected readonly scheduledAt = signal<string | null>(null);
@@ -65,7 +65,7 @@ export class ContentPageComponent {
   private version = 0;
 
   constructor() {
-    void firstValueFrom(inject(VoucherApi).categories()).then((c) => this.categories.set(c)).catch(() => undefined);
+    void firstValueFrom(inject(CollectionApi).list()).then((c) => this.collections.set(c)).catch(() => undefined);
     void firstValueFrom(inject(PromotionApi).list({ page: 1, limit: 100 }))
       .then((p) => this.promotions.set(p.data))
       .catch(() => undefined);
@@ -96,7 +96,8 @@ export class ContentPageComponent {
         this.landings.set(await firstValueFrom(this.api.landingList()));
       } else if (this.editsBlocks) {
         const a = await firstValueFrom(this.api.get<{ blocks: HomeBlock[] }>(this.path));
-        this.apply(a, (d) => this.blocks.set(d.blocks));
+        // Bản ghi cũ chưa có `collectionIds`.
+        this.apply(a, (d) => this.blocks.set(d.blocks.map((b) => ({ ...b, collectionIds: b.collectionIds ?? [] }))));
         this.lpName = a.name;
         this.lpSeoTitle = a.seoTitle;
         this.lpMeta = a.metaDescription;
@@ -179,6 +180,12 @@ export class ContentPageComponent {
     const at = list.indexOf(id);
     if (at >= 0) list.splice(at, 1);
     else list.push(id);
+  }
+
+  /** Vị trí (1, 2, …) của id trong danh sách đã chọn, để người soạn thấy thứ tự hiển thị. */
+  protected rank(list: string[], id: string): string {
+    const at = list.indexOf(id);
+    return at >= 0 ? `#${at + 1}` : '';
   }
 
   protected async save(action: SaveAction): Promise<void> {
