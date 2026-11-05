@@ -1,0 +1,191 @@
+:host {
+  display: block;
+}
+
+.gap {
+  margin-bottom: 16px;
+}
+
+.block {
+  display: block;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-skeleton.w40 {
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+.cv-skeleton.tall {
+  height: 48px;
+}
+
+.date {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.rules {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cv-muted);
+}
+
+/* Popup nhật ký: bảng trước/sau */
+.lead {
+  margin: 0 0 16px;
+}
+
+.diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.diff th,
+.diff td {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--cv-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.diff thead th {
+  color: var(--cv-muted);
+  font-weight: 500;
+}
+
+/* Trang cấu hình */
+.group {
+  margin-bottom: 32px;
+  scroll-margin-top: 16px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.item-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-head h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.item-head p {
+  margin: 0;
+}
+
+.meta {
+  font-size: 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit {
+  flex: none;
+  font-size: 13px;
+  color: var(--cv-muted);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.toggle input,
+.day input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cv-navy);
+}
+
+.days {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.day-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.day.on {
+  border-color: var(--cv-navy);
+  background: var(--cv-row-selected);
+}
+
+.item-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.ok {
+  font-size: 13px;
+  color: var(--cv-up);
+}
+
+.toc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc li {
+  margin-bottom: 8px;
+}
+
+.toc .cv-btn.link {
+  font-size: 14px;
+  font-weight: 500;
+}

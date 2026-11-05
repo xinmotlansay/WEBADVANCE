@@ -1,3 +1,6 @@
+/* Giao diện riêng của các màn Admin cấp cao nạp trước; layout/components/order-screens nạp sau để
+   các class dùng chung (cv-btn, cv-table, cv-popup…) giữ nguyên diện mạo của các màn đang chạy. */
+@import "./styles/admin-ui.css";
 @import "./styles/layout.css";
 @import "./styles/components.css";
 @import "./styles/order-screens.css";

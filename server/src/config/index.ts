@@ -22,6 +22,8 @@ export const config = {
   bankWebhookSecret: process.env['BANK_WEBHOOK_SECRET'] ?? '',
   isProduction: process.env['NODE_ENV'] === 'production',
   otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
+  /** Địa chỉ trang quản trị, dùng tạo liên kết đặt mật khẩu cho Admin mới (AD-11). */
+  adminWebUrl: (process.env['ADMIN_WEB_URL'] ?? 'http://localhost:4201').replace(/\/+$/, ''),
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
   allowedOrigins: (
     process.env['ALLOWED_ORIGINS'] ??
