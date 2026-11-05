@@ -8,6 +8,7 @@ import { collectionAdminRoutes } from './collection-admin.routes.js';
 import { contentAdminRoutes } from './content-admin.routes.js';
 import { dashboardRoutes } from './dashboard.routes.js';
 import { insightsRoutes } from './insights.routes.js';
+import { inspirationAdminRoutes } from './inspiration-admin.routes.js';
 import { promotionAdminRoutes } from './promotion-admin.routes.js';
 import { voucherAdminRoutes } from './voucher-admin.routes.js';
 
@@ -23,3 +24,4 @@ marketingAdminRoutes.use('/banners', bannerAdminRoutes);
 marketingAdminRoutes.use('/articles', articleAdminRoutes);
 marketingAdminRoutes.use('/content', contentAdminRoutes);
 marketingAdminRoutes.use('/collections', collectionAdminRoutes);
+marketingAdminRoutes.use('/inspirations', inspirationAdminRoutes);

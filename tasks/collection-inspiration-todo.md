@@ -64,8 +64,8 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** Thêm `version`, `displayOrder` vào `inspiration.model.ts`. `inspiration-admin.{rules,service,routes,test}.ts`, mount `/inspirations`: `GET /`, `GET /:id`, `POST /`, `PATCH /:id`, `POST /:id/hide|show`, `DELETE /:id`, `POST /reorder`, `POST /images` (cùng giới hạn ảnh, thư mục `uploads/inspirations`). 1–12 sản phẩm `ACTIVE`, không trùng.
 
 **Tiêu chí:**
-- [ ] Hiện khi chưa có sản phẩm → 400; sửa trùng → 409 `E-COM-05`
-- [ ] Danh sách có cờ khi có sản phẩm không còn `ACTIVE`
+- [x] Hiện khi chưa có sản phẩm → 400 `E-MKT-021-02`; sửa trùng → 409 `E-COM-05`
+- [x] Danh sách có cờ khi có sản phẩm không còn `ACTIVE`
 
 **Kiểm tra:** `inspiration-admin.test.ts` cho rules; `npm run test:server`.
 

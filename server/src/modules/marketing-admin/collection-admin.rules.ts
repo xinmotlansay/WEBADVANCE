@@ -17,7 +17,7 @@ export const isValidCollectionSlug = (s: string): boolean =>
   s.length >= 2 && s.length <= 160 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s);
 
 /** Ảnh tải lên (`/uploads/...`) hoặc ảnh https sẵn có (dữ liệu seed). Chặn `//host`, `javascript:`. */
-const imageUrl = z
+export const imageUrl = z
   .string()
   .max(500)
   .refine((u) => (/^\/uploads\/[\w./-]+$/.test(u) && !u.includes('..')) || /^https:\/\/[^\s]+$/.test(u), 'Đường dẫn ảnh không hợp lệ.');

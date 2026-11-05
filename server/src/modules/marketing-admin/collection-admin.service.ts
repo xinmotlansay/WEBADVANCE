@@ -221,8 +221,11 @@ export async function reorderCollections(actorId: string, ids: string[]) {
   return { reordered: ids.length };
 }
 
-/** Tải ảnh collection; trả URL + kích thước. Lỗi theo E-MKT-020-04. */
-export async function uploadCollectionImage(bytes: Uint8Array): Promise<{ url: string; width: number; height: number }> {
+/** Tải ảnh collection/cảm hứng vào `uploads/<folder>`; trả URL + kích thước. Lỗi theo E-MKT-020-04. */
+export async function uploadAdminImage(
+  bytes: Uint8Array,
+  folder: 'collections' | 'inspirations' = 'collections',
+): Promise<{ url: string; width: number; height: number }> {
   const format = detectFile(bytes);
   if (format.video) throw new AppError('E-MKT-020-04', 400, 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.');
   let meta;
@@ -235,8 +238,8 @@ export async function uploadCollectionImage(bytes: Uint8Array): Promise<{ url: s
   const height = meta.height ?? 0;
   checkCollectionImage({ width, height, bytes: bytes.length });
   const name = `${randomUUID()}.${format.ext}`;
-  const dir = path.resolve('uploads/collections');
+  const dir = path.resolve('uploads', folder);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
-  return { url: `/uploads/collections/${name}`, width, height };
+  return { url: `/uploads/${folder}/${name}`, width, height };
 }

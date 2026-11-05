@@ -21,7 +21,7 @@ import {
   reorderCollections,
   setHidden,
   updateCollection,
-  uploadCollectionImage,
+  uploadAdminImage,
   type ListQuery,
 } from './collection-admin.service.js';
 
@@ -45,7 +45,7 @@ collectionAdminRoutes.post(
     const file = (await readMultipart(req)).get('file');
     if (!(file instanceof File)) throw new AppError('E-MKT-020-04', 400, 'Vui lòng chọn ảnh để tải lên.');
     res.status(201);
-    sendData(res, await uploadCollectionImage(new Uint8Array(await file.arrayBuffer())));
+    sendData(res, await uploadAdminImage(new Uint8Array(await file.arrayBuffer())));
   }),
 );
 
