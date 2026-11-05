@@ -13,7 +13,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
 };
 
 async function seedRoles(): Promise<void> {
-  await mongoose.connect(config.MONGODB_URI);
+  await mongoose.connect(config.mongodbUri);
 
   for (const name of Object.values(RoleName)) {
     await RoleModel.updateOne(

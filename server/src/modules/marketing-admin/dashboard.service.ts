@@ -148,9 +148,14 @@ export async function getDashboard(q: DashboardQuery, now = new Date()) {
 
   attention.push(...(await homeWarnings()));
 
+  // Voucher chiến dịch ML (ASSIGNED) không có trong `vouchers` nhưng vẫn có thể lọt Top 5.
+  const assigned = await VoucherModel.find(
+    { _id: { $in: cur.byVoucher.map((r) => new Types.ObjectId(r.id)) }, type: 'ASSIGNED' },
+    'code',
+  ).lean();
   const nameOf = new Map<string, string>([
     ...promos.map((p) => [String(p._id), `${p.code ?? ''} ${p.name}`.trim()] as const),
-    ...vouchers.map((v) => [String(v._id), v.code] as const),
+    ...[...vouchers, ...assigned].map((v) => [String(v._id), v.code] as const),
   ]);
   const top = <T extends { id: string }>(rows: T[], key: (r: T) => number) =>
     [...rows]

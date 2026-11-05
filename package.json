@@ -14,6 +14,7 @@
     "dev:worker": "tsx watch server/src/worker.ts",
     "seed": "tsx server/seed/seed.ts",
     "bank:simulate": "tsx server/scripts/simulate-bank-transfer.ts",
+    "ml:simulate": "tsx server/scripts/simulate-campaign-response.ts",
     "test:server": "tsx --test \"server/**/*.test.ts\"",
     "test:web": "tsx --test \"projects/customer-web/**/*.spec.ts\"",
     "start:api": "node dist/server/src/server.js",

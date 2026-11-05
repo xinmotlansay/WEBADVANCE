@@ -6,6 +6,10 @@ export const config = {
   vectorIndex: process.env['VECTOR_SEARCH_INDEX'] ?? 'product_image_vector',
   port: Number(process.env['PORT'] ?? 3000),
   mongodbUri: process.env['MONGODB_URI'] ?? '',
+  /** Service ML chấm điểm khách. Trống = Web chạy bằng điểm đã seed và ẩn nút Tính lại. */
+  mlApiUrl: (process.env['ML_API_URL'] ?? '').replace(/\/+$/, ''),
+  /** Shared secret gửi kèm header X-ML-Token khi gọi `/score`; phải trùng ML_API_TOKEN của service ML. */
+  mlApiToken: (process.env['ML_API_TOKEN'] ?? '').trim(),
   jwtSecret: (process.env['JWT_SECRET'] ?? '').trim(),
   cookieSecret: process.env['COOKIE_SECRET'] ?? '',
   resendApiKey: process.env['RESEND_API_KEY'] ?? '',
