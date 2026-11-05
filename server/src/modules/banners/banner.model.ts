@@ -22,6 +22,10 @@ export interface BannerDoc {
   /** Bắt buộc khi vị trí CATEGORY. */
   categoryIds?: Types.ObjectId[];
   popupFrequency?: 'SESSION' | 'DAILY' | 'ONCE';
+  /** Xóa mềm (FR-014): ẩn khỏi quản lý và website, giữ số liệu cho thống kê. */
+  deletedAt?: Date | null;
+  /** Lần gần nhất đổi ảnh khi đang hiển thị (tách số liệu thành hai giai đoạn). */
+  imageChangedAt?: Date;
   version?: number;
 }
 
@@ -55,6 +59,8 @@ const bannerSchema = new Schema<BannerDoc>(
     openInNewTab: Boolean,
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'categories' }],
     popupFrequency: { type: String, enum: ['SESSION', 'DAILY', 'ONCE'] },
+    deletedAt: { type: Date, default: null },
+    imageChangedAt: Date,
     version: { type: Number, default: 0 },
   },
   { timestamps: true },
