@@ -54,7 +54,7 @@ rules + model (version, displayOrder)
 - [x] Task 1: API admin Collection — thông tin + sản phẩm + ẩn/hiện
 - [x] Task 2: Upload ảnh, quản lý ảnh và hotspot trong API
 - [x] Task 3: Admin UI danh sách + form thông tin/sản phẩm, mở menu
-- [ ] Task 4: Admin UI ảnh + trình đặt hotspot
+- [x] Task 4: Admin UI ảnh + trình đặt hotspot
 
 ### Checkpoint A
 - [ ] Tạo collection ở admin, thêm ảnh + hotspot, bấm Hiện → thấy ở slider trang chủ và `/collections/<slug>`, bấm hotspot ra đúng sản phẩm

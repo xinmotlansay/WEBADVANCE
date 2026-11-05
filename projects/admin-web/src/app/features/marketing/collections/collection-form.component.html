@@ -59,6 +59,7 @@
         inputId="c-products"
         hint="Thứ tự chọn là thứ tự hiển thị. Sản phẩm gắn trên ảnh (hotspot) được tự thêm vào danh sách."
         [(ids)]="productIds"
+        (idsChange)="productsChanged($event)"
       />
       @if (loaded?.inactiveProductIds?.length) {
         <p class="cv-alert cv-alert--warn">
@@ -66,8 +67,60 @@
         </p>
       }
 
+      @if (loaded) {
+        <fieldset class="imgs">
+          <legend>Ảnh không gian ({{ images().length }}/{{ MAX_IMAGES }})</legend>
+          <p class="cv-hint">
+            JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px. "Ảnh đại diện" hiện ở slider trang chủ.
+          </p>
+          @for (img of images(); track $index; let i = $index, first = $first, last = $last) {
+            <div class="img cv-card">
+              <div class="img__row">
+                <img class="img__thumb" [src]="img.url" alt="" />
+                <div class="img__fields">
+                  <div class="cv-field">
+                    <label [for]="'it-' + i">Tiêu đề ảnh</label>
+                    <input class="cv-input" [id]="'it-' + i" maxlength="120" [value]="img.title" (input)="patchImage(i, { title: $any($event.target).value })" />
+                  </div>
+                  <div class="cv-field">
+                    <label [for]="'id-' + i">Mô tả ảnh</label>
+                    <input class="cv-input" [id]="'id-' + i" maxlength="500" [value]="img.description" (input)="patchImage(i, { description: $any($event.target).value })" />
+                  </div>
+                  <label class="thumb-pick">
+                    <input type="radio" name="thumbnail" [checked]="img.isThumbnail" (change)="setThumbnail(i)" />
+                    Ảnh đại diện
+                  </label>
+                </div>
+              </div>
+              <div class="img__btns">
+                <button type="button" class="cv-btn" [attr.aria-expanded]="editing() === i" (click)="editing.set(editing() === i ? null : i)">
+                  {{ editing() === i ? 'Đóng đặt điểm' : 'Đặt điểm sản phẩm (' + img.hotspots.length + ')' }}
+                </button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh lên trước" [disabled]="first" (click)="moveImage(i, -1)">↑</button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh ra sau" [disabled]="last" (click)="moveImage(i, 1)">↓</button>
+                <button type="button" class="cv-btn cv-btn--danger" (click)="removeImage(i)">Xóa ảnh</button>
+              </div>
+              @if (editing() === i) {
+                <app-hotspot-editor
+                  [inputId]="'hs-' + i"
+                  [image]="img"
+                  (imageChange)="patchImage(i, { hotspots: $event.hotspots })"
+                  [products]="productOptions()"
+                />
+              }
+            </div>
+          }
+          @if (images().length < MAX_IMAGES) {
+            <label class="drop" [class.drop--off]="uploading()">
+              <input class="file" type="file" multiple accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event)" />
+              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh' }}</strong>
+            </label>
+          }
+        </fieldset>
+      }
+
       @if (!loaded) {
-        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Thêm ảnh rồi bấm "Hiển thị" ở danh sách.</p>
+        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Lưu xong bạn thêm ảnh ở màn tiếp theo, rồi bấm "Hiển thị" ở danh sách.</p>
       }
 
       <div class="cv-actions-bar">

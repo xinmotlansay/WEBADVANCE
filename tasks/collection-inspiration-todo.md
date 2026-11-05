@@ -46,9 +46,9 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** Trong form: tải nhiều ảnh, sắp thứ tự, chọn ảnh đại diện, sửa tiêu đề/mô tả ảnh, xóa ảnh. Component `hotspot-editor` (trong `collections/`): bấm lên ảnh tạo điểm → chọn sản phẩm (dùng lại tìm kiếm của `product-picker`), kéo để dời, nút xóa điểm; tọa độ tương đối 0–1. Trước khi làm, đọc `customer-web/.../hotspot-image.component.ts` để khớp cách client đặt điểm.
 
 **Tiêu chí:**
-- [ ] Điểm đặt ở admin trùng vị trí trên trang khách (sai lệch mắt thường không thấy) ở desktop và mobile
-- [ ] Không thêm quá 8 điểm/ảnh, quá 10 ảnh (nút bị khóa + chú thích)
-- [ ] Dùng được bàn phím: điểm là `<button>` có `aria-label` tên sản phẩm, phím Delete xóa
+- [x] Điểm đặt ở admin trùng vị trí trên trang khách (sai lệch mắt thường không thấy) ở desktop và mobile
+- [x] Không thêm quá 8 điểm/ảnh, quá 10 ảnh (nút bị khóa + chú thích)
+- [x] Dùng được bàn phím: điểm là `<button>` có `aria-label` tên sản phẩm, phím Delete xóa
 
 **Kiểm tra:** `npm run build:web`; spec nhỏ cho hàm đổi tọa độ click → x,y (kẹp 0–1); thủ công so admin vs `/collections/<slug>`.
 
