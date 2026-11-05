@@ -274,3 +274,9 @@ button:disabled { opacity: .5; cursor: default; }
   .account-area .screen-heading, .account-area .screen-heading h1 { font-size: 20px; }
   .account-area .screen-heading { margin-bottom: 12px; }
 }
+
+/* Banner danh mục do Marketing đặt (FR-011), dùng trong product-list. */
+.category-banner { display: block; margin-bottom: var(--space-lg); overflow: hidden; border-radius: var(--radius); }
+/* Tỉ lệ theo quy định upload của admin: 1200×300 desktop, 750×400 mobile. */
+.category-banner img { display: block; width: 100%; aspect-ratio: 4 / 1; object-fit: cover; }
+@media (max-width: 767px) { .category-banner img { aspect-ratio: 15 / 8; } }

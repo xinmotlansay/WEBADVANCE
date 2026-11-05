@@ -19,6 +19,7 @@ import {
   ProductFacets,
   ProductSort,
   Category,
+  type Banner,
 } from 'shared';
 import {
   catchError,
@@ -51,9 +52,13 @@ const EMPTY: Result = {
 };
 const PRICE_FORMATTER = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
+import { LinkDirective } from '../../shared/ui/link/link.directive';
+import { BannerTrackerService } from '../../core/marketing/banner-tracker.service';
+
 @Component({
   selector: 'app-product-list',
   imports: [
+    LinkDirective,
     ProductCardComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -81,6 +86,25 @@ export class ProductListComponent {
   protected readonly imageSearch = computed(() => this.params().has('image'));
   protected readonly imagePreview = computed(() => this.imageResults.preview(this.params().get('image') ?? ''));
   protected readonly retry = new Subject<number>();
+
+  protected readonly bannerTracker = inject(BannerTrackerService);
+  /** Banner trang danh mục (FR-011): chỉ khi đang lọc đúng một danh mục. */
+  protected readonly categoryBanner = toSignal(
+    this.route.queryParamMap.pipe(
+      map((p) => (p.get('categoryIds') ?? '').split(',').filter(Boolean)),
+      map((ids) => (ids.length === 1 ? ids[0] : '')),
+      distinctUntilChanged(),
+      switchMap((id) =>
+        id && !this.embedded()
+          ? this.api.getBanners('CATEGORY', id).pipe(
+              map((list): Banner | null => list[0] ?? null),
+              catchError(() => of(null)),
+            )
+          : of(null),
+      ),
+    ),
+    { initialValue: null },
+  );
 
   /** Đặc tính có thật trong kết quả hiện tại; chỉ phụ thuộc ngữ cảnh tìm kiếm, không phụ thuộc bộ lọc đang chọn. */
   protected readonly facets = toSignal(

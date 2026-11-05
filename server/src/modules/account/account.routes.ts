@@ -22,7 +22,9 @@ import {
   createWalkwayProfile,
   deleteWalkwayProfile,
   getProfile,
+  listNewGifts,
   listUserVouchers,
+  markGiftsSeen,
   listWalkwayProfiles,
   listWishlist,
   removeFromWishlist,
@@ -112,6 +114,21 @@ accountRoutes.get(
         ['UNUSED', 'USED', 'EXPIRED'].includes(status) ? status : undefined,
       ),
     );
+  }),
+);
+
+accountRoutes.get(
+  '/vouchers/new',
+  asyncHandler(async (_req, res) => {
+    sendData(res, await listNewGifts(userId(res)));
+  }),
+);
+
+accountRoutes.post(
+  '/vouchers/seen',
+  asyncHandler(async (_req, res) => {
+    await markGiftsSeen(userId(res));
+    sendData(res, { seen: true });
   }),
 );
 

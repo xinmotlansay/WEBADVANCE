@@ -4,6 +4,7 @@ import { validateQuery } from '../../middlewares/validate.middleware.js';
 import { AppError } from '../../utils/app-error.js';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { sendData } from '../../utils/response.js';
+import { sanitizeArticleHtml } from '../marketing-admin/article-admin.rules.js';
 import { ProductModel } from '../products/product.model.js';
 import { ArticleModel } from './article.model.js';
 
@@ -74,7 +75,9 @@ articleRoutes.get(
       category: a.category ?? null,
       coverUrl: a.coverUrl ?? null,
       summary: a.summary ?? '',
-      content: a.content ?? '',
+      // Lọc lại khi trả cho khách: bài nhập thẳng vào DB (seed, script) không qua bộ lọc lúc lưu,
+      // và client hiển thị trường này bằng innerHTML không qua bộ lọc của Angular (để giữ iframe YouTube).
+      content: sanitizeArticleHtml(a.content ?? ''),
       tags: a.tags,
       seoTitle: a.seoTitle || a.title,
       metaDescription: a.metaDescription || a.summary || '',

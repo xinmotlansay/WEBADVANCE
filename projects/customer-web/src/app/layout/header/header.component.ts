@@ -18,6 +18,8 @@ import { CartStore } from '../../core/cart/cart.store';
 import { ProductSearchService } from '../../core/search/product-search.service';
 import { SearchUiService } from '../../core/search/search-ui.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
+import { LinkDirective } from '../../shared/ui/link/link.directive';
+import { GiftVoucherStripComponent } from '../gift-voucher-strip/gift-voucher-strip.component';
 import { VndPipe } from '../../shared/pipes/vnd.pipe';
 
 /** Cuộn quá ngưỡng này (px) thì header đổi sang nền trắng. */
@@ -25,7 +27,14 @@ const SCROLL_THRESHOLD = 24;
 
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, IconComponent, ReactiveFormsModule, VndPipe],
+  imports: [
+    RouterLink,
+    IconComponent,
+    ReactiveFormsModule,
+    VndPipe,
+    GiftVoucherStripComponent,
+    LinkDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.solid]': '!isHome() || solid()',
@@ -41,6 +50,11 @@ export class HeaderComponent {
   private readonly api = inject(CatalogApiService);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
+
+  protected readonly announcement = toSignal(
+    this.api.getAnnouncementBar().pipe(catchError(() => of(null))),
+    { initialValue: null },
+  );
 
   /** Nền trắng chữ đen ngay từ đầu, cho trang không có ảnh lớn đầu trang (giỏ hàng). */
   readonly solid = input(false);

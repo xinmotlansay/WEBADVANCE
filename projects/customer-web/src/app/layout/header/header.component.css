@@ -42,6 +42,9 @@
 .topbar__promo {
   text-align: center;
 }
+.topbar__promo a {
+  text-decoration: underline;
+}
 .topbar__account {
   position: absolute;
   right: var(--page-gutter);

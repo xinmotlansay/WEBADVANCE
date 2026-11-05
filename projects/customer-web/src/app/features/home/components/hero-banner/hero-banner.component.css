@@ -47,6 +47,9 @@
   font-size: var(--font-size-h3);
   opacity: 0.92;
 }
+.hero picture {
+  display: contents;
+}
 .hero__cta {
   position: absolute;
   left: 50%;
