@@ -116,6 +116,7 @@ export function toOrderDetail(
       voucherDiscount: order.voucherDiscount,
       shippingFee: order.shippingFee,
       installationFee: order.installationFee,
+      exchangeCredit: order.exchangeCredit ?? 0,
       totalAmount: order.totalAmount,
     },
     status: toSharedOrderStatus(order.status),

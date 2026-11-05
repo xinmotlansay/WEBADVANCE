@@ -7,9 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { concatMap } from 'rxjs';
 import {
   RECONCILIATION_LABEL,
   RECORD_SOURCE_LABEL,
+  REFUND_DESTINATION_LABEL,
+  REFUND_SOURCE_LABEL,
   REFUND_STATUS_LABEL,
   RESOLVE_ACTION_LABEL,
   RECONCILIATION_STATUS_TONE,
@@ -42,6 +45,18 @@ const RECONCILIATION_OPTIONS: FilterOption[] = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
   ...Object.entries(RECONCILIATION_LABEL).map(([value, label]) => ({ value, label })),
 ];
+
+const TYPE_OPTIONS: FilterOption[] = [
+  { value: 'ALL', label: 'Tất cả loại' },
+  ...Object.entries(TRANSACTION_TYPE_LABEL).map(([value, label]) => ({ value, label })),
+];
+
+const REFUND_STATUS_OPTIONS: FilterOption[] = [
+  { value: 'ALL', label: 'Mọi tình trạng hoàn' },
+  ...Object.entries(REFUND_STATUS_LABEL).map(([value, label]) => ({ value, label })),
+];
+
+const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
 const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
   Object.keys(RESOLVE_ACTION_LABEL) as ResolveAction[]
@@ -95,6 +110,97 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
           {{ exporting() ? 'Đang xuất…' : 'Xuất đối soát' }}
         </button>
       </app-page-header>
+
+      <section class="cv-panel" style="margin-bottom: 20px" aria-labelledby="refunds-title">
+        <div class="cv-panel__head">
+          <h2 class="cv-panel__title" id="refunds-title">Hàng đợi hoàn tiền</h2>
+          <span class="cv-tag">{{ refunds().length }} khoản</span>
+        </div>
+
+        @if (refundLoading()) {
+          <app-table-skeleton [rows]="[1, 2]" />
+        } @else if (refunds().length === 0) {
+          <p class="cv-small cv-muted">Không có khoản nào đang chờ hoàn tiền cho khách.</p>
+        } @else {
+          <div class="exception-grid">
+            @for (item of refunds(); track item.id) {
+              <article class="exception">
+                <div class="cv-spread">
+                  <span class="cv-badge cv-badge--warning">{{ refundSourceLabel(item) }}</span>
+                  <span
+                    class="cv-badge"
+                    [class]="'cv-badge cv-badge--' + (item.status === 'PROCESSING' ? 'info' : 'warning')"
+                    >{{ refundLabel(item) }}</span
+                  >
+                </div>
+                <p class="cv-small cv-muted">{{ item.transactionAt | dateVn: 'datetime' }}</p>
+                <p class="exception__code">
+                  @if (item.orderCode) {
+                    {{ item.orderCode | orderCode }}
+                  } @else {
+                    <span class="cv-muted">Chưa gắn đơn</span>
+                  }
+                  @if (item.customerName) {
+                    <span class="cv-muted">· {{ item.customerName }}</span>
+                  }
+                </p>
+                <dl class="cv-kv exception__kv">
+                  <dt>Cần hoàn</dt>
+                  <dd class="cv-num">{{ item.amount | vnd }}</dd>
+                  <dt>Hoàn về</dt>
+                  <dd>{{ destinationLabel(item) }}</dd>
+                  @if (item.refundAccount; as account) {
+                    <dt>Ngân hàng</dt>
+                    <dd>{{ account.bankName }}</dd>
+                    <dt>Số tài khoản</dt>
+                    <dd class="cv-num">{{ account.accountNumber }}</dd>
+                    <dt>Chủ tài khoản</dt>
+                    <dd>{{ account.accountHolder }}</dd>
+                  } @else if (item.refundTo === 'SOURCE_BANK' && item.originalTransactionCode) {
+                    <dt>Giao dịch gốc</dt>
+                    <dd class="cv-num">{{ item.originalTransactionCode }}</dd>
+                  }
+                  @if (item.returnCode) {
+                    <dt>Phiếu trả hàng</dt>
+                    <dd>{{ item.returnCode }}</dd>
+                  }
+                </dl>
+                @if (item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount) {
+                  <p class="cv-small cv-error">Chưa có tài khoản nhận hoàn tiền, cần liên hệ khách.</p>
+                }
+                @if (item.refundTo === 'SOURCE_BANK') {
+                  <p class="cv-small cv-muted">
+                    Hoàn về tài khoản đã chuyển tiền, theo quy định của ngân hàng.
+                  </p>
+                }
+                @if (item.note) {
+                  <p class="cv-small cv-muted">{{ item.note }}</p>
+                }
+                @if (item.status === 'PROCESSING') {
+                  <button
+                    type="button"
+                    class="cv-btn cv-btn--primary cv-btn--block"
+                    (click)="openRefund(item)"
+                  >
+                    <app-icon name="wallet" size="sm" />
+                    Hoàn tất hoàn tiền
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="cv-btn cv-btn--secondary cv-btn--block"
+                    [disabled]="item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount"
+                    (click)="startingRefund.set(item)"
+                  >
+                    <app-icon name="wallet" size="sm" />
+                    Xác nhận hoàn tiền
+                  </button>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
 
       <section class="cv-panel" style="margin-bottom: 20px" aria-labelledby="exceptions-title">
         <div class="cv-panel__head">
@@ -164,7 +270,19 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
           [value]="reconciliation()"
           (valueChange)="reconciliation.set($event); page.set(1); load()"
         />
-        @if (keyword() || reconciliation() !== 'ALL') {
+        <app-filter-chip
+          label="Loại"
+          [options]="typeOptions"
+          [value]="type()"
+          (valueChange)="type.set($event); page.set(1); load()"
+        />
+        <app-filter-chip
+          label="Hoàn tiền"
+          [options]="refundStatusOptions"
+          [value]="refundStatus()"
+          (valueChange)="refundStatus.set($event); page.set(1); load()"
+        />
+        @if (keyword() || reconciliation() !== 'ALL' || type() !== 'ALL' || refundStatus() !== 'ALL') {
           <button type="button" class="cv-chip" (click)="resetFilters()">
             <app-icon name="x" size="sm" />
             Xóa bộ lọc
@@ -199,6 +317,7 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
                   <th scope="col">Loại</th>
                   <th scope="col" class="cv-table__cell--num">Số tiền</th>
                   <th scope="col">Đối soát</th>
+                  <th scope="col">Hoàn tiền</th>
                   <th scope="col">Nguồn</th>
                   <th scope="col">Thời điểm</th>
                 </tr>
@@ -207,7 +326,9 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
                 @for (item of transactions(); track item.id) {
                   <tr>
                     <td>
-                      <span class="cv-num">{{ item.bankTransactionCode }}</span>
+                      <span class="cv-num">{{
+                        item.bankTransactionCode || item.originalTransactionCode || '—'
+                      }}</span>
                     </td>
                     <td>
                       @if (item.orderCode) {
@@ -226,6 +347,18 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
                       >
                         {{ labelOf(item.reconciliationStatus) }}
                       </span>
+                    </td>
+                    <td>
+                      @if (item.type === 'REFUND') {
+                        <span
+                          class="cv-badge"
+                          [class]="'cv-badge cv-badge--' + (item.status === 'COMPLETED' ? 'success' : item.status === 'FAILED' ? 'danger' : item.status === 'PROCESSING' ? 'info' : 'warning')"
+                        >
+                          {{ refundLabel(item) }}
+                        </span>
+                      } @else {
+                        <span class="cv-muted">—</span>
+                      }
                     </td>
                     <td>{{ sourceLabel(item.recordSource) }}</td>
                     <td class="cv-nowrap">{{ item.transactionAt | dateVn: 'datetime' }}</td>
@@ -263,7 +396,9 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
         <ul class="rule-list cv-small cv-muted">
           <li>Mọi xử lý thủ công bắt buộc ghi chú.</li>
           <li>Một giao dịch ngân hàng chỉ được xử lý một lần.</li>
-          <li>Hoàn tiền cần thông tin tài khoản nhận của khách.</li>
+          <li>Đơn chuyển khoản: hoàn về tài khoản đã chuyển tiền, theo quy định của ngân hàng.</li>
+          <li>Đơn COD khi trả hàng: hoàn về tài khoản khách đã nhập.</li>
+          <li>Hoàn tiền xong phải tải chứng từ và ghi chú.</li>
           <li>Chênh lệch thiếu/thừa phải xử lý trước khi đóng ca.</li>
         </ul>
       </div>
@@ -341,6 +476,112 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
       </app-detail-popup>
     }
 
+    @if (refunding(); as refund) {
+      <app-detail-popup
+        [open]="refunding() !== null"
+        title="Hoàn tất hoàn tiền"
+        (closed)="refunding.set(null)"
+      >
+        <div popupBody class="cv-stack">
+          <div class="cv-alert-box">
+            Hoàn <strong>{{ refund.amount | vnd }}</strong> cho khách
+            {{ destinationLabel(refund).toLowerCase() }}. Chỉ hoàn tất sau khi đã chuyển tiền (chưa nối ngân hàng nên báo thủ công); phiếu trả hàng liên quan sẽ tự chuyển Hoàn tất. Thao tác được ghi nhật ký.
+          </div>
+
+          @if (refund.refundAccount; as account) {
+            <dl class="cv-kv">
+              <dt>Ngân hàng</dt>
+              <dd>{{ account.bankName }}</dd>
+              <dt>Số tài khoản</dt>
+              <dd class="cv-num">{{ account.accountNumber }}</dd>
+              <dt>Chủ tài khoản</dt>
+              <dd>{{ account.accountHolder }}</dd>
+            </dl>
+          } @else if (refund.originalTransactionCode) {
+            <dl class="cv-kv">
+              <dt>Giao dịch gốc</dt>
+              <dd class="cv-num">{{ refund.originalTransactionCode }}</dd>
+            </dl>
+          }
+
+          <div class="cv-field">
+            <label class="cv-field__label" for="refund-amount">Số tiền đã hoàn (VND)</label>
+            <input
+              class="cv-input"
+              id="refund-amount"
+              type="number"
+              min="1"
+              [max]="refund.amount"
+              [value]="refundAmount()"
+              (input)="refundAmount.set(+$any($event.target).value)"
+            />
+          </div>
+          <div class="cv-field">
+            <label class="cv-field__label" for="refund-at">Thời điểm chuyển</label>
+            <input
+              class="cv-input"
+              id="refund-at"
+              type="datetime-local"
+              [value]="refundAt()"
+              (input)="refundAt.set($any($event.target).value)"
+            />
+          </div>
+          <div class="cv-field">
+            <label class="cv-field__label" for="refund-proof"
+              >Chứng từ chuyển tiền (JPEG, PNG hoặc PDF; tối đa 5 MB)</label
+            >
+            <input
+              class="cv-input"
+              id="refund-proof"
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              (change)="selectRefundProof($event)"
+            />
+            @if (refundProof(); as file) {
+              <p class="cv-small cv-muted">{{ file.name }}</p>
+            }
+          </div>
+          <div class="cv-field">
+            <label class="cv-field__label" for="refund-note">Ghi chú (bắt buộc)</label>
+            <textarea
+              class="cv-textarea"
+              id="refund-note"
+              [value]="refundNote()"
+              (input)="refundNote.set($any($event.target).value)"
+              placeholder="Ví dụ: đã hoàn qua Vietcombank, mã giao dịch hoàn FT2611..."
+            ></textarea>
+          </div>
+
+          @if (refundError()) {
+            <div class="cv-error" role="alert">{{ refundError() }}</div>
+          }
+        </div>
+        <div popupFooter>
+          <button type="button" class="cv-btn cv-btn--secondary" (click)="refunding.set(null)">
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="cv-btn cv-btn--primary"
+            [disabled]="busy()"
+            (click)="submitRefund()"
+          >
+            {{ busy() ? 'Đang lưu…' : 'Hoàn tất hoàn tiền' }}
+          </button>
+        </div>
+      </app-detail-popup>
+    }
+
+    <app-confirm-dialog
+      [open]="startingRefund() !== null"
+      title="Xác nhận hoàn tiền"
+      [message]="startMessage()"
+      confirmLabel="Xác nhận hoàn tiền"
+      [loading]="busy()"
+      (confirmed)="commitStartRefund()"
+      (cancelled)="startingRefund.set(null)"
+    />
+
     <app-confirm-dialog
       [open]="confirmOpen()"
       title="Xác nhận xử lý đối soát"
@@ -396,9 +637,13 @@ export class PaymentsScreenComponent {
 
   readonly reconciliationOptions = RECONCILIATION_OPTIONS;
   readonly resolveOptions = RESOLVE_OPTIONS;
+  readonly typeOptions = TYPE_OPTIONS;
+  readonly refundStatusOptions = REFUND_STATUS_OPTIONS;
 
   readonly keyword = signal('');
   readonly reconciliation = signal('ALL');
+  readonly type = signal('ALL');
+  readonly refundStatus = signal('ALL');
   readonly page = signal(1);
   readonly loading = signal(true);
   readonly exporting = signal(false);
@@ -408,6 +653,21 @@ export class PaymentsScreenComponent {
 
   readonly exceptions = signal<PaymentException[]>([]);
   readonly exceptionLoading = signal(true);
+
+  readonly refunds = signal<PaymentTransaction[]>([]);
+  readonly refundLoading = signal(true);
+  readonly refunding = signal<PaymentTransaction | null>(null);
+  readonly startingRefund = signal<PaymentTransaction | null>(null);
+  readonly startMessage = computed(() => {
+    const item = this.startingRefund();
+    if (!item) return '';
+    return `Xác nhận hoàn ${item.amount.toLocaleString('vi-VN')}đ cho khách (${this.destinationLabel(item).toLowerCase()}). Khoản hoàn chuyển sang "Đang hoàn tiền"; sau khi chuyển tiền, bấm "Hoàn tất hoàn tiền" và tải chứng từ.`;
+  });
+  readonly refundAmount = signal(0);
+  readonly refundAt = signal('');
+  readonly refundNote = signal('');
+  readonly refundProof = signal<File | null>(null);
+  readonly refundError = signal('');
 
   readonly resolving = signal<PaymentException | null>(null);
   readonly action = signal<ResolveAction>('MARK_PAID');
@@ -429,6 +689,7 @@ export class PaymentsScreenComponent {
   constructor() {
     this.load();
     this.loadExceptions();
+    this.loadRefunds();
   }
 
   load(): void {
@@ -438,6 +699,8 @@ export class PaymentsScreenComponent {
       .list({
         q: this.keyword() || undefined,
         reconciliationStatus: this.reconciliation() as never,
+        type: this.type() as never,
+        status: this.refundStatus() as never,
         page: this.page(),
         limit: 20,
       })
@@ -471,6 +734,131 @@ export class PaymentsScreenComponent {
       });
   }
 
+  loadRefunds(): void {
+    this.refundLoading.set(true);
+    this.api
+      .pendingRefunds()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => {
+          this.refunds.set(items);
+          this.refundLoading.set(false);
+        },
+        error: () => this.refundLoading.set(false),
+      });
+  }
+
+  commitStartRefund(): void {
+    const item = this.startingRefund();
+    if (!item) return;
+    this.busy.set(true);
+    this.api
+      .startRefund(item.id, {})
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.startingRefund.set(null);
+          this.notifications.show('Đã xác nhận hoàn tiền, khoản hoàn chuyển sang Đang hoàn tiền.');
+          this.loadRefunds();
+          this.load();
+        },
+        error: (error: { error?: { error?: { message?: string } } }) => {
+          this.busy.set(false);
+          this.startingRefund.set(null);
+          this.notifications.show(
+            error?.error?.error?.message ?? 'Không xác nhận được hoàn tiền, vui lòng thử lại.',
+            'error',
+          );
+        },
+      });
+  }
+
+  openRefund(item: PaymentTransaction): void {
+    this.refunding.set(item);
+    this.refundAmount.set(item.amount);
+    this.refundAt.set(this.nowLocal());
+    this.refundNote.set('');
+    this.refundProof.set(null);
+    this.refundError.set('');
+  }
+
+  selectRefundProof(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) {
+      this.refundProof.set(null);
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) {
+      this.refundProof.set(null);
+      input.value = '';
+      this.refundError.set('Chỉ hỗ trợ ảnh JPEG, PNG hoặc tài liệu PDF.');
+      return;
+    }
+    if (file.size === 0 || file.size > MAX_PROOF_BYTES) {
+      this.refundProof.set(null);
+      input.value = '';
+      this.refundError.set('Tệp chứng từ phải lớn hơn 0 byte và không vượt quá 5 MB.');
+      return;
+    }
+    this.refundError.set('');
+    this.refundProof.set(file);
+  }
+
+  submitRefund(): void {
+    const item = this.refunding();
+    if (!item) return;
+    const amount = this.refundAmount();
+    if (!(amount > 0) || amount > item.amount) {
+      this.refundError.set('Số tiền hoàn phải lớn hơn 0 và không vượt số tiền cần hoàn.');
+      return;
+    }
+    if (!this.refundAt()) {
+      this.refundError.set('Vui lòng chọn thời điểm chuyển tiền.');
+      return;
+    }
+    const file = this.refundProof();
+    if (!file) {
+      this.refundError.set('Vui lòng tải lên chứng từ chuyển tiền.');
+      return;
+    }
+    if (!this.refundNote().trim()) {
+      this.refundError.set('Vui lòng ghi chú hoàn tiền để lưu nhật ký.');
+      return;
+    }
+    this.refundError.set('');
+    this.busy.set(true);
+    this.api
+      .uploadProof(file)
+      .pipe(
+        concatMap((proofImage) =>
+          this.api.completeRefund(item.id, {
+            amount,
+            transactionAt: new Date(this.refundAt()).toISOString(),
+            proofImage,
+            note: this.refundNote().trim(),
+          }),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.refunding.set(null);
+          this.notifications.show('Đã ghi nhận hoàn tiền và lưu nhật ký thao tác.');
+          this.loadRefunds();
+          this.load();
+        },
+        error: (error: { error?: { error?: { message?: string } } }) => {
+          this.busy.set(false);
+          this.refundError.set(
+            error?.error?.error?.message ?? 'Không ghi nhận được hoàn tiền, vui lòng thử lại.',
+          );
+        },
+      });
+  }
+
   onSearch(value: string): void {
     this.keyword.set(value);
     this.page.set(1);
@@ -480,6 +868,8 @@ export class PaymentsScreenComponent {
   resetFilters(): void {
     this.keyword.set('');
     this.reconciliation.set('ALL');
+    this.type.set('ALL');
+    this.refundStatus.set('ALL');
     this.page.set(1);
     this.load();
   }
@@ -533,6 +923,8 @@ export class PaymentsScreenComponent {
     const query = {
       q: this.keyword() || undefined,
       reconciliationStatus: this.reconciliation() as never,
+      type: this.type() as never,
+      status: this.refundStatus() as never,
     };
     this.exporting.set(true);
     loadAllPages((page, limit) => this.api.list({ ...query, page, limit }))
@@ -590,6 +982,20 @@ export class PaymentsScreenComponent {
 
   typeLabel(item: PaymentTransaction): string {
     return TRANSACTION_TYPE_LABEL[item.type];
+  }
+
+  refundSourceLabel(item: PaymentTransaction): string {
+    return item.refundSource ? REFUND_SOURCE_LABEL[item.refundSource] : 'Hoàn tiền';
+  }
+
+  destinationLabel(item: PaymentTransaction): string {
+    return item.refundTo ? REFUND_DESTINATION_LABEL[item.refundTo] : '—';
+  }
+
+  private nowLocal(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
   }
 
   refundLabel(item: PaymentTransaction): string {

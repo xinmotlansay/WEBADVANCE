@@ -16,6 +16,10 @@ export enum OrderPaymentStatus {
   PAID = 'PAID',
   UNPAID = 'UNPAID',
   FAILED = 'FAILED',
+  /** Đơn đã hủy, đã thu tiền: chờ Order Admin xác nhận hoàn tiền. */
+  REFUND_PENDING = 'REFUND_PENDING',
+  /** Đơn đã hủy: Order Admin đã xác nhận, đang chuyển tiền hoàn cho khách. */
+  REFUNDING = 'REFUNDING',
   REFUNDED = 'REFUNDED',
 }
 
@@ -25,6 +29,8 @@ export const PAYMENT_STATUS_LABEL: Record<OrderPaymentStatus, string> = {
   [OrderPaymentStatus.PAID]: 'Đã thanh toán',
   [OrderPaymentStatus.UNPAID]: 'Chưa thanh toán (COD)',
   [OrderPaymentStatus.FAILED]: 'Thất bại',
+  [OrderPaymentStatus.REFUND_PENDING]: 'Chờ hoàn tiền',
+  [OrderPaymentStatus.REFUNDING]: 'Đang hoàn tiền',
   [OrderPaymentStatus.REFUNDED]: 'Đã hoàn tiền',
 };
 
@@ -34,6 +40,8 @@ export const PAYMENT_STATUS_TONE: Record<OrderPaymentStatus, OrderBadgeTone> = {
   [OrderPaymentStatus.PAID]: 'success',
   [OrderPaymentStatus.UNPAID]: 'warning',
   [OrderPaymentStatus.FAILED]: 'danger',
+  [OrderPaymentStatus.REFUND_PENDING]: 'warning',
+  [OrderPaymentStatus.REFUNDING]: 'info',
   [OrderPaymentStatus.REFUNDED]: 'neutral',
 };
 
@@ -97,12 +105,15 @@ export const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
 
 export enum RefundStatus {
   PENDING = 'PENDING',
+  /** Order Admin đã xác nhận hoàn, đang chuyển tiền cho khách. */
+  PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
 }
 
 export const REFUND_STATUS_LABEL: Record<RefundStatus, string> = {
   [RefundStatus.PENDING]: 'Chờ hoàn tiền',
+  [RefundStatus.PROCESSING]: 'Đang hoàn tiền',
   [RefundStatus.COMPLETED]: 'Đã hoàn tiền',
   [RefundStatus.FAILED]: 'Hoàn tiền thất bại',
 };
@@ -113,4 +124,30 @@ export const RESOLVE_ACTION_LABEL: Record<ResolveAction, string> = {
   MARK_PAID: 'Ghi nhận đã thanh toán',
   REFUND_BACK: 'Hoàn trả lại khách',
   IGNORE: 'Bỏ qua giao dịch',
+};
+
+/** Hoàn tiền về đâu: đơn chuyển khoản hoàn về tài khoản đã chuyển tới, đơn COD hoàn về tài khoản khách nhập. */
+export enum RefundDestination {
+  SOURCE_BANK = 'SOURCE_BANK',
+  CUSTOMER_ACCOUNT = 'CUSTOMER_ACCOUNT',
+}
+
+export const REFUND_DESTINATION_LABEL: Record<RefundDestination, string> = {
+  [RefundDestination.SOURCE_BANK]: 'Về tài khoản đã chuyển tiền',
+  [RefundDestination.CUSTOMER_ACCOUNT]: 'Về tài khoản khách cung cấp',
+};
+
+/** Khoản hoàn phát sinh từ đâu. */
+export enum RefundSource {
+  ORDER_CANCEL = 'ORDER_CANCEL',
+  DELIVERY_FAILED = 'DELIVERY_FAILED',
+  RETURN = 'RETURN',
+  RECONCILIATION = 'RECONCILIATION',
+}
+
+export const REFUND_SOURCE_LABEL: Record<RefundSource, string> = {
+  [RefundSource.ORDER_CANCEL]: 'Hủy đơn',
+  [RefundSource.DELIVERY_FAILED]: 'Giao thất bại',
+  [RefundSource.RETURN]: 'Trả hàng',
+  [RefundSource.RECONCILIATION]: 'Đối soát (tiền chuyển lệch)',
 };

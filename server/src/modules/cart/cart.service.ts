@@ -160,7 +160,7 @@ export function isItemSelected(item: { get(path: string): unknown }): boolean {
   return item.get('isSelected') === true;
 }
 
-function formatDimensions(d: VariantDoc['dimensions']): string | null {
+export function formatDimensions(d: VariantDoc['dimensions']): string | null {
   return d?.length && d.width && d.height ? `${d.length}x${d.width}x${d.height}` : null;
 }
 

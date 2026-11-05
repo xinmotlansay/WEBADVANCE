@@ -3,6 +3,8 @@ import type {
   OrderPaymentStatus,
   PaymentCollectionType,
   PaymentMethod,
+  RefundDestination,
+  RefundSource,
   RefundStatus,
 } from '../enums/payment.enum';
 import type { DeliverySlot, ShipmentStatus } from '../enums/shipping.enum';
@@ -73,10 +75,20 @@ export interface OrderPaymentSummary {
   transferContent?: string | null;
   lastTransactionCode?: string | null;
   paidAt?: string | null;
+  /** Khoản hoàn tiền của đơn đã hủy hoặc giao thất bại (chỉ có khi đơn đã thu tiền). */
   refund?: {
+    transactionId: string;
     amount: number;
     status: RefundStatus;
-    expectedBy?: string | null;
+    source: RefundSource | null;
+    refundTo: RefundDestination | null;
+    /** Mã giao dịch ngân hàng của khoản đã thu, để tra khi hoàn về tài khoản nguồn. */
+    originalTransactionCode: string | null;
+    refundAccount: { bankName: string; accountNumber: string; accountHolder: string } | null;
+    requestedAt: string;
+    /** Thời điểm chuyển tiền hoàn, chỉ có khi đã hoàn tất. */
+    completedAt: string | null;
+    proofImage: string | null;
   } | null;
 }
 
@@ -86,6 +98,8 @@ export interface OrderTotals {
   voucherDiscount: number;
   shippingFee: number;
   installationFee: number;
+  /** Đơn đổi hàng: giá trị hàng khách trả lại được trừ vào đơn. */
+  exchangeCredit?: number;
   totalAmount: number;
 }
 

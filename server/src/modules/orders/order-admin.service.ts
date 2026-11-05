@@ -4,6 +4,8 @@ import {
   CancellationActor,
   LateCompensationStatus,
   OrderPaymentStatus,
+  RefundSource,
+  RefundStatus,
   OrderStatus,
   PaymentMethod,
   ShipmentStatus,
@@ -23,6 +25,8 @@ import {
   type OrderDocument,
 } from './order.model.js';
 import { issueWarrantyCards } from '../warranty/warranty-issue.js';
+import { paidAmountOf } from '../payments/payment.rules.js';
+import { findOrderRefunds, requestRefund } from '../payments/refund.service.js';
 import { ShipmentModel } from './shipment.model.js';
 import {
   LateCompensationRequestModel,
@@ -99,13 +103,36 @@ async function requireCustomer(userId: unknown): Promise<OrderCustomerView> {
 }
 
 async function loadDetail(order: OrderDocument): Promise<OrderDetail> {
-  const [customer, shipment, invoice] = await Promise.all([
+  const [customer, shipment, invoice, refunds] = await Promise.all([
     requireCustomer(order.userId),
     ShipmentModel.findOne({ orderId: order._id }),
     InvoiceModel.findOne({ orderId: order._id }).select('invoiceNumber'),
+    findOrderRefunds([order._id]),
   ]);
+  const refund = refunds.get(String(order._id));
   return toOrderDetail(order, customer, shipment, {
     invoiceNumber: invoice?.invoiceNumber ?? null,
+    refund: refund
+      ? {
+          transactionId: String(refund._id),
+          amount: refund.amount,
+          status: refund.status,
+          source: refund.refundSource ?? null,
+          refundTo: refund.refundTo ?? null,
+          originalTransactionCode: refund.originalTransactionCode ?? null,
+          refundAccount: refund.refundAccount
+            ? {
+                bankName: refund.refundAccount.bankName,
+                accountNumber: refund.refundAccount.accountNumber,
+                accountHolder: refund.refundAccount.accountHolder,
+              }
+            : null,
+          requestedAt: refund.createdAt.toISOString(),
+          completedAt:
+            refund.status === RefundStatus.COMPLETED ? refund.transactionAt.toISOString() : null,
+          proofImage: refund.proofImage ?? null,
+        }
+      : null,
   });
 }
 
@@ -365,27 +392,36 @@ export async function cancelOrder(
     cancelledByUserId: actor.userId as unknown as OrderDocument['userId'],
     cancelledAt: new Date(),
   };
-  order.payment.status =
-    order.payment.status === OrderPaymentStatus.PAID ||
-    order.payment.status === OrderPaymentStatus.DEPOSITED
-      ? input.refundToCustomer === false
-        ? order.payment.status
-        : OrderPaymentStatus.REFUNDED
-      : order.payment.status;
-
   await order.save();
   await markShipmentStatus(order._id, ShipmentStatus.PENDING);
+
+  // Đơn đã thu tiền: tạo khoản hoàn đang chờ ở màn Thanh toán & đối soát. Trạng thái thanh toán
+  // chỉ chuyển "Đã hoàn tiền" khi Order Admin xác nhận đã chuyển.
+  const paid = paidAmountOf(order);
+  const refundRequested = paid > 0 && input.refundToCustomer !== false;
+  if (refundRequested) {
+    await requestRefund({
+      order,
+      amount: paid,
+      source: RefundSource.ORDER_CANCEL,
+      note: input.note ?? input.reason,
+    });
+  }
 
   await writeAuditLog({
     userId: actor.userId,
     action: 'ORDER_CANCEL',
     targetType: 'order',
     targetId: String(order._id),
-    newValue: { reason: input.reason, note: input.note ?? null },
+    newValue: {
+      reason: input.reason,
+      note: input.note ?? null,
+      refundRequested,
+    },
     ipAddress: actor.ip,
   });
 
-  return loadDetail(order);
+  return loadDetail(await requireOrder(id));
 }
 
 export async function updateShipment(
@@ -511,7 +547,7 @@ export async function redeliver(id: string, actor: ActorContext): Promise<OrderD
     ipAddress: actor.ip,
   });
 
-  return loadDetail(order);
+  return loadDetail(await requireOrder(id));
 }
 
 export async function returnToWarehouse(id: string, actor: ActorContext): Promise<OrderDetail> {
@@ -543,12 +579,7 @@ export async function finalizeReturn(
     throw new AppError('ORDER_INVALID_STATE', 409, 'Chỉ hoàn tất hoàn hàng cho đơn đang hoàn');
   }
 
-  const paidAmount =
-    order.payment.status === OrderPaymentStatus.PAID
-      ? order.totalAmount
-      : order.payment.status === OrderPaymentStatus.DEPOSITED
-        ? (order.payment.depositAmount ?? 0)
-        : 0;
+  const paidAmount = paidAmountOf(order);
   const refundAmount = computeRefundAmount(paidAmount, input.actualShippingCost);
 
   await ShipmentModel.updateOne(
@@ -562,10 +593,15 @@ export async function finalizeReturn(
     actor.userId,
     input.note ?? 'Đã nhận hàng hoàn về kho',
   );
-  if (refundAmount > 0) {
-    order.payment.status = OrderPaymentStatus.REFUNDED;
-  }
   await order.save();
+  if (refundAmount > 0) {
+    await requestRefund({
+      order,
+      amount: refundAmount,
+      source: RefundSource.DELIVERY_FAILED,
+      note: input.note ?? 'Hoàn tiền đơn giao thất bại, đã trừ phí vận chuyển thực tế',
+    });
+  }
 
   await writeAuditLog({
     userId: actor.userId,
@@ -576,7 +612,7 @@ export async function finalizeReturn(
     ipAddress: actor.ip,
   });
 
-  return loadDetail(order);
+  return loadDetail(await requireOrder(id));
 }
 
 /* ----------------------- Late compensation ----------------------- */

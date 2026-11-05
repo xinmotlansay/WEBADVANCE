@@ -79,8 +79,18 @@ export interface AccountOrder {
   voucherDiscount?: number;
   shippingFee?: number;
   installationFee?: number;
+  /** Đơn đổi hàng: giá trị hàng đã trả được trừ vào đơn. */
+  exchangeCredit?: number;
   totalAmount: number;
   payment: { method: string; collectionType: string; status: string };
+  /** Hoàn tiền của đơn đã hủy; `null` nếu đơn chưa thu tiền hoặc không có khoản hoàn. */
+  refund: {
+    amount: number;
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    refundTo: 'SOURCE_BANK' | 'CUSTOMER_ACCOUNT' | null;
+    requestedAt: string;
+    completedAt: string | null;
+  } | null;
   shipment: { actualDeliveryDate: string | null } | null;
   statusHistory: { fromStatus: string | null; toStatus: string; note: string | null; changedAt: string }[];
   cancellation: { reason?: string; cancelledAt: string } | null;

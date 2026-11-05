@@ -15,6 +15,10 @@ export enum ReturnStatus {
   CONFIRMED = 'CONFIRMED',
   AWAITING_GOODS = 'AWAITING_GOODS',
   PROCESSING = 'PROCESSING',
+  /** Trả hàng: đã duyệt hoàn tiền, chờ Order Admin xác nhận ở Thanh toán & đối soát. */
+  AWAITING_REFUND = 'AWAITING_REFUND',
+  /** Trả hàng: Order Admin đã xác nhận hoàn, đang chuyển tiền cho khách. */
+  REFUNDING = 'REFUNDING',
   COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
   CANCELLED = 'CANCELLED',
@@ -25,6 +29,8 @@ export const RETURN_STATUS_LABEL: Record<ReturnStatus, string> = {
   [ReturnStatus.CONFIRMED]: 'Đã xác nhận',
   [ReturnStatus.AWAITING_GOODS]: 'Chờ nhận hàng',
   [ReturnStatus.PROCESSING]: 'Đang xử lý',
+  [ReturnStatus.AWAITING_REFUND]: 'Chờ hoàn tiền',
+  [ReturnStatus.REFUNDING]: 'Đang hoàn tiền',
   [ReturnStatus.COMPLETED]: 'Hoàn tất',
   [ReturnStatus.REJECTED]: 'Từ chối',
   [ReturnStatus.CANCELLED]: 'Khách đã hủy',
@@ -35,6 +41,8 @@ export const RETURN_STATUS_TONE: Record<ReturnStatus, OrderBadgeTone> = {
   [ReturnStatus.CONFIRMED]: 'info',
   [ReturnStatus.AWAITING_GOODS]: 'info',
   [ReturnStatus.PROCESSING]: 'info',
+  [ReturnStatus.AWAITING_REFUND]: 'warning',
+  [ReturnStatus.REFUNDING]: 'info',
   [ReturnStatus.COMPLETED]: 'success',
   [ReturnStatus.REJECTED]: 'danger',
   [ReturnStatus.CANCELLED]: 'neutral',

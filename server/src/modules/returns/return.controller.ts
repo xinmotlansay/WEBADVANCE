@@ -5,12 +5,14 @@ import {
   getReturn,
   listReturns,
   receiveReturn,
+  approveRefund,
   refundReturn,
   rejectReturn,
   updateReturn,
 } from './return.service.js';
 import type {
   ReceiveReturnInput,
+  ApproveRefundInput,
   RefundReturnInput,
   RejectReturnInput,
   ReturnListQuery,
@@ -39,6 +41,10 @@ export const updateReturnHandler: RequestHandler = async (req, res) => {
 export const receiveReturnHandler: RequestHandler = async (req, res) => {
   res.json({ success: true, data: await receiveReturn(id(req), req.body as ReceiveReturnInput, actor(req)) });
 };
+export const approveRefundHandler: RequestHandler = async (req, res) => {
+  res.json({ success: true, data: await approveRefund(id(req), req.body as ApproveRefundInput, actor(req)) });
+};
+
 export const refundReturnHandler: RequestHandler = async (req, res) => {
   res.json({ success: true, data: await refundReturn(id(req), req.body as RefundReturnInput, actor(req)) });
 };

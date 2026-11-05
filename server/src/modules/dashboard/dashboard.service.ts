@@ -2,7 +2,9 @@ import {
   LateCompensationStatus,
   OrderStatus,
   ReconciliationStatus,
+  RefundStatus,
   ReturnStatus,
+  TransactionType,
   WarrantyStatus,
 } from '../../lib/shared-enums.js';
 import type { OrderDashboardSummary, OrderReport, ReportPeriod } from '../../lib/shared-types.js';
@@ -54,6 +56,7 @@ export async function getOrderDashboardSummary(): Promise<OrderDashboardSummary>
     pendingReturnCount,
     pendingWarrantyCount,
     pendingRefundCount,
+    pendingRefundTransactionCount,
     pendingLateCompensationCount,
     overdueConfirmationCount,
     topProducts,
@@ -82,8 +85,11 @@ export async function getOrderDashboardSummary(): Promise<OrderDashboardSummary>
     WarrantyRequestModel.countDocuments({ status: WarrantyStatus.PENDING_CONFIRMATION }),
     ReturnRequestModel.countDocuments({
       type: 'RETURN',
-      status: ReturnStatus.PROCESSING,
-      'refund.completed': false,
+      status: { $in: [ReturnStatus.AWAITING_REFUND, ReturnStatus.REFUNDING] },
+    }),
+    PaymentTransactionModel.countDocuments({
+      type: TransactionType.REFUND,
+      status: { $in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
     }),
     LateCompensationRequestModel.countDocuments({ status: LateCompensationStatus.PENDING }),
     OrderModel.countDocuments({
@@ -110,6 +116,7 @@ export async function getOrderDashboardSummary(): Promise<OrderDashboardSummary>
     pendingReturnCount,
     pendingWarrantyCount,
     pendingRefundCount,
+    pendingRefundTransactionCount,
     pendingLateCompensationCount,
     overdueConfirmationCount,
     topProducts,

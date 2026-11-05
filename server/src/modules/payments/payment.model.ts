@@ -1,6 +1,8 @@
 import { Schema, model, type HydratedDocument, type Types } from 'mongoose';
 import {
   ReconciliationStatus,
+  RefundDestination,
+  RefundSource,
   RefundStatus,
   TransactionType,
 } from '../../lib/shared-enums.js';
@@ -27,6 +29,11 @@ export interface PaymentTransactionDoc {
   handledByName?: string | null;
   transactionAt: Date;
   refundAccount?: RefundAccountDoc | null;
+  /** Chỉ dùng cho giao dịch hoàn tiền (`type = REFUND`). */
+  refundTo?: RefundDestination | null;
+  refundSource?: RefundSource | null;
+  originalTransactionCode?: string | null;
+  proofImage?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +73,10 @@ const paymentTransactionSchema = new Schema<PaymentTransactionDoc>(
     handledByName: { type: String, default: null },
     transactionAt: { type: Date, required: true, index: true },
     refundAccount: { type: refundAccountSchema, default: null },
+    refundTo: { type: String, enum: Object.values(RefundDestination), default: null },
+    refundSource: { type: String, enum: Object.values(RefundSource), default: null },
+    originalTransactionCode: { type: String, default: null },
+    proofImage: { type: String, default: null },
   },
   { timestamps: true, collection: 'payment_transactions' },
 );
@@ -76,6 +87,7 @@ paymentTransactionSchema.index(
   { unique: true, partialFilterExpression: { bankTransactionCode: { $type: 'string' } } },
 );
 paymentTransactionSchema.index({ reconciliationStatus: 1, transactionAt: -1 });
+paymentTransactionSchema.index({ type: 1, status: 1, transactionAt: -1 });
 paymentTransactionSchema.index(
   { returnRequestId: 1 },
   { unique: true, partialFilterExpression: { returnRequestId: { $type: 'objectId' } } },

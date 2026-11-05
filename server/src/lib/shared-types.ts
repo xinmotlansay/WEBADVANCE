@@ -27,6 +27,7 @@ export type {
 } from '../../../projects/shared/src/lib/models/admin-dashboard.model.js';
 
 export type {
+  CompleteRefundRequest,
   PaymentException,
   PaymentListQuery,
   PaymentTransaction,

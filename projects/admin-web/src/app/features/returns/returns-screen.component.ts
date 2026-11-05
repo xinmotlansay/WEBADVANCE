@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { concatMap } from 'rxjs';
 import {
   INSPECTION_RESULT_LABEL,
@@ -62,11 +63,22 @@ const COST_OPTIONS = Object.entries(RETURN_COST_BEARER_LABEL).map(([value, label
   label,
 }));
 
-const STEPS: Array<{ status: ReturnStatus; label: string }> = [
+const EXCHANGE_STEPS: Array<{ status: ReturnStatus; label: string }> = [
   { status: ReturnStatus.PENDING, label: 'Chờ xử lý' },
   { status: ReturnStatus.CONFIRMED, label: 'Đã xác nhận' },
   { status: ReturnStatus.AWAITING_GOODS, label: 'Chờ nhận hàng' },
   { status: ReturnStatus.PROCESSING, label: 'Đang xử lý' },
+  { status: ReturnStatus.COMPLETED, label: 'Hoàn tất' },
+];
+
+/** Trả hàng hoàn tiền: sau kiểm tra hàng là duyệt hoàn tiền, rồi xác nhận và hoàn tất ở Thanh toán & đối soát. */
+const REFUND_STEPS: Array<{ status: ReturnStatus; label: string }> = [
+  { status: ReturnStatus.PENDING, label: 'Chờ xử lý' },
+  { status: ReturnStatus.CONFIRMED, label: 'Đã xác nhận' },
+  { status: ReturnStatus.AWAITING_GOODS, label: 'Chờ nhận hàng' },
+  { status: ReturnStatus.PROCESSING, label: 'Kiểm tra hàng' },
+  { status: ReturnStatus.AWAITING_REFUND, label: 'Chờ hoàn tiền' },
+  { status: ReturnStatus.REFUNDING, label: 'Đang hoàn tiền' },
   { status: ReturnStatus.COMPLETED, label: 'Hoàn tất' },
 ];
 
@@ -88,6 +100,7 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
     OrderCodePipe,
     DateVnPipe,
     VndPipe,
+    RouterLink,
   ],
   template: `
     <div class="cv-page">
@@ -174,11 +187,9 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
               </thead>
               <tbody>
                 @for (item of items(); track item.id) {
-                  <tr>
+                  <tr class="cv-table__row--clickable" (click)="open(item)">
                     <td>
-                      <button type="button" class="cv-table__link" (click)="open(item)">
-                        {{ item.code }}
-                      </button>
+                      <button type="button" class="cv-table__link">{{ item.code }}</button>
                     </td>
                     <td>{{ item.orderCode | orderCode }}</td>
                     <td>
@@ -228,14 +239,14 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
           <li>Lỗi từ shop: CaraVeso chịu phí, đổi mới hoặc hoàn tiền.</li>
           <li>Khách đổi ý: khách chịu phí vận chuyển hai chiều.</li>
           <li>Hàng cồng kềnh cần đặt lịch đến lấy.</li>
-          <li>Hoàn tiền bắt buộc có chứng từ chuyển khoản.</li>
+          <li>Duyệt hoàn tiền xong, xác nhận và hoàn tất hoàn tiền ở Thanh toán & đối soát (bắt buộc có chứng từ).</li>
         </ul>
       </div>
       <div class="cv-rail__block">
         <p class="cv-label" style="margin-bottom: 8px">Chờ hoàn tiền</p>
         <p class="cv-sub-num">{{ refundPending() }}</p>
         <p class="cv-small cv-muted">
-          Phiếu trả hàng đã nhận nhưng chưa chuyển tiền lại cho khách.
+          Phiếu trả hàng đã duyệt hoàn tiền nhưng chưa hoàn tất chuyển tiền cho khách.
         </p>
       </div>
     </aside>
@@ -258,7 +269,7 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
             </div>
           } @else {
             <ol class="steps" aria-label="Tiến trình đổi trả">
-              @for (step of steps; track step.status; let i = $index) {
+              @for (step of stepsOf(item); track step.status; let i = $index) {
                 <li
                   class="steps__item"
                   [class.steps__item--done]="stepIndex(item) > i"
@@ -360,89 +371,101 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
           }
 
           @if (item.status === 'PROCESSING' && item.type === 'REFUND') {
-            <div class="cv-field">
-              <label class="cv-field__label" for="proof"
-                >Mã giao dịch (nếu chưa đính kèm tệp)</label
-              >
-              <input
-                class="cv-input"
-                id="proof"
-                [value]="proofImage()"
-                (input)="proofImage.set($any($event.target).value)"
-                placeholder="Nhập mã giao dịch ngân hàng"
-              />
+            <div class="cv-alert-box">
+              Hàng đã về kho. Nếu kiểm tra không có vấn đề, duyệt hoàn tiền để chuyển khoản hoàn sang
+              Thanh toán & đối soát. Hàng có vấn đề thì từ chối kèm lý do.
             </div>
             <div class="cv-field">
-              <label class="cv-field__label" for="proof-file"
-                >Tải chứng từ lên (JPEG, PNG hoặc PDF; tối đa 5 MB)</label
-              >
-              <input
-                class="cv-input"
-                id="proof-file"
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                (change)="selectProofFile($event)"
-              />
-              @if (proofFile(); as file) {
-                <p class="cv-small cv-muted">{{ file.name }}</p>
-              }
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="transfer-at">Thời điểm chuyển</label>
-              <input
-                class="cv-input"
-                id="transfer-at"
-                type="datetime-local"
-                [value]="transferAt()"
-                (input)="transferAt.set($any($event.target).value)"
-              />
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="refund-amount">Số tiền hoàn (VND)</label>
+              <label class="cv-field__label" for="refund-amount">Số tiền duyệt hoàn (VND)</label>
               <input
                 class="cv-input"
                 id="refund-amount"
                 type="number"
-                min="0"
+                min="1"
                 [value]="refundAmount()"
                 (input)="refundAmount.set(+$any($event.target).value)"
               />
             </div>
           }
+          @if ((item.status === 'AWAITING_REFUND' || item.status === 'REFUNDING') && item.type === 'REFUND') {
+            <div class="cv-alert-box">
+              @if (item.status === 'AWAITING_REFUND') {
+                Đã duyệt hoàn tiền. Order Admin cần vào <strong>Thanh toán & đối soát</strong> để xác nhận hoàn tiền.
+              } @else {
+                Đang hoàn tiền cho khách. Vào <strong>Thanh toán & đối soát</strong> để hoàn tất khi đã chuyển tiền; phiếu sẽ tự chuyển Hoàn tất.
+              }
+            </div>
+          }
+          @if (item.exchangeOrder; as exchangeOrder) {
+            <div class="cv-alert-box">
+              Đã tạo đơn đổi hàng <strong>{{ exchangeOrder.orderCode | orderCode }}</strong> cho khách. Xử lý giao hàng và thu COD ở mục Đơn hàng.
+            </div>
+          }
           @if (item.status === 'PROCESSING' && item.type === 'EXCHANGE') {
-            <div class="cv-field">
-              <label class="cv-field__label" for="replacement-sku">SKU sản phẩm thay thế</label>
-              <input
-                class="cv-input"
-                id="replacement-sku"
-                [value]="replacementSku()"
-                (input)="replacementSku.set($any($event.target).value)"
-                placeholder="Nhập SKU đang kinh doanh"
-              />
-            </div>
-            <div class="cv-field">
-              <label class="cv-field__label" for="replacement-quantity">Số lượng</label>
-              <input
-                class="cv-input"
-                id="replacement-quantity"
-                type="number"
-                min="1"
-                step="1"
-                [value]="replacementQuantity()"
-                (input)="replacementQuantity.set(+$any($event.target).value)"
-              />
-            </div>
+            @if (item.replacement; as replacement) {
+              <section class="cv-popup__section">
+                <p class="cv-label" style="margin-bottom: 8px">Sản phẩm thay thế (khách đã chọn)</p>
+                <dl class="cv-kv">
+                  <dt>Sản phẩm</dt>
+                  <dd>{{ replacement.productName }}</dd>
+                  <dt>SKU</dt>
+                  <dd class="cv-num">{{ replacement.sku }}</dd>
+                  <dt>Số lượng</dt>
+                  <dd>{{ replacement.quantity }}</dd>
+                  @if (replacement.differenceAmount > 0) {
+                    <dt>Khách bù chênh lệch</dt>
+                    <dd class="cv-num">{{ replacement.differenceAmount | vnd }}</dd>
+                  }
+                </dl>
+              </section>
+            } @else {
+              <div class="cv-alert-box">
+                Yêu cầu này chưa có sản phẩm thay thế. Nhập SKU và số lượng cần giao.
+              </div>
+              <div class="cv-field">
+                <label class="cv-field__label" for="replacement-sku">SKU sản phẩm thay thế</label>
+                <input
+                  class="cv-input"
+                  id="replacement-sku"
+                  [value]="replacementSku()"
+                  (input)="replacementSku.set($any($event.target).value)"
+                  placeholder="Nhập SKU đang kinh doanh"
+                />
+              </div>
+              <div class="cv-field">
+                <label class="cv-field__label" for="replacement-quantity">Số lượng</label>
+                <input
+                  class="cv-input"
+                  id="replacement-quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  [value]="replacementQuantity()"
+                  (input)="replacementQuantity.set(+$any($event.target).value)"
+                />
+              </div>
+            }
             <div class="cv-field">
               <label class="cv-field__label" for="replacement-tracking"
                 >Mã vận đơn hàng thay thế</label
               >
-              <input
-                class="cv-input"
-                id="replacement-tracking"
-                [value]="replacementTrackingCode()"
-                (input)="replacementTrackingCode.set($any($event.target).value)"
-                placeholder="Mã vận đơn giao hàng mới"
-              />
+              <div class="inline">
+                <input
+                  class="cv-input"
+                  id="replacement-tracking"
+                  [value]="replacementTrackingCode()"
+                  (input)="replacementTrackingCode.set($any($event.target).value)"
+                  placeholder="Nhập mã của hãng vận chuyển hoặc tạo tự động"
+                />
+                <button
+                  type="button"
+                  class="cv-btn cv-btn--secondary"
+                  (click)="replacementTrackingCode.set(generateTracking(item))"
+                >
+                  Tạo mã
+                </button>
+              </div>
+              <p class="cv-small cv-muted">Để trống thì hệ thống tự tạo mã nội bộ khi hoàn tất.</p>
             </div>
           }
 
@@ -515,15 +538,31 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
               Nhận hàng & kiểm tra
             </button>
           }
+          @if (item.status === 'AWAITING_REFUND' || item.status === 'REFUNDING') {
+            <button type="button" class="cv-btn cv-btn--secondary" (click)="active.set(null)">
+              Đóng
+            </button>
+            <a class="cv-btn cv-btn--primary" routerLink="/admin/payments" (click)="active.set(null)">
+              Mở Thanh toán & đối soát
+            </a>
+          }
           @if (item.status === 'PROCESSING') {
             @if (item.type === 'REFUND') {
               <button
                 type="button"
+                class="cv-btn cv-btn--danger"
+                [disabled]="busy()"
+                (click)="openReject(item)"
+              >
+                Từ chối (hàng có vấn đề)
+              </button>
+              <button
+                type="button"
                 class="cv-btn cv-btn--accent"
                 [disabled]="busy()"
-                (click)="refund(item)"
+                (click)="approveRefund(item)"
               >
-                Xác nhận đã hoàn tiền
+                Duyệt hoàn tiền
               </button>
             } @else {
               <button
@@ -637,6 +676,16 @@ const STEPS: Array<{ status: ReturnStatus; label: string }> = [
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+      }
+
+      .inline {
+        display: flex;
+        gap: 8px;
+      }
+
+      .inline .cv-input {
+        flex: 1 1 auto;
+        min-width: 0;
       }
 
       .rule-list {
@@ -792,7 +841,7 @@ export class ReturnsScreenComponent {
   readonly busy = signal(false);
 
   readonly pendingAction = signal<{
-    kind: 'CONFIRM' | 'REJECT' | 'SCHEDULE' | 'RECEIVE' | 'REFUND' | 'COMPLETE';
+    kind: 'CONFIRM' | 'REJECT' | 'SCHEDULE' | 'RECEIVE' | 'APPROVE_REFUND' | 'COMPLETE';
     title: string;
     message: string;
     danger?: boolean;
@@ -803,9 +852,6 @@ export class ReturnsScreenComponent {
   readonly costBearer = signal<ReturnCostBearer>(ReturnCostBearer.SHOP);
   readonly returnFee = signal(0);
   readonly inspection = signal<InspectionResult>(InspectionResult.PASS);
-  readonly proofImage = signal('');
-  readonly proofFile = signal<File | null>(null);
-  readonly transferAt = signal('');
   readonly refundAmount = signal(0);
   readonly replacementSku = signal('');
   readonly replacementQuantity = signal(1);
@@ -815,7 +861,11 @@ export class ReturnsScreenComponent {
     () => this.items().filter((item) => item.status === ReturnStatus.PENDING).length,
   );
   readonly refundPending = computed(
-    () => this.items().filter((item) => item.refund && !item.refund.completed).length,
+    () =>
+      this.items().filter(
+        (item) =>
+          item.status === ReturnStatus.AWAITING_REFUND || item.status === ReturnStatus.REFUNDING,
+      ).length,
   );
   readonly statusCounts = computed(() => {
     return Object.values(ReturnStatus).map((status) => ({
@@ -834,10 +884,12 @@ export class ReturnsScreenComponent {
     this.destroyRef.onDestroy(off);
   }
 
-  readonly steps = STEPS;
+  stepsOf(item: ReturnRequest): Array<{ status: ReturnStatus; label: string }> {
+    return item.type === 'REFUND' ? REFUND_STEPS : EXCHANGE_STEPS;
+  }
 
   stepIndex(item: ReturnRequest): number {
-    return STEPS.findIndex((step) => step.status === item.status);
+    return this.stepsOf(item).findIndex((step) => step.status === item.status);
   }
 
   statusLabel(status: string): string {
@@ -957,13 +1009,12 @@ export class ReturnsScreenComponent {
   open(item: ReturnRequest): void {
     this.active.set(item);
     this.activeError.set('');
-    this.proofImage.set(item.refund?.proofImage ?? '');
-    this.proofFile.set(null);
-    this.transferAt.set(new Date().toISOString().slice(0, 16));
-    this.refundAmount.set(item.refund?.amount ?? this.totalValue(item));
+    // Mặc định hoàn tối đa: giá trị sản phẩm trả, trừ phí hoàn nếu khách chịu phí.
+    const customerFee = item.costBearer === ReturnCostBearer.CUSTOMER ? (item.returnFee ?? 0) : 0;
+    this.refundAmount.set(item.refund?.amount ?? Math.max(0, this.totalValue(item) - customerFee));
     this.replacementSku.set(item.replacement?.sku ?? '');
     this.replacementQuantity.set(item.replacement?.quantity ?? item.items[0]?.quantity ?? 1);
-    this.replacementTrackingCode.set(item.replacement?.trackingCode ?? '');
+    this.replacementTrackingCode.set(item.replacement?.trackingCode ?? this.generateTracking(item));
   }
 
   confirm(item: ReturnRequest): void {
@@ -1001,64 +1052,56 @@ export class ReturnsScreenComponent {
     });
   }
 
-  refund(item: ReturnRequest): void {
-    if (!this.proofImage().trim() && !this.proofFile()) {
-      this.activeError.set('Vui lòng nhập mã giao dịch hoặc tải chứng từ lên trước khi xác nhận.');
+  approveRefund(item: ReturnRequest): void {
+    if (!(this.refundAmount() > 0)) {
+      this.activeError.set('Số tiền duyệt hoàn phải lớn hơn 0.');
       return;
     }
-    if (!this.transferAt()) {
-      this.activeError.set('Vui lòng nhập thời điểm chuyển tiền.');
-      return;
-    }
+    this.activeError.set('');
     this.pendingAction.set({
-      kind: 'REFUND',
-      title: 'Xác nhận hoàn tiền',
-      message: `Hoàn ${this.refundAmount().toLocaleString('vi-VN')}đ cho khách và lưu chứng từ hoàn tiền. Phiếu sẽ chuyển sang Hoàn tất.`,
+      kind: 'APPROVE_REFUND',
+      title: 'Duyệt hoàn tiền',
+      message: `Duyệt hoàn ${this.refundAmount().toLocaleString('vi-VN')}đ cho khách. Phiếu ${item.code} chuyển sang Chờ hoàn tiền và khoản hoàn xuất hiện ở Thanh toán & đối soát.`,
       item,
     });
-  }
-
-  selectProofFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    if (!file) {
-      this.proofFile.set(null);
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      this.proofFile.set(null);
-      input.value = '';
-      this.activeError.set('Chỉ hỗ trợ ảnh JPEG, PNG hoặc tài liệu PDF.');
-      return;
-    }
-    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
-      this.proofFile.set(null);
-      input.value = '';
-      this.activeError.set('Tệp chứng từ phải lớn hơn 0 byte và không vượt quá 5 MB.');
-      return;
-    }
-
-    this.activeError.set('');
-    this.proofFile.set(file);
   }
 
   complete(item: ReturnRequest): void {
-    if (!this.replacementSku().trim() || !this.replacementTrackingCode().trim()) {
-      this.activeError.set('Vui lòng nhập SKU và mã vận đơn của sản phẩm thay thế.');
-      return;
+    // Chỉ yêu cầu cũ chưa có sản phẩm thay thế mới phải nhập SKU và số lượng.
+    if (!item.replacement) {
+      if (!this.replacementSku().trim()) {
+        this.activeError.set('Vui lòng nhập SKU của sản phẩm thay thế.');
+        return;
+      }
+      if (!Number.isInteger(this.replacementQuantity()) || this.replacementQuantity() < 1) {
+        this.activeError.set('Số lượng sản phẩm thay thế phải là số nguyên lớn hơn 0.');
+        return;
+      }
     }
-    if (!Number.isInteger(this.replacementQuantity()) || this.replacementQuantity() < 1) {
-      this.activeError.set('Số lượng sản phẩm thay thế phải là số nguyên lớn hơn 0.');
-      return;
-    }
+    this.activeError.set('');
     this.pendingAction.set({
       kind: 'COMPLETE',
       title: 'Hoàn tất đổi hàng',
-      message: `Xác nhận đã giao sản phẩm thay thế cho khách và đóng phiếu ${item.code}.`,
+      message: this.exchangeMessage(item),
       item,
     });
+  }
+
+  /** Mô tả đơn hàng mới sẽ được tạo và số tiền khách phải trả khi nhận hàng (COD). */
+  private exchangeMessage(item: ReturnRequest): string {
+    const replacement = item.replacement;
+    if (!replacement) return `Hoàn tất phiếu ${item.code} và tạo đơn đổi hàng mới cho khách.`;
+    const collect = replacement.collectAmount ?? replacement.differenceAmount;
+    const bearer = item.costBearer === ReturnCostBearer.CUSTOMER ? 'khách chịu phí vận chuyển' : 'CaraVeso chịu phí vận chuyển';
+    const detail = collect > 0
+      ? `Khách thanh toán ${collect.toLocaleString('vi-VN')}đ khi nhận hàng (COD), ${bearer}.`
+      : `Khách không phải trả thêm tiền (${bearer}).`;
+    return `Tạo đơn đổi hàng mới giao ${replacement.productName} × ${replacement.quantity} cho khách, trừ giá trị hàng đã trả. ${detail} Phiếu ${item.code} chuyển sang Hoàn tất.`;
+  }
+
+  /** Mã nội bộ cho hàng thay thế (chưa tích hợp hãng vận chuyển), giống quy ước `GH-<mã phiếu>` của server. */
+  generateTracking(item: ReturnRequest): string {
+    return `GH-${item.code}`;
   }
 
   openReject(item: ReturnRequest): void {
@@ -1106,14 +1149,15 @@ export class ReturnsScreenComponent {
             })
           : action.kind === 'RECEIVE'
             ? this.api.receive(item.id, { inspectionResult: this.inspection() })
-            : action.kind === 'REFUND'
-              ? this.submitRefund(item)
+            : action.kind === 'APPROVE_REFUND'
+              ? this.api.approveRefund(item.id, { amount: this.refundAmount() })
               : this.api
                   .update(item.id, {
                     replacement: {
-                      sku: this.replacementSku().trim(),
-                      quantity: this.replacementQuantity(),
-                      trackingCode: this.replacementTrackingCode().trim(),
+                      trackingCode: this.replacementTrackingCode().trim() || undefined,
+                      ...(item.replacement
+                        ? {}
+                        : { sku: this.replacementSku().trim(), quantity: this.replacementQuantity() }),
                     },
                   })
                   .pipe(concatMap(() => this.api.complete(item.id)));
@@ -1137,19 +1181,5 @@ export class ReturnsScreenComponent {
   private patch(updated: ReturnRequest): void {
     this.items.update((list) => list.map((item) => (item.id === updated.id ? updated : item)));
     if (this.active()?.id === updated.id) this.active.set(updated);
-  }
-
-  private submitRefund(item: ReturnRequest) {
-    const request = {
-      transactionAt: new Date(this.transferAt()).toISOString(),
-      amount: this.refundAmount(),
-      proofImage: this.proofImage().trim(),
-    };
-    const file = this.proofFile();
-    if (!file) return this.api.refund(item.id, request);
-
-    return this.api
-      .uploadProof(file)
-      .pipe(concatMap((proofImage) => this.api.refund(item.id, { ...request, proofImage })));
   }
 }

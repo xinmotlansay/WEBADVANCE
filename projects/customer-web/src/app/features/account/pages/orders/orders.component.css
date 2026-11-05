@@ -104,3 +104,8 @@ u { text-underline-offset: 2px; }
 .tracking-panel { padding: 18px 18px 6px; border-top: 1px solid var(--gray-light); background: #fafafa; }
 .tracking-panel > strong { display: block; margin-bottom: 14px; color: var(--navy); font-size: 14px; font-weight: 600; }
 .order-footer .order-actions { margin-left: auto; }
+
+.refund-note { margin: 8px 16px 12px; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45; background: #fff6e5; color: #8a5a00; }
+.refund-note[data-tone='active'] { background: #e8f1fb; color: #1d4f8a; }
+.refund-note[data-tone='done'] { background: #e9f6ee; color: #1f6b3d; }
+.detail-modal .refund-note { margin: 8px 0 0; }

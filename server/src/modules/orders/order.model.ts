@@ -19,9 +19,17 @@ export type OrderStatus =
   | 'RETURNING'
   | 'CANCELLED';
 
-export type PaymentStatus = 'PENDING' | 'DEPOSITED' | 'PAID' | 'UNPAID' | 'FAILED' | 'REFUNDED';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'DEPOSITED'
+  | 'PAID'
+  | 'UNPAID'
+  | 'FAILED'
+  | 'REFUND_PENDING'
+  | 'REFUNDING'
+  | 'REFUNDED';
 export type CollectionType = 'FULL' | 'DEPOSIT';
-export type OrderSource = 'CART' | 'BUY_NOW';
+export type OrderSource = 'CART' | 'BUY_NOW' | 'EXCHANGE';
 export type InvoiceType = 'NONE' | 'PERSONAL' | 'COMPANY';
 
 export function toSharedOrderStatus(status: OrderStatus): SharedOrderStatus {
@@ -110,6 +118,10 @@ export interface OrderDoc {
   voucherDiscount: number;
   shippingFee: number;
   installationFee: number;
+  /** Đơn đổi hàng: giá trị hàng khách trả lại được trừ vào đơn mới, khách chỉ thanh toán phần còn lại. */
+  exchangeCredit?: number;
+  /** Đơn đổi hàng: đơn và phiếu đổi trả mà đơn này sinh ra. */
+  exchangeFrom?: { returnRequestId: Types.ObjectId; orderId: Types.ObjectId; returnCode: string } | null;
   totalAmount: number;
   status: OrderStatus;
   note?: string;
@@ -124,6 +136,8 @@ export interface OrderDoc {
     dueAt?: Date | null;
     transferContent?: string | null;
     lastTransactionCode?: string | null;
+    /** Trạng thái thu tiền trước khi sang chờ hoàn tiền: giữ lại để biết đơn đã thu bao nhiêu. */
+    statusBeforeRefund?: 'PAID' | 'DEPOSITED' | null;
     receiptImage?: string | null;
     paidAt?: Date;
   };
@@ -172,6 +186,12 @@ const orderSchema = new Schema<OrderDoc>(
     voucherDiscount: { type: Number, required: true, default: 0 },
     shippingFee: { type: Number, required: true },
     installationFee: { type: Number, default: 0 },
+    exchangeCredit: { type: Number, default: 0 },
+    exchangeFrom: {
+      returnRequestId: { type: Schema.Types.ObjectId, ref: 'return_requests' },
+      orderId: { type: Schema.Types.ObjectId, ref: 'orders' },
+      returnCode: String,
+    },
     totalAmount: { type: Number, required: true },
     status: { type: String, required: true, enum: ORDER_STATUSES, default: 'PENDING_PAYMENT' },
     note: { type: String, maxlength: 500 },
@@ -215,13 +235,14 @@ const orderSchema = new Schema<OrderDoc>(
       status: {
         type: String,
         required: true,
-        enum: ['PENDING', 'DEPOSITED', 'PAID', 'UNPAID', 'FAILED', 'REFUNDED'],
+        enum: ['PENDING', 'DEPOSITED', 'PAID', 'UNPAID', 'FAILED', 'REFUND_PENDING', 'REFUNDING', 'REFUNDED'],
       },
       depositAmount: { type: Number, default: null },
       codAmount: { type: Number, default: null },
       dueAt: { type: Date, default: null },
       transferContent: { type: String, default: null },
       lastTransactionCode: { type: String, default: null },
+      statusBeforeRefund: { type: String, enum: ['PAID', 'DEPOSITED', null], default: null },
       receiptImage: { type: String, default: null },
       paidAt: Date,
     },
@@ -232,7 +253,7 @@ const orderSchema = new Schema<OrderDoc>(
       cancelledByUserId: { type: Schema.Types.ObjectId, ref: 'users', default: null },
       cancelledAt: Date,
     },
-    source: { type: String, required: true, enum: ['CART', 'BUY_NOW'] },
+    source: { type: String, required: true, enum: ['CART', 'BUY_NOW', 'EXCHANGE'] },
     invoiceInfo: {
       type: {
         type: String,

@@ -45,6 +45,8 @@ export const PAYMENT_STATUS: Record<string, StatusMeta> = {
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
   UNPAID: { label: 'Chưa thanh toán (COD)', tone: 'attn' },
   FAILED: { label: 'Thất bại', tone: 'danger' },
+  REFUND_PENDING: { label: 'Chờ hoàn tiền', tone: 'attn' },
+  REFUNDING: { label: 'Đang hoàn tiền', tone: 'info' },
   REFUNDED: { label: 'Đã hoàn tiền', tone: 'neutral' },
 };
 

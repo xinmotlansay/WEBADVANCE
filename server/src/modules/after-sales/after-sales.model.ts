@@ -15,6 +15,7 @@ export interface OrderDoc {
   shippingAddress: { recipientName: string; recipientPhone: string; addressLine: string };
   createdAt: Date;
   totalAmount: number;
+  payment: { method: 'COD' | 'BANK_TRANSFER' };
   afterSalesVersion?: number;
 }
 // Cùng collection `orders` với module orders; tên model riêng để không trùng đăng ký trong mongoose.
@@ -36,6 +37,7 @@ export const OrderModel = model<OrderDoc>(
       shippingAddress: { recipientName: String, recipientPhone: String, addressLine: String },
       createdAt: Date,
       totalAmount: Number,
+      payment: { method: String },
       afterSalesVersion: { type: Number, default: 0 },
     },
     { strict: false, collection: 'orders' },
@@ -217,7 +219,13 @@ export const ReturnRequestModel = model<ReturnRequestDoc>(
         accountNumber: { type: String, select: false },
         accountHolder: String,
       },
-      replacement: { variantId: Schema.Types.ObjectId, quantity: Number, unitPrice: Number },
+      replacement: {
+        variantId: Schema.Types.ObjectId,
+        quantity: Number,
+        unitPrice: Number,
+        productName: String,
+        sku: String,
+      },
       timeline: [timelineSchema],
     },
     { timestamps: true, strict: false },

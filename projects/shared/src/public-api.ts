@@ -33,6 +33,10 @@ export {
   RECONCILIATION_LABEL,
   RefundStatus,
   REFUND_STATUS_LABEL,
+  RefundDestination,
+  REFUND_DESTINATION_LABEL,
+  RefundSource,
+  REFUND_SOURCE_LABEL,
   RESOLVE_ACTION_LABEL,
 } from './lib/enums/payment.enum';
 export type { ResolveAction } from './lib/enums/payment.enum';

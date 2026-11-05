@@ -117,6 +117,16 @@ export class ReturnFormComponent implements OnInit {
     ),
     { initialValue: '7–10' },
   );
+  private readonly typeValue = toSignal(this.form.controls.type.valueChanges, {
+    initialValue: this.form.controls.type.value,
+  });
+  /** Đơn COD: khách nhập tài khoản nhận hoàn. Đơn chuyển khoản: hoàn về tài khoản đã chuyển tiền. */
+  protected readonly needsRefundAccount = computed(
+    () => this.typeValue() === 'RETURN' && this.order()?.paymentMethod === 'COD',
+  );
+  protected readonly refundToSourceBank = computed(
+    () => this.typeValue() === 'RETURN' && this.order()?.paymentMethod === 'BANK_TRANSFER',
+  );
   protected readonly pickerOpen = signal(false);
   protected readonly replacement = signal<PickedProduct | null>(null);
 
@@ -130,32 +140,7 @@ export class ReturnFormComponent implements OnInit {
   constructor() {
     this.form.controls.type.valueChanges
       .pipe(startWith(this.form.controls.type.value), takeUntilDestroyed(this.destroyRef))
-      .subscribe((type) => {
-        const bank = this.form.controls.refundAccount.controls;
-        bank.bankName.setValidators(
-          type === 'RETURN'
-            ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)]
-            : [],
-        );
-        bank.accountNumber.setValidators(
-          type === 'RETURN' ? [Validators.required, Validators.pattern(/^\d{6,30}$/)] : [],
-        );
-        bank.accountHolder.setValidators(
-          type === 'RETURN'
-            ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)]
-            : [],
-        );
-        this.form.controls.replacementVariantId.setValidators(
-          type === 'EXCHANGE' ? [Validators.required] : [],
-        );
-        for (const control of [
-          bank.bankName,
-          bank.accountNumber,
-          bank.accountHolder,
-          this.form.controls.replacementVariantId,
-        ])
-          control.updateValueAndValidity({ emitEvent: false });
-      });
+      .subscribe(() => this.applyConditionalValidators());
     combineLatest([
       this.form.controls.orderId.valueChanges.pipe(startWith(''), distinctUntilChanged()),
       this.retryOrder.pipe(startWith(0)),
@@ -182,12 +167,38 @@ export class ReturnFormComponent implements OnInit {
       )
       .subscribe((order) => {
         this.order.set(order);
+        this.applyConditionalValidators();
         const itemId = this.presetItemId();
         if (itemId && order?.items.some((i) => i.id === itemId && i.actions.canReturn)) {
           this.form.controls.orderItemId.setValue(itemId);
         }
         this.orderLoading.set(false);
       });
+  }
+  /** Tài khoản nhận hoàn chỉ bắt buộc khi trả hàng đơn COD; sản phẩm thay thế chỉ khi đổi hàng. */
+  private applyConditionalValidators(): void {
+    const type = this.form.controls.type.value;
+    const needsAccount = type === 'RETURN' && this.order()?.paymentMethod === 'COD';
+    const bank = this.form.controls.refundAccount.controls;
+    bank.bankName.setValidators(
+      needsAccount ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)] : [],
+    );
+    bank.accountNumber.setValidators(
+      needsAccount ? [Validators.required, Validators.pattern(/^\d{6,30}$/)] : [],
+    );
+    bank.accountHolder.setValidators(
+      needsAccount ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)] : [],
+    );
+    this.form.controls.replacementVariantId.setValidators(
+      type === 'EXCHANGE' ? [Validators.required] : [],
+    );
+    for (const control of [
+      bank.bankName,
+      bank.accountNumber,
+      bank.accountHolder,
+      this.form.controls.replacementVariantId,
+    ])
+      control.updateValueAndValidity({ emitEvent: false });
   }
   ngOnInit(): void {
     if (this.presetOrderId()) this.form.controls.orderId.setValue(this.presetOrderId());
@@ -227,7 +238,7 @@ export class ReturnFormComponent implements OnInit {
       return;
     }
     if (
-      value.type === 'RETURN' &&
+      this.needsRefundAccount() &&
       (value.refundAccount.bankName.trim().length < 2 ||
         !/^\d{6,30}$/.test(value.refundAccount.accountNumber.trim()) ||
         value.refundAccount.accountHolder.trim().length < 2)
@@ -243,7 +254,8 @@ export class ReturnFormComponent implements OnInit {
     const body: ReturnSubmission = {
       ...rest,
       evidence: this.evidence(),
-      ...(value.type === 'RETURN' ? { refundAccount } : { replacementVariantId }),
+      ...(this.needsRefundAccount() ? { refundAccount } : {}),
+      ...(value.type === 'EXCHANGE' ? { replacementVariantId } : {}),
     };
     this.loading.set(true);
     this.api

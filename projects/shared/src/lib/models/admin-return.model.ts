@@ -1,3 +1,4 @@
+import type { OrderStatus } from '../enums/order.enum';
 import type {
   InspectionResult,
   ReturnCostBearer,
@@ -36,9 +37,15 @@ export interface ReturnRequest {
     sku: string;
     quantity: number;
     differenceAmount: number;
+    /** Phí giao hàng sản phẩm thay thế khi khách chịu phí (đổi ý), theo cấp vận chuyển. */
+    deliveryFee?: number;
+    /** Số tiền khách trả COD khi nhận hàng đổi. */
+    collectAmount?: number;
     trackingCode?: string | null;
     deliveredAt?: string | null;
   } | null;
+  /** Đơn hàng mới tạo khi hoàn tất đổi hàng. */
+  exchangeOrder?: { id: string; orderCode: string; status: OrderStatus } | null;
   refund?: {
     amount: number;
     proofImage?: string | null;
@@ -70,15 +77,23 @@ export interface UpdateReturnRequest {
   returnFee?: number;
   pickupSchedule?: string | null;
   trackingCode?: string | null;
+  /** Giao đúng sản phẩm khách đã chọn; bỏ trống `trackingCode` thì hệ thống tự tạo. `sku`/`quantity` chỉ khi đổi sang sản phẩm khác. */
   replacement?: {
-    sku: string;
-    quantity: number;
-    trackingCode: string;
+    trackingCode?: string;
+    sku?: string;
+    quantity?: number;
   };
 }
 
 export interface ReceiveReturnRequest {
   inspectionResult: InspectionResult;
+  note?: string;
+}
+
+/** Duyệt hoàn tiền sau khi hàng trả về đạt kiểm tra; khoản hoàn chuyển sang Thanh toán & đối soát. */
+export interface ApproveRefundRequest {
+  /** Bỏ trống thì hoàn tối đa theo giá trị sản phẩm trừ phí khách chịu. */
+  amount?: number;
   note?: string;
 }
 

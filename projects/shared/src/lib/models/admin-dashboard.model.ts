@@ -11,6 +11,8 @@ export interface OrderDashboardSummary {
   pendingReturnCount: number;
   pendingWarrantyCount: number;
   pendingRefundCount: number;
+  /** Số khoản hoàn tiền đang chờ chuyển trả khách (mọi nguồn: hủy đơn, giao thất bại, trả hàng, đối soát). */
+  pendingRefundTransactionCount: number;
   pendingLateCompensationCount: number;
   overdueConfirmationCount: number;
   topProducts: Array<{ name: string; value: number }>;

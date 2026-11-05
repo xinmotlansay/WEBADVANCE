@@ -3,12 +3,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   CANCEL_REASONS,
   ORDER_STATUS_LABEL,
   AdminOrderStatus as OrderStatus,
   PAYMENT_METHOD_LABEL,
   PAYMENT_STATUS_LABEL,
+  REFUND_DESTINATION_LABEL,
+  REFUND_SOURCE_LABEL,
+  REFUND_STATUS_LABEL,
   type AdminOrderDetail as OrderDetail,
   type OrderListItem,
   type OrderListQuery,
@@ -80,6 +84,7 @@ type DetailTab = 'items' | 'payment' | 'shipping' | 'history';
     ShortVndPipe,
     DateVnPipe,
     OrderCodePipe,
+    RouterLink,
   ],
   template: `
     <div class="cv-page">
@@ -407,6 +412,10 @@ type DetailTab = 'items' | 'payment' | 'shipping' | 'history';
                   <dd class="cv-right">{{ order.totals.shippingFee | vnd }}</dd>
                   <dt>Lắp đặt</dt>
                   <dd class="cv-right">{{ order.totals.installationFee | vnd }}</dd>
+                  @if (order.totals.exchangeCredit) {
+                    <dt>Trừ giá trị hàng đổi</dt>
+                    <dd class="cv-right">-{{ order.totals.exchangeCredit | vnd }}</dd>
+                  }
                 </dl>
                 <div class="cv-popup__total">
                   <span>Tổng cộng</span>
@@ -439,14 +448,51 @@ type DetailTab = 'items' | 'payment' | 'shipping' | 'history';
                 <dt>Mã giao dịch</dt>
                 <dd>{{ order.payment.lastTransactionCode || '—' }}</dd>
               </dl>
-              @if (order.payment.refund) {
+              @if (order.payment.refund; as refund) {
+                <section class="cv-popup__section" style="margin-top: 12px">
+                  <p class="cv-label" style="margin-bottom: 8px">Hoàn tiền cho khách</p>
+                  <dl class="cv-kv">
+                    <dt>Trạng thái</dt>
+                    <dd>
+                      <span class="cv-badge" [class]="'cv-badge cv-badge--' + refundTone(refund.status)">
+                        {{ refundStatusLabel(refund.status) }}
+                      </span>
+                    </dd>
+                    <dt>Số tiền</dt>
+                    <dd class="cv-num">{{ refund.amount | vnd }}</dd>
+                    @if (refund.source) {
+                      <dt>Lý do hoàn</dt>
+                      <dd>{{ refundSourceLabel(refund.source) }}</dd>
+                    }
+                    <dt>Hoàn về</dt>
+                    <dd>{{ refund.refundTo ? refundDestinationLabel(refund.refundTo) : '—' }}</dd>
+                    @if (refund.refundAccount; as account) {
+                      <dt>Tài khoản nhận</dt>
+                      <dd>{{ account.bankName }} · {{ account.accountNumber }} · {{ account.accountHolder }}</dd>
+                    } @else if (refund.originalTransactionCode) {
+                      <dt>Giao dịch gốc</dt>
+                      <dd class="cv-num">{{ refund.originalTransactionCode }}</dd>
+                    }
+                    <dt>Yêu cầu lúc</dt>
+                    <dd>{{ refund.requestedAt | dateVn: 'datetime' }}</dd>
+                    @if (refund.completedAt) {
+                      <dt>Hoàn xong lúc</dt>
+                      <dd>{{ refund.completedAt | dateVn: 'datetime' }}</dd>
+                    }
+                    @if (refund.proofImage) {
+                      <dt>Chứng từ</dt>
+                      <dd><a [href]="refund.proofImage" target="_blank" rel="noopener">Xem chứng từ</a></dd>
+                    }
+                  </dl>
+                  @if (refund.status !== 'COMPLETED') {
+                    <a class="cv-btn cv-btn--secondary" style="margin-top: 10px" routerLink="/admin/payments">
+                      Xử lý ở Thanh toán & đối soát
+                    </a>
+                  }
+                </section>
+              } @else if (order.status === 'CANCELLED' && ['PAID', 'DEPOSITED'].includes(order.payment.status)) {
                 <div class="cv-alert-box" style="margin-top: 12px">
-                  Cần hoàn {{ order.payment.refund.amount | vnd }} cho khách, hạn
-                  {{
-                    order.payment.refund.expectedBy
-                      ? (order.payment.refund.expectedBy | dateVn)
-                      : '—'
-                  }}.
+                  Đơn đã hủy nhưng không có khoản hoàn tiền nào (không hoàn cho khách khi hủy).
                 </div>
               }
             }
@@ -839,6 +885,22 @@ export class OrdersScreenComponent {
 
   statusLabel(status: string): string {
     return ORDER_STATUS_LABEL[status as OrderStatus] ?? status;
+  }
+
+  refundStatusLabel(status: string): string {
+    return REFUND_STATUS_LABEL[status as keyof typeof REFUND_STATUS_LABEL] ?? status;
+  }
+
+  refundTone(status: string): string {
+    return status === 'COMPLETED' ? 'success' : status === 'PROCESSING' ? 'info' : 'warning';
+  }
+
+  refundSourceLabel(source: string): string {
+    return REFUND_SOURCE_LABEL[source as keyof typeof REFUND_SOURCE_LABEL] ?? source;
+  }
+
+  refundDestinationLabel(destination: string): string {
+    return REFUND_DESTINATION_LABEL[destination as keyof typeof REFUND_DESTINATION_LABEL] ?? destination;
   }
 
   paymentMethodLabel(order: OrderDetail): string {

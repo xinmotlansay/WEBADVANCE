@@ -62,7 +62,8 @@ test('FR-41/43: request validation requires contact, evidence, refund or replace
     evidence: ['/uploads/evidence/test.png'],
     contact,
   };
-  assert.ok(!returnSchema.safeParse(body).success);
+  // Tài khoản nhận hoàn chỉ bắt buộc với đơn COD; createReturn kiểm tra theo hình thức thanh toán của đơn.
+  assert.ok(returnSchema.safeParse(body).success);
   assert.ok(
     returnSchema.safeParse({
       ...body,

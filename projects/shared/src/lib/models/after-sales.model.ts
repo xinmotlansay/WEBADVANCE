@@ -96,6 +96,8 @@ export interface EligibleOrder {
   status: string;
   actualDeliveryDate: string | null;
   returnDeadline: string | null;
+  /** COD thì khách phải nhập tài khoản nhận hoàn; chuyển khoản thì hoàn về tài khoản đã chuyển. */
+  paymentMethod?: 'COD' | 'BANK_TRANSFER';
   items: {
     id: string;
     name: string;

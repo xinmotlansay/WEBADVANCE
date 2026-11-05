@@ -2,7 +2,7 @@ import type { Observable } from 'rxjs';
 import type {
   ApiPageResponse,
   ReceiveReturnRequest,
-  RefundReturnRequest,
+  ApproveRefundRequest,
   RejectReturnRequest,
   ReturnListQuery,
   ReturnRequest,
@@ -16,7 +16,6 @@ export abstract class AdminReturnApi {
   abstract reject(id: string, request: RejectReturnRequest): Observable<ReturnRequest>;
   abstract update(id: string, request: UpdateReturnRequest): Observable<ReturnRequest>;
   abstract receive(id: string, request: ReceiveReturnRequest): Observable<ReturnRequest>;
-  abstract uploadProof(file: File): Observable<string>;
-  abstract refund(id: string, request: RefundReturnRequest): Observable<ReturnRequest>;
+  abstract approveRefund(id: string, request: ApproveRefundRequest): Observable<ReturnRequest>;
   abstract complete(id: string): Observable<ReturnRequest>;
 }

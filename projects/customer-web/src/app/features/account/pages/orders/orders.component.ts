@@ -13,6 +13,12 @@ interface TrackingStep {
   done: boolean;
 }
 
+interface RefundView {
+  label: string;
+  tone: 'pending' | 'active' | 'done';
+  text: string;
+}
+
 interface OrderView {
   id: string;
   code: string;
@@ -22,11 +28,14 @@ interface OrderView {
   total: number;
   delivered: boolean;
   cancellable: boolean;
-  needsRefundAccount: boolean;
+  /** Đã thanh toán chuyển khoản: tiền hoàn về tài khoản đã chuyển, không cần khách nhập thêm. */
+  refundToSourceBank: boolean;
   trackingTitle: string;
   tone: 'pending' | 'active' | 'done' | 'failed';
   filter: OrderFilter;
   paymentText: string;
+  /** Trạng thái hoàn tiền của đơn đã hủy (chỉ khi đã thanh toán). */
+  refund: RefundView | null;
   fees: { label: string; amount: number; discount?: boolean }[];
   items: { name: string; details: string; quantity: number; unitPrice: number; total: number; image: string }[];
   steps: TrackingStep[];
@@ -61,6 +70,8 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PAID: 'Đã thanh toán',
   UNPAID: 'Chưa thanh toán',
   FAILED: 'Thanh toán thất bại',
+  REFUND_PENDING: 'Chờ hoàn tiền',
+  REFUNDING: 'Đang hoàn tiền',
   REFUNDED: 'Đã hoàn tiền',
 };
 
@@ -109,7 +120,6 @@ export class OrdersComponent {
   protected readonly cancellingOrder = signal('');
   protected readonly notice = signal<{ text: string; error: boolean } | null>(null);
   protected cancelReason = '';
-  protected refund = { bankName: '', accountNumber: '', accountHolder: '' };
   protected readonly cancelReasons = [
     'Muốn thay đổi địa chỉ giao hàng',
     'Muốn thay đổi sản phẩm trong đơn',
@@ -129,21 +139,13 @@ export class OrdersComponent {
   protected openCancel(order: OrderView): void {
     this.cancellingOrder.set(order.id);
     this.cancelReason = '';
-    this.refund = { bankName: '', accountNumber: '', accountHolder: '' };
   }
 
   protected confirmCancel(order: OrderView): void {
     if (!this.cancelReason) return this.showNotice('Vui lòng chọn lý do huỷ đơn.', true);
-    const { bankName, accountNumber, accountHolder } = this.refund;
-    if (order.needsRefundAccount && !(bankName.trim() && accountNumber.trim() && accountHolder.trim())) {
-      return this.showNotice('Đơn đã thanh toán: vui lòng nhập tài khoản nhận hoàn tiền.', true);
-    }
     this.cancelling.set(true);
     this.api
-      .cancelOrder(order.id, {
-        reason: this.cancelReason,
-        ...(order.needsRefundAccount ? { refundAccount: { bankName, accountNumber, accountHolder } } : {}),
-      })
+      .cancelOrder(order.id, { reason: this.cancelReason })
       .subscribe({
         next: () => {
           this.cancelling.set(false);
@@ -177,6 +179,32 @@ export class OrdersComponent {
     });
   }
 
+  private toRefundView(order: AccountOrder): RefundView | null {
+    const refund = order.refund;
+    if (!refund) return null;
+    const amount = `${this.formatPrice(refund.amount)}đ`;
+    const destination =
+      refund.refundTo === 'CUSTOMER_ACCOUNT'
+        ? 'tài khoản bạn đã cung cấp'
+        : 'tài khoản ngân hàng bạn đã dùng để thanh toán';
+    if (refund.status === 'COMPLETED') {
+      const at = refund.completedAt ? ` lúc ${this.formatDate(refund.completedAt)}` : '';
+      return { label: 'Đã hoàn tiền', tone: 'done', text: `Đã hoàn ${amount} về ${destination}${at}.` };
+    }
+    if (refund.status === 'PROCESSING') {
+      return {
+        label: 'Đang hoàn tiền',
+        tone: 'active',
+        text: `CaraVeso đang chuyển hoàn ${amount} về ${destination}. Thời gian tiền về theo quy định của ngân hàng.`,
+      };
+    }
+    return {
+      label: 'Chờ hoàn tiền',
+      tone: 'pending',
+      text: `CaraVeso đã nhận yêu cầu hoàn ${amount} về ${destination}.`,
+    };
+  }
+
   private toOrderView(order: AccountOrder): OrderView {
     const view = STATUS_VIEW[order.status] ?? { label: order.status, icon: 'clock' as IconName };
     const lastChange = order.statusHistory.at(-1)?.changedAt ?? order.createdAt;
@@ -189,17 +217,19 @@ export class OrdersComponent {
       tone: STATUS_GROUP[order.status]?.tone ?? 'pending',
       filter: STATUS_GROUP[order.status]?.filter ?? 'PENDING',
       paymentText: `${METHOD_LABEL[order.payment.method] ?? order.payment.method} · ${PAYMENT_STATUS_LABEL[order.payment.status] ?? order.payment.status}`,
+      refund: this.toRefundView(order),
       fees: [
         { label: 'Tạm tính', amount: order.subtotal ?? 0 },
         { label: 'Khuyến mãi', amount: order.promotionDiscount ?? 0, discount: true },
         { label: 'Voucher', amount: order.voucherDiscount ?? 0, discount: true },
         { label: 'Phí vận chuyển', amount: order.shippingFee ?? 0 },
         { label: 'Phí lắp đặt', amount: order.installationFee ?? 0 },
+        { label: 'Trừ giá trị hàng đã đổi', amount: order.exchangeCredit ?? 0, discount: true },
       ].filter((fee) => fee.amount > 0),
       total: order.totalAmount,
       delivered: order.status === 'DELIVERED',
       cancellable: order.allowedActions.canCancel,
-      needsRefundAccount: ['PAID', 'DEPOSITED'].includes(order.payment.status),
+      refundToSourceBank: ['PAID', 'DEPOSITED'].includes(order.payment.status),
       trackingTitle:
         order.status === 'DELIVERED'
           ? `Đã giao vào ngày: ${this.formatDate(order.shipment?.actualDeliveryDate ?? lastChange)}`

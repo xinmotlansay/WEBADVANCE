@@ -24,6 +24,8 @@ export interface ReturnRequestDoc {
   pickupSchedule?: Date | null;
   customerShipment: { carrier?: string | null; trackingCode?: string | null };
   returnShipment: { carrier?: string | null; trackingCode?: string | null };
+  /** Đơn hàng mới tạo khi hoàn tất đổi hàng (giao sản phẩm thay thế). */
+  exchangeOrderId?: Types.ObjectId | null;
   replacement: {
     variantId?: Types.ObjectId | null;
     quantity?: number | null;
@@ -62,7 +64,7 @@ const returnRequestSchema = new Schema<ReturnRequestDoc>(
     evidence: { type: [String], default: [] },
     status: {
       type: String,
-      enum: ['PENDING', 'CONFIRMED', 'AWAITING_GOODS', 'PROCESSING', 'COMPLETED', 'REJECTED', 'CANCELLED'],
+      enum: ['PENDING', 'CONFIRMED', 'AWAITING_GOODS', 'PROCESSING', 'AWAITING_REFUND', 'REFUNDING', 'COMPLETED', 'REJECTED', 'CANCELLED'],
       default: 'PENDING',
       index: true,
     },
@@ -83,6 +85,7 @@ const returnRequestSchema = new Schema<ReturnRequestDoc>(
       carrier: { type: String, default: null },
       trackingCode: { type: String, default: null },
     },
+    exchangeOrderId: { type: Schema.Types.ObjectId, ref: 'orders', default: null },
     replacement: {
       variantId: { type: Schema.Types.ObjectId, ref: 'ProductVariant', default: null },
       quantity: { type: Number, default: null, min: 1 },

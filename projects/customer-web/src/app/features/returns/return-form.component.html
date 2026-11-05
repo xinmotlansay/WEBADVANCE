@@ -139,17 +139,23 @@
         />
         <p class="hint">Lỗi sản phẩm, giao sai hoặc hư hại khi vận chuyển cần video mở hàng.</p>
         @if (form.controls.type.value === 'RETURN') {
-          <h3>3. Tài khoản nhận hoàn tiền</h3>
-          <p class="sub">Tiền hoàn được chuyển về tài khoản ngân hàng này trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra.</p>
-          <div formGroupName="refundAccount" class="grid">
-            <label class="field"><span>Ngân hàng <b class="req">*</b></span><input formControlName="bankName" /></label
-            ><label class="field"
-              ><span>Số tài khoản <b class="req">*</b></span><input
-                formControlName="accountNumber"
-                inputmode="numeric"
-                autocomplete="off" /></label
-            ><label class="field full"><span>Chủ tài khoản <b class="req">*</b></span><input formControlName="accountHolder" /></label>
-          </div>
+          <h3>3. Hoàn tiền</h3>
+          @if (needsRefundAccount()) {
+            <p class="sub">Đơn thanh toán khi nhận hàng (COD): tiền hoàn được chuyển về tài khoản ngân hàng bên dưới trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra.</p>
+            <div formGroupName="refundAccount" class="grid">
+              <label class="field"><span>Ngân hàng <b class="req">*</b></span><input formControlName="bankName" /></label
+              ><label class="field"
+                ><span>Số tài khoản <b class="req">*</b></span><input
+                  formControlName="accountNumber"
+                  inputmode="numeric"
+                  autocomplete="off" /></label
+              ><label class="field full"><span>Chủ tài khoản <b class="req">*</b></span><input formControlName="accountHolder" /></label>
+            </div>
+          } @else if (refundToSourceBank()) {
+            <p class="sub">Đơn đã thanh toán chuyển khoản: tiền hoàn được chuyển về chính tài khoản ngân hàng bạn đã dùng để thanh toán, theo quy định của ngân hàng, trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra. Bạn không cần nhập thêm tài khoản.</p>
+          } @else {
+            <p class="sub">Chọn đơn hàng để xem hình thức hoàn tiền.</p>
+          }
         } @else {
           <h3>3. Sản phẩm thay thế</h3>
           <p class="sub">

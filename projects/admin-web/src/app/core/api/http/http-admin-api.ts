@@ -8,6 +8,7 @@ import type {
   ApiResponse,
   AdminCancelOrderRequest as CancelOrderRequest,
   ChatMessageView,
+  CompleteRefundRequest,
   ChatSessionView,
   FinalizeReturnRequest,
   LateCompensationRequest,
@@ -20,11 +21,12 @@ import type {
   PaymentListQuery,
   PaymentTransaction,
   ReceiveReturnRequest,
-  RefundReturnRequest,
+  ApproveRefundRequest,
   RejectReturnRequest,
   RejectWarrantyRequest,
   ReportPeriod,
   ResolvePaymentRequest,
+  StartRefundRequest,
   ReturnListQuery,
   ReturnRequest,
   UpdateOrderStatusRequest,
@@ -122,6 +124,40 @@ export class HttpAdminPaymentApi extends AdminPaymentApi {
       )
       .pipe(map((res) => res.data));
   }
+  override pendingRefunds(): Observable<PaymentTransaction[]> {
+    return this.http
+      .get<ApiResponse<PaymentTransaction[]>>(`${this.base}/refunds/pending`)
+      .pipe(map((res) => res.data));
+  }
+  override uploadProof(file: File): Observable<string> {
+    return this.http
+      .post<ApiResponse<{ url: string }>>(`${API_BASE}/admin/uploads/refund-proofs`, file, {
+        headers: { 'Content-Type': file.type },
+      })
+      .pipe(map((res) => res.data.url));
+  }
+  override startRefund(
+    transactionId: string,
+    request: StartRefundRequest,
+  ): Observable<PaymentTransaction> {
+    return this.http
+      .post<ApiResponse<PaymentTransaction>>(
+        `${this.base}/${encodeURIComponent(transactionId)}/refund/start`,
+        request,
+      )
+      .pipe(map((res) => res.data));
+  }
+  override completeRefund(
+    transactionId: string,
+    request: CompleteRefundRequest,
+  ): Observable<PaymentTransaction> {
+    return this.http
+      .post<ApiResponse<PaymentTransaction>>(
+        `${this.base}/${encodeURIComponent(transactionId)}/refund`,
+        request,
+      )
+      .pipe(map((res) => res.data));
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -157,16 +193,9 @@ export class HttpAdminReturnApi extends AdminReturnApi {
       .post<ApiResponse<ReturnRequest>>(`${this.base}/${encodeURIComponent(id)}/receive`, request)
       .pipe(map((res) => res.data));
   }
-  override uploadProof(file: File): Observable<string> {
+  override approveRefund(id: string, request: ApproveRefundRequest): Observable<ReturnRequest> {
     return this.http
-      .post<ApiResponse<{ url: string }>>(`${API_BASE}/admin/uploads/refund-proofs`, file, {
-        headers: { 'Content-Type': file.type },
-      })
-      .pipe(map((res) => res.data.url));
-  }
-  override refund(id: string, request: RefundReturnRequest): Observable<ReturnRequest> {
-    return this.http
-      .post<ApiResponse<ReturnRequest>>(`${this.base}/${encodeURIComponent(id)}/refund`, request)
+      .post<ApiResponse<ReturnRequest>>(`${this.base}/${encodeURIComponent(id)}/approve-refund`, request)
       .pipe(map((res) => res.data));
   }
   override complete(id: string): Observable<ReturnRequest> {

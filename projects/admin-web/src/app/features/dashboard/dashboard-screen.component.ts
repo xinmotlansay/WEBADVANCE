@@ -129,6 +129,11 @@ const PERIODS: Array<{ value: ReportPeriod; label: string }> = [
                 <span class="alert-card__label">Giao dịch chờ đối soát</span>
                 <span class="alert-card__hint">Sai nội dung, thiếu/thừa tiền, chuyển muộn</span>
               </a>
+              <a class="alert-card" [class.alert-card--urgent]="data.pendingRefundTransactionCount > 0" routerLink="/admin/payments">
+                <span class="alert-card__num cv-num">{{ data.pendingRefundTransactionCount }}</span>
+                <span class="alert-card__label">Khoản chờ hoàn tiền</span>
+                <span class="alert-card__hint">Hủy đơn, giao thất bại, trả hàng, tiền chuyển lệch</span>
+              </a>
               <a class="alert-card" [class.alert-card--urgent]="data.pendingReturnCount > 0" routerLink="/admin/returns">
                 <span class="alert-card__num cv-num">{{ data.pendingReturnCount }}</span>
                 <span class="alert-card__label">Yêu cầu đổi/trả chờ</span>

@@ -5,9 +5,6 @@ const text = (max: number) => z.string().trim().min(1, 'Không được để tr
 export const cancelOrderSchema = z.object({
   reason: text(100),
   reasonNote: z.string().trim().max(500).optional(),
-  refundAccount: z
-    .object({ bankName: text(100), accountNumber: text(30), accountHolder: text(100) })
-    .optional(),
 });
 
 export const rescheduleSchema = z.object({

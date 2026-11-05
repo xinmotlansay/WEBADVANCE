@@ -5,6 +5,8 @@ import {
   PaymentCollectionType,
   OrderStatus,
   ReconciliationStatus,
+  RefundStatus,
+  TransactionType,
 } from '../../lib/shared-enums.js';
 import type { PaymentException, PaymentTransaction } from '../../lib/shared-types.js';
 import { UserModel } from '../auth/auth.model.js';
@@ -15,14 +17,29 @@ import {
   type PaymentTransactionDocument,
   type PaymentTransactionDoc,
 } from './payment.model.js';
+import { refundReturn, startReturnRefund } from '../returns/return.service.js';
+import { ReturnRequestModel } from '../returns/return.model.js';
 import {
+  markOrderRefunding,
+  requestReconciliationRefund,
+  settleOrderRefundStatus,
+} from './refund.service.js';
+import {
+  assertRefundCompletable,
+  assertRefundStartable,
   assertResolutionNote,
   assertResolvable,
+  isOrderRefundSource,
   expectedAmountOf,
   isException,
   resolveOutcome,
 } from './payment.rules.js';
-import type { PaymentListQueryInput, ResolvePaymentInput } from './payment.schema.js';
+import type {
+  CompleteRefundInput,
+  PaymentListQueryInput,
+  ResolvePaymentInput,
+  StartRefundInput,
+} from './payment.schema.js';
 
 export interface PageResult<T> {
   data: T[];
@@ -68,7 +85,20 @@ async function loadOrderLookup(orderIds: unknown[]): Promise<Map<string, OrderLo
   );
 }
 
-function toTransactionDto(doc: PaymentTransactionDoc, order?: OrderLookup): PaymentTransaction {
+async function loadReturnCodes(docs: PaymentTransactionDoc[]): Promise<Map<string, string>> {
+  const ids = docs
+    .map((doc) => doc.returnRequestId)
+    .filter((value): value is Types.ObjectId => Boolean(value));
+  if (!ids.length) return new Map();
+  const returns = await ReturnRequestModel.find({ _id: { $in: ids } }).select('code').lean();
+  return new Map(returns.map((item) => [String(item._id), String(item.code ?? '')]));
+}
+
+function toTransactionDto(
+  doc: PaymentTransactionDoc,
+  order?: OrderLookup,
+  returnCode?: string | null,
+): PaymentTransaction {
   return {
     id: String(doc._id),
     orderId: doc.orderId ? String(doc.orderId) : null,
@@ -84,6 +114,12 @@ function toTransactionDto(doc: PaymentTransactionDoc, order?: OrderLookup): Paym
     note: doc.note ?? null,
     handledBy: doc.handledByName ?? null,
     transactionAt: doc.transactionAt.toISOString(),
+    refundTo: doc.refundTo ?? null,
+    refundSource: doc.refundSource ?? null,
+    originalTransactionCode: doc.originalTransactionCode ?? null,
+    proofImage: doc.proofImage ?? null,
+    returnRequestId: doc.returnRequestId ? String(doc.returnRequestId) : null,
+    returnCode: returnCode ?? null,
     refundAccount: doc.refundAccount
       ? {
           bankName: doc.refundAccount.bankName,
@@ -117,6 +153,8 @@ export async function listPayments(
   if (query.reconciliationStatus && query.reconciliationStatus !== 'ALL') {
     filter.reconciliationStatus = query.reconciliationStatus;
   }
+  if (query.type && query.type !== 'ALL') filter.type = query.type;
+  if (query.status && query.status !== 'ALL') filter.status = query.status;
 
   if (query.q) {
     const regex = new RegExp(escapeRegex(query.q.trim()), 'i');
@@ -153,10 +191,15 @@ export async function listPayments(
     PaymentTransactionModel.countDocuments(filter),
   ]);
 
-  const lookup = await loadOrderLookup(docs.map((doc) => doc.orderId).filter(Boolean));
+  const [lookup, returnCodes] = await Promise.all([
+    loadOrderLookup(docs.map((doc) => doc.orderId).filter(Boolean)),
+    loadReturnCodes(docs),
+  ]);
 
   return {
-    data: docs.map((doc) => toTransactionDto(doc, lookup.get(String(doc.orderId)))),
+    data: docs.map((doc) =>
+      toTransactionDto(doc, lookup.get(String(doc.orderId)), returnCodes.get(String(doc.returnRequestId))),
+    ),
     meta: {
       page,
       limit,
@@ -164,6 +207,21 @@ export async function listPayments(
       totalPages: Math.max(1, Math.ceil(total / limit)),
     },
   };
+}
+
+/** Hàng đợi hoàn tiền: khoản chờ hoàn và đang hoàn, khoản cũ nhất lên đầu. */
+export async function listPendingRefunds(): Promise<PaymentTransaction[]> {
+  const docs = await PaymentTransactionModel.find({
+    type: TransactionType.REFUND,
+    status: { $in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
+  }).sort({ transactionAt: 1 });
+  const [lookup, returnCodes] = await Promise.all([
+    loadOrderLookup(docs.map((doc) => doc.orderId).filter(Boolean)),
+    loadReturnCodes(docs),
+  ]);
+  return docs.map((doc) =>
+    toTransactionDto(doc, lookup.get(String(doc.orderId)), returnCodes.get(String(doc.returnRequestId))),
+  );
 }
 
 export async function listPaymentExceptions(): Promise<PaymentException[]> {
@@ -233,6 +291,16 @@ export async function resolvePayment(
   doc.handledByName = await actorName(actor.userId);
   await doc.save();
 
+  if (outcome.refund) {
+    // Tiền chuyển lệch được trả lại đúng tài khoản đã chuyển; việc chuyển trả nằm ở hàng đợi hoàn tiền.
+    await requestReconciliationRefund({
+      orderId: doc.orderId ?? null,
+      amount: doc.amount,
+      bankTransactionCode: doc.bankTransactionCode ?? null,
+      note: `Hoàn lại giao dịch ${doc.bankTransactionCode ?? String(doc._id)}: ${doc.note ?? ''}`.trim(),
+    });
+  }
+
   await writeAuditLog({
     userId: actor.userId,
     action: 'PAYMENT_RESOLVE',
@@ -249,6 +317,113 @@ export async function resolvePayment(
 
   const lookup = await loadOrderLookup(doc.orderId ? [doc.orderId] : []);
   return toTransactionDto(doc, lookup.get(String(doc.orderId)));
+}
+
+/**
+ * Bước 1: Order Admin xác nhận hoàn tiền. Khoản hoàn "Chờ hoàn tiền" chuyển sang "Đang hoàn tiền";
+ * yêu cầu trả hàng liên quan cũng chuyển sang "Đang hoàn tiền".
+ */
+export async function startRefund(
+  transactionId: string,
+  input: StartRefundInput,
+  actor: ActorContext,
+): Promise<PaymentTransaction> {
+  const doc = await requireTransaction(transactionId);
+  assertRefundStartable(doc);
+
+  if (doc.returnRequestId) {
+    await startReturnRefund(String(doc.returnRequestId), actor);
+  }
+  doc.status = RefundStatus.PROCESSING;
+  doc.recordSource = 'MANUAL';
+  doc.handledById = actor.userId as unknown as PaymentTransactionDoc['handledById'];
+  doc.handledByName = await actorName(actor.userId);
+  if (input.note?.trim()) doc.note = input.note.trim();
+  await doc.save();
+  if (doc.orderId && isOrderRefundSource(doc.refundSource)) await markOrderRefunding(doc.orderId);
+
+  await writeAuditLog({
+    userId: actor.userId,
+    action: 'REFUND_START',
+    targetType: 'payment_transaction',
+    targetId: transactionId,
+    newValue: {
+      amount: doc.amount,
+      refundTo: doc.refundTo ?? null,
+      orderId: doc.orderId ? String(doc.orderId) : null,
+      returnRequestId: doc.returnRequestId ? String(doc.returnRequestId) : null,
+    },
+    ipAddress: actor.ip,
+  });
+
+  const [lookup, returnCodes] = await Promise.all([
+    loadOrderLookup(doc.orderId ? [doc.orderId] : []),
+    loadReturnCodes([doc]),
+  ]);
+  return toTransactionDto(doc, lookup.get(String(doc.orderId)), returnCodes.get(String(doc.returnRequestId)));
+}
+
+/**
+ * Bước 2: hoàn tất hoàn tiền. Chưa nối ngân hàng nên Order Admin báo thủ công (kèm chứng từ); xong thì
+ * yêu cầu trả hàng tự chuyển "Hoàn tất" và đơn sang "Đã hoàn tiền" khi đã hoàn đủ.
+ */
+export async function completeRefund(
+  transactionId: string,
+  input: CompleteRefundInput,
+  actor: ActorContext,
+): Promise<PaymentTransaction> {
+  assertResolutionNote(input.note);
+  const doc = await requireTransaction(transactionId);
+  assertRefundCompletable(doc);
+
+  const amount = input.amount ?? doc.amount;
+  if (amount > doc.amount) {
+    throw new AppError('REFUND_AMOUNT_EXCEEDED', 400, 'Số tiền hoàn vượt số tiền cần hoàn');
+  }
+
+  if (doc.returnRequestId) {
+    // Khoản hoàn của yêu cầu trả hàng: hoàn tất cả yêu cầu trả hàng lẫn giao dịch ở một chỗ.
+    await refundReturn(
+      String(doc.returnRequestId),
+      { amount, proofImage: input.proofImage, transactionAt: input.transactionAt },
+      actor,
+    );
+  } else {
+    doc.amount = amount;
+    doc.status = RefundStatus.COMPLETED;
+    doc.proofImage = input.proofImage;
+    doc.transactionAt = new Date(input.transactionAt);
+    doc.recordSource = 'MANUAL';
+    doc.handledById = actor.userId as unknown as PaymentTransactionDoc['handledById'];
+    doc.handledByName = await actorName(actor.userId);
+    await doc.save();
+    if (doc.orderId) await settleOrderRefundStatus(doc.orderId);
+  }
+
+  const done = await requireTransaction(transactionId);
+  done.note = input.note.trim();
+  await done.save();
+
+  await writeAuditLog({
+    userId: actor.userId,
+    action: 'REFUND_COMPLETE',
+    targetType: 'payment_transaction',
+    targetId: transactionId,
+    newValue: {
+      amount,
+      refundTo: done.refundTo ?? null,
+      orderId: done.orderId ? String(done.orderId) : null,
+      returnRequestId: done.returnRequestId ? String(done.returnRequestId) : null,
+      note: done.note,
+    },
+    ipAddress: actor.ip,
+  });
+
+  const [lookup, returnCodes] = await Promise.all([
+    loadOrderLookup(done.orderId ? [done.orderId] : []),
+    loadReturnCodes([done]),
+  ]);
+  return toTransactionDto(done, lookup.get(String(done.orderId)), returnCodes.get(String(done.returnRequestId)));
 }
 
 function applyPaidToOrder(order: OrderDocument, doc: PaymentTransactionDoc): void {

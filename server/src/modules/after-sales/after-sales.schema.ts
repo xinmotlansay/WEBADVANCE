@@ -49,8 +49,8 @@ export const returnSchema = z
       .optional(),
   })
   .superRefine((body, ctx) => {
-    if (body.type === 'RETURN' && !body.refundAccount)
-      ctx.addIssue({ code: 'custom', path: ['refundAccount'], message: 'Cần tài khoản hoàn tiền' });
+    // Tài khoản nhận hoàn chỉ bắt buộc với đơn COD; đơn chuyển khoản hoàn về tài khoản đã chuyển
+    // (kiểm tra theo đơn ở createReturn).
     if (body.type === 'EXCHANGE' && !body.replacementVariantId)
       ctx.addIssue({
         code: 'custom',
