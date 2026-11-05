@@ -1,4 +1,7 @@
 import { Routes } from '@angular/router';
+import type { CollectionFormComponent } from './collections/collection-form.component';
+
+const leaveForm = (c: CollectionFormComponent) => c.canLeave();
 
 export const MARKETING_ROUTES: Routes = [
   {
@@ -90,6 +93,28 @@ export const MARKETING_ROUTES: Routes = [
       {
         path: 'lp/:slug',
         loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+      },
+    ],
+  },
+  {
+    path: 'collection',
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./collections/collection-list.component').then((m) => m.CollectionListComponent),
+      },
+      {
+        path: 'tao-moi',
+        canDeactivate: [leaveForm],
+        loadComponent: () =>
+          import('./collections/collection-form.component').then((m) => m.CollectionFormComponent),
+      },
+      {
+        path: ':id/sua',
+        canDeactivate: [leaveForm],
+        loadComponent: () =>
+          import('./collections/collection-form.component').then((m) => m.CollectionFormComponent),
       },
     ],
   },

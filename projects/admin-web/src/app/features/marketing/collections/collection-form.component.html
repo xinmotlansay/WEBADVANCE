@@ -1,0 +1,84 @@
+<main class="cv-main">
+  <a class="cv-back" routerLink="/marketing/collection"><span aria-hidden="true">←</span> Collection</a>
+  <header class="cv-page-head">
+    <h1>{{ loaded ? 'Sửa ' + loaded.name : 'Thêm collection' }}</h1>
+    @if (loaded) {
+      <span class="cv-badge" [class]="STATUS_BADGE[loaded.status]">{{ STATUS_LABEL[loaded.status] }}</span>
+    }
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else {
+    <form class="form cv-card" (ngSubmit)="save()">
+      <div class="cols">
+        <div class="cv-field">
+          <label for="c-name">Tên (2–120 ký tự)</label>
+          <input id="c-name" name="name" class="cv-input" maxlength="120" [(ngModel)]="name" required />
+        </div>
+        <div class="cv-field">
+          <label for="c-slug">Đường dẫn (slug)</label>
+          <input
+            id="c-slug"
+            name="slug"
+            class="cv-input"
+            maxlength="160"
+            [(ngModel)]="slug"
+            [attr.aria-invalid]="slugError() ? true : null"
+            aria-describedby="c-slug-hint"
+          />
+          @if (slugError()) {
+            <span class="cv-field-error" role="alert">{{ slugError() }}</span>
+          }
+          <span class="cv-hint" id="c-slug-hint">
+            Chữ thường không dấu, số và dấu "-". Bỏ trống để tự sinh từ tên.
+            @if (slugChanged()) {
+              <strong>Collection đang hiển thị: đổi slug làm link cũ (banner, bài viết) không mở được.</strong>
+            }
+          </span>
+        </div>
+      </div>
+
+      <div class="cv-field">
+        <label for="c-slogan">Slogan (tối đa 120 ký tự)</label>
+        <input id="c-slogan" name="slogan" class="cv-input" maxlength="120" [(ngModel)]="slogan" />
+      </div>
+      <div class="cv-field">
+        <label for="c-short">Mô tả ngắn (hiện ở trang chủ)</label>
+        <textarea id="c-short" name="short" class="cv-input" rows="2" maxlength="255" [(ngModel)]="shortDescription"></textarea>
+        <span class="cv-hint">{{ shortDescription.length }}/255</span>
+      </div>
+      <div class="cv-field">
+        <label for="c-desc">Giới thiệu chi tiết (trang collection)</label>
+        <textarea id="c-desc" name="desc" class="cv-input" rows="6" maxlength="5000" [(ngModel)]="description"></textarea>
+        <span class="cv-hint">{{ description.length }}/5.000</span>
+      </div>
+
+      <app-product-picker
+        label="Sản phẩm thuộc collection"
+        inputId="c-products"
+        hint="Thứ tự chọn là thứ tự hiển thị. Sản phẩm gắn trên ảnh (hotspot) được tự thêm vào danh sách."
+        [(ids)]="productIds"
+      />
+      @if (loaded?.inactiveProductIds?.length) {
+        <p class="cv-alert cv-alert--warn">
+          Có {{ loaded!.inactiveProductIds.length }} sản phẩm đã ngừng bán. Khách sẽ không thấy chúng; nên bỏ khỏi danh sách.
+        </p>
+      }
+
+      @if (!loaded) {
+        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Thêm ảnh rồi bấm "Hiển thị" ở danh sách.</p>
+      }
+
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <a class="cv-btn" routerLink="/marketing/collection">Hủy</a>
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Đang lưu…' : 'Lưu' }}
+        </button>
+      </div>
+    </form>
+  }
+</main>

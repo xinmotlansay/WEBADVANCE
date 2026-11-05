@@ -33,9 +33,9 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** `features/marketing/collections/`: `collection.api.ts`, `collection-list.component` (bảng: ảnh đại diện, tên, slug, số sản phẩm, trạng thái, cờ; lọc trạng thái + tìm; ẩn/hiện; kéo/nút lên xuống để đổi thứ tự), `collection-form.component` (tên → slug tự sinh, slogan, mô tả ngắn có đếm ký tự, mô tả chi tiết, `app-product-picker` có thứ tự). Route `/marketing/collection`, `tao-moi`, `:id/sua`; đặt `path` cho mục menu "Collection". Dùng class `cv-*` của `admin-ui.css`.
 
 **Tiêu chí:**
-- [ ] Tạo → sửa → lưu hoạt động; lỗi 409/400 hiện đúng thông báo ở field/đầu form
-- [ ] Rời form khi chưa lưu → hỏi xác nhận (như form banner)
-- [ ] Menu MKT_AD mở được trang Collection
+- [x] Tạo → sửa → lưu hoạt động; lỗi 409/400 hiện đúng thông báo ở field/đầu form
+- [x] Rời form khi chưa lưu → hỏi xác nhận (form chặn rời trang qua `canDeactivate` + `beforeunload`)
+- [x] Menu MKT_AD mở được trang Collection
 
 **Kiểm tra:** `npm run build:web`; thủ công trên admin-web cổng riêng.
 
