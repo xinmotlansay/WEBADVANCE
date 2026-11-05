@@ -461,3 +461,91 @@
     border-radius: 18px;
   }
 }
+
+.closed-hint {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* Trạng thái "nhân viên đang nhập": bong bóng riêng, ba chấm nhấp nhô nhẹ theo sóng. */
+.message.typing {
+  margin-bottom: 10px;
+  animation: typing-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 18px 18px 18px 5px;
+  background: color-mix(in srgb, var(--brand) 5%, var(--surface));
+
+  i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--brand) 42%, var(--surface));
+    animation: typing-wave 1.25s infinite ease-in-out;
+
+    &:nth-child(2) {
+      animation-delay: 0.16s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.32s;
+    }
+  }
+}
+
+/* Tên hiện sau một nhịp để lần "đang nhập" thoáng qua không làm giật dòng chữ. */
+.typing-caption {
+  animation: typing-caption-in 0.3s ease 0.45s both;
+}
+
+@keyframes typing-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes typing-wave {
+  0%,
+  60%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3.5px);
+  }
+}
+
+@keyframes typing-caption-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message.typing,
+  .typing-caption {
+    animation: none;
+  }
+
+  .typing-bubble i {
+    animation: none;
+    opacity: 0.8;
+  }
+}

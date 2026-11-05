@@ -53,6 +53,10 @@ export class AdminSocketService {
     };
   }
 
+  emit(event: string, payload?: unknown): void {
+    this.socket?.emit(event, payload);
+  }
+
   private async handleConnectError(error: Error): Promise<void> {
     if (this.refreshing || !/UNAUTHORIZED|TOKEN_EXPIRED/.test(error.message)) return;
     this.refreshing = true;

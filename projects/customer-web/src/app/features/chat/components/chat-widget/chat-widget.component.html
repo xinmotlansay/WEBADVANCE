@@ -53,16 +53,31 @@
             <div class="message" [class.mine]="isMine(message)">
               @if (!isMine(message)) {
                 <span class="msg-avatar" [class.ai]="message.senderType === 'AI'">
-                  {{ avatarLabel(message.senderType) }}
+                  {{ message.senderType === 'AGENT' && message.senderName ? initials(message.senderName) : avatarLabel(message.senderType) }}
                 </span>
               }
 
               <div class="msg-main">
                 <div class="bubble">{{ message.content }}</div>
-                <span class="msg-time">{{ formatTime(message.sentAt) }}</span>
+                <span class="msg-time">
+                  @if (message.senderType === 'AGENT') {
+                    {{ message.senderName || 'Nhân viên CSKH' }} ·
+                  }
+                  {{ formatTime(message.sentAt) }}
+                </span>
               </div>
             </div>
           }
+        }
+
+        @if (chat.agentTyping(); as typingName) {
+          <div class="message typing" role="status">
+            <span class="msg-avatar" aria-hidden="true">{{ initials(typingName) }}</span>
+            <div class="msg-main">
+              <div class="bubble typing-bubble" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="msg-time typing-caption">{{ typingName }} đang nhập</span>
+            </div>
+          </div>
         }
 
         @if (chat.isWaiting()) {
@@ -80,48 +95,44 @@
 
     <footer class="chat-composer">
       @if (chat.isClosed()) {
-        <div class="closed-box">
-          <p>Cuộc trò chuyện này đã kết thúc.</p>
-          <button type="button" (click)="restart()">Bắt đầu cuộc trò chuyện mới</button>
-        </div>
-      } @else {
-        <div class="composer-row">
-          <textarea
-            #input
-            rows="1"
-            maxlength="2000"
-            placeholder="Nhập tin nhắn cho bộ phận CSKH..."
-            [value]="draft()"
-            [disabled]="chat.sending()"
-            (input)="onInput($event)"
-            (keydown)="onKeydown($event)"
-            aria-label="Nội dung tin nhắn"
-          ></textarea>
-
-          <button
-            class="send-btn"
-            type="button"
-            [disabled]="!draft().trim() || !canSend()"
-            (click)="send()"
-            aria-label="Gửi tin nhắn"
-          >
-            @if (chat.sending()) {
-              <span class="spinner"></span>
-            } @else {
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path
-                  d="M4 12l16-8-5 8 5 8-16-8z"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            }
-          </button>
-        </div>
-        <small class="composer-hint">Enter để gửi · Shift + Enter để xuống dòng</small>
+        <p class="closed-hint">Cuộc trò chuyện đã kết thúc. Anh/chị cứ nhắn tin, CSKH sẽ tiếp nhận lại.</p>
       }
+      <div class="composer-row">
+        <textarea
+          #input
+          rows="1"
+          maxlength="2000"
+          [placeholder]="chat.isClosed() ? 'Nhắn tin để liên hệ lại với CSKH...' : 'Nhập tin nhắn cho bộ phận CSKH...'"
+          [value]="draft()"
+          [disabled]="chat.sending()"
+          (input)="onInput($event)"
+          (keydown)="onKeydown($event)"
+          aria-label="Nội dung tin nhắn"
+        ></textarea>
+
+        <button
+          class="send-btn"
+          type="button"
+          [disabled]="!draft().trim() || !canSend()"
+          (click)="send()"
+          aria-label="Gửi tin nhắn"
+        >
+          @if (chat.sending()) {
+            <span class="spinner"></span>
+          } @else {
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M4 12l16-8-5 8 5 8-16-8z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </button>
+      </div>
+      <small class="composer-hint">Enter để gửi · Shift + Enter để xuống dòng</small>
     </footer>
   </section>
 }

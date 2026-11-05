@@ -10,8 +10,9 @@ import type {
   ChatSendMessageResponse,
   ChatSessionUpdatedEvent,
   ChatSessionView,
+  ChatTypingEvent,
 } from 'shared';
-import { ChatMode, ChatSessionStatus } from 'shared';
+import { ChatMode, ChatSenderType, ChatSessionStatus } from 'shared';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SocketService } from '../../core/socket/socket.service';
@@ -32,6 +33,8 @@ export class ChatService {
   private readonly _hasMore = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _joinedSessionId = signal<string | null>(null);
+  private readonly _agentTyping = signal<string | null>(null);
+  private agentTypingTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly session = this._session.asReadonly();
   readonly messages = this._messages.asReadonly();
@@ -40,6 +43,8 @@ export class ChatService {
   readonly hasMore = this._hasMore.asReadonly();
   readonly error = this._error.asReadonly();
   readonly connection = this.socket.status;
+  /** Tên nhân viên đang nhập trả lời (null nếu không ai đang nhập). */
+  readonly agentTyping = this._agentTyping.asReadonly();
 
   readonly unread = computed(() => this._session()?.customerUnread ?? 0);
   readonly mode = computed<ChatMode>(() => this._session()?.mode ?? ChatMode.AI);
@@ -57,6 +62,15 @@ export class ChatService {
       if (this._session()?.id === payload.session.id) {
         this._session.set(payload.session);
       }
+    });
+
+    this.socket.on<ChatTypingEvent>('chat:typing', (event) => {
+      if (event.sessionId !== this._session()?.id || event.senderType !== ChatSenderType.AGENT) return;
+      if (!event.isTyping) return this.clearAgentTyping();
+      this._agentTyping.set(event.senderName || 'Nhân viên CSKH');
+      // Phòng khi sự kiện "ngừng nhập" bị mất (rớt mạng, đóng tab của admin).
+      if (this.agentTypingTimer) clearTimeout(this.agentTypingTimer);
+      this.agentTypingTimer = setTimeout(() => this.clearAgentTyping(), 5000);
     });
 
     this.socket.on<void>('connect', () => {
@@ -98,7 +112,7 @@ export class ChatService {
 
   async send(content: string): Promise<boolean> {
     const text = content.trim();
-    if (!text || this._sending() || this.isClosed()) {
+    if (!text || this._sending()) {
       return false;
     }
 
@@ -173,7 +187,8 @@ export class ChatService {
 
   private async ensureSession(): Promise<ChatSessionView> {
     const existing = this._session();
-    if (existing && existing.status !== ChatSessionStatus.CLOSED) {
+    if (existing) {
+      // Phiên CSKH đã đóng vẫn dùng lại: tin nhắn mới đưa chính phiên này về "Chờ nhận".
       this.joinRoom(existing.id);
       return existing;
     }
@@ -217,7 +232,15 @@ export class ChatService {
       this._session.set(payload.session);
     }
 
+    // Tin của nhân viên tới thì không còn "đang nhập".
+    if (payload.message.senderType === ChatSenderType.AGENT) this.clearAgentTyping();
     this.upsertMessages([payload.message]);
+  }
+
+  private clearAgentTyping(): void {
+    if (this.agentTypingTimer) clearTimeout(this.agentTypingTimer);
+    this.agentTypingTimer = null;
+    this._agentTyping.set(null);
   }
 
   private upsertMessages(incoming: ChatMessageView[]): void {
@@ -238,6 +261,7 @@ export class ChatService {
     this._hasMore.set(false);
     this._error.set(null);
     this._joinedSessionId.set(null);
+    this.clearAgentTyping();
   }
 }
 

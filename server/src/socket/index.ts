@@ -5,13 +5,20 @@ import type { Socket } from 'socket.io';
 import type { ChatTypingEvent } from '../lib/shared-api.js';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
-import { ChatSenderType, RoleName, UserStatus, type ChatMode } from '../lib/shared-enums.js';
+import {
+  ChatSenderType,
+  ChatSessionStatus,
+  RoleName,
+  UserStatus,
+  type ChatMode,
+} from '../lib/shared-enums.js';
 import { ChatSessionModel } from '../modules/chat/chat.model.js';
 import { UserModel, type IRole } from '../modules/auth/auth.model.js';
 
 interface SocketUser {
   id: string;
   roleName: RoleName;
+  fullName: string;
 }
 
 interface AccessTokenPayload extends jwt.JwtPayload {
@@ -62,7 +69,11 @@ async function authenticate(socket: Socket): Promise<SocketUser> {
     throw new Error('ACCOUNT_LOCKED_BY_ADMIN');
   }
 
-  return { id: String(user._id), roleName: user.roleId?.name as RoleName };
+  return {
+    id: String(user._id),
+    roleName: user.roleId?.name as RoleName,
+    fullName: user.profile?.fullName ?? '',
+  };
 }
 
 export function initSocket(httpServer: HttpServer): Server {
@@ -118,16 +129,34 @@ export function initSocket(httpServer: HttpServer): Server {
 
     socket.on(
       'chat:typing',
-      (payload: { sessionId?: string; isTyping?: boolean } = {}) => {
+      async (payload: { sessionId?: string; isTyping?: boolean } = {}) => {
         const sessionId = payload?.sessionId;
         if (!sessionId || !socket.rooms.has(`chat:${sessionId}`)) return;
 
-        const event: ChatTypingEvent = {
-          sessionId,
-          senderType: AGENT_ROLES.includes(user.roleName) ? ChatSenderType.AGENT : ChatSenderType.CUSTOMER,
-          isTyping: Boolean(payload.isTyping),
-        };
-        socket.to(`chat:${sessionId}`).emit('chat:typing', event);
+        try {
+          const session = await ChatSessionModel.findById(sessionId)
+            .select('customerId agentId status')
+            .lean();
+          if (!session) return;
+
+          // Chỉ khách của phiên, hoặc admin đang xử lý phiên đó, mới được báo "đang nhập".
+          const isAssignedAgent =
+            AGENT_ROLES.includes(user.roleName) &&
+            session.status === ChatSessionStatus.IN_PROGRESS &&
+            String(session.agentId) === user.id;
+          const isOwner = String(session.customerId) === user.id;
+          if (!isAssignedAgent && !isOwner) return;
+
+          const event: ChatTypingEvent = {
+            sessionId,
+            senderType: isAssignedAgent ? ChatSenderType.AGENT : ChatSenderType.CUSTOMER,
+            isTyping: Boolean(payload.isTyping),
+            ...(isAssignedAgent ? { senderName: user.fullName } : {}),
+          };
+          socket.to(`chat:${sessionId}`).emit('chat:typing', event);
+        } catch (error) {
+          logger.warn({ err: error, sessionId }, 'Không thể chuyển sự kiện đang nhập');
+        }
       },
     );
   });

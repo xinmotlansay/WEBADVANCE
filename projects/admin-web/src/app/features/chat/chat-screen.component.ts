@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { ChatMessageView, ChatSessionView } from 'shared';
 import { AdminChatApi } from '../../core/api/admin-chat.api';
+import { AdminAuthService } from '../../core/auth/admin-auth.service';
+import { parseApiError } from '../../core/auth/auth-error';
 import { AdminSocketService } from '../../core/socket/admin-socket.service';
 import { DateVnPipe } from '../../core/format/format.pipes';
 import { NotificationService } from '../../core/ui/notification.service';
@@ -76,6 +78,9 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
                     <span class="session__body">
                       <span class="session__name">{{ session.customer?.fullName || 'Khách hàng' }}</span>
                       <span class="session__preview">{{ session.lastMessagePreview }}</span>
+                      @if (session.status === 'IN_PROGRESS') {
+                        <span class="session__owner">Đang xử lý bởi {{ ownerLabel(session) }}</span>
+                      }
                       <span class="session__meta">
                         {{ session.lastMessageAt | dateVn: 'datetime' }}
                         @if (session.agentUnread > 0) {
@@ -101,14 +106,23 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
               </div>
               <div class="cv-row">
                 <span class="cv-badge" [class]="'cv-badge cv-badge--' + statusTone(session)">{{ statusLabel(session) }}</span>
+                @if (session.status === 'IN_PROGRESS') {
+                  <span class="cv-small cv-muted">bởi {{ ownerLabel(session) }}</span>
+                }
                 @if (session.status === 'WAITING') {
                   <button type="button" class="cv-btn cv-btn--sm cv-btn--accent" [disabled]="busy()" (click)="claim(session)">Nhận phiên</button>
                 }
-                @if (session.status !== 'CLOSED') {
+                @if (canClose(session)) {
                   <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary" [disabled]="busy()" (click)="close(session)">Đóng phiên</button>
                 }
               </div>
             </header>
+
+            @if (takenByOther(session)) {
+              <p class="chat__notice">Phiên này đang được {{ ownerLabel(session) }} xử lý. Bạn chỉ có thể xem.</p>
+            } @else if (session.status === 'CLOSED') {
+              <p class="chat__notice">Phiên đã đóng. Khách nhắn lại thì phiên quay về Chờ nhận.</p>
+            }
 
             @if (loadingMessages()) {
               <div class="cv-stack chat__messages">
@@ -127,7 +141,7 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
                       <span class="msg__time">{{ message.sentAt | dateVn: 'datetime' }}</span>
                     </div>
                     <span class="msg__sender">
-                      {{ message.senderType === 'AGENT' ? 'Bạn' : message.senderType === 'AI' ? 'Trợ lý AI' : 'Khách' }}
+                      {{ senderLabel(message, session) }}
                     </span>
                   </div>
                 }
@@ -140,10 +154,10 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
                 class="cv-textarea chat__input"
                 id="chat-input"
                 [value]="draft()"
-                (input)="draft.set($any($event.target).value)"
+                (input)="onDraftInput($any($event.target).value)"
                 (keydown.enter)="onEnter($event)"
-                placeholder="Nhập tin nhắn trả khách… (Enter để gửi, Shift+Enter xuống dòng)"
-                [disabled]="session.status === 'CLOSED'"
+                [placeholder]="composerPlaceholder(session)"
+                [disabled]="!canReply(session)"
               ></textarea>
               <div class="chat__actions">
                 <button type="button" class="cv-icon-btn" aria-label="Đính kèm ảnh" (click)="attach()">
@@ -152,7 +166,7 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
                 <button
                   type="button"
                   class="cv-btn cv-btn--primary"
-                  [disabled]="busy() || session.status === 'CLOSED' || !draft().trim()"
+                  [disabled]="busy() || !canReply(session) || !draft().trim()"
                   (click)="send()"
                 >
                   <app-icon name="arrow-right" size="sm" />
@@ -184,6 +198,7 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
               <dl class="cv-kv" style="grid-template-columns: 1fr auto; margin-top: 6px">
                 <dt>Bắt đầu</dt><dd>{{ session.startedAt | dateVn: 'datetime' }}</dd>
                 <dt>Chuyển người</dt><dd>{{ session.handoffAt ? (session.handoffAt | dateVn: 'datetime') : '—' }}</dd>
+                <dt>Người xử lý</dt><dd>{{ session.agent ? ownerLabel(session) : '—' }}</dd>
                 <dt>Kênh</dt><dd>Website</dd>
                 <dt>Mã phiên</dt><dd>{{ session.id }}</dd>
               </dl>
@@ -291,6 +306,21 @@ const FILTERS: Array<{ value: SessionFilter; label: string }> = [
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .session__owner {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--cv-info-fg, #1d4f8a);
+      }
+
+      .chat__notice {
+        margin: 0;
+        padding: 8px 16px;
+        font-size: 12px;
+        color: var(--cv-muted);
+        background: var(--cv-surface);
+        border-bottom: 1px solid var(--cv-border);
       }
 
       .session__meta {
@@ -465,6 +495,7 @@ export class ChatScreenComponent {
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly socket = inject(AdminSocketService);
+  private readonly auth = inject(AdminAuthService);
 
   readonly filters = FILTERS;
   readonly activeFilter = signal<SessionFilter>('WAITING');
@@ -505,10 +536,59 @@ export class ChatScreenComponent {
       this.upsertSession(session);
       if (this.activeSession()?.id === session.id) this.activeSession.set(session);
     });
+    // Kết nối lại thì vào lại phòng của phiên đang mở.
+    const offConnect = this.socket.on<void>('connect', () => {
+      const id = this.joinedRoom;
+      if (id) this.socket.emit('chat:join', { sessionId: id });
+    });
     this.destroyRef.onDestroy(() => {
       offMessage();
       offSession();
+      offConnect();
+      this.stopTyping();
     });
+  }
+
+  private joinedRoom: string | null = null;
+  private typingActive = false;
+  private lastTypingSentAt = 0;
+  private typingTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Vào phòng của phiên để gửi "đang nhập" tới khách; rời phòng phiên trước. */
+  private joinRoom(sessionId: string): void {
+    if (this.joinedRoom === sessionId) return;
+    if (this.joinedRoom) this.socket.emit('chat:leave', { sessionId: this.joinedRoom });
+    this.joinedRoom = sessionId;
+    this.socket.emit('chat:join', { sessionId });
+  }
+
+  /** Báo khách "đang nhập" khi admin đang soạn trả lời; chỉ khi phiên do chính admin này xử lý. */
+  onDraftInput(value: string): void {
+    this.draft.set(value);
+    const session = this.activeSession();
+    if (!session || session.status !== 'IN_PROGRESS' || !this.isMine(session)) return;
+    if (!value.trim()) {
+      this.stopTyping();
+      return;
+    }
+    const now = Date.now();
+    // Nhắc lại tối đa mỗi 2 giây để khách không thấy trạng thái tắt giữa chừng.
+    if (!this.typingActive || now - this.lastTypingSentAt > 2000) {
+      this.socket.emit('chat:typing', { sessionId: session.id, isTyping: true });
+      this.typingActive = true;
+      this.lastTypingSentAt = now;
+    }
+    if (this.typingTimer) clearTimeout(this.typingTimer);
+    this.typingTimer = setTimeout(() => this.stopTyping(), 2500);
+  }
+
+  private stopTyping(): void {
+    if (this.typingTimer) clearTimeout(this.typingTimer);
+    this.typingTimer = null;
+    if (!this.typingActive) return;
+    this.typingActive = false;
+    const sessionId = this.joinedRoom;
+    if (sessionId) this.socket.emit('chat:typing', { sessionId, isTyping: false });
   }
 
   private upsertSession(session: ChatSessionView): void {
@@ -548,6 +628,8 @@ export class ChatScreenComponent {
   }
 
   openSession(session: ChatSessionView): void {
+    this.stopTyping();
+    this.joinRoom(session.id);
     this.activeSession.set(session);
     this.loadingMessages.set(true);
     this.messages.set([]);
@@ -579,9 +661,11 @@ export class ChatScreenComponent {
           this.activeSession.set(updated);
           this.notifications.show(`Đã nhận phiên của ${updated.customer?.fullName ?? 'khách'}.`);
         },
-        error: () => {
+        error: (error: unknown) => {
           this.busy.set(false);
-          this.notifications.show('Không nhận được phiên chat.', 'error');
+          this.notifications.show(parseApiError(error).message || 'Không nhận được phiên chat.', 'error');
+          // Có thể admin khác vừa nhận trước: tải lại để thấy người đang xử lý.
+          this.loadSessions();
         },
       });
   }
@@ -598,9 +682,9 @@ export class ChatScreenComponent {
           this.activeSession.set(updated);
           this.notifications.show('Đã đóng phiên chat.');
         },
-        error: () => {
+        error: (error: unknown) => {
           this.busy.set(false);
-          this.notifications.show('Không đóng được phiên chat.', 'error');
+          this.notifications.show(parseApiError(error).message || 'Không đóng được phiên chat.', 'error');
         },
       });
   }
@@ -616,6 +700,7 @@ export class ChatScreenComponent {
     const session = this.activeSession();
     const content = this.draft().trim();
     if (!session || !content) return;
+    this.stopTyping();
     if (session.status === 'WAITING') {
       this.notifications.show('Hãy nhận phiên trước khi trả lời khách.', 'error');
       return;
@@ -630,9 +715,10 @@ export class ChatScreenComponent {
           this.messages.update((list) => (list.some((m) => m.id === message.id) ? list : [...list, message]));
           this.draft.set('');
         },
-        error: () => {
+        error: (error: unknown) => {
           this.busy.set(false);
-          this.notifications.show('Không gửi được tin nhắn.', 'error');
+          this.notifications.show(parseApiError(error).message || 'Không gửi được tin nhắn.', 'error');
+          this.loadSessions();
         },
       });
   }
@@ -645,6 +731,48 @@ export class ChatScreenComponent {
     if (!name) return 'KH';
     const parts = name.trim().split(/\s+/);
     return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`.toUpperCase();
+  }
+
+  private readonly meId = computed(() => this.auth.user()?.id ?? '');
+
+  isMine(session: ChatSessionView): boolean {
+    return !!session.agentId && session.agentId === this.meId();
+  }
+
+  /** Phiên đang do admin khác xử lý: chỉ xem được. */
+  takenByOther(session: ChatSessionView): boolean {
+    return session.status === 'IN_PROGRESS' && !this.isMine(session);
+  }
+
+  ownerLabel(session: ChatSessionView): string {
+    return this.isMine(session) ? 'bạn' : session.agent?.fullName || 'nhân viên khác';
+  }
+
+  /** Phiên Chờ nhận ai cũng đóng được; phiên Đang xử lý chỉ người đang xử lý (Super Admin được gỡ phiên bị bỏ quên). */
+  canClose(session: ChatSessionView): boolean {
+    if (session.status === 'WAITING') return true;
+    if (session.status !== 'IN_PROGRESS') return false;
+    return this.isMine(session) || this.auth.role() === 'SUPER_ADMIN';
+  }
+
+  canReply(session: ChatSessionView): boolean {
+    return session.status === 'WAITING' || (session.status === 'IN_PROGRESS' && this.isMine(session));
+  }
+
+  composerPlaceholder(session: ChatSessionView): string {
+    if (session.status === 'CLOSED') return 'Phiên đã đóng.';
+    if (this.takenByOther(session)) return `Phiên đang được ${this.ownerLabel(session)} xử lý, bạn chỉ có thể xem.`;
+    return 'Nhập tin nhắn trả khách… (Enter để gửi, Shift+Enter xuống dòng)';
+  }
+
+  senderLabel(message: ChatMessageView, session: ChatSessionView): string {
+    if (message.senderType === 'AI') return 'Trợ lý AI';
+    if (message.senderType === 'AGENT') {
+      if (message.senderId && message.senderId === this.meId()) return 'Bạn';
+      // Mỗi tin ghi đúng admin đã trả lời, kể cả khi phiên từng do người khác xử lý.
+      return message.senderName || session.agent?.fullName || 'Nhân viên';
+    }
+    return 'Khách';
   }
 
   statusLabel(session: ChatSessionView): string {

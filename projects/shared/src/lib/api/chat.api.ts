@@ -19,6 +19,13 @@ export interface ChatSessionView {
   customerUnread: number;
   agentUnread: number;
   customer?: ChatCustomerView;
+  /** Admin đang xử lý phiên (chỉ có khi phiên đã được nhận). */
+  agent?: ChatAgentView | null;
+}
+
+export interface ChatAgentView {
+  id: string;
+  fullName: string;
 }
 
 export interface ChatCustomerView {
@@ -39,6 +46,8 @@ export interface ChatMessageView {
   isRead: boolean;
   sentAt: string;
   metadata?: Record<string, unknown> | null;
+  /** Tên nhân viên đã trả lời (chỉ tin nhắn của nhân viên CSKH). */
+  senderName?: string | null;
 }
 
 export interface ChatSessionResponse {
@@ -130,4 +139,6 @@ export interface ChatTypingEvent {
   sessionId: string;
   senderType: ChatSenderType;
   isTyping: boolean;
+  /** Tên nhân viên đang nhập (khi người nhập là nhân viên CSKH). */
+  senderName?: string | null;
 }

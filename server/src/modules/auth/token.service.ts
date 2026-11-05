@@ -137,19 +137,30 @@ export async function revokeSession(
   rawToken: string,
   res: Response,
   options: { admin?: boolean } = {},
-): Promise<void> {
+): Promise<string | null> {
   const tokenHash = hashToken(rawToken);
   const sessionKey = `${SESSION_KEY_PREFIX}${tokenHash}`;
   const stored = await redis.get(sessionKey);
 
+  let userId: string | null = null;
   if (stored) {
-    const { userId } = JSON.parse(stored) as { userId: string };
+    userId = (JSON.parse(stored) as { userId: string }).userId;
     await redis.srem(`${USER_SESSIONS_PREFIX}${userId}`, tokenHash);
   }
 
   await redis.del(sessionKey);
   const { name, path } = refreshCookie(options.admin ?? false);
   res.clearCookie(name, { path });
+  return userId;
+}
+
+/** Người dùng còn phiên đăng nhập nào chưa hết hạn không (cùng tài khoản có thể đăng nhập ở nhiều trình duyệt). */
+export async function hasActiveSessions(userId: string): Promise<boolean> {
+  const hashes = await redis.smembers(`${USER_SESSIONS_PREFIX}${userId}`);
+  for (const hash of hashes) {
+    if (await redis.exists(`${SESSION_KEY_PREFIX}${hash}`)) return true;
+  }
+  return false;
 }
 
 /** Thu hồi mọi phiên của người dùng (dùng khi đổi/quên mật khẩu). */
