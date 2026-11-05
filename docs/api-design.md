@@ -1076,6 +1076,9 @@ Quy tắc chính:
 | GET | `/admin/orders/:id/payment` | OA-07 | Trạng thái thanh toán + giao dịch |
 | GET | `/admin/payments/exceptions` | OA-08 | Giao dịch cần đối soát (`WRONG_CONTENT`, `UNDERPAID`, `OVERPAID`, `LATE`) |
 | POST | `/admin/payments/:transactionId/resolve` | OA-08 | Xác nhận thủ công (bắt buộc `note`) |
+| GET | `/admin/payments/refunds/pending` | OA-06, OA-08, OA-10, OA-13 | Hàng đợi hoàn tiền: các khoản `REFUND` `PENDING`, khoản cũ nhất lên đầu |
+| POST | `/admin/payments/:transactionId/refund/start` | OA-06, OA-08, OA-10, OA-13 | Bước 1, xác nhận hoàn tiền: `PENDING → PROCESSING` (Đang hoàn tiền); yêu cầu trả hàng liên quan `AWAITING_REFUND → REFUNDING` |
+| POST | `/admin/payments/:transactionId/refund` | OA-06, OA-08, OA-10, OA-13 | Bước 2, hoàn tất hoàn tiền (thủ công, vì chưa nối ngân hàng): `PROCESSING → COMPLETED`, bắt buộc `proofImage`, `transactionAt`, `note`; yêu cầu trả hàng tự `COMPLETED` |
 | PUT | `/admin/orders/:id/shipment` | OA-09 | Nhập `carrier`, `trackingCode` hoặc `assignedTeam`, `installationSchedule` |
 | POST | `/admin/orders/:id/shipment/delivered` | OA-09 | Ghi `actualDeliveryDate`, chuyển `DELIVERED` |
 | POST | `/admin/orders/:id/delivery-failed` | OA-10 | Ghi `failureReason`, chuyển `DELIVERY_FAILED` |
@@ -1091,19 +1094,20 @@ Quy tắc chính:
 | GET | `/admin/return-requests` | OA-13 | Danh sách (`?status=&type=`) |
 | GET | `/admin/return-requests/:id` | OA-13 | Chi tiết + minh chứng |
 | POST | `/admin/return-requests/:id/confirm` | OA-13 | `PENDING → CONFIRMED` (đã kiểm điều kiện) |
-| POST | `/admin/return-requests/:id/reject` | OA-13 | Bắt buộc `rejectReason` |
+| POST | `/admin/return-requests/:id/reject` | OA-13 | Bắt buộc `rejectReason`; trả hàng đã kiểm tra mà hàng có vấn đề thì từ chối được ở `PROCESSING` |
 | PATCH | `/admin/return-requests/:id` | OA-13 | Cập nhật `costBearer`, phí, `replacement`, `pickupSchedule`, tracking |
 | POST | `/admin/return-requests/:id/receive` | OA-13 | Ghi nhận nhận hàng + `inspectionResult` (`AWAITING_GOODS → PROCESSING`) |
-| POST | `/admin/return-requests/:id/refund` | OA-13 | Ghi hoàn tiền: `proofImage`, `transactionAt` (tạo/cập nhật `payment_transactions` `REFUND` → `COMPLETED`), đơn trả sang `COMPLETED` |
+| POST | `/admin/return-requests/:id/approve-refund` | OA-13 | Trả hàng đã nhận và kiểm tra: duyệt hoàn tiền (`amount` tùy chọn, tối đa giá trị sản phẩm trừ phí khách chịu). `PROCESSING → AWAITING_REFUND`, tạo khoản `REFUND` `PENDING` ở Thanh toán & đối soát |
+| POST | `/admin/return-requests/:id/refund` | OA-13 | Bước cuối, do `POST /admin/payments/:id/refund` gọi: yêu cầu phải ở `REFUNDING`, giao dịch `REFUND` `PROCESSING → COMPLETED`, yêu cầu sang `COMPLETED` tự động. Màn Đổi trả không còn nút hoàn tiền |
 | POST | `/admin/return-requests/:id/complete` | OA-13 | Hoàn tất đổi hàng sau giao hàng mới (ghi `replacementDeliveredAt`, kích hoạt phiếu bảo hành mới) |
 | GET | `/admin/warranty-requests` | OA-14 | Danh sách |
 | GET | `/admin/warranty-requests/:id` | OA-14 | Chi tiết + lịch sử bảo hành của phiếu |
 | POST | `/admin/warranty-requests/:id/accept` | OA-14 | `PENDING_CONFIRMATION → RECEIVED` |
 | POST | `/admin/warranty-requests/:id/reject` | OA-14 | Bắt buộc `rejectReason` |
 | PATCH | `/admin/warranty-requests/:id/status` | OA-14 | `INSPECTING`, `IN_WARRANTY`, `COMPLETED` + `inspectionResult`, `resolution`, `homeServiceSchedule`, tracking |
-| GET | `/admin/chat/sessions` | OA-15 | Phiên chat (`?status=WAITING|IN_PROGRESS|CLOSED`) |
-| POST | `/admin/chat/sessions/:id/claim` | OA-15 | Nhận phiên (`agentId = me`, `IN_PROGRESS`) |
-| POST | `/admin/chat/sessions/:id/close` | OA-15 | Kết thúc phiên |
+| GET | `/admin/chat/sessions` | OA-15 | Phiên chat CSKH có tin nhắn (`?status=WAITING|IN_PROGRESS|CLOSED`). Phiên với trợ lý AI và phiên chưa có tin nhắn không vào danh sách. Mỗi phiên có `agent` (người đang xử lý) |
+| POST | `/admin/chat/sessions/:id/claim` | OA-15 | Nhận phiên `WAITING` (`agentId = me`, `IN_PROGRESS`). Phiên đã có người nhận trả `409 CHAT_SESSION_TAKEN` kèm tên người đang xử lý |
+| POST | `/admin/chat/sessions/:id/close` | OA-15 | Đóng phiên. `IN_PROGRESS` chỉ người đang xử lý (hoặc Super Admin) đóng được; `WAITING` admin nào cũng đóng được |
 | GET/POST | `/admin/chat/sessions/:id/messages` | OA-15 | Xem/gửi tin (hoặc dùng socket) |
 
 ### 11.3. Ví dụ payload quan trọng
@@ -1116,7 +1120,26 @@ Quy tắc chính:
 { "orderId": "671...", "action": "MARK_PAID", "note": "Khách chuyển sai nội dung, đã đối chiếu sao kê", "reconciliationStatus": "MANUALLY_RESOLVED" }
 ```
 
-`action`: `MARK_PAID` (gắn vào đơn, đơn → `PENDING_CONFIRMATION` nếu đang chờ), `REFUND_BACK` (tạo hoàn tiền), `IGNORE`. `note` bắt buộc, ghi `recordSource = MANUAL`, `handledBy`, audit log.
+`action`: `MARK_PAID` (gắn vào đơn, đơn → `PENDING_CONFIRMATION` nếu đang chờ), `REFUND_BACK` (đóng giao dịch lệch và tạo một giao dịch `REFUND` `PENDING` riêng, hoàn về tài khoản đã chuyển), `IGNORE`. `note` bắt buộc, ghi `recordSource = MANUAL`, `handledBy`, audit log.
+
+**Hoàn tiền (giao dịch `type = REFUND`).** Mọi khoản hoàn đi qua một hàng đợi chung với vòng đời `PENDING` (Chờ hoàn tiền) → `PROCESSING` (Đang hoàn tiền, sau khi Order Admin bấm xác nhận hoàn tiền) → `COMPLETED` (sau khi Order Admin báo đã chuyển tiền kèm chứng từ). Không nhảy cóc được từ `PENDING` sang `COMPLETED`.
+
+Luồng trả hàng hoàn tiền: khách gửi yêu cầu → Order Admin xác nhận lý do (`CONFIRMED`) → hàng về kho, kiểm tra (`PROCESSING`) → duyệt hoàn tiền (`AWAITING_REFUND`, khoản hoàn `PENDING`) → xác nhận hoàn tiền ở Thanh toán & đối soát (`REFUNDING`, khoản hoàn `PROCESSING`) → hoàn tất hoàn tiền (`COMPLETED`, khoản hoàn `COMPLETED`, đơn `REFUNDED` khi đã hoàn đủ).
+
+Hủy đơn đã thu tiền (khách hoặc admin hủy) và giao thất bại theo cùng vòng đời, không có bước duyệt vì chưa giao hàng: khoản hoàn vào `PENDING` ngay khi hủy. Trạng thái thanh toán của đơn đi theo: `REFUND_PENDING` (Chờ hoàn tiền) → `REFUNDING` (Đang hoàn tiền, khi xác nhận hoàn tiền) → `REFUNDED` (Đã hoàn tiền, khi hoàn tất). `payment.statusBeforeRefund` (`PAID` hoặc `DEPOSITED`) giữ lại số đã thu để kiểm tra tổng hoàn không vượt số đã thu. Khoản hoàn của trả hàng và đối soát không đổi trạng thái thanh toán của đơn cho tới khi hoàn đủ.
+
+Nguồn các khoản hoàn:
+
+| Nguồn (`refundSource`) | Khi nào tạo | Số tiền |
+|---|---|---|
+| `ORDER_CANCEL` | Khách hoặc admin hủy đơn đã thu tiền (admin chọn `refundToCustomer = false` thì không tạo) | Toàn bộ số đã thu (kể cả cọc) |
+| `DELIVERY_FAILED` | Hoàn tất hoàn hàng về kho (OA-10) | Số đã thu trừ phí vận chuyển thực tế |
+| `RETURN` | Nhận hàng trả về (`receive`) | Giá trị sản phẩm trả trừ phí khách chịu |
+| `RECONCILIATION` | Đối soát chọn `REFUND_BACK` | Số tiền giao dịch lệch |
+
+Nơi nhận (`refundTo`): đơn chuyển khoản (`BANK_TRANSFER`) → `SOURCE_BANK`, hoàn về tài khoản đã chuyển tiền theo quy định của ngân hàng, kèm `originalTransactionCode` để tra, khách không phải nhập tài khoản. Đơn COD (chỉ phát sinh khi trả hàng) → `CUSTOMER_ACCOUNT`, dùng `refundAccount` khách nhập khi gửi yêu cầu trả hàng (bắt buộc với đơn COD). Tổng các khoản hoàn (đang chờ và đã xong) của một đơn không được vượt số đã thu (`REFUND_EXCEEDS_PAID`, 409). Một yêu cầu trả hàng chỉ có một khoản hoàn.
+
+`POST /admin/payments/:transactionId/refund`: `{ "amount": 9500000, "transactionAt": "2026-11-05T03:00:00.000Z", "proofImage": "/uploads/refund-proofs/....png", "note": "Đã hoàn qua VCB" }`. `amount` bỏ trống thì lấy đúng số cần hoàn và không được vượt số đó. Khoản hoàn của yêu cầu trả hàng sẽ hoàn tất luôn yêu cầu trả hàng. Đơn chỉ chuyển `REFUNDED` khi đã hoàn đủ số đã thu, hoặc đơn đã hủy và không còn khoản chờ. `GET /admin/payments` nhận thêm bộ lọc `type` và `status`.
 
 `PUT /admin/orders/:id/shipment`:
 
@@ -1289,6 +1312,8 @@ Kết nối `wss://<host>/socket.io` với `auth: { token: <accessToken> }`.
 | `order:payment-updated` | S → C | `{ orderId, paymentStatus, orderStatus }` | Thay polling QR |
 | `order:status-updated` | S → C | `{ orderId, toStatus }` | Theo dõi đơn thời gian thực (FR-10) |
 | `notification:new` | S → C | `Notification` | Chỉ gửi cho Admin (cảnh báo tồn kho, đối soát). Không có thông báo cho khách |
+
+Trạng thái chat CSKH: `WAITING` (Chờ nhận: khách vừa nhắn, chưa ai xử lý) → `IN_PROGRESS` (Đang xử lý: một admin giữ phiên, admin khác chỉ xem, trả lời hay đóng thay đều bị chặn) → `CLOSED` (Đã đóng). Phiên đóng khi admin đó bấm Đóng phiên hoặc đăng xuất hẳn (không còn phiên đăng nhập nào); đóng phiên không thêm tin nhắn nào vào hội thoại. Tin nhắn của nhân viên có `senderName` (tên admin đã trả lời). Sự kiện `chat:typing` chỉ chuyển đi khi người gửi là khách của phiên hoặc admin đang giữ phiên (`IN_PROGRESS`), kèm `senderName` khi là nhân viên. Khách nhắn vào phiên `CLOSED` thì chính phiên đó quay về `WAITING` (`agentId = null`), và khi khách mở lại khung chat sẽ thấy đúng cuộc trò chuyện cũ.
 
 Phòng: mỗi user một room `user:<id>`, mỗi phiên chat một room `chat:<sessionId>`. Agent có thêm room `agents` để nhận phiên `WAITING`.
 
