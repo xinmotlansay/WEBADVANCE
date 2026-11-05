@@ -28,6 +28,8 @@ export interface CollectionDoc {
   status: 'VISIBLE' | 'HIDDEN';
   products: { productId: Types.ObjectId; displayOrder?: number }[];
   images: CollectionImage[];
+  /** Khóa lạc quan cho màn sửa ở admin. */
+  version: number;
 }
 
 const hotspotSchema = new Schema<CollectionHotspot>({
@@ -63,6 +65,7 @@ const collectionSchema = new Schema<CollectionDoc>(
       },
     ],
     images: [imageSchema],
+    version: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
