@@ -1,15 +1,23 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { Types } from 'mongoose';
+import sharp from 'sharp';
 import { z } from 'zod';
 import { AppError } from '../../utils/app-error.js';
+import { detectFile } from '../../utils/file-upload.js';
 import { CollectionModel, type CollectionDoc } from '../collections/collection.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { logAdminAction } from './admin-log.js';
 import { slugify } from './article-admin.rules.js';
 import {
+  checkCollectionImage,
   checkDeletable,
   checkPublishable,
   isValidCollectionSlug,
+  normalizeImages,
   normalizeProductIds,
+  withHotspotProducts,
   type CreateCollectionInput,
   type UpdateCollectionInput,
 } from './collection-admin.rules.js';
@@ -122,8 +130,19 @@ async function checkProducts(ids: string[], kept: Set<string>): Promise<void> {
 }
 
 async function values(input: CreateCollectionInput, existing: Doc | null) {
-  const productIds = normalizeProductIds(input.productIds);
-  await checkProducts(productIds, new Set(existing?.products.map((p) => String(p.productId)) ?? []));
+  // Không gửi `images` khi sửa = giữ ảnh cũ (đổi về dạng input để chuẩn hóa chung).
+  const images = normalizeImages(
+    input.images ??
+      sortedImages(existing ?? { images: [] }).map((i) => ({
+        url: i.url,
+        title: i.title ?? '',
+        description: i.description ?? '',
+        isThumbnail: i.isThumbnail,
+        hotspots: i.hotspots.map((h) => ({ productId: String(h.productId), x: h.x, y: h.y })),
+      })),
+  );
+  const productIds = normalizeProductIds(withHotspotProducts(input.productIds, images));
+  await checkProducts(productIds, new Set(existing ? productIdsOf(existing) : []));
 
   let slug: string;
   if (input.slug) {
@@ -139,6 +158,10 @@ async function values(input: CreateCollectionInput, existing: Doc | null) {
     shortDescription: input.shortDescription,
     description: input.description,
     products: productIds.map((id, i) => ({ productId: new Types.ObjectId(id), displayOrder: i + 1 })),
+    images: images.map((i) => ({
+      ...i,
+      hotspots: i.hotspots.map((h, n) => ({ productId: new Types.ObjectId(h.productId), x: h.x, y: h.y, displayOrder: n + 1 })),
+    })),
   };
 }
 
@@ -156,7 +179,7 @@ export async function updateCollection(actorId: string, id: string, input: Updat
   if ((existing.version ?? 0) !== input.version) throw conflict();
   const set = await values(input, existing);
   // Đang hiển thị thì không được làm rỗng.
-  if (existing.status === 'VISIBLE') checkPublishable({ images: existing.images.length, products: set.products.length });
+  if (existing.status === 'VISIBLE') checkPublishable({ images: set.images.length, products: set.products.length });
   const res = await CollectionModel.updateOne(
     { _id: existing._id, version: existing.version ?? 0 },
     { $set: set, $inc: { version: 1 } },
@@ -196,4 +219,24 @@ export async function reorderCollections(actorId: string, ids: string[]) {
   );
   logAdminAction(actorId, 'COLLECTION_REORDER', 'collections', { ids });
   return { reordered: ids.length };
+}
+
+/** Tải ảnh collection; trả URL + kích thước. Lỗi theo E-MKT-020-04. */
+export async function uploadCollectionImage(bytes: Uint8Array): Promise<{ url: string; width: number; height: number }> {
+  const format = detectFile(bytes);
+  if (format.video) throw new AppError('E-MKT-020-04', 400, 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.');
+  let meta;
+  try {
+    meta = await sharp(Buffer.from(bytes), { limitInputPixels: 50_000_000 }).metadata();
+  } catch {
+    throw new AppError('E-MKT-020-04', 400, 'Tải ảnh không thành công. Vui lòng thử lại.');
+  }
+  const width = meta.width ?? 0;
+  const height = meta.height ?? 0;
+  checkCollectionImage({ width, height, bytes: bytes.length });
+  const name = `${randomUUID()}.${format.ext}`;
+  const dir = path.resolve('uploads/collections');
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
+  return { url: `/uploads/collections/${name}`, width, height };
 }

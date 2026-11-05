@@ -20,9 +20,9 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** `POST /collections/images` (multipart, ≤ 3 MB, JPG/PNG/WEBP, cạnh ngắn ≥ 800) lưu `uploads/collections`. `PATCH /:id` nhận `images[]` (url, title, description, isThumbnail, displayOrder, hotspots[{productId,x,y}]). Rules: ≤ 10 ảnh, ≤ 8 hotspot/ảnh, x,y ∈ [0,1], đúng 1 thumbnail (không có → ảnh đầu), sản phẩm của hotspot chưa có trong `products[]` thì tự thêm vào cuối.
 
 **Tiêu chí:**
-- [ ] File sai định dạng/quá lớn/quá nhỏ → 400 kèm thông báo tiếng Việt
-- [ ] Sau khi lưu, `GET /api/v1/collections/:slug` (route khách) trả ảnh + hotspot đúng thứ tự
-- [ ] Hotspot trỏ sản phẩm ngoài danh sách → sản phẩm xuất hiện trong `products`
+- [x] File sai định dạng/quá lớn/quá nhỏ → 400 kèm thông báo tiếng Việt
+- [x] Sau khi lưu, `GET /api/v1/collections/:slug` (route khách) trả ảnh + hotspot đúng thứ tự
+- [x] Hotspot trỏ sản phẩm ngoài danh sách → sản phẩm xuất hiện trong `products`
 
 **Kiểm tra:** thêm case vào `collection-admin.test.ts` (thumbnail, giới hạn, tự thêm sản phẩm); `npm run test:server`.
 

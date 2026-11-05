@@ -1,7 +1,9 @@
-import { Router } from 'express';
+import { Router, raw } from 'express';
 import type { z } from 'zod';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware.js';
+import { AppError } from '../../utils/app-error.js';
 import { asyncHandler } from '../../utils/async-handler.js';
+import { readMultipart } from '../../utils/file-upload.js';
 import { sendData } from '../../utils/response.js';
 import {
   createCollectionSchema,
@@ -19,6 +21,7 @@ import {
   reorderCollections,
   setHidden,
   updateCollection,
+  uploadCollectionImage,
   type ListQuery,
 } from './collection-admin.service.js';
 
@@ -35,6 +38,17 @@ collectionAdminRoutes.get(
 );
 
 // Đường dẫn cố định đứng trước `/:id`.
+collectionAdminRoutes.post(
+  '/images',
+  raw({ type: 'multipart/form-data', limit: '4mb' }),
+  asyncHandler(async (req, res) => {
+    const file = (await readMultipart(req)).get('file');
+    if (!(file instanceof File)) throw new AppError('E-MKT-020-04', 400, 'Vui lòng chọn ảnh để tải lên.');
+    res.status(201);
+    sendData(res, await uploadCollectionImage(new Uint8Array(await file.arrayBuffer())));
+  }),
+);
+
 collectionAdminRoutes.post(
   '/reorder',
   validateBody(reorderSchema),

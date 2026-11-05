@@ -52,7 +52,7 @@ rules + model (version, displayOrder)
 
 ### Phase 1: Collection (lát dọc đầy đủ)
 - [x] Task 1: API admin Collection — thông tin + sản phẩm + ẩn/hiện
-- [ ] Task 2: Upload ảnh, quản lý ảnh và hotspot trong API
+- [x] Task 2: Upload ảnh, quản lý ảnh và hotspot trong API
 - [ ] Task 3: Admin UI danh sách + form thông tin/sản phẩm, mở menu
 - [ ] Task 4: Admin UI ảnh + trình đặt hotspot
 
