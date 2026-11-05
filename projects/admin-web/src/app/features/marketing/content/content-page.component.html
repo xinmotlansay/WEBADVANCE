@@ -51,7 +51,7 @@
         <p class="cv-alert" role="alert">{{ error() }}</p>
       }
       @if (landings().length === 0) {
-        <div class="cv-empty"><p>Chưa có landing page nào.</p></div>
+        <div class="cv-empty"><strong>Chưa có landing page nào</strong><p>Tạo landing page bằng ô phía trên.</p></div>
       } @else {
         <div class="cv-table-wrap">
           <table class="cv-table">
@@ -97,7 +97,12 @@
       @for (b of blocks(); track b.type; let i = $index) {
         <section class="cv-card block" [attr.aria-labelledby]="'bt-' + i">
           <header class="block-head">
-            <h2 [id]="'bt-' + i">{{ LABEL[b.type] }}</h2>
+            <h2 [id]="'bt-' + i">
+              {{ LABEL[b.type] }}
+              @if (!b.enabled) {
+                <span class="block-off">· đang ẩn, bật "Hiển thị" để chỉnh nội dung</span>
+              }
+            </h2>
             <label class="inline">
               <input type="checkbox" [name]="'on' + i" [(ngModel)]="b.enabled" />
               Hiển thị

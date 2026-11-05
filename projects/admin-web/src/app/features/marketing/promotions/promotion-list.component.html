@@ -95,8 +95,8 @@
             <p>Không tìm thấy chương trình phù hợp.</p>
             <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
           } @else {
-            <p>Chưa có chương trình khuyến mãi nào.</p>
-            <a routerLink="tao-moi" class="cv-btn cv-btn--primary">Tạo chương trình</a>
+            <strong>Chưa có chương trình khuyến mãi nào</strong>
+            <p>Bấm "Tạo chương trình" ở góc trên để giảm giá theo sản phẩm hoặc danh mục.</p>
           }
         </div>
       } @else if (view() === 'calendar') {

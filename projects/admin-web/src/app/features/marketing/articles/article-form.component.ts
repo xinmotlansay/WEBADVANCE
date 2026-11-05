@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -32,7 +32,6 @@ export class ArticleFormComponent {
   private readonly api = inject(ArticleApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('preview');
 
   protected readonly CATEGORIES = CATEGORIES;
   protected readonly TYPES = Object.entries(TYPE_LABEL) as [ArticleType, string][];
@@ -100,14 +99,6 @@ export class ArticleFormComponent {
     } finally {
       this.uploading.set(false);
     }
-  }
-
-  protected openPreview(): void {
-    this.dialog()?.nativeElement.showModal();
-  }
-
-  protected closePreview(): void {
-    this.dialog()?.nativeElement.close();
   }
 
   protected async save(action: ArticleAction): Promise<void> {

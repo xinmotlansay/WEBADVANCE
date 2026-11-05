@@ -5,8 +5,105 @@
   display: block;
   height: 120px;
 }
-.form {
-  max-width: 880px;
+/* Form bên trái, xem trước cố định bên phải; màn hẹp thì xem trước nằm dưới form */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+  }
+  .pv {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
+.pv__head {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pv__head small {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--cv-muted);
+}
+.lbl {
+  font-size: 13px;
+  font-weight: 500;
+}
+.drop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 88px;
+  padding: 12px;
+  border: 1.5px dashed var(--cv-border-strong);
+  border-radius: var(--cv-radius-lg);
+  background: var(--cv-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.drop:hover {
+  border-color: var(--cv-navy);
+}
+.drop:has(.file:focus-visible) {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: 2px;
+}
+.drop--off {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.file {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: inherit;
+}
+.drop__thumb {
+  flex: 0 0 96px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface);
+  color: var(--cv-muted);
+}
+.drop__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.drop__thumb svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.drop__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.drop__text small {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+.rm {
+  align-self: flex-start;
 }
 .cols {
   display: grid;
@@ -29,8 +126,10 @@
   justify-content: flex-end;
 }
 .preview {
-  max-width: 720px;
-  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.preview h1 {
+  font-size: 20px;
 }
 .preview img {
   max-width: 100%;

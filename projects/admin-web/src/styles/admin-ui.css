@@ -94,10 +94,19 @@
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .cv-btn:hover {
+  border-color: var(--cv-chip-dashed);
   background: var(--cv-surface-alt);
+}
+
+.cv-btn:active:not(:disabled) {
+  background: var(--cv-row-selected);
 }
 
 .cv-btn--primary {
@@ -105,6 +114,10 @@
   background: var(--cv-navy);
   color: var(--cv-surface);
   font-weight: 600;
+}
+
+.cv-btn--primary:active:not(:disabled) {
+  background: var(--cv-navy);
 }
 
 .cv-btn--primary:hover {
@@ -184,6 +197,13 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cv-chip:hover {
+  border-color: var(--cv-navy);
 }
 
 .cv-chip::after {
@@ -274,6 +294,10 @@
   border-bottom: 0;
 }
 
+.cv-table tbody tr:hover {
+  background: var(--cv-surface-alt);
+}
+
 .cv-table tr[aria-selected='true'],
 .cv-table tr.is-selected {
   background: var(--cv-row-selected);
@@ -357,6 +381,9 @@
 
 .cv-empty {
   padding: 32px 16px;
+  border: 1px dashed var(--cv-chip-dashed);
+  border-radius: var(--cv-radius-lg);
+  background: var(--cv-surface);
   text-align: center;
   font-size: 14px;
   color: var(--cv-muted);
@@ -364,6 +391,28 @@
 
 .cv-empty p {
   margin: 0 0 12px;
+}
+
+.cv-empty {
+  margin-top: 8px;
+}
+
+.cv-empty a {
+  color: var(--cv-navy);
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+
+.cv-empty p:last-child {
+  margin-bottom: 0;
+}
+
+.cv-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cv-navy);
 }
 
 .cv-alert {
@@ -486,6 +535,13 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cv-tabs button:hover {
+  color: var(--cv-navy);
 }
 
 .cv-tabs button[aria-selected='true'] {
@@ -674,8 +730,12 @@
   cursor: not-allowed;
 }
 
-.cv-field [aria-invalid='true'] {
-  border-color: var(--cv-danger-border);
+/* Ô sai: viền đỏ sau khi rời ô hoặc sau lần bấm lưu đầu tiên (Angular gắn ng-touched / ng-submitted). */
+.cv-field [aria-invalid='true'],
+.cv-input.ng-invalid.ng-touched,
+.cv-field :is(input, select, textarea).ng-invalid.ng-touched:not([type='checkbox']),
+.ng-submitted .cv-field :is(input, select, textarea).ng-invalid:not([type='checkbox']) {
+  border-color: var(--cv-down);
 }
 
 .cv-hint {
@@ -694,4 +754,50 @@
   .cv-chip {
     min-height: 44px;
   }
+}
+
+/* ---------- Trang form: liên kết quay lại, thanh nút lưu dính đáy ---------- */
+.cv-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--cv-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cv-back:hover {
+  color: var(--cv-navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Đặt làm con cuối của .cv-card (padding 20px): luôn thấy nút lưu khi form dài. */
+.cv-actions-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 24px -20px -20px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--cv-border);
+  border-radius: 0 0 var(--cv-radius-lg) var(--cv-radius-lg);
+  background: var(--cv-surface);
+}
+
+.cv-actions-bar > .cv-alert {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.cv-actions-bar__note {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--cv-muted);
 }

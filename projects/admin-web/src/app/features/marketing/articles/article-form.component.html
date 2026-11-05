@@ -1,12 +1,13 @@
 <main class="cv-main">
+  <a class="cv-back" routerLink="/marketing/bai-viet"><span aria-hidden="true">←</span> Bài viết &amp; thông báo</a>
   <header class="cv-page-head">
     <h1>{{ loaded ? 'Sửa ' + loaded.code : 'Thêm bài viết' }}</h1>
-    <a class="cv-btn" routerLink="/marketing/bai-viet">Quay lại danh sách</a>
   </header>
 
   @if (loading()) {
     <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
   } @else {
+    <div class="layout">
     <form class="form cv-card" (ngSubmit)="save('PUBLISH')">
       <div class="cols">
         <div class="cv-field">
@@ -43,13 +44,23 @@
       </div>
 
       <div class="cv-field">
-        <label for="a-cover">Ảnh bìa (JPG, PNG, WEBP, tối đa 2 MB, tối thiểu 1200 × 630 px)</label>
-        <input id="a-cover" type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="pickCover($event)" />
-        @if (uploading()) {
-          <span class="cv-hint">Đang tải ảnh…</span>
-        }
+        <span class="lbl" id="l-cover">Ảnh bìa</span>
+        <label class="drop" [class.drop--off]="uploading()">
+          <input class="file" type="file" aria-labelledby="l-cover" accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="pickCover($event)" />
+          <span class="drop__thumb">
+            @if (coverUrl) {
+              <img [src]="coverUrl" alt="Ảnh bìa" />
+            } @else {
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M4 5h16v14H4z" /></svg>
+            }
+          </span>
+          <span class="drop__text">
+            <strong>{{ uploading() ? 'Đang tải ảnh…' : coverUrl ? 'Đổi ảnh bìa' : 'Chọn ảnh bìa' }}</strong>
+            <small>JPG, PNG, WEBP · tối đa 2 MB · tối thiểu 1200 × 630 px</small>
+          </span>
+        </label>
         @if (coverUrl) {
-          <img class="pic" [src]="coverUrl" alt="Ảnh bìa" />
+          <button type="button" class="cv-link-btn rm" (click)="coverUrl = ''">Bỏ ảnh bìa</button>
         }
       </div>
 
@@ -95,12 +106,10 @@
         <input id="a-at" name="publishAt" class="cv-input" type="datetime-local" [(ngModel)]="publishAt" />
       </div>
 
-      @if (error()) {
-        <p class="cv-alert" role="alert">{{ error() }}</p>
-      }
-
-      <div class="bar">
-        <button type="button" class="cv-btn" (click)="openPreview()">Xem trước</button>
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
         <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('DRAFT')">Lưu nháp</button>
         <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('SCHEDULE')">Lên lịch</button>
         <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
@@ -108,20 +117,19 @@
         </button>
       </div>
     </form>
-  }
-
-  <dialog #preview class="cv-popup" aria-label="Xem trước bài viết">
-    <div class="cv-popup__head">
-      <h2>Xem trước</h2>
-      <button type="button" class="cv-btn" (click)="closePreview()">Đóng</button>
+    <aside class="cv-card pv" aria-label="Xem trước bài viết">
+      <h2 class="pv__head">Xem trước <small>tự cập nhật khi bạn nhập</small></h2>
+      <article class="preview">
+        <h1>{{ title || 'Chưa có tiêu đề' }}</h1>
+        @if (coverUrl) {
+          <img class="pic" [src]="coverUrl" alt="" />
+        }
+        @if (summary) {
+          <p><em>{{ summary }}</em></p>
+        }
+        <div [innerHTML]="content"></div>
+      </article>
+    </aside>
     </div>
-    <article class="preview">
-      <h1>{{ title || 'Chưa có tiêu đề' }}</h1>
-      @if (coverUrl) {
-        <img class="pic" [src]="coverUrl" alt="" />
-      }
-      <p><em>{{ summary }}</em></p>
-      <div [innerHTML]="content"></div>
-    </article>
-  </dialog>
+  }
 </main>

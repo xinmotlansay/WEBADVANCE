@@ -1,7 +1,7 @@
 <main class="cv-main form-main">
+  <a class="cv-back" routerLink="/marketing/khuyen-mai"><span aria-hidden="true">←</span> Khuyến mãi</a>
   <header class="cv-page-head">
     <h1>{{ id() ? 'Chỉnh sửa chương trình' : 'Tạo chương trình khuyến mãi' }}</h1>
-    <a routerLink="/marketing/khuyen-mai" class="cv-btn">Quay lại danh sách</a>
   </header>
 
   @if (loading()) {
@@ -21,16 +21,6 @@
       (ngSubmit)="save(id() && !isDraft ? 'save' : 'activate')"
       #f="ngForm"
     >
-      @if (error()) {
-        <div class="cv-alert" role="alert">
-          <span>{{ error() }}</span>
-          @if (conflict()) {
-            <button type="button" class="cv-btn" (click)="excludeAndRetry()">
-              Loại trừ các biến thể trùng
-            </button>
-          }
-        </div>
-      }
       @if (info()) {
         <p class="cv-alert cv-alert--warn" role="status">{{ info() }}</p>
       }
@@ -177,7 +167,7 @@
                 {{ c.name }}
               </label>
             } @empty {
-              <span class="cv-muted">Chưa tải được danh mục.</span>
+              <span class="cv-muted">Không có danh mục nào để chọn.</span>
             }
           </div>
         </div>
@@ -232,7 +222,21 @@
         }
       }
 
-      <div class="actions">
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <div class="cv-alert" role="alert">
+            <span>{{ error() }}</span>
+            @if (conflict()) {
+              <button type="button" class="cv-btn" (click)="excludeAndRetry()">
+                Loại trừ các biến thể trùng
+              </button>
+            }
+          </div>
+        }
+        @if ((!id() || status === 'DRAFT') && !m.name.trim()) {
+          <span class="cv-actions-bar__note">Nhập tên chương trình để lưu nháp.</span>
+        }
+        <a routerLink="/marketing/khuyen-mai" class="cv-btn">Hủy</a>
         @if (!id() || status === 'DRAFT') {
           <button
             type="button"
@@ -250,7 +254,6 @@
             Lưu thay đổi
           </button>
         }
-        <a routerLink="/marketing/khuyen-mai" class="cv-btn">Hủy</a>
       </div>
     </form>
   }
