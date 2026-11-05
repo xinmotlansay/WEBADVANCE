@@ -54,7 +54,7 @@ export const ADMIN_NAV: Record<string, NavItem[]> = {
     { label: 'Nội dung trang chủ', icon: 'image', path: '/marketing/noi-dung' },
     { label: 'Bài viết & thông báo', icon: 'file', path: '/marketing/bai-viet' },
     { label: 'Collection', icon: 'layers', path: '/marketing/collection' },
-    { label: 'Nguồn cảm hứng', icon: 'star', path: null },
+    { label: 'Nguồn cảm hứng', icon: 'star', path: '/marketing/nguon-cam-hung' },
     { label: 'Khách hàng rủi ro', icon: 'users', path: '/marketing/khach-hang-rui-ro' },
     { label: 'Báo cáo Marketing', icon: 'chart', path: null },
   ],

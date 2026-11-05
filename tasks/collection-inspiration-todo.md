@@ -76,8 +76,8 @@ Plan: `tasks/collection-inspiration-plan.md`. Lệnh chung: `npm run build:serve
 **Mô tả:** `features/marketing/inspirations/`: lưới ảnh (trạng thái, số sản phẩm, cờ; ẩn/hiện; đổi thứ tự), form (tải 1 ảnh, `app-product-picker` có thứ tự, xem trước popup). Route `/marketing/nguon-cam-hung`; đặt `path` cho mục menu.
 
 **Tiêu chí:**
-- [ ] Tạo/sửa/ẩn/hiện/đổi thứ tự hoạt động, lỗi hiện đúng
-- [ ] Menu MKT_AD mở được trang
+- [ ] Tạo/sửa/ẩn/hiện/đổi thứ tự hoạt động, lỗi hiện đúng (code xong, chờ thử thủ công)
+- [x] Menu MKT_AD mở được trang
 
 **Kiểm tra:** `npm run build:web`; thủ công.
 
