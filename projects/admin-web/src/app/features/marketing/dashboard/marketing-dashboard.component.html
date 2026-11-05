@@ -79,6 +79,7 @@
                   [class]="'cv-delta ' + delta(m.data.metrics.voucherUses).cls"
                   >{{ delta(m.data.metrics.voucherUses).text }}</span
                 >
+                <app-sparkline [values]="dailyUses()" />
               </div>
               <div class="cv-kpi">
                 <div class="cv-kpi__label">
@@ -90,19 +91,35 @@
                 <span class="cv-delta" [class]="'cv-delta ' + delta(m.data.metrics.revenue).cls">{{
                   delta(m.data.metrics.revenue).text
                 }}</span>
+                <app-sparkline [values]="dailyRevenue()" />
               </div>
             </div>
           </section>
 
+          @if (risk(); as r) {
+            <a class="cv-card risk-card" routerLink="/marketing/khach-hang-rui-ro">
+              <span class="cv-section-label">Khách hàng rủi ro</span>
+              <span class="risk-body">
+                <span class="risk-stat">
+                  <span class="cv-kpi__value">{{ r.highRisk.toLocaleString('vi-VN') }}</span>
+                  <span class="cv-muted">khách rủi ro cao</span>
+                </span>
+                <span class="risk-stat">
+                  <span class="cv-kpi__value">{{ money(r.clvAtRisk) }}</span>
+                  <span class="cv-muted">CLV đang bị đe dọa</span>
+                </span>
+                <span class="risk-go">Xem ma trận phân khúc <span aria-hidden="true">→</span></span>
+              </span>
+            </a>
+          }
+
           <section class="cv-kpis status" aria-label="Trạng thái hiện tại">
             <a class="cv-kpi link" routerLink="/marketing/khuyen-mai">
-              <div class="cv-kpi__label">
-                Khuyến mãi<br /><small>đang diễn ra / sắp diễn ra / tạm dừng</small>
-              </div>
-              <p class="cv-kpi__value">
-                {{ m.data.cards.promotions.running }} / {{ m.data.cards.promotions.upcoming }} /
-                {{ m.data.cards.promotions.paused }}
-              </p>
+              <div class="cv-kpi__label">Khuyến mãi<br /><small>hiện tại</small></div>
+              <p class="cv-kpi__value">{{ m.data.cards.promotions.running }} <small class="unit">đang diễn ra</small></p>
+              <span class="cv-muted">
+                {{ m.data.cards.promotions.upcoming }} sắp diễn ra · {{ m.data.cards.promotions.paused }} tạm dừng
+              </span>
             </a>
             <a class="cv-kpi link" routerLink="/marketing/ma-giam-gia">
               <div class="cv-kpi__label">Mã giảm giá<br /><small>đang hiệu lực</small></div>
@@ -119,10 +136,10 @@
               <h3 id="t-v">
                 Top 5 mã theo lượt dùng <small class="cv-muted">({{ hint() }})</small>
               </h3>
-              @for (v of m.data.top.vouchers; track v.id; let first = $first) {
+              @for (v of m.data.top.vouchers; track v.id; let first = $first; let i = $index) {
                 <div class="rank">
                   <div class="rank__row">
-                    <span>{{ v.name }}</span
+                    <span><b class="rk">{{ i + 1 }}</b>{{ v.name }}</span
                     ><span class="cv-num">{{ v.uses }}</span>
                   </div>
                   <div class="cv-bar">
@@ -140,10 +157,10 @@
               <h3 id="t-p">
                 Top 5 chương trình theo doanh thu <small class="cv-muted">({{ hint() }})</small>
               </h3>
-              @for (p of m.data.top.promotions; track p.id; let first = $first) {
+              @for (p of m.data.top.promotions; track p.id; let first = $first; let i = $index) {
                 <div class="rank">
                   <div class="rank__row">
-                    <span>{{ p.name }}</span
+                    <span><b class="rk">{{ i + 1 }}</b>{{ p.name }}</span
                     ><span class="cv-num">{{ money(p.revenue) }}</span>
                   </div>
                   <div class="cv-bar">
@@ -220,36 +237,61 @@
               <p class="cv-muted updated">
                 Cập nhật lúc {{ time(d.data.updatedAt) }} · {{ hint() }}
               </p>
-              <div class="cv-kpis">
-                <div class="cv-kpi">
-                  <div class="cv-kpi__label">Đơn có ưu đãi</div>
-                  <p class="cv-kpi__value">{{ d.data.summary.offerOrders }}</p>
+              <div class="eff">
+                <div class="cv-kpis eff__kpis">
+                  <div class="cv-kpi">
+                    <div class="cv-kpi__label">Đơn có ưu đãi</div>
+                    <p class="cv-kpi__value">{{ d.data.summary.offerOrders }}</p>
+                  </div>
+                  <div class="cv-kpi">
+                    <div class="cv-kpi__label">Đơn hoàn thành</div>
+                    <p class="cv-kpi__value">{{ d.data.summary.doneOrders }}</p>
+                  </div>
                 </div>
-                <div class="cv-kpi">
-                  <div class="cv-kpi__label">Đơn hoàn thành</div>
-                  <p class="cv-kpi__value">{{ d.data.summary.doneOrders }}</p>
+                <div class="cv-card eff__gauges">
+                  <app-meter
+                    label="Tỷ lệ hủy"
+                    [value]="d.data.summary.cancelRate"
+                    [text]="pct(d.data.summary.cancelRate)"
+                    [warnAt]="0.2"
+                  />
+                  <app-meter
+                    label="Chi phí ưu đãi / doanh thu"
+                    [value]="d.data.summary.costRatio"
+                    [text]="pct(d.data.summary.costRatio)"
+                    [warnAt]="0.3"
+                  />
                 </div>
-                <div class="cv-kpi">
-                  <div class="cv-kpi__label">Tỷ lệ hủy</div>
-                  <p class="cv-kpi__value">{{ pct(d.data.summary.cancelRate) }}</p>
-                </div>
-                <div class="cv-kpi">
-                  <div class="cv-kpi__label">Chi phí ưu đãi / doanh thu</div>
-                  <p class="cv-kpi__value">{{ pct(d.data.summary.costRatio) }}</p>
+                <div class="cv-card aov">
+                  <span class="cv-section-label">Giá trị đơn trung bình</span>
+                  @if (d.data.summary.aovWithOffer != null || d.data.summary.aovWithoutOffer != null) {
+                    <div class="aov__row">
+                      <span>Có ưu đãi</span>
+                      <div class="cv-bar">
+                        <span
+                          class="is-accent"
+                          [style.width.%]="share(d.data.summary.aovWithOffer ?? 0, [d.data.summary.aovWithOffer ?? 0, d.data.summary.aovWithoutOffer ?? 0])"
+                        ></span>
+                      </div>
+                      <strong class="cv-num">{{ d.data.summary.aovWithOffer == null ? '—' : money(d.data.summary.aovWithOffer) }}</strong>
+                    </div>
+                    <div class="aov__row">
+                      <span>Không ưu đãi</span>
+                      <div class="cv-bar">
+                        <span
+                          [style.width.%]="share(d.data.summary.aovWithoutOffer ?? 0, [d.data.summary.aovWithOffer ?? 0, d.data.summary.aovWithoutOffer ?? 0])"
+                        ></span>
+                      </div>
+                      <strong class="cv-num">{{ d.data.summary.aovWithoutOffer == null ? '—' : money(d.data.summary.aovWithoutOffer) }}</strong>
+                    </div>
+                    @if (aovDiff(d.data.summary); as diff) {
+                      <p class="cv-muted aov__diff">Chênh lệch: {{ diff }}</p>
+                    }
+                  } @else {
+                    <p class="cv-muted">Chưa đủ dữ liệu để so sánh.</p>
+                  }
                 </div>
               </div>
-              <p class="cv-muted aov">
-                Giá trị đơn trung bình: có ưu đãi
-                <strong>{{
-                  d.data.summary.aovWithOffer == null ? '—' : money(d.data.summary.aovWithOffer)
-                }}</strong>
-                · không ưu đãi
-                <strong>{{
-                  d.data.summary.aovWithoutOffer == null
-                    ? '—'
-                    : money(d.data.summary.aovWithoutOffer)
-                }}</strong>
-              </p>
 
               <div class="two">
                 <app-line-chart
@@ -286,8 +328,8 @@
                         <td class="cv-num">{{ r.orders }}</td>
                         <td class="cv-num">{{ r.units }}</td>
                         <td class="cv-num">{{ money(r.discount) }}</td>
-                        <td class="cv-num">{{ money(r.revenue) }}</td>
-                        <td class="cv-num">{{ pct(r.cancelRate) }}</td>
+                        <td class="cv-num bar-cell" [style.--w]="share(r.revenue, promoRevenues(d.data))">{{ money(r.revenue) }}</td>
+                        <td class="cv-num"><span [class.rate-bad]="(r.cancelRate ?? 0) >= 0.2">{{ pct(r.cancelRate) }}</span></td>
                       </tr>
                     } @empty {
                       <tr>
@@ -321,7 +363,7 @@
                         <td class="cv-num">{{ r.refunded }}</td>
                         <td class="cv-num">{{ r.newCustomers }}</td>
                         <td class="cv-num">{{ money(r.discount) }}</td>
-                        <td class="cv-num">{{ money(r.revenue) }}</td>
+                        <td class="cv-num bar-cell" [style.--w]="share(r.revenue, voucherRevenues(d.data))">{{ money(r.revenue) }}</td>
                       </tr>
                     } @empty {
                       <tr>

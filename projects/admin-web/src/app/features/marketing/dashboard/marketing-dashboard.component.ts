@@ -10,7 +10,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
+import { InsightsApi, type Insights } from '../risk/insights.api';
 import { LineChartComponent } from '../shared/line-chart.component';
+import { MeterComponent, SparklineComponent } from '../shared/mini-charts.component';
 import { money } from '../vouchers/voucher-format';
 import {
   DashboardApi,
@@ -41,13 +43,17 @@ type Load<T> =
 /** FR-MKT_AD-002 (phần khuyến mãi & mã giảm giá): thẻ trạng thái, chỉ số theo kỳ, Top 5, cần chú ý, hiệu quả chi tiết. */
 @Component({
   selector: 'app-marketing-dashboard',
-  imports: [FormsModule, RouterLink, LineChartComponent],
+  imports: [FormsModule, RouterLink, LineChartComponent, MeterComponent, SparklineComponent],
   templateUrl: './marketing-dashboard.component.html',
   styleUrl: './marketing-dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarketingDashboardComponent {
   private readonly api = inject(DashboardApi);
+  private readonly insightsApi = inject(InsightsApi);
+
+  /** Thẻ khách rủi ro; lỗi hoặc chưa có điểm thì ẩn thẻ, không làm hỏng dashboard. */
+  protected readonly risk = signal<{ highRisk: number; clvAtRisk: number } | null>(null);
 
   protected readonly RANGES = RANGES;
   protected readonly money = money;
@@ -76,6 +82,16 @@ export class MarketingDashboardComponent {
 
   constructor() {
     void this.reload();
+    firstValueFrom(this.insightsApi.insights())
+      .then((i: Insights) => {
+        if (!i.hasData) return;
+        const high = i.segments.filter((x) => x.segment === 'RETAIN' || x.segment === 'NO_SPEND');
+        this.risk.set({
+          highRisk: high.reduce((s, x) => s + x.customers, 0),
+          clvAtRisk: i.clvAtRisk,
+        });
+      })
+      .catch(() => undefined);
     // Thẻ trạng thái tự làm mới mỗi 60 giây (FR-002).
     const timer = setInterval(() => void this.loadMain(), 60_000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
@@ -152,6 +168,35 @@ export class MarketingDashboardComponent {
 
   protected shortDay(d: string): string {
     return `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  }
+
+  /** Chuỗi theo ngày cho sparkline ở thẻ KPI (lấy từ khối hiệu quả chi tiết khi đã tải). */
+  protected readonly dailyUses = computed(() => {
+    const d = this.detail();
+    return d.state === 'ready' ? d.data.daily.map((x) => x.voucherUses) : [];
+  });
+  protected readonly dailyRevenue = computed(() => {
+    const d = this.detail();
+    return d.state === 'ready' ? d.data.daily.map((x) => x.revenue) : [];
+  });
+
+  /** Độ rộng (%) của thanh dữ liệu trong ô bảng so với giá trị lớn nhất cùng cột. */
+  protected share(n: number, rows: number[]): number {
+    return (n / Math.max(1, ...rows)) * 100;
+  }
+
+  protected promoRevenues(d: EffectivenessData): number[] {
+    return d.byPromotion.map((r) => r.revenue);
+  }
+  protected voucherRevenues(d: EffectivenessData): number[] {
+    return d.byVoucher.map((r) => r.revenue);
+  }
+
+  /** Chênh lệch giá trị đơn trung bình có ưu đãi so với không ưu đãi, theo %. */
+  protected aovDiff(s: EffectivenessData['summary']): string | null {
+    if (s.aovWithOffer == null || !s.aovWithoutOffer) return null;
+    const p = ((s.aovWithOffer - s.aovWithoutOffer) / s.aovWithoutOffer) * 100;
+    return `${p > 0 ? '+' : ''}${p.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
   }
 
   protected usePoints(d: EffectivenessData) {
