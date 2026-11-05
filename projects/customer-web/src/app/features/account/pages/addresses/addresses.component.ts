@@ -33,6 +33,10 @@ export class AddressesComponent {
   protected readonly wards = computed(
     () => this.units()?.provinces.find((p) => p.name === this.provinceText())?.wards ?? [],
   );
+  /** Tỉnh đang chọn có nằm trong danh sách không (địa chỉ cũ có thể ghi tên tỉnh theo cách khác). */
+  protected readonly provinceKnown = computed(() =>
+    !!this.units()?.provinces.some((p) => p.name === this.provinceText()),
+  );
 
   protected readonly addresses = signal<AccountAddress[]>([]);
   protected readonly loading = signal(true);

@@ -38,20 +38,33 @@
         <div class="address-fields">
           <label>Họ tên người nhận *<input [(ngModel)]="form.recipientName" name="recipientName" required maxlength="120" autocomplete="name" /></label>
           <label>Số điện thoại *<input [(ngModel)]="form.recipientPhone" name="recipientPhone" required maxlength="12" inputmode="tel" autocomplete="tel" placeholder="0xxxxxxxxx" /></label>
-          <label>Tỉnh / thành phố *
-            <input [ngModel]="form.province" (ngModelChange)="onProvinceChange($event)" name="province" required maxlength="120" list="province-options" autocomplete="off" placeholder="Gõ để tìm tỉnh / thành phố" />
-          </label>
-          <label>Phường / xã *
-            <input [(ngModel)]="form.ward" name="ward" required maxlength="120" list="ward-options" autocomplete="off" [disabled]="!wards().length && !!units()?.provinces?.length" [placeholder]="wards().length ? 'Gõ để tìm phường / xã' : 'Chọn tỉnh / thành phố trước'" />
-          </label>
+          @if (units()?.provinces?.length) {
+            <!-- Ô chọn thay cho ô gõ + gợi ý: không phụ thuộc bộ gõ tiếng Việt và luôn khớp danh sách tỉnh/phường. -->
+            <label>Tỉnh / thành phố *
+              <select [ngModel]="form.province" (ngModelChange)="onProvinceChange($event)" name="province" required>
+                <option value="" disabled>Chọn tỉnh / thành phố</option>
+                @if (form.province && !provinceKnown()) { <option [value]="form.province">{{ form.province }} (cần chọn lại)</option> }
+                @for (province of units()?.provinces; track province.name) { <option [value]="province.name">{{ province.name }}</option> }
+              </select>
+            </label>
+            <label>Phường / xã *
+              <select [(ngModel)]="form.ward" name="ward" required [disabled]="!wards().length">
+                <option value="" disabled>{{ wards().length ? 'Chọn phường / xã' : 'Chọn tỉnh / thành phố trước' }}</option>
+                @if (form.ward && wards().length && !wards().includes(form.ward)) { <option [value]="form.ward">{{ form.ward }} (cần chọn lại)</option> }
+                @for (ward of wards(); track ward) { <option [value]="ward">{{ ward }}</option> }
+              </select>
+            </label>
+          } @else {
+            <!-- Không tải được danh sách tỉnh/phường: cho nhập tay, server vẫn kiểm tra. -->
+            <label>Tỉnh / thành phố *
+              <input [(ngModel)]="form.province" name="province" required maxlength="120" autocomplete="off" />
+            </label>
+            <label>Phường / xã *
+              <input [(ngModel)]="form.ward" name="ward" required maxlength="120" autocomplete="off" />
+            </label>
+          }
           <label class="wide">Số nhà, tên đường *<input [(ngModel)]="form.addressLine" name="addressLine" required maxlength="300" autocomplete="address-line1" /></label>
         </div>
-        <datalist id="province-options">
-          @for (province of units()?.provinces; track province.name) { <option [value]="province.name"></option> }
-        </datalist>
-        <datalist id="ward-options">
-          @for (ward of wards(); track ward) { <option [value]="ward"></option> }
-        </datalist>
         <label class="default-checkbox">
           <input type="checkbox" [(ngModel)]="form.isDefault" name="isDefault" [disabled]="editingDefault()" />
           Đặt làm địa chỉ mặc định
