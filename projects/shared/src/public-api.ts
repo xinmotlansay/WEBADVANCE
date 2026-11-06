@@ -75,6 +75,7 @@ export * from './lib/models/order.model';
 export * from './lib/models/product.model';
 export * from './lib/models/promotion.model';
 export * from './lib/models/public-config.model';
+export * from './lib/models/career.model';
 export * from './lib/models/showroom.model';
 export {
   type CancelOrderRequest as AdminCancelOrderRequest,

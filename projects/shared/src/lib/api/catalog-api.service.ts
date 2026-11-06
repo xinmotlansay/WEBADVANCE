@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import type { ApiPageResponse, ApiResponse, PageMeta } from '../models/api-response.model';
 import type { Banner } from '../models/banner.model';
 import type { Category, CategoryType } from '../models/category.model';
+import type { Job, JobListQuery, JobListResult } from '../models/career.model';
 import type { CollectionDetail, CollectionSummary } from '../models/collection.model';
 import type { InspirationDetail, InspirationSummary } from '../models/inspiration.model';
 import type {
@@ -129,6 +130,24 @@ export class CatalogApiService {
   getPublicConfig(): Observable<PublicConfig> {
     return this.http
       .get<ApiResponse<PublicConfig>>(`${API_BASE}/config/public`)
+      .pipe(map((r) => r.data));
+  }
+
+  getPolicyPage(slug: string): Observable<{ slug: string; title: string; paragraphs: string[] }> {
+    return this.http
+      .get<ApiResponse<{ slug: string; title: string; paragraphs: string[] }>>(`${API_BASE}/config/policies/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
+  }
+
+  getJobs(query: JobListQuery = {}): Observable<JobListResult> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) if (value) params = params.set(key, value);
+    return this.http.get<ApiResponse<JobListResult>>(`${API_BASE}/careers/jobs`, { params }).pipe(map((r) => r.data));
+  }
+
+  getJob(slug: string): Observable<Job> {
+    return this.http
+      .get<ApiResponse<Job>>(`${API_BASE}/careers/jobs/${encodeURIComponent(slug)}`)
       .pipe(map((r) => r.data));
   }
 

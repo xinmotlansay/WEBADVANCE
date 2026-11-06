@@ -1,53 +1,47 @@
-<section class="feature-page container">
-    <div class="form-panel">
-      <p class="eyebrow">CARAVESO / CHÍNH SÁCH</p>
-      @if (kind === 'warranty') {
-        <h1>Chính sách bảo hành</h1>
-        <p>
-          Thời hạn bảo hành tính từ ngày giao thực tế. Số tháng và phạm vi áp dụng được ghi ở từng
-          sản phẩm và phiếu bảo hành.
-        </p>
-        <p>
-          Khi phát hiện lỗi, hãy gửi mô tả và ảnh/video minh chứng. Trung tâm tiếp nhận, kiểm tra và
-          thông báo kết quả sửa chữa, thay linh kiện, đổi sản phẩm hoặc lý do từ chối.
-        </p>
-        <p>
-          Sản phẩm cồng kềnh được xếp lịch bảo hành tại nhà. Sản phẩm nhỏ được gửi về trung tâm;
-          CaraVeso chịu phí hai chiều trong phạm vi bảo hành.
-        </p>
-        <a class="button primary" routerLink="/support" [queryParams]="{ view: 'warranty' }">Tra cứu và yêu cầu bảo hành</a>
-      } @else {
-        <h1>Chính sách đổi trả</h1>
-        @let data = config();
-        @if (data === undefined) {
-          <p role="status">Đang tải chính sách…</p>
-        } @else if (data) {
-          <p>
-            Gửi yêu cầu trong {{ data.policy?.returnDays }} ngày kể từ ngày giao thực tế. Áp dụng
-            cho cả hàng đã lắp đặt; sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem
-            nhãn và hóa đơn.
-          </p>
-          <p>
-            Lỗi sản phẩm, giao sai hoặc hư hại vận chuyển cần video mở hàng. CaraVeso chịu chi phí
-            khi lỗi thuộc CaraVeso. Khi đổi ý, khách chịu phí vận chuyển và phí tháo dỡ nếu có.
-          </p>
-          <p>
-            Được đổi trả một phần số lượng. Sản phẩm đổi phải còn hàng, có giá ngang hoặc cao hơn số
-            tiền thực trả; khách thanh toán phần chênh lệch. Sản phẩm đổi được cấp phiếu bảo hành
-            mới.
-          </p>
-          <p>
-            Hoàn tiền về tài khoản ngân hàng đã cung cấp sau kiểm tra, trong
-            {{ data.policy?.refundDaysMin }}–{{ data.policy?.refundDaysMax }} ngày làm việc. Voucher
-            đã dùng không hoàn lượt.
-          </p>
-          <p>Yêu cầu đang chờ xử lý có thể hủy từ trang chi tiết.</p>
-        } @else {
-          <p class="error" role="alert">
-            Không tải được chính sách hiện tại. Vui lòng tải lại trang.
-          </p>
+<div class="policy">
+  <nav class="crumbs container" aria-label="Đường dẫn">
+    <a routerLink="/">Trang chủ</a>
+    <span aria-hidden="true">/</span>
+    <span>Chính sách</span>
+    @if (page(); as data) {
+      <span aria-hidden="true">/</span>
+      <span class="crumbs__here" aria-current="page">{{ data.title }}</span>
+    }
+  </nav>
+
+  <div class="policy__layout container">
+    <aside class="policy__nav" aria-label="Danh mục chính sách">
+      <p class="policy__nav-title">Chính sách</p>
+      <ul>
+        @for (item of nav; track item.slug) {
+          <li>
+            <a [routerLink]="['/policies', item.slug]" [class.on]="item.slug === slug()" [attr.aria-current]="item.slug === slug() ? 'page' : null">{{ item.label }}</a>
+          </li>
         }
-        <a class="button primary" routerLink="/support" [queryParams]="{ view: 'return' }">Quản lý đổi trả</a>
+      </ul>
+    </aside>
+
+    <article class="policy__body">
+      @let data = page();
+      @if (data === undefined) {
+        <p class="policy__status" role="status">Đang tải chính sách…</p>
+      } @else if (data) {
+        <h1>{{ data.title }}</h1>
+        <div class="policy__text">
+          @for (paragraph of data.paragraphs; track $index) {
+            <p>{{ paragraph }}</p>
+          }
+        </div>
+        @if (action(); as act) {
+          <div class="policy__cta">
+            <p>Cần hỗ trợ thêm về {{ act.view === 'warranty' ? 'bảo hành' : 'đổi trả' }}?</p>
+            <a class="btn btn--primary" routerLink="/support" [queryParams]="{ view: act.view }">{{ act.label }}</a>
+          </div>
+        }
+      } @else {
+        <h1>Không tìm thấy chính sách</h1>
+        <p class="policy__status" role="alert">Trang này không tồn tại hoặc không tải được. Vui lòng thử lại sau.</p>
       }
-    </div>
-  </section>
+    </article>
+  </div>
+</div>

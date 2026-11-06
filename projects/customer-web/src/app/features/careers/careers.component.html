@@ -1,0 +1,171 @@
+<div class="careers">
+  <header class="hero">
+    <div class="container hero__inner">
+      <p class="hero__eyebrow">TUYỂN DỤNG</p>
+      <h1>Cùng CaraVeso tạo nên không gian sống đáng sống</h1>
+      <p class="hero__lead">Gia nhập đội ngũ thiết kế, kinh doanh, vận hành và chăm sóc khách hàng, nơi mỗi người đều góp phần vào ngôi nhà của hàng nghìn gia đình.</p>
+      <button type="button" class="btn hero__cta" (click)="goTo('co-hoi')">Xem vị trí đang tuyển</button>
+      @if (result(); as data) {
+        <dl class="stats">
+          <div><dt>Vị trí đang tuyển</dt><dd>{{ data.jobs.length }}</dd></div>
+          <div><dt>Phòng ban</dt><dd>{{ data.filters.departments.length }}</dd></div>
+          <div><dt>Nơi làm việc</dt><dd>{{ data.filters.cities.length }}</dd></div>
+        </dl>
+      }
+    </div>
+  </header>
+
+  <nav class="anchors" aria-label="Các mục trong trang">
+    <div class="container anchors__row">
+      <button type="button" (click)="goTo('ve-caraveso')">Về CaraVeso</button>
+      <button type="button" (click)="goTo('co-hoi')">Cơ hội việc làm</button>
+      <button type="button" (click)="goTo('vi-sao')">Vì sao chọn CaraVeso</button>
+      <button type="button" (click)="goTo('thong-diep')">Thông điệp từ lãnh đạo</button>
+    </div>
+  </nav>
+
+  <section id="ve-caraveso" class="container block about">
+    <div>
+      <h2>Về CaraVeso</h2>
+      <p>CaraVeso mang đến nội thất thiết kế tinh gọn, bền bỉ cho căn nhà Việt, từ sofa, bàn ăn đến giường tủ, kèm dịch vụ giao hàng, lắp đặt và bảo hành tận nơi.</p>
+      <p>Chúng tôi tìm những người bền bỉ, thích tìm cách mới để cùng đạt mục tiêu chung, và coi trải nghiệm của khách hàng là thước đo cho mọi công việc.</p>
+    </div>
+    <ul class="values">
+      @for (item of culture; track item.value) {
+        <li><strong>{{ item.value }}</strong><span>{{ item.text }}</span></li>
+      }
+    </ul>
+  </section>
+
+  <hr class="sep container" />
+  <section id="co-hoi" class="container block">
+    <h2>Cơ hội việc làm</h2>
+
+    <div class="board">
+      <aside class="filters" aria-label="Bộ lọc vị trí tuyển dụng">
+        <label class="search">
+          <span class="sr-only">Tìm theo tên vị trí</span>
+          <input type="search" placeholder="Tìm vị trí, ví dụ: thiết kế" [value]="keyword()" (input)="keyword.set($any($event.target).value)" />
+        </label>
+
+        <fieldset>
+          <legend>Nhóm công việc</legend>
+          <div class="chips">
+            <button type="button" class="chip" [class.on]="!department()" [attr.aria-pressed]="!department()" (click)="department.set('')">Tất cả</button>
+            @for (d of filters().departments; track d) {
+              <button type="button" class="chip" [class.on]="department() === d" [attr.aria-pressed]="department() === d" (click)="department.set(d)">{{ d }}</button>
+            }
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Địa điểm</legend>
+          <div class="chips">
+            <button type="button" class="chip" [class.on]="!city()" [attr.aria-pressed]="!city()" (click)="city.set('')">Tất cả</button>
+            @for (c of filters().cities; track c) {
+              <button type="button" class="chip" [class.on]="city() === c" [attr.aria-pressed]="city() === c" (click)="city.set(c)">{{ c }}</button>
+            }
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Hình thức</legend>
+          <div class="chips">
+            <button type="button" class="chip" [class.on]="!type()" [attr.aria-pressed]="!type()" (click)="type.set('')">Tất cả</button>
+            @for (t of types; track t[0]) {
+              <button type="button" class="chip" [class.on]="type() === t[0]" [attr.aria-pressed]="type() === t[0]" (click)="type.set(t[0])">{{ t[1] }}</button>
+            }
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Cấp bậc</legend>
+          <div class="chips">
+            <button type="button" class="chip" [class.on]="!level()" [attr.aria-pressed]="!level()" (click)="level.set('')">Tất cả</button>
+            @for (l of levels; track l[0]) {
+              <button type="button" class="chip" [class.on]="level() === l[0]" [attr.aria-pressed]="level() === l[0]" (click)="level.set(l[0])">{{ l[1] }}</button>
+            }
+          </div>
+        </fieldset>
+
+        @if (hasFilters()) {
+          <button type="button" class="clear" (click)="clear()">Xóa bộ lọc</button>
+        }
+      </aside>
+
+      <div class="results">
+        @let data = result();
+        <p class="count" role="status">
+          @if (data) { {{ data.jobs.length }} vị trí{{ hasFilters() ? ' phù hợp' : ' đang tuyển' }} } @else if (data === null) { Không tải được danh sách } @else { Đang tải… }
+        </p>
+
+        @if (data) {
+          <ul class="jobs">
+            @for (job of pageJobs(); track job.id) {
+              <li class="job">
+                <div class="job__main">
+                  <h3><a [routerLink]="['/careers', job.slug]">{{ job.title }}</a></h3>
+                  <p class="job__meta">
+                    <span>{{ job.department }}</span>
+                    <span>{{ job.city }}</span>
+                    <span>{{ typeLabels[job.type] }}</span>
+                    <span>{{ levelLabels[job.level] }}</span>
+                  </p>
+                  <p class="job__facts">
+                    <span><b>Mức lương:</b> {{ job.salary }}</span>
+                    <span><b>Số lượng:</b> {{ job.quantity }}</span>
+                    @if (daysLeft(job.deadline); as left) {
+                      <span [class.soon]="left <= 7"><b>Hạn nộp:</b> {{ left > 0 ? 'còn ' + left + ' ngày' : 'hôm nay' }}</span>
+                    }
+                  </p>
+                </div>
+                <a class="btn btn--primary job__apply" [routerLink]="['/careers', job.slug]">Ứng tuyển</a>
+              </li>
+            } @empty {
+              <li class="empty">
+                @if (hasFilters()) {
+                  <p>Không có vị trí nào khớp với bộ lọc.</p>
+                  <button type="button" class="btn btn--primary" (click)="clear()">Xóa bộ lọc</button>
+                } @else {
+                  <p>Hiện CaraVeso chưa có vị trí nào đang tuyển. Hãy quay lại sau nhé.</p>
+                }
+              </li>
+            }
+          </ul>
+
+          @if (pageCount() > 1) {
+            <nav class="pager" aria-label="Phân trang">
+              @for (n of pages(); track n) {
+                <button type="button" [class.on]="n === page()" [attr.aria-current]="n === page() ? 'page' : null" (click)="setPage(n)">{{ n }}</button>
+              }
+            </nav>
+          }
+        } @else if (data === null) {
+          <p class="empty" role="alert">Không tải được danh sách vị trí. Vui lòng tải lại trang.</p>
+        }
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep container" />
+  <section id="vi-sao" class="why">
+    <div class="container block">
+      <h2>Vì sao chọn CaraVeso</h2>
+      <ol class="why__list">
+        @for (item of highlights; track item.title; let i = $index) {
+          <li>
+            <span class="why__no" aria-hidden="true">{{ '0' + (i + 1) }}</span>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.text }}</p>
+          </li>
+        }
+      </ol>
+    </div>
+  </section>
+
+  <hr class="sep container" />
+  <section id="thong-diep" class="container block message">
+    <h2>Thông điệp từ lãnh đạo</h2>
+    <blockquote>
+      <p>Chúng tôi muốn mỗi thành viên hạnh phúc và tự hào khi làm việc tại CaraVeso. Mỗi quyết định của bạn, dù nhỏ, đều góp phần tạo nên uy tín của chúng ta với khách hàng.</p>
+      <footer>Ban lãnh đạo CaraVeso</footer>
+    </blockquote>
+  </section>
+</div>

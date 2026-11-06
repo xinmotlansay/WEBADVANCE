@@ -9,6 +9,7 @@ const wishlistEntryGuard = () =>
 
 export const routes: Routes = [
   { path: 'support', loadChildren: () => import('./features/after-sales/after-sales.routes').then((m) => m.AFTER_SALES_ROUTES) },
+  { path: 'careers', loadChildren: () => import('./features/careers/careers.routes').then((m) => m.CAREERS_ROUTES) },
   { path: 'policies', loadChildren: () => import('./features/policies/policies.routes').then((m) => m.POLICIES_ROUTES) },
   { path: 'search/image', loadChildren: () => import('./features/image-search/image-search.routes').then((m) => m.IMAGE_SEARCH_ROUTES) },
   { path: 'products', loadChildren: () => import('./features/products/products.routes').then((m) => m.PRODUCTS_ROUTES) },

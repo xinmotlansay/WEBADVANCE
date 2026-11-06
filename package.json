@@ -21,6 +21,7 @@
     "start:worker": "node dist/server/src/worker.js",
     "build:server": "tsc -p server/tsconfig.json",
     "build:web": "ng build customer-web && ng build admin-web",
+    "seed:jobs": "tsx server/seed/jobs.seed.ts",
     "seed:roles": "tsx server/seed/roles.ts",
     "seed:admin": "tsx server/seed/admin-accounts.ts",
     "test:auth": "vitest run",

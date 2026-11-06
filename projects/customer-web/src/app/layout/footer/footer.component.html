@@ -43,23 +43,16 @@
     <section class="brand">
       <a class="brand__logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
       <div class="brand__social">
-        <a href="https://www.youtube.com" target="_blank" rel="noopener" aria-label="YouTube">
-          <app-icon name="simple-icons:youtube" [size]="22" />
-        </a>
-        <a href="https://www.tiktok.com" target="_blank" rel="noopener" aria-label="TikTok">
-          <app-icon name="simple-icons:tiktok" [size]="22" />
-        </a>
-        <a href="https://www.instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
-          <app-icon name="simple-icons:instagram" [size]="22" />
-        </a>
-        <a href="https://www.facebook.com" target="_blank" rel="noopener" aria-label="Facebook">
-          <app-icon name="simple-icons:facebook" [size]="22" />
-        </a>
+        @for (link of socialLinks(); track link.label) {
+          <a [href]="link.url" target="_blank" rel="noopener" [attr.aria-label]="link.label">
+            <app-icon [name]="link.icon" [size]="22" />
+          </a>
+        }
       </div>
     </section>
   </div>
 
   <div class="footer__copy">
-    <div class="container">Bản quyền © {{ year }} CARAVESO FURNITURE.</div>
+    <div class="container">{{ store()?.copyright || 'Bản quyền © ' + year + ' CARAVESO FURNITURE.' }}</div>
   </div>
 </footer>

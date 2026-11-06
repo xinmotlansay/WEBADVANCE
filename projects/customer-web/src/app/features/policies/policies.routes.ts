@@ -1,16 +1,9 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '../../core/guards/auth.guard';
+
+/** Mọi trang chính sách dùng chung một component; nội dung do Admin cấp cao nhập trong Cấu hình hệ thống. */
 export const POLICIES_ROUTES: Routes = [
   {
-    path: 'warranty',
-    canActivate: [authGuard],
-    data: { kind: 'warranty' },
-    loadComponent: () => import('./policy.component').then((m) => m.PolicyComponent),
-  },
-  {
-    path: 'returns',
-    canActivate: [authGuard],
-    data: { kind: 'returns' },
+    path: ':slug',
     loadComponent: () => import('./policy.component').then((m) => m.PolicyComponent),
   },
 ];
