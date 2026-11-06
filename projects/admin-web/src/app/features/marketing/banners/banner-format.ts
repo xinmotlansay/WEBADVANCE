@@ -1,4 +1,4 @@
-import type { BannerPosition, BannerStatus } from './banner.api';
+import type { BannerPosition, BannerStatus } from '../../../services/marketing/banner.service';
 
 export const POSITION_ORDER: BannerPosition[] = ['HOME_SLIDER', 'HOME_MIDDLE', 'CATEGORY', 'POPUP'];
 

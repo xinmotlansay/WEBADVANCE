@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core';
 import type { Banner } from 'shared';
-import { BannerTrackerService } from '../../../../core/marketing/banner-tracker.service';
+import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { LinkDirective } from '../../../../shared/ui/link/link.directive';
 
 /** Banner giữa trang chủ (tối đa 3): lưới ảnh có liên kết. */

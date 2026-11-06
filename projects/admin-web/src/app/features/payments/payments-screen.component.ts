@@ -21,11 +21,11 @@ import {
   type PaymentTransaction,
   type ResolveAction,
 } from 'shared';
-import { AdminPaymentApi } from '../../core/api/admin-payment.api';
+import { AdminPaymentApi } from '../../services/api/admin-payment.service';
 import { loadAllPages } from '../../core/api/load-all-pages';
 import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, OrderCodePipe, ShortVndPipe, VndPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { ConfirmDialogComponent } from '../../shared/ui/dialogs/confirm-dialog.component';
 import {
   FilterChipComponent,

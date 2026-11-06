@@ -1,5 +1,5 @@
 import { money } from '../vouchers/voucher-format';
-import type { PromotionRow, PromotionStatus } from './promotion.api';
+import type { PromotionRow, PromotionStatus } from '../../../services/marketing/promotion.service';
 
 export const PROMO_LABEL: Record<PromotionStatus, string> = {
   RUNNING: 'Đang diễn ra',

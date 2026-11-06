@@ -6,7 +6,7 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { ConfirmService } from '../../core/confirm/confirm.service';
+import { ConfirmService } from '../../services/ui/confirm.service';
 
 /**
  * `<dialog>` gốc của trình duyệt: tự khóa focus, Esc để đóng. Bấm ra nền tối cũng là hủy.

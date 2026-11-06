@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
-import { AdminApiService, apiMessage, type ShippingRow } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type ShippingRow } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BulkBarComponent } from '../../shared/ui/bulk-bar.component';

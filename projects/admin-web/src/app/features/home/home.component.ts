@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RoleName } from 'shared';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
 import { ProductsComponent } from '../products/products.component';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 

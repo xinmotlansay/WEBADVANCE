@@ -1,13 +1,13 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { AdminChatApi } from './core/api/admin-chat.api';
-import { AdminCustomerApi } from './core/api/admin-customer.api';
-import { AdminDashboardApi, AdminReportApi } from './core/api/admin-dashboard.api';
-import { AdminOrderApi } from './core/api/admin-order.api';
-import { AdminPaymentApi } from './core/api/admin-payment.api';
-import { AdminReturnApi } from './core/api/admin-return.api';
-import { AdminWarrantyApi } from './core/api/admin-warranty.api';
+import { AdminChatApi } from './services/api/admin-chat.service';
+import { AdminCustomerApi } from './services/api/admin-customer.service';
+import { AdminDashboardApi, AdminReportApi } from './services/api/admin-dashboard.service';
+import { AdminOrderApi } from './services/api/admin-order.service';
+import { AdminPaymentApi } from './services/api/admin-payment.service';
+import { AdminReturnApi } from './services/api/admin-return.service';
+import { AdminWarrantyApi } from './services/api/admin-warranty.service';
 import {
   HttpAdminChatApi,
   HttpAdminCustomerApi,
@@ -19,7 +19,7 @@ import {
   HttpAdminWarrantyApi,
 } from './core/api/http/http-admin-api';
 import { routes } from './app.routes';
-import { AdminAuthService } from './core/auth/admin-auth.service';
+import { AdminAuthService } from './services/auth/admin-auth.service';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {

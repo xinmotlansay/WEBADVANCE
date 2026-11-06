@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signa
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import type { AdminJob, JobInput, JobLevel, JobStatus, JobType } from '../super-admin.models';
 
 const TYPE_LABELS: Record<JobType, string> = { FULL_TIME: 'Toàn thời gian', PART_TIME: 'Bán thời gian', INTERN: 'Thực tập' };

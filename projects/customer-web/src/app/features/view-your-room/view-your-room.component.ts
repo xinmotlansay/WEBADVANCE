@@ -16,15 +16,15 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogApiService, type ProductListItem } from 'shared';
 import { firstValueFrom } from 'rxjs';
-import { ConfirmService } from '../../core/confirm/confirm.service';
-import { VariantPickerService } from '../../core/cart/variant-picker.service';
-import { AuthService } from '../../core/auth/auth.service';
+import { ConfirmService } from '../../services/ui/confirm.service';
+import { VariantPickerService } from '../../services/cart/variant-picker.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { ProductPanelComponent } from './components/product-panel/product-panel.component';
 import {
   RoomSettingsComponent,
   type RoomTypeOption,
 } from './components/room-settings/room-settings.component';
-import { ViewRoomApiService, type SavedLayout } from './view-room-api.service';
+import { ViewRoomApiService, type SavedLayout } from '../../services/room/view-room-api.service';
 import { ViewRoomHeaderComponent } from './components/view-room-header/view-room-header.component';
 import { RoomScene, type ViewMode } from './scene/room-scene';
 import {

@@ -16,7 +16,7 @@ import {
   type CategoryInput,
   type CategoryRow,
   type CategoryType,
-} from '../../core/api/admin-api.service';
+} from '../../services/api/admin-api.service';
 import { ToastService } from '../../shared/ui/toast';
 
 export const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {

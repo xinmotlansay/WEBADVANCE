@@ -10,8 +10,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { VoucherApi, type CategoryOption } from '../vouchers/voucher.api';
-import { BannerApi, type BannerBody, type BannerPosition, type BannerRow } from './banner.api';
+import { VoucherApi, type CategoryOption } from '../../../services/marketing/voucher.service';
+import { BannerApi, type BannerBody, type BannerPosition, type BannerRow } from '../../../services/marketing/banner.service';
 import { FREQUENCY_LABEL, POSITION_LABEL, POSITION_ORDER, RECOMMENDED } from './banner-format';
 
 const toLocal = (iso: string): string => {

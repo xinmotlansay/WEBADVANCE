@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, input, model, signal, viewChild } from '@angular/core';
-import type { CollectionImage, Hotspot } from './collection.api';
+import type { CollectionImage, Hotspot } from '../../../services/marketing/collection.service';
 import { nudge, toRelative, type Point } from './hotspot-math';
 
 export const MAX_HOTSPOTS = 8;

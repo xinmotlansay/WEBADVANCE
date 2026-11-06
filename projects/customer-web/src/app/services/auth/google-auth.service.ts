@@ -7,7 +7,7 @@ import {
   type Auth,
   type UserCredential,
 } from 'firebase/auth';
-import { firebaseConfig } from './firebase.config';
+import { firebaseConfig } from '../../core/auth/firebase.config';
 
 /** Lỗi hiển thị được cho người dùng (message đã là tiếng Việt). */
 export class GoogleAuthError extends Error {}

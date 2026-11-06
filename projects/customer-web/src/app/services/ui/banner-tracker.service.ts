@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { CatalogApiService } from 'shared';
-import { firstTime } from './banner-rules';
+import { firstTime } from '../../core/marketing/banner-rules';
 
 const SESSION_KEY = 'cv.bannerTracked';
 

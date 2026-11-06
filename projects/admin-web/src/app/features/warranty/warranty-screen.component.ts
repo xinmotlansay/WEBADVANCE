@@ -17,12 +17,12 @@ import {
   type UpdateWarrantyStatusRequest,
   type WarrantyRequest,
 } from 'shared';
-import { AdminWarrantyApi } from '../../core/api/admin-warranty.api';
+import { AdminWarrantyApi } from '../../services/api/admin-warranty.service';
 import { loadAllPages } from '../../core/api/load-all-pages';
 import { DateVnPipe, OrderCodePipe } from '../../core/format/format.pipes';
 import { downloadCsv } from '../../core/format/csv-export';
-import { AdminSocketService } from '../../core/socket/admin-socket.service';
-import { NotificationService } from '../../core/ui/notification.service';
+import { AdminSocketService } from '../../services/ui/admin-socket.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { parseApiError } from '../../core/auth/auth-error';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
 import {

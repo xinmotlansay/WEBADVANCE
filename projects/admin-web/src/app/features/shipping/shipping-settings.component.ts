@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
-import { SuperAdminApiService } from '../super-admin/super-admin-api.service';
+import { SuperAdminApiService } from '../../services/super-admin/super-admin-api.service';
 import { ConfigEditor } from '../super-admin/system/config-editor';
 import { ConfigFieldsComponent } from '../super-admin/system/config-fields.component';
 

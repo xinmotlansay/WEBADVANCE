@@ -3,7 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { numberFromDetails, parseApiError } from '../../../../core/auth/auth-error';
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AuthService } from '../../../../services/auth/auth.service';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 import { GoogleAuthComponent } from '../../components/google-auth/google-auth.component';
 

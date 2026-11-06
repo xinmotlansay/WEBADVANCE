@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { Banner } from 'shared';
 import { LinkDirective } from '../../../../shared/ui/link/link.directive';
-import { BannerTrackerService } from '../../../../core/marketing/banner-tracker.service';
+import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 
 const AUTOPLAY_MS = 6000;

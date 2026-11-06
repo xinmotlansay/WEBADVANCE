@@ -7,7 +7,7 @@ import {
   type OrderQuery,
   type OrderRow,
   type Period,
-} from '../../core/api/admin-api.service';
+} from '../../services/api/admin-api.service';
 import {
   FORMAT_PIPES,
   formatAge,

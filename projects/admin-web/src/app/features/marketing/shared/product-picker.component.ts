@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { PromotionApi, type ProductOption } from '../promotions/promotion.api';
+import { PromotionApi, type ProductOption } from '../../../services/marketing/promotion.service';
 
 /** Chọn sản phẩm đang bán: tìm theo tên, bấm để thêm, chip để bỏ. Chỉ đọc API sản phẩm công khai. */
 @Component({

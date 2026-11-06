@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { VoucherApi, type VoucherDetail, type VoucherQuery, type VoucherRow } from './voucher.api';
+import { VoucherApi, type VoucherDetail, type VoucherQuery, type VoucherRow } from '../../../services/marketing/voucher.service';
 import {
   REASONS,
   STATUS_BADGE,

@@ -35,8 +35,8 @@ import {
 import { ProductCardComponent } from '../../shared/ui/product-card/product-card.component';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 import { PriceRangeComponent } from './price-range.component';
-import { ImageSearchResultsService } from '../../core/search/image-search-results.service';
-import { SearchUiService } from '../../core/search/search-ui.service';
+import { ImageSearchResultsService } from '../../services/search/image-search-results.service';
+import { SearchUiService } from '../../services/search/search-ui.service';
 
 interface Result {
   items: ProductListItem[];
@@ -53,7 +53,7 @@ const EMPTY: Result = {
 const PRICE_FORMATTER = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
 import { LinkDirective } from '../../shared/ui/link/link.directive';
-import { BannerTrackerService } from '../../core/marketing/banner-tracker.service';
+import { BannerTrackerService } from '../../services/ui/banner-tracker.service';
 
 @Component({
   selector: 'app-product-list',

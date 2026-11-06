@@ -12,7 +12,7 @@ import {
   type ArticleBody,
   type ArticleRow,
   type ArticleType,
-} from './article.api';
+} from '../../../services/marketing/article.service';
 
 const toLocal = (iso: string): string => {
   const d = new Date(iso);

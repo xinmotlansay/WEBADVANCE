@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
-import { SessionIdleService } from '../../core/auth/session-idle.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
+import { SessionIdleService } from '../../services/auth/session-idle.service';
 import { ADMIN_NAV, ROLE_LABELS } from '../../core/navigation/admin-nav.config';
 import { AdminSidebarComponent } from '../admin-sidebar/admin-sidebar.component';
 import { ToastHostComponent } from '../../shared/ui/toast';

@@ -9,8 +9,8 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
 import { parseApiError } from '../../../../core/auth/auth-error';
-import { AuthService } from '../../../../core/auth/auth.service';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { AuthService } from '../../../../services/auth/auth.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 import { GoogleAuthComponent } from '../../components/google-auth/google-auth.component';
 

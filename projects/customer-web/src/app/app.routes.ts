@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from './core/auth/auth.service';
+import { AuthService } from './services/auth/auth.service';
 import { authGuard } from './core/guards/auth.guard';
 
 const wishlistEntryGuard = () =>

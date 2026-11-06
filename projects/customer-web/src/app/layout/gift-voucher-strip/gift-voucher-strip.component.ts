@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { AccountApiService, type AccountVoucher } from '../../features/account/account-api.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { AccountApiService, type AccountVoucher } from '../../services/account/account-api.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 
 /** Dải dưới header báo khách có voucher được tặng (chiến dịch giữ chân). Xem/đóng một lần là ẩn hẳn. */

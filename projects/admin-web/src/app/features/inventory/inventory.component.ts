@@ -7,7 +7,7 @@ import {
   type InventoryQuery,
   type InventoryRow,
   type StockChangeType,
-} from '../../core/api/admin-api.service';
+} from '../../services/api/admin-api.service';
 import { FORMAT_PIPES, formatDate } from '../../shared/format';
 import { STOCK_STATE, toneClass } from '../../shared/status';
 import { downloadCsv } from '../../shared/export';

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
-import { AdminApiService, apiMessage, type CategoryRow, type CategoryType } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type CategoryRow, type CategoryType } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BulkBarComponent } from '../../shared/ui/bulk-bar.component';

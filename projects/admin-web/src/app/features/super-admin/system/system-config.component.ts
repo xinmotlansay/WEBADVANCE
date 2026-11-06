@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import * as fmt from '../../../core/format/vn-format';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import type { ConfigGroup, ConfigItem } from '../super-admin.models';
 import { ConfigEditor } from './config-editor';
 import { ConfigFieldsComponent } from './config-fields.component';

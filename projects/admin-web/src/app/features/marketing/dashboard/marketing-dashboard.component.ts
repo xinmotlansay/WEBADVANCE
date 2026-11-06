@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { InsightsApi, type Insights } from '../risk/insights.api';
+import { InsightsApi, type Insights } from '../../../services/marketing/insights.service';
 import { LineChartComponent } from '../shared/line-chart.component';
 import { MeterComponent, SparklineComponent } from '../shared/mini-charts.component';
 import { money } from '../vouchers/voucher-format';
@@ -20,7 +20,7 @@ import {
   type EffectivenessData,
   type Metric,
   type RangeKey,
-} from './dashboard.api';
+} from '../../../services/marketing/dashboard.service';
 
 const RANGES: { key: RangeKey; label: string; hint: string }[] = [
   { key: 'today', label: 'Hôm nay', hint: 'hôm nay' },

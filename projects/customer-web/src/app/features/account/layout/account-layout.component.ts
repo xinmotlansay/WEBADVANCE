@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { IconComponent } from '../../../shared/ui/icons/icon.component';
-import { ReviewQueueService } from '../review-queue.service';
+import { ReviewQueueService } from '../../../services/account/review-queue.service';
 
 interface AccountNavItem {
   path: string;

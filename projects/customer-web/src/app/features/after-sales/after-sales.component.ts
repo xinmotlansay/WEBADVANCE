@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, startWith, switchMap } from 'rxjs';
 import { CatalogApiService, WarrantyService } from 'shared';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 import { SupportIntroComponent } from './support-intro.component';
 import { SupportRequestPanelComponent } from './support-request-panel.component';

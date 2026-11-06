@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
-import { AdminApiService, apiMessage, type ProductQuery, type ProductRow } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type ProductQuery, type ProductRow } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES, formatDate } from '../../shared/format';
 import { PRODUCT_STATUS, STOCK_STATE, toneClass } from '../../shared/status';
 import { downloadCsv } from '../../shared/export';

@@ -15,7 +15,7 @@ import { catchError, of, switchMap, tap } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import * as fmt from '../../../core/format/vn-format';
 import { ROLE_LABELS } from '../../../core/navigation/admin-nav.config';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import { ORDER_STATUS, ORDER_STATUS_ORDER, ROLE_SHORT, auditActionLabel } from '../super-admin.labels';
 import type { OrderStatus, Overview, OverviewRange, RecentOrder } from '../super-admin.models';
 

@@ -6,9 +6,9 @@ import {
   AdminOrderStatus as OrderStatus,
   type AdminOrderDetail as OrderDetail,
 } from 'shared';
-import { AdminOrderApi } from '../../core/api/admin-order.api';
+import { AdminOrderApi } from '../../services/api/admin-order.service';
 import { OrderCodePipe, VndPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { ConfirmDialogComponent } from '../../shared/ui/dialogs/confirm-dialog.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header/page-header.component';

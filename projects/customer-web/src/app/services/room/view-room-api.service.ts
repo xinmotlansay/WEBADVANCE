@@ -8,7 +8,7 @@ import type {
   ProductDetail,
   RoomConfig,
   RoomSuggestions,
-} from './view-your-room.models';
+} from '../../features/view-your-room/view-your-room.models';
 
 const API_BASE = '/api/v1';
 

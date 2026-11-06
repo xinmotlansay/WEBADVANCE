@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { PromotionApi, type ProductOption } from '../promotions/promotion.api';
+import { PromotionApi, type ProductOption } from '../../../services/marketing/promotion.service';
 import { ProductPickerComponent } from '../shared/product-picker.component';
 import { money } from '../vouchers/voucher-format';
 import {
@@ -12,7 +12,7 @@ import {
   STATUS_LABEL,
   type InspirationBody,
   type InspirationRow,
-} from './inspiration.api';
+} from '../../../services/marketing/inspiration.service';
 
 /** MA-08: tạo/sửa ảnh cảm hứng: 1 ảnh + 1–12 sản phẩm có thứ tự, xem trước popup khách. */
 @Component({

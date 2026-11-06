@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { ChatMessageView, ChatSessionView } from 'shared';
-import { AdminChatApi } from '../../core/api/admin-chat.api';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
+import { AdminChatApi } from '../../services/api/admin-chat.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
 import { parseApiError } from '../../core/auth/auth-error';
-import { AdminSocketService } from '../../core/socket/admin-socket.service';
+import { AdminSocketService } from '../../services/ui/admin-socket.service';
 import { DateVnPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header/page-header.component';
 import { EmptyStateComponent, ErrorStateComponent } from '../../shared/ui/states/state-components';

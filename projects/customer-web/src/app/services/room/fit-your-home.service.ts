@@ -22,7 +22,7 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { RecentlyViewedService } from '../../core/storage/recently-viewed.service';
+import { RecentlyViewedService } from '../ui/recently-viewed.service';
 import { WalkwayProfileService } from './walkway-profile.service';
 
 export interface Loadable<T> {

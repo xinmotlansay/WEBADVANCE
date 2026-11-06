@@ -9,7 +9,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { parseApiError } from '../../../../core/auth/auth-error';
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AuthService } from '../../../../services/auth/auth.service';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 
 type Channel = 'EMAIL' | 'PHONE';

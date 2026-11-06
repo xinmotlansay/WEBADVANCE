@@ -17,12 +17,12 @@ import {
   type OrderListItem,
   type OrderListQuery,
 } from 'shared';
-import { AdminOrderApi } from '../../core/api/admin-order.api';
+import { AdminOrderApi } from '../../services/api/admin-order.service';
 import { loadAllPages } from '../../core/api/load-all-pages';
 import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, OrderCodePipe, ShortVndPipe, VndPipe } from '../../core/format/format.pipes';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
-import { NotificationService } from '../../core/ui/notification.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { BulkBarComponent } from '../../shared/ui/bulk-bar/bulk-bar.component';
 import { ConfirmDialogComponent } from '../../shared/ui/dialogs/confirm-dialog.component';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';

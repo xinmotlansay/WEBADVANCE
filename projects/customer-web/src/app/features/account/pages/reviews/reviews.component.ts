@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { ConfirmService } from '../../../../core/confirm/confirm.service';
-import { AccountApiService, type MyReview, type ReviewableItem } from '../../account-api.service';
-import { ReviewQueueService } from '../../review-queue.service';
+import { ConfirmService } from '../../../../services/ui/confirm.service';
+import { AccountApiService, type MyReview, type ReviewableItem } from '../../../../services/account/account-api.service';
+import { ReviewQueueService } from '../../../../services/account/review-queue.service';
 import { AccountIconComponent } from '../../account-icon.component';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;

@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { SearchUiService } from '../../core/search/search-ui.service';
-import { AuthService } from '../../core/auth/auth.service';
-import { ChatUiService } from '../../core/chat/chat-ui.service';
-import { ChatService } from '../../features/chat/chat.service';
+import { SearchUiService } from '../../services/search/search-ui.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { ChatUiService } from '../../services/chat/chat-ui.service';
+import { ChatService } from '../../services/chat/chat.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 
 /** Cuộn quá ngưỡng này (px) thì hiện nút về đầu trang. */

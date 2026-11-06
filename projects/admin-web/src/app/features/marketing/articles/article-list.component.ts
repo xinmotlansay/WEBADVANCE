@@ -12,7 +12,7 @@ import {
   dateTime,
   type ArticleList,
   type ArticleRow,
-} from './article.api';
+} from '../../../services/marketing/article.service';
 
 type Load = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: ArticleList };
 

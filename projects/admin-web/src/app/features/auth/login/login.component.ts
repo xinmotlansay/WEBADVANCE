@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnDestroy, inject, input, signal } 
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AdminAuthService } from '../../../core/auth/admin-auth.service';
+import { AdminAuthService } from '../../../services/auth/admin-auth.service';
 import { numberFromDetails, parseApiError } from '../../../core/auth/auth-error';
 
 const MIN_PASSWORD_LENGTH = 12;

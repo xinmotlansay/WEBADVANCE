@@ -3,7 +3,7 @@ import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { catchError, forkJoin, of } from 'rxjs';
 import type { ApiResponse } from 'shared';
 import { AuthService } from '../auth/auth.service';
-import { ToastService } from '../toast/toast.service';
+import { ToastService } from '../ui/toast.service';
 
 const GUEST_KEY = 'caraveso.guestWishlist';
 

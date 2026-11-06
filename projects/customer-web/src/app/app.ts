@@ -9,9 +9,9 @@ import { FooterComponent } from './layout/footer/footer.component';
 import { HeaderComponent } from './layout/header/header.component';
 import { ToastComponent } from './layout/toast/toast.component';
 import { ConfirmComponent } from './layout/confirm/confirm.component';
-import { VariantPickerService } from './core/cart/variant-picker.service';
+import { VariantPickerService } from './services/cart/variant-picker.service';
 import { VariantPickerComponent } from './shared/ui/variant-picker/variant-picker.component';
-import { SearchUiService } from './core/search/search-ui.service';
+import { SearchUiService } from './services/search/search-ui.service';
 import { ImageSearchComponent } from './features/image-search/image-search.component';
 import { IconComponent } from './shared/ui/icons/icon.component';
 

@@ -1,4 +1,4 @@
-import type { VoucherRow, VoucherStatus } from './voucher.api';
+import type { VoucherRow, VoucherStatus } from '../../../services/marketing/voucher.service';
 
 const vnd = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 export const money = (n: number): string => `${vnd.format(n)} ₫`;

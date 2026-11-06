@@ -10,10 +10,10 @@ import {
   type OrderReport,
   type ReportPeriod,
 } from 'shared';
-import { AdminDashboardApi, AdminReportApi } from '../../core/api/admin-dashboard.api';
+import { AdminDashboardApi, AdminReportApi } from '../../services/api/admin-dashboard.service';
 import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, PercentVnPipe, ShortVndPipe, VndPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { BarChartComponent, BarListComponent, RatioBarComponent } from '../../shared/ui/charts/charts.component';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';

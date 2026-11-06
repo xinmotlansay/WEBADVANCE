@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { PromotionApi } from '../promotions/promotion.api';
+import { PromotionApi } from '../../../services/marketing/promotion.service';
 import { ProductPickerComponent } from '../shared/product-picker.component';
 import {
   CollectionApi,
@@ -12,7 +12,7 @@ import {
   type CollectionBody,
   type CollectionDetail,
   type CollectionImage,
-} from './collection.api';
+} from '../../../services/marketing/collection.service';
 import { HotspotEditorComponent } from './hotspot-editor.component';
 
 export const MAX_IMAGES = 10;

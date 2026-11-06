@@ -34,7 +34,7 @@ import {
   ReturnExchangeService,
   ReturnSubmission,
 } from 'shared';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { apiErrorMessage } from '../../core/api-error';
 import { ProductPickerComponent, type PickedProduct } from '../../shared/ui/product-picker/product-picker.component';
 import { VndPipe } from '../../shared/pipes/vnd.pipe';

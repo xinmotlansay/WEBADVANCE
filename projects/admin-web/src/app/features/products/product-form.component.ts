@@ -18,7 +18,7 @@ import {
   type ProductDetail,
   type ProductInput,
   type ProductPart,
-} from '../../core/api/admin-api.service';
+} from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { PRODUCT_STATUS, toneClass } from '../../shared/status';
 import { IconComponent } from '../../shared/ui/icon.component';

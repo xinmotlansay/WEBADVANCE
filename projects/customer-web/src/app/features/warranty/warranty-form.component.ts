@@ -16,7 +16,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { WarrantyService } from 'shared';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { apiErrorMessage } from '../../core/api-error';
 import { EvidenceUploadComponent } from '../../shared/ui/evidence-upload/evidence-upload.component';
 @Component({

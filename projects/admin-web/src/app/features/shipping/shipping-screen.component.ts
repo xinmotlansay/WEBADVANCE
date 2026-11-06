@@ -10,11 +10,11 @@ import {
   type AdminOrderDetail as OrderDetail,
   type OrderListItem,
 } from 'shared';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
-import { AdminDashboardApi } from '../../core/api/admin-dashboard.api';
-import { AdminOrderApi } from '../../core/api/admin-order.api';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
+import { AdminDashboardApi } from '../../services/api/admin-dashboard.service';
+import { AdminOrderApi } from '../../services/api/admin-order.service';
 import { DateVnPipe, OrderCodePipe, VndPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { ConfirmDialogComponent } from '../../shared/ui/dialogs/confirm-dialog.component';
 import { ReasonDialogComponent } from '../../shared/ui/dialogs/reason-dialog.component';
 import { FilterChipComponent, type FilterOption } from '../../shared/ui/filters/filter-chip.component';

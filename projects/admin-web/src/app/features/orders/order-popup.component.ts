@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { AdminApiService, apiMessage, type OrderDetail } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type OrderDetail } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES, formatDate, formatTime, formatVnd } from '../../shared/format';
 import { DELIVERED_BY, ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, toneClass } from '../../shared/status';
 import { printDocument } from '../../shared/export';

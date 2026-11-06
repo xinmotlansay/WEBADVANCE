@@ -11,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
-import { AdminApiService, apiMessage, type InventoryRow } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type InventoryRow } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { ToastService } from '../../shared/ui/toast';
 

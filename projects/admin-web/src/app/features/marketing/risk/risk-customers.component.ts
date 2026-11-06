@@ -20,7 +20,7 @@ import {
   type Segment,
   type SegmentInsight,
   type VoucherPreview,
-} from './insights.api';
+} from '../../../services/marketing/insights.service';
 
 /** Thứ tự hiển thị: hàng trên = nguy cơ rời bỏ cao, hàng dưới = thấp; cột trái = CLV thấp, cột phải = CLV cao. */
 const GRID: Segment[] = ['NO_SPEND', 'RETAIN', 'LET_BE', 'NURTURE'];

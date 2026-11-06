@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { Banner } from 'shared';
 import { shouldShowPopup } from '../../../../core/marketing/banner-rules';
-import { BannerTrackerService } from '../../../../core/marketing/banner-tracker.service';
+import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { readLocal, writeLocal } from '../../../../core/storage/local-store';
 import { LinkDirective } from '../../../../shared/ui/link/link.directive';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';

@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
-import { AdminApiService, apiMessage } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { ToastService } from '../../shared/ui/toast';
 

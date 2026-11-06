@@ -8,11 +8,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AdminCustomer } from 'shared';
-import { AdminCustomerApi } from '../../core/api/admin-customer.api';
+import { AdminCustomerApi } from '../../services/api/admin-customer.service';
 import { loadAllPages } from '../../core/api/load-all-pages';
 import { downloadCsv } from '../../core/format/csv-export';
 import { DateVnPipe, OrderCodePipe, ShortVndPipe, VndPipe } from '../../core/format/format.pipes';
-import { NotificationService } from '../../core/ui/notification.service';
+import { NotificationService } from '../../services/ui/notification.service';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header/page-header.component';
 import { PaginationComponent } from '../../shared/ui/pagination/pagination.component';

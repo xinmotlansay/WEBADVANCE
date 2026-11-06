@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { AccountApiService, type AccountOrder } from '../../account-api.service';
+import { AccountApiService, type AccountOrder } from '../../../../services/account/account-api.service';
 import { AccountIconComponent, type IconName } from '../../account-icon.component';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 interface TrackingStep {
   label: string;

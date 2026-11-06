@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { BannerApi, type BannerList, type BannerPosition, type BannerRow } from './banner.api';
+import { BannerApi, type BannerList, type BannerPosition, type BannerRow } from '../../../services/marketing/banner.service';
 import {
   POSITION_LABEL,
   POSITION_ORDER,

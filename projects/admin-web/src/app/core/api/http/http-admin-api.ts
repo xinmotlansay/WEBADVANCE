@@ -37,13 +37,13 @@ import type {
   WarrantyRequest,
 } from 'shared';
 import { API_BASE } from '../../config/admin-environment';
-import { AdminChatApi } from '../admin-chat.api';
-import { AdminCustomerApi } from '../admin-customer.api';
-import { AdminDashboardApi, AdminReportApi } from '../admin-dashboard.api';
-import { AdminOrderApi } from '../admin-order.api';
-import { AdminPaymentApi } from '../admin-payment.api';
-import { AdminReturnApi } from '../admin-return.api';
-import { AdminWarrantyApi } from '../admin-warranty.api';
+import { AdminChatApi } from '../../../services/api/admin-chat.service';
+import { AdminCustomerApi } from '../../../services/api/admin-customer.service';
+import { AdminDashboardApi, AdminReportApi } from '../../../services/api/admin-dashboard.service';
+import { AdminOrderApi } from '../../../services/api/admin-order.service';
+import { AdminPaymentApi } from '../../../services/api/admin-payment.service';
+import { AdminReturnApi } from '../../../services/api/admin-return.service';
+import { AdminWarrantyApi } from '../../../services/api/admin-warranty.service';
 
 function paramsOf(query: object): HttpParams {
   let params = new HttpParams();

@@ -17,7 +17,7 @@ import type {
   Overview,
   OverviewRange,
   RolesResponse,
-} from './super-admin.models';
+} from '../../features/super-admin/super-admin.models';
 
 const API = '/api/v1/admin';
 

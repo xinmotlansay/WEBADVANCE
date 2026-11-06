@@ -2,9 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { ApiResponse } from 'shared';
 import { map, Observable } from 'rxjs';
-import type { CollectionStatus } from '../collections/collection.api';
+import type { CollectionStatus } from './collection.service';
 
-export { STATUS_BADGE, STATUS_LABEL } from '../collections/collection.api';
+export { STATUS_BADGE, STATUS_LABEL } from './collection.service';
 
 const BASE = '/api/v1/admin/marketing/inspirations';
 export const MAX_INSPIRATION_PRODUCTS = 12;

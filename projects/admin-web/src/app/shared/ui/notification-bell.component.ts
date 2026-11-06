@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { AdminApiService, type AdminNotification } from '../../core/api/admin-api.service';
+import { AdminApiService, type AdminNotification } from '../../services/api/admin-api.service';
 import { formatDate, formatTime } from '../format';
 import { IconComponent } from './icon.component';
 

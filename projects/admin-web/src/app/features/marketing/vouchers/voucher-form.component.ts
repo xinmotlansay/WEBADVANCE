@@ -9,7 +9,7 @@ import {
   type CategoryOption,
   type VoucherBody,
   type VoucherDetail,
-} from './voucher.api';
+} from '../../../services/marketing/voucher.service';
 
 interface Model {
   code: string;

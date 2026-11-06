@@ -4,10 +4,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { ConfirmService } from '../../../../core/confirm/confirm.service';
-import { AccountApiService, type AccountAddress, type AddressInput } from '../../account-api.service';
+import { ConfirmService } from '../../../../services/ui/confirm.service';
+import { AccountApiService, type AccountAddress, type AddressInput } from '../../../../services/account/account-api.service';
 import { AccountIconComponent } from '../../account-icon.component';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 /** `public/data/vn-units.json`: 34 tỉnh/thành và phường/xã sau sáp nhập 2025, không còn cấp huyện. */
 interface VnUnits {

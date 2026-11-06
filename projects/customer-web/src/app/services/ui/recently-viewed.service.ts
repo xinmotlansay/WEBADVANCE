@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { readLocal, writeLocal } from './local-store';
+import { readLocal, writeLocal } from '../../core/storage/local-store';
 
 export interface ViewedProduct {
   slug: string;

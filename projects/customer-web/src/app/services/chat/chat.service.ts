@@ -14,8 +14,8 @@ import type {
 } from 'shared';
 import { ChatMode, ChatSenderType, ChatSessionStatus } from 'shared';
 import { firstValueFrom } from 'rxjs';
-import { AuthService } from '../../core/auth/auth.service';
-import { SocketService } from '../../core/socket/socket.service';
+import { AuthService } from '../auth/auth.service';
+import { SocketService } from '../ui/socket.service';
 
 const API_BASE = '/api/v1/chat';
 

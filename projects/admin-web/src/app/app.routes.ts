@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { RoleName } from 'shared';
-import { AdminAuthService } from './core/auth/admin-auth.service';
+import { AdminAuthService } from './services/auth/admin-auth.service';
 import { marketingGuard } from './features/marketing/marketing.guard';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';

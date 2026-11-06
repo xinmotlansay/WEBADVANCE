@@ -11,8 +11,8 @@ import {
 } from '@angular/core';
 import type { ChatMessageView, ChatSenderType } from 'shared';
 import { ChatSenderType as Sender } from 'shared';
-import { ChatUiService } from '../../../../core/chat/chat-ui.service';
-import { ChatService } from '../../chat.service';
+import { ChatUiService } from '../../../../services/chat/chat-ui.service';
+import { ChatService } from '../../../../services/chat/chat.service';
 
 /** Khung chat CSKH: mở từ icon bên phải, bắt buộc đăng nhập và lưu lịch sử trong DB. */
 @Component({

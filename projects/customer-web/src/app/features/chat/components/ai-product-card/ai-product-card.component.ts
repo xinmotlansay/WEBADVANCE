@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ChatAiProductSuggestion } from 'shared';
-import { CollectionWishlistService } from '../../../../core/shopping/collection-wishlist.service';
+import { CollectionWishlistService } from '../../../../services/cart/collection-wishlist.service';
 import { VndPipe } from '../../../../shared/pipes/vnd.pipe';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 

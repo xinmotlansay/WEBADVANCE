@@ -3,7 +3,7 @@ import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, Validatio
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { SuperAdminApiService } from '../../super-admin/super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 
 const MIN_PASSWORD_LENGTH = 12;
 

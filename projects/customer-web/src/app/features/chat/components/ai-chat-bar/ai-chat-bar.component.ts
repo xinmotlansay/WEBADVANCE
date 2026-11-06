@@ -19,7 +19,7 @@ import type {
   ChatAiHistoryItem,
   ChatAiProductSuggestion,
 } from 'shared';
-import { ChatUiService } from '../../../../core/chat/chat-ui.service';
+import { ChatUiService } from '../../../../services/chat/chat-ui.service';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 import { AiProductCardComponent } from '../ai-product-card/ai-product-card.component';
 import {

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { AdminApiService, apiMessage, type ProductDetail } from '../../core/api/admin-api.service';
+import { AdminApiService, apiMessage, type ProductDetail } from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { PRODUCT_STATUS, STOCK_STATE, toneClass } from '../../shared/status';
 import { DetailPopupComponent } from '../../shared/ui/detail-popup.component';

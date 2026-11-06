@@ -15,7 +15,7 @@ import { catchError, of, switchMap, tap } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import * as fmt from '../../../core/format/vn-format';
 import { ROLE_LABELS } from '../../../core/navigation/admin-nav.config';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import { AUDIT_ACTIONS, AUDIT_TARGETS, auditActionLabel, auditTargetLabel } from '../super-admin.labels';
 import type { AdminAccount, AuditLog, AuditLogQuery } from '../super-admin.models';
 import { SystemTabsComponent } from './system-tabs.component';

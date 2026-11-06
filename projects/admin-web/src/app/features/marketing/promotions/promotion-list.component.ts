@@ -17,7 +17,7 @@ import {
   type PromotionDetail,
   type PromotionQuery,
   type PromotionRow,
-} from './promotion.api';
+} from '../../../services/marketing/promotion.service';
 import {
   PROMO_BADGE,
   PROMO_LABEL,

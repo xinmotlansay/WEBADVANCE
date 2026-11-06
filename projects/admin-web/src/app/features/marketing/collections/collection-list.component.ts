@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { CollectionApi, STATUS_BADGE, STATUS_LABEL, type CollectionRow } from './collection.api';
+import { CollectionApi, STATUS_BADGE, STATUS_LABEL, type CollectionRow } from '../../../services/marketing/collection.service';
 
 type Load = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; rows: CollectionRow[] };
 

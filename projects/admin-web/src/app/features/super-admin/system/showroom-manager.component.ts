@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChi
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import type { AdminShowroom, ShowroomInput, ShowroomRegion } from '../super-admin.models';
 
 const REGION_LABELS: Record<ShowroomRegion, string> = { NORTH: 'Miền Bắc', CENTRAL: 'Miền Trung', SOUTH: 'Miền Nam' };

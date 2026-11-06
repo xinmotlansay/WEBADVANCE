@@ -4,14 +4,14 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { ProductPickerComponent } from '../shared/product-picker.component';
-import { VoucherApi, type CategoryOption } from '../vouchers/voucher.api';
+import { VoucherApi, type CategoryOption } from '../../../services/marketing/voucher.service';
 import { money } from '../vouchers/voucher-format';
 import {
   PromotionApi,
   type PreviewLine,
   type PromotionBody,
   type PromotionDetail,
-} from './promotion.api';
+} from '../../../services/marketing/promotion.service';
 import { PROMO_LABEL } from './promotion-format';
 
 interface Model {

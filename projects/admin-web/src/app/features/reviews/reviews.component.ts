@@ -7,7 +7,7 @@ import {
   type ModerationDecision,
   type ReviewQueue,
   type ReviewRow,
-} from '../../core/api/admin-api.service';
+} from '../../services/api/admin-api.service';
 import { FORMAT_PIPES } from '../../shared/format';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BulkBarComponent } from '../../shared/ui/bulk-bar.component';

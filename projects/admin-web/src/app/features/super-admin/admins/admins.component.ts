@@ -13,11 +13,11 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ADMIN_ROLE_NAMES, RoleName } from 'shared';
 import { Observable, catchError, debounceTime, finalize, of, switchMap, tap } from 'rxjs';
-import { AdminAuthService } from '../../../core/auth/admin-auth.service';
+import { AdminAuthService } from '../../../services/auth/admin-auth.service';
 import { parseApiError } from '../../../core/auth/auth-error';
 import * as fmt from '../../../core/format/vn-format';
 import { ROLE_LABELS } from '../../../core/navigation/admin-nav.config';
-import { SuperAdminApiService } from '../super-admin-api.service';
+import { SuperAdminApiService } from '../../../services/super-admin/super-admin-api.service';
 import type { AccessLevel, AdminAccount, AdminListQuery, AdminListResponse, RolesResponse } from '../super-admin.models';
 
 const PHONE_PATTERN = /^(0|\+84)\d{9}$/;

@@ -5,8 +5,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { ProductPickerComponent } from '../shared/product-picker.component';
-import { PromotionApi, type PromotionRow } from '../promotions/promotion.api';
-import { CollectionApi, type CollectionRow } from '../collections/collection.api';
+import { PromotionApi, type PromotionRow } from '../../../services/marketing/promotion.service';
+import { CollectionApi, type CollectionRow } from '../../../services/marketing/collection.service';
 import {
   BLOCK_LABEL,
   ContentApi,
@@ -17,7 +17,7 @@ import {
   type LandingRow,
   type SaveAction,
   type VersionRow,
-} from './content.api';
+} from '../../../services/marketing/content.service';
 
 const toLocal = (iso: string): string => {
   if (!iso) return '';
