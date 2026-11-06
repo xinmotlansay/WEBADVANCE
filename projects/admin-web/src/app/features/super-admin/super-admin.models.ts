@@ -142,7 +142,7 @@ export interface AuditLogQuery {
   limit: number;
 }
 
-export type ConfigFieldType = 'text' | 'textarea' | 'email' | 'number' | 'money' | 'percent' | 'boolean' | 'time' | 'weekdays';
+export type ConfigFieldType = 'text' | 'textarea' | 'email' | 'number' | 'money' | 'percent' | 'boolean' | 'time' | 'date' | 'weekdays';
 
 export interface ConfigField {
   path: string;
@@ -150,12 +150,14 @@ export interface ConfigField {
   type: ConfigFieldType;
   unit?: string;
   hint?: string;
+  section?: string;
 }
 
 export interface ConfigItem {
   key: string;
   label: string;
   description: string;
+  subgroup: string | null;
   fields: ConfigField[];
   value: unknown;
   isDefault: boolean;
@@ -166,5 +168,57 @@ export interface ConfigItem {
 export interface ConfigGroup {
   key: string;
   label: string;
+  description: string;
   items: ConfigItem[];
 }
+
+export type ShowroomRegion = 'NORTH' | 'CENTRAL' | 'SOUTH';
+
+/** Cửa hàng hiển thị ở bản đồ và trang Hệ thống showroom bên website khách. */
+export interface AdminShowroom {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  region: ShowroomRegion;
+  address: string;
+  phone: string;
+  openTime: string;
+  closeTime: string;
+  latitude: number;
+  longitude: number;
+  image: string;
+  isFlagship: boolean;
+  displayOrder: number;
+  status: 'VISIBLE' | 'HIDDEN';
+}
+
+export type ShowroomInput = Omit<AdminShowroom, 'id' | 'slug'>;
+
+export type JobType = 'FULL_TIME' | 'PART_TIME' | 'INTERN';
+export type JobLevel = 'INTERN' | 'JUNIOR' | 'SENIOR' | 'MANAGER';
+export type JobStatus = 'OPEN' | 'CLOSED' | 'HIDDEN';
+
+/** Vị trí tuyển dụng hiển thị ở trang Tuyển dụng của website khách. */
+export interface AdminJob {
+  id: string;
+  title: string;
+  slug: string;
+  department: string;
+  city: string;
+  type: JobType;
+  level: JobLevel;
+  salary: string;
+  summary: string;
+  responsibilities: string[];
+  requirements: string[];
+  benefits: string[];
+  quantity: number;
+  /** yyyy-MM-dd hoặc null khi không giới hạn. */
+  deadline: string | null;
+  displayOrder: number;
+  status: JobStatus;
+  postedAt: string | null;
+}
+
+export type JobInput = Omit<AdminJob, 'id' | 'slug' | 'postedAt'>;

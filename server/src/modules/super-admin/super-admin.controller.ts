@@ -3,6 +3,10 @@ import { sendData, sendPage } from '../../utils/response.js';
 import * as accounts from './admin-accounts.service.js';
 import { listAuditLogs, type AuditLogQuery } from './audit-log.service.js';
 import { getOverview, type OverviewRange } from './dashboard.service.js';
+import * as showrooms from './showroom-admin.service.js';
+import type { ShowroomInput } from './showroom-admin.schema.js';
+import * as jobs from './job-admin.service.js';
+import type { JobInput } from './job-admin.schema.js';
 import { listSystemConfigs, updateSystemConfig } from './system-config.service.js';
 
 const id = (params: Record<string, unknown>) => String(params['id']);
@@ -63,4 +67,36 @@ export const setPasswordHandler: RequestHandler = async (req, res) => {
   const { token, password } = req.body as { token: string; password: string };
   const result = await accounts.setPasswordFromInvite(token, password);
   res.json({ success: true, data: result, message: 'Đã đặt mật khẩu, bạn có thể đăng nhập' });
+};
+
+export const listShowroomsHandler: RequestHandler = async (_req, res) => {
+  sendData(res, await showrooms.listShowrooms());
+};
+
+export const createShowroomHandler: RequestHandler = async (req, res) => {
+  res.status(201).json({ success: true, data: await showrooms.createShowroom(req, req.body as ShowroomInput), message: 'Đã thêm cửa hàng' });
+};
+
+export const updateShowroomHandler: RequestHandler = async (req, res) => {
+  sendData(res, await showrooms.updateShowroom(req, id(req.params), req.body as ShowroomInput));
+};
+
+export const deleteShowroomHandler: RequestHandler = async (req, res) => {
+  sendData(res, await showrooms.deleteShowroom(req, id(req.params)));
+};
+
+export const listJobsHandler: RequestHandler = async (_req, res) => {
+  sendData(res, await jobs.listJobs());
+};
+
+export const createJobHandler: RequestHandler = async (req, res) => {
+  res.status(201).json({ success: true, data: await jobs.createJob(req, req.body as JobInput), message: 'Đã đăng vị trí tuyển dụng' });
+};
+
+export const updateJobHandler: RequestHandler = async (req, res) => {
+  sendData(res, await jobs.updateJob(req, id(req.params), req.body as JobInput));
+};
+
+export const deleteJobHandler: RequestHandler = async (req, res) => {
+  sendData(res, await jobs.deleteJob(req, id(req.params)));
 };

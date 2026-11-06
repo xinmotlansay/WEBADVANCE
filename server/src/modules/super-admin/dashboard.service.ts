@@ -225,15 +225,15 @@ async function recentOrders() {
       status: order.status,
       totalAmount: order.totalAmount,
       createdAt: order.createdAt,
-      customerName: order.shippingAddress.recipientName,
-      address: [order.shippingAddress.addressLine, order.shippingAddress.ward, order.shippingAddress.province]
+      customerName: order.shippingAddress?.recipientName ?? 'Không rõ',
+      address: [order.shippingAddress?.addressLine, order.shippingAddress?.ward, order.shippingAddress?.province]
         .filter(Boolean)
         .join(', '),
       deliveredBy,
       carrierName: shipment?.assignedTeam ?? shipment?.carrier ?? null,
-      paymentMethod: order.payment.method,
-      collectionType: order.payment.collectionType,
-      items: order.items.map((item) => ({ name: item.snapshot.name, quantity: item.quantity, amount: item.finalAmount })),
+      paymentMethod: order.payment?.method,
+      collectionType: order.payment?.collectionType,
+      items: (order.items ?? []).map((item) => ({ name: item.snapshot?.name ?? '', quantity: item.quantity, amount: item.finalAmount })),
     };
   });
 }

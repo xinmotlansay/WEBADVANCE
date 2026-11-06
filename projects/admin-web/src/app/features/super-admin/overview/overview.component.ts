@@ -185,7 +185,9 @@ export class OverviewComponent {
   }
 
   openPopup(order: RecentOrder, event: Event): void {
-    this.popupOpener = event.currentTarget as HTMLElement;
+    // Bấm vào đâu trong hàng cũng mở; trả focus về nút mã đơn của hàng đó khi đóng popup.
+    const row = event.currentTarget as HTMLElement;
+    this.popupOpener = row.querySelector<HTMLElement>('button.cv-id-btn') ?? row;
     this.openOrder.set(order);
     // Đưa focus vào popup sau khi render (mục 9: truy cập).
     setTimeout(() => this.popupRef()?.nativeElement.focus());

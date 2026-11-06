@@ -10,10 +10,19 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function mergeDeep(base: Record<string, unknown>, over: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(over)) {
+    const prev = out[key];
+    out[key] = isPlainObject(prev) && isPlainObject(value) ? mergeDeep(prev, value) : value;
+  }
+  return out;
+}
+
 /** Giá trị lưu có thể thiếu field (do module khác ghi một phần): lấp bằng mặc định. */
 function withDefaults(def: ConfigDefinition, stored: unknown): unknown {
   if (stored === undefined || stored === null) return def.defaultValue;
-  if (isPlainObject(def.defaultValue) && isPlainObject(stored)) return { ...def.defaultValue, ...stored };
+  if (isPlainObject(def.defaultValue) && isPlainObject(stored)) return mergeDeep(def.defaultValue, stored);
   return stored;
 }
 
@@ -32,6 +41,7 @@ export async function listSystemConfigs() {
   return CONFIG_GROUPS.map((group) => ({
     key: group.key,
     label: group.label,
+    description: group.description ?? '',
     items: CONFIG_DEFINITIONS.filter((def) => def.group === group.key).map((def) => {
       const doc = byKey.get(def.key) as
         | { value: unknown; updatedAt?: Date; updatedBy: { profile?: { fullName?: string } } | null }
@@ -40,6 +50,7 @@ export async function listSystemConfigs() {
         key: def.key,
         label: def.label,
         description: def.description,
+        subgroup: def.subgroup ?? null,
         fields: def.fields,
         value: withDefaults(def, doc?.value),
         isDefault: !doc,

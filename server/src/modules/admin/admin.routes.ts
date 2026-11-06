@@ -11,7 +11,7 @@ import { sendData, sendPage } from '../../utils/response.js';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile, readMultipart } from '../../utils/file-upload.js';
 import { writeAudit } from './audit-log.model.js';
-import { getOverview, getProductDashboard, type DashboardPeriod } from './admin-dashboard.service.js';
+import { getProductDashboard } from './admin-dashboard.service.js';
 import {
   cancelOrderByAdmin,
   confirmOrder,
@@ -67,7 +67,6 @@ import {
   cancelOrderSchema,
   idParamsSchema,
   orderListQuerySchema,
-  overviewQuerySchema,
   productInputSchema,
   productListQuerySchema,
   type ProductInput,
@@ -89,16 +88,7 @@ export const adminRouter = Router();
 adminRouter.use(requireAuth);
 
 // --- Dashboard ---
-adminRouter.get(
-  '/dashboard/overview',
-  requireRole(SA),
-  validate({ query: overviewQuerySchema }),
-  async (_req, res) => {
-    const { period } = res.locals['query'] as { period: DashboardPeriod };
-    sendData(res, await getOverview(period));
-  },
-);
-
+// `/dashboard/overview` của Admin cấp cao nằm ở super-admin.routes.ts (AD-02).
 adminRouter.get('/dashboard/products', PRODUCT, async (_req, res) => {
   sendData(res, await getProductDashboard());
 });

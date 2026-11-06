@@ -3,6 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import type { ApiPageResponse, ApiResponse, RoleName } from 'shared';
 import { Observable, map } from 'rxjs';
 import type {
+  AdminJob,
+  JobInput,
+  AdminShowroom,
+  ShowroomInput,
   AdminAccount,
   AdminListQuery,
   AdminListResponse,
@@ -89,6 +93,38 @@ export class SuperAdminApiService {
     return this.http
       .put<ApiResponse<{ key: string; value: unknown }>>(`${API}/system-configs/${encodeURIComponent(key)}`, { value })
       .pipe(map((res) => res.data));
+  }
+
+  showrooms(): Observable<AdminShowroom[]> {
+    return this.http.get<ApiResponse<AdminShowroom[]>>(`${API}/showrooms`).pipe(map((res) => res.data));
+  }
+
+  createShowroom(body: ShowroomInput): Observable<AdminShowroom> {
+    return this.http.post<ApiResponse<AdminShowroom>>(`${API}/showrooms`, body).pipe(map((res) => res.data));
+  }
+
+  updateShowroom(id: string, body: ShowroomInput): Observable<AdminShowroom> {
+    return this.http.put<ApiResponse<AdminShowroom>>(`${API}/showrooms/${id}`, body).pipe(map((res) => res.data));
+  }
+
+  deleteShowroom(id: string): Observable<{ id: string }> {
+    return this.http.delete<ApiResponse<{ id: string }>>(`${API}/showrooms/${id}`).pipe(map((res) => res.data));
+  }
+
+  jobs(): Observable<AdminJob[]> {
+    return this.http.get<ApiResponse<AdminJob[]>>(`${API}/jobs`).pipe(map((res) => res.data));
+  }
+
+  createJob(body: JobInput): Observable<AdminJob> {
+    return this.http.post<ApiResponse<AdminJob>>(`${API}/jobs`, body).pipe(map((res) => res.data));
+  }
+
+  updateJob(id: string, body: JobInput): Observable<AdminJob> {
+    return this.http.put<ApiResponse<AdminJob>>(`${API}/jobs/${id}`, body).pipe(map((res) => res.data));
+  }
+
+  deleteJob(id: string): Observable<{ id: string }> {
+    return this.http.delete<ApiResponse<{ id: string }>>(`${API}/jobs/${id}`).pipe(map((res) => res.data));
   }
 
   setPassword(token: string, password: string): Observable<{ email: string }> {

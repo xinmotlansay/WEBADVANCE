@@ -1,0 +1,139 @@
+<div class="head">
+  <p class="cv-hint">Hiển thị ở bản đồ Hệ thống showroom và trang /showrooms của website khách. Chỉ cửa hàng đang hiện mới được khách nhìn thấy.</p>
+  <button type="button" class="cv-btn primary" (click)="openCreate()">Thêm cửa hàng</button>
+</div>
+
+@if (loadError()) {
+  <div class="cv-alert" role="alert">
+    <span>{{ loadError() }}</span>
+    <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+  </div>
+}
+
+<div class="cv-table-wrap">
+  <table class="cv-table">
+    <thead>
+      <tr>
+        <th scope="col">Cửa hàng</th>
+        <th scope="col">Địa chỉ</th>
+        <th scope="col">Giờ mở cửa</th>
+        <th scope="col">Trạng thái</th>
+        <th scope="col"><span class="cv-sr-only">Thao tác</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (!list() && !loadError()) {
+        @for (i of [1, 2, 3]; track i) {
+          <tr><td colspan="5"><span class="cv-skeleton"></span></td></tr>
+        }
+      }
+      @for (s of list() ?? []; track s.id) {
+        <tr>
+          <td>
+            <button type="button" class="cv-id-btn" (click)="openEdit(s)">{{ s.name }}</button>
+            @if (s.isFlagship) {
+              <span class="cv-badge info flag">Chủ lực</span>
+            }
+            <span class="cv-hint block">{{ s.city }} · {{ regionLabels[s.region] }}</span>
+          </td>
+          <td>{{ s.address }}@if (s.phone) { <span class="cv-hint block">{{ s.phone }}</span> }</td>
+          <td class="tnum">{{ s.openTime }} – {{ s.closeTime }}</td>
+          <td><span class="cv-badge" [class]="s.status === 'VISIBLE' ? 'success' : 'neutral'">{{ s.status === 'VISIBLE' ? 'Đang hiện' : 'Đang ẩn' }}</span></td>
+          <td class="row-actions">
+            <button type="button" class="cv-btn" (click)="openEdit(s)">Sửa</button>
+            <button type="button" class="cv-btn danger" (click)="askDelete(s)">Xóa</button>
+          </td>
+        </tr>
+      } @empty {
+        @if (list()) {
+          <tr><td colspan="5" class="cv-empty">Chưa có cửa hàng nào. Bấm "Thêm cửa hàng" để thêm điểm đầu tiên.</td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<dialog #dialog class="cv-dialog wide-dialog" aria-labelledby="sr-title" (close)="formError.set(null)">
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <h2 id="sr-title">{{ editing() ? 'Sửa cửa hàng' : 'Thêm cửa hàng' }}</h2>
+    @if (formError()) {
+      <div class="cv-alert" role="alert">{{ formError() }}</div>
+    }
+    <div class="grid">
+      <div class="cv-field span2">
+        <label for="sr-name">Tên cửa hàng</label>
+        <input id="sr-name" class="cv-input" formControlName="name" [class.invalid]="invalid('name')" />
+        @if (invalid('name')) { <span class="cv-error-text">Nhập tên từ 2 ký tự.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="sr-city">Tỉnh/thành</label>
+        <input id="sr-city" class="cv-input" formControlName="city" [class.invalid]="invalid('city')" />
+        @if (invalid('city')) { <span class="cv-error-text">Nhập tỉnh/thành.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="sr-region">Miền</label>
+        <select id="sr-region" class="cv-input" formControlName="region">
+          @for (r of regions; track r[0]) { <option [value]="r[0]">{{ r[1] }}</option> }
+        </select>
+      </div>
+      <div class="cv-field span2">
+        <label for="sr-address">Địa chỉ</label>
+        <input id="sr-address" class="cv-input" formControlName="address" [class.invalid]="invalid('address')" />
+        @if (invalid('address')) { <span class="cv-error-text">Nhập địa chỉ đầy đủ.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="sr-phone">Số điện thoại</label>
+        <input id="sr-phone" class="cv-input" formControlName="phone" inputmode="tel" />
+      </div>
+      <div class="cv-field">
+        <label for="sr-order">Thứ tự hiển thị</label>
+        <input id="sr-order" class="cv-input" type="number" min="0" formControlName="displayOrder" />
+      </div>
+      <div class="cv-field">
+        <label for="sr-open">Giờ mở cửa</label>
+        <input id="sr-open" class="cv-input" type="time" formControlName="openTime" />
+      </div>
+      <div class="cv-field">
+        <label for="sr-close">Giờ đóng cửa</label>
+        <input id="sr-close" class="cv-input" type="time" formControlName="closeTime" />
+      </div>
+      <div class="cv-field">
+        <label for="sr-lat">Vĩ độ</label>
+        <input id="sr-lat" class="cv-input" type="number" step="any" formControlName="latitude" placeholder="10.7769" [class.invalid]="invalid('latitude')" />
+        @if (invalid('latitude')) { <span class="cv-error-text">Vĩ độ từ -90 đến 90.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="sr-lng">Kinh độ</label>
+        <input id="sr-lng" class="cv-input" type="number" step="any" formControlName="longitude" placeholder="106.7009" [class.invalid]="invalid('longitude')" />
+        @if (invalid('longitude')) { <span class="cv-error-text">Kinh độ từ -180 đến 180.</span> }
+      </div>
+      <p class="cv-hint span2">
+        Tọa độ quyết định vị trí điểm sáng trên bản đồ. Mở
+        <a [href]="mapsUrl()" target="_blank" rel="noopener">Google Maps</a>, bấm chuột phải vào vị trí để sao chép vĩ độ, kinh độ.
+      </p>
+      <div class="cv-field span2">
+        <label for="sr-image">Đường dẫn ảnh cửa hàng</label>
+        <input id="sr-image" class="cv-input" formControlName="image" />
+      </div>
+      <label class="check"><input type="checkbox" formControlName="visible" /> Hiện cho khách xem</label>
+      <label class="check"><input type="checkbox" formControlName="isFlagship" /> Showroom chủ lực (bản đồ nối đường từ điểm này)</label>
+    </div>
+    <div class="actions">
+      <button type="button" class="cv-btn" (click)="closeForm()">Hủy</button>
+      <button type="submit" class="cv-btn primary" [disabled]="saving()">{{ editing() ? 'Lưu thay đổi' : 'Thêm cửa hàng' }}</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog #confirmDialog class="cv-dialog" aria-labelledby="sr-del-title" (cancel)="closeDelete()">
+  @if (toDelete(); as row) {
+    <form (submit)="$event.preventDefault(); confirmDelete()">
+      <h2 id="sr-del-title">Xóa {{ row.name }}?</h2>
+      <p>Cửa hàng sẽ biến mất khỏi website khách và không khôi phục được. Muốn giữ lại dữ liệu thì chọn "Sửa" rồi bỏ chọn "Hiện cho khách xem".</p>
+      <div class="actions">
+        <button type="button" class="cv-btn" (click)="closeDelete()">Giữ lại</button>
+        <button type="submit" class="cv-btn danger" [disabled]="saving()">Xóa cửa hàng</button>
+      </div>
+    </form>
+  }
+</dialog>

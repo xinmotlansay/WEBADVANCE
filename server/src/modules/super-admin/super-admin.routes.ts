@@ -4,6 +4,8 @@ import { requireRole } from '../../middlewares/rbac.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { RoleName } from '../../lib/shared-enums.js';
 import * as c from './super-admin.controller.js';
+import { jobSchema } from './job-admin.schema.js';
+import { showroomSchema } from './showroom-admin.schema.js';
 import {
   adminListQuerySchema,
   auditLogQuerySchema,
@@ -41,3 +43,13 @@ superAdminRoutes.get('/audit-logs', ...sa, validate({ query: auditLogQuerySchema
 
 superAdminRoutes.get('/system-configs', ...sa, c.listConfigsHandler);
 superAdminRoutes.put('/system-configs/:key', ...sa, validate({ params: configKeyParamsSchema, body: updateConfigSchema }), c.updateConfigHandler);
+
+superAdminRoutes.get('/showrooms', ...sa, c.listShowroomsHandler);
+superAdminRoutes.post('/showrooms', ...sa, validate({ body: showroomSchema }), c.createShowroomHandler);
+superAdminRoutes.put('/showrooms/:id', ...sa, validate({ params: idParamsSchema, body: showroomSchema }), c.updateShowroomHandler);
+superAdminRoutes.delete('/showrooms/:id', ...sa, validate({ params: idParamsSchema }), c.deleteShowroomHandler);
+
+superAdminRoutes.get('/jobs', ...sa, c.listJobsHandler);
+superAdminRoutes.post('/jobs', ...sa, validate({ body: jobSchema }), c.createJobHandler);
+superAdminRoutes.put('/jobs/:id', ...sa, validate({ params: idParamsSchema, body: jobSchema }), c.updateJobHandler);
+superAdminRoutes.delete('/jobs/:id', ...sa, validate({ params: idParamsSchema }), c.deleteJobHandler);

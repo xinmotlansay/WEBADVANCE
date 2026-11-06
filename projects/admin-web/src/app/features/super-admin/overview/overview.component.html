@@ -126,8 +126,8 @@
               }
             } @else {
               @for (o of orders(); track o.id) {
-                <tr [class.selected]="selected().has(o.id)">
-                  <td>
+                <tr class="cv-table__row--clickable" [class.selected]="selected().has(o.id)" (click)="openPopup(o, $event)">
+                  <td (click)="$event.stopPropagation()">
                     <input
                       type="checkbox"
                       [attr.aria-label]="'Chọn đơn ' + o.orderCode"
@@ -135,7 +135,7 @@
                       (change)="toggle(o.id)"
                     />
                   </td>
-                  <td><button type="button" class="cv-id-btn" (click)="openPopup(o, $event)">#{{ o.orderCode }}</button></td>
+                  <td><button type="button" class="cv-id-btn">#{{ o.orderCode }}</button></td>
                   <td>
                     <span class="cv-person"><span class="cv-initials" aria-hidden="true">{{ fmt.initialsOf(o.customerName) }}</span>{{ o.customerName }}</span>
                   </td>

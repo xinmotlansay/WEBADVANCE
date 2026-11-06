@@ -1,172 +1,134 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { finalize } from 'rxjs';
-import { parseApiError } from '../../../core/auth/auth-error';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import * as fmt from '../../../core/format/vn-format';
 import { SuperAdminApiService } from '../super-admin-api.service';
-import type { ConfigField, ConfigGroup, ConfigItem } from '../super-admin.models';
+import type { ConfigGroup, ConfigItem } from '../super-admin.models';
+import { ConfigEditor } from './config-editor';
+import { ConfigFieldsComponent } from './config-fields.component';
+import { JobManagerComponent } from './job-manager.component';
+import { ShowroomManagerComponent } from './showroom-manager.component';
 import { SystemTabsComponent } from './system-tabs.component';
 
-/** Thứ tự hiển thị ngày làm việc: T2 → CN (giá trị 0 là Chủ nhật). */
-const WEEKDAYS = [
-  { value: 1, label: 'T2' },
-  { value: 2, label: 'T3' },
-  { value: 3, label: 'T4' },
-  { value: 4, label: 'T5' },
-  { value: 5, label: 'T6' },
-  { value: 6, label: 'T7' },
-  { value: 0, label: 'CN' },
-];
+/** Khóa `shipping` chỉnh ở màn Vận chuyển & lịch giao. */
+const HIDDEN_GROUPS = new Set(['shipping']);
 
-function getPath(value: unknown, path: string): unknown {
-  if (!path) return value;
-  return path.split('.').reduce<unknown>((acc, key) => (acc as Record<string, unknown> | null)?.[key], value);
-}
+const SHOWROOM_SECTION = {
+  key: 'showrooms',
+  label: 'Vị trí cửa hàng',
+  description: 'Điểm bán hiển thị trên bản đồ và trang Hệ thống showroom của website khách',
+};
 
-/** Gán giá trị theo đường dẫn trên bản sao, không sửa object gốc. */
-function setPath(value: unknown, path: string, next: unknown): unknown {
-  if (!path) return next;
-  const root = structuredClone(value) as Record<string, unknown>;
-  const keys = path.split('.');
-  let cursor = root;
-  for (const key of keys.slice(0, -1)) cursor = cursor[key] as Record<string, unknown>;
-  cursor[keys[keys.length - 1]] = next;
-  return root;
-}
+const JOBS_SECTION = {
+  key: 'jobs',
+  label: 'Tuyển dụng',
+  description: 'Các vị trí hiển thị ở trang Tuyển dụng của website khách',
+};
 
-/** Cấu hình hệ thống (AD-15): mỗi khóa một khối, lưu riêng từng khối, mọi thay đổi ghi nhật ký. */
+type Section =
+  | { kind: 'config'; group: ConfigGroup }
+  | { kind: 'showrooms' | 'jobs'; key: string; label: string; description: string };
+
+/** Cấu hình hệ thống (AD-15): mỗi nhóm một thẻ, lưu cả nhóm một lần, mọi thay đổi ghi nhật ký. */
 @Component({
   selector: 'app-sa-system-config',
-  imports: [SystemTabsComponent],
+  imports: [SystemTabsComponent, ConfigFieldsComponent, ShowroomManagerComponent, JobManagerComponent],
   templateUrl: './system-config.component.html',
   styleUrl: './system.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SystemConfigComponent {
-  private readonly api = inject(SuperAdminApiService);
+  protected readonly fmt = fmt;
+  protected readonly editor = new ConfigEditor(inject(SuperAdminApiService), (g) => !HIDDEN_GROUPS.has(g.key));
 
-  readonly fmt = fmt;
-  readonly weekdays = WEEKDAYS;
+  /** Thứ tự trang: thông tin chân trang → vị trí cửa hàng → các nhóm còn lại. */
+  protected readonly sections = computed<Section[]>(() => {
+    const groups = this.editor.groups() ?? [];
+    const sections: Section[] = groups.map((group) => ({ kind: 'config', group }));
+    const showrooms: Section = { kind: 'showrooms', ...SHOWROOM_SECTION };
+    const jobs: Section = { kind: 'jobs', ...JOBS_SECTION };
+    // Chỉ chèn sau khi đã có dữ liệu để danh sách nhóm không nhảy.
+    return groups.length ? [...sections.slice(0, 1), showrooms, jobs, ...sections.slice(1)] : [];
+  });
 
-  readonly groups = signal<ConfigGroup[] | null>(null);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly drafts = signal<Record<string, unknown>>({});
-  readonly saving = signal<string | null>(null);
-  readonly itemErrors = signal<Record<string, string>>({});
-  readonly saved = signal<string | null>(null);
+  private readonly activeKey = signal<string | null>(null);
+  private readonly pickedItem = signal<Record<string, string>>({});
+
+  /** Chỉ hiện một nhóm tại một thời điểm; mặc định nhóm đầu tiên. */
+  protected readonly active = computed<Section | null>(() => {
+    const sections = this.sections();
+    return sections.find((s) => this.keyOf(s) === this.activeKey()) ?? sections[0] ?? null;
+  });
 
   constructor() {
-    this.load();
+    this.editor.load();
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.api
-      .systemConfigs()
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: (groups) => {
-          this.groups.set(groups);
-          this.drafts.set(Object.fromEntries(groups.flatMap((g) => g.items.map((i) => [i.key, structuredClone(i.value)]))));
-        },
-        error: (err: unknown) => this.error.set(parseApiError(err).message),
-      });
+  protected keyOf(section: Section): string {
+    return section.kind === 'config' ? section.group.key : section.key;
   }
 
-  read(item: ConfigItem, field: ConfigField): unknown {
-    return getPath(this.drafts()[item.key], field.path);
+  protected labelOf(section: Section): string {
+    return section.kind === 'config' ? section.group.label : section.label;
   }
 
-  /** Tỷ lệ lưu dạng 0–1, hiển thị dạng phần trăm. */
-  display(item: ConfigItem, field: ConfigField): string | number {
-    const value = this.read(item, field);
-    if (field.type === 'percent' && typeof value === 'number') return Math.round(value * 10000) / 100;
-    return (value as string | number | undefined) ?? '';
+  protected descriptionOf(section: Section): string {
+    return section.kind === 'config' ? section.group.description : section.description;
   }
 
-  write(item: ConfigItem, field: ConfigField, raw: string | boolean): void {
-    let next: unknown = raw;
-    if (['number', 'money', 'percent'].includes(field.type)) {
-      const num = raw === '' ? NaN : Number(raw);
-      next = field.type === 'percent' ? Math.round(num * 100) / 10000 : num;
+  protected isScalar(item: ConfigItem): boolean {
+    return item.fields.length === 1;
+  }
+
+  /** Nhóm có nhiều khóa mới cần tiêu đề riêng cho từng khối; khóa một ô đã có nhãn của chính ô đó. */
+  protected showItemTitle(group: ConfigGroup, item: ConfigItem): boolean {
+    return group.items.length > 1 && !this.isScalar(item);
+  }
+
+  /** Các khối của nhóm theo tiêu đề phụ, giữ thứ tự xuất hiện. */
+  /** Nhóm gồm nhiều văn bản dài (nội dung chính sách): chọn từng mục để sửa thay vì xếp hết ra một trang. */
+  protected isPicker(group: ConfigGroup): boolean {
+    return group.items.length > 3 && group.items.every((i) => !this.isScalar(i));
+  }
+
+  protected picked(group: ConfigGroup): ConfigItem {
+    return group.items.find((i) => i.key === this.pickedItem()[group.key]) ?? group.items[0];
+  }
+
+  protected pick(group: ConfigGroup, key: string): void {
+    this.pickedItem.update((p) => ({ ...p, [group.key]: key }));
+  }
+
+  protected blocks(group: ConfigGroup): { title: string | null; scalars: ConfigItem[]; objects: ConfigItem[] }[] {
+    const out: { title: string | null; scalars: ConfigItem[]; objects: ConfigItem[] }[] = [];
+    const items = this.isPicker(group) ? [this.picked(group)] : group.items;
+    for (const item of items) {
+      const title = item.subgroup;
+      let block = out[out.length - 1];
+      if (!block || block.title !== title || !title) {
+        block = { title, scalars: [], objects: [] };
+        out.push(block);
+      }
+      (this.isScalar(item) ? block.scalars : block.objects).push(item);
     }
-    this.drafts.update((d) => ({ ...d, [item.key]: setPath(d[item.key], field.path, next) }));
-    this.clearError(item.key);
+    return out;
   }
 
-  hasDay(item: ConfigItem, field: ConfigField, day: number): boolean {
-    return ((this.read(item, field) as number[] | undefined) ?? []).includes(day);
+  protected dirtyCount(group: ConfigGroup): number {
+    return this.editor.dirtyItems(group).length;
   }
 
-  toggleDay(item: ConfigItem, field: ConfigField, day: number): void {
-    const days = new Set((this.read(item, field) as number[] | undefined) ?? []);
-    if (days.has(day)) days.delete(day);
-    else days.add(day);
-    this.drafts.update((d) => ({ ...d, [item.key]: setPath(d[item.key], field.path, [...days].sort()) }));
-    this.clearError(item.key);
+  protected lastChange(group: ConfigGroup): { at: string; by: string | null } | null {
+    const latest = group.items
+      .filter((i) => i.updatedAt)
+      .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))[0];
+    return latest?.updatedAt ? { at: latest.updatedAt, by: latest.updatedByName } : null;
   }
 
-  isDirty(item: ConfigItem): boolean {
-    return JSON.stringify(this.drafts()[item.key]) !== JSON.stringify(item.value);
+  protected groupError(group: ConfigGroup): string | null {
+    const errors = this.editor.itemErrors();
+    return group.items.map((i) => errors[i.key]).find(Boolean) ?? null;
   }
 
-  reset(item: ConfigItem): void {
-    this.drafts.update((d) => ({ ...d, [item.key]: structuredClone(item.value) }));
-    this.clearError(item.key);
-  }
-
-  save(item: ConfigItem): void {
-    const value = this.drafts()[item.key];
-    this.saving.set(item.key);
-    this.clearError(item.key);
-    this.api
-      .updateSystemConfig(item.key, value)
-      .pipe(finalize(() => this.saving.set(null)))
-      .subscribe({
-        next: (res) => {
-          this.groups.update((groups) =>
-            (groups ?? []).map((g) => ({
-              ...g,
-              items: g.items.map((i) =>
-                i.key === item.key
-                  ? { ...i, value: res.value, isDefault: false, updatedAt: new Date().toISOString(), updatedByName: 'Bạn' }
-                  : i,
-              ),
-            })),
-          );
-          this.drafts.update((d) => ({ ...d, [item.key]: structuredClone(res.value) }));
-          this.saved.set(item.key);
-          setTimeout(() => this.saved() === item.key && this.saved.set(null), 4000);
-        },
-        error: (err: unknown) => {
-          const parsed = parseApiError(err);
-          this.itemErrors.update((e) => ({ ...e, [item.key]: this.describe(item, err, parsed.message) }));
-        },
-      });
-  }
-
-  scrollTo(groupKey: string): void {
-    const section = document.getElementById(`nhom-${groupKey}`);
-    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    section?.querySelector<HTMLElement>('input, textarea, select')?.focus({ preventScroll: true });
-  }
-
-  inputId(item: ConfigItem, field: ConfigField): string {
-    return `cfg-${item.key}-${field.path}`.replace(/[^a-zA-Z0-9-]/g, '-');
-  }
-
-  /** Lỗi validate trả `value.<path>`: nêu đúng tên ô bị sai. */
-  private describe(item: ConfigItem, err: unknown, fallback: string): string {
-    const details = (err as { error?: { error?: { details?: { field?: string; issue?: string }[] } } })?.error?.error?.details;
-    const first = Array.isArray(details) ? details[0] : undefined;
-    if (!first?.field) return fallback;
-    const path = first.field.replace(/^value\.?/, '');
-    const field = item.fields.find((f) => f.path === path);
-    return field ? `${field.label}: ${first.issue}` : fallback;
-  }
-
-  private clearError(key: string): void {
-    if (this.itemErrors()[key]) this.itemErrors.update(({ [key]: _, ...rest }) => rest);
+  protected select(key: string): void {
+    this.activeKey.set(key);
   }
 }

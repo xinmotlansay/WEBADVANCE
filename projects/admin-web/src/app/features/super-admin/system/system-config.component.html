@@ -9,127 +9,116 @@
 
     <app-sa-system-tabs />
 
-    @if (error()) {
+    @if (editor.error()) {
       <div class="cv-alert gap" role="alert">
-        <span>Không tải được cấu hình. {{ error() }}</span>
-        <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+        <span>Không tải được cấu hình. {{ editor.error() }}</span>
+        <button type="button" class="cv-btn" (click)="editor.load()">Thử lại</button>
       </div>
     }
 
-    @if (loading() && !groups()) {
+    @if (editor.loading() && !editor.groups()) {
       @for (i of [1, 2, 3]; track i) {
         <div class="cv-card gap"><span class="cv-skeleton w40"></span><span class="cv-skeleton tall"></span></div>
       }
     }
 
-    @for (group of groups() ?? []; track group.key) {
-      <section class="group" [id]="'nhom-' + group.key" [attr.aria-labelledby]="'title-' + group.key">
-        <h2 class="cv-label" [id]="'title-' + group.key">{{ group.label }}</h2>
-        @for (item of group.items; track item.key) {
-          <form class="cv-card item" (submit)="$event.preventDefault(); save(item)">
-            <div class="item-head">
-              <div>
-                <h3>{{ item.label }}</h3>
-                @if (item.description) {
-                  <p class="cv-hint">{{ item.description }}</p>
+    @if (active(); as section) {
+    <div class="layout">
+      <nav class="sections" aria-label="Nhóm cấu hình">
+        @for (item of sections(); track keyOf(item)) {
+          <button type="button" class="sec-btn" [class.on]="keyOf(item) === keyOf(section)" [attr.aria-current]="keyOf(item) === keyOf(section) ? 'true' : null" (click)="select(keyOf(item))">
+            <span>{{ labelOf(item) }}</span>
+            @if (item.kind === 'config' && dirtyCount(item.group) > 0) {
+              <span class="cv-badge attention">Chưa lưu</span>
+            }
+          </button>
+        }
+      </nav>
+      <section class="cv-card section" [id]="'nhom-' + keyOf(section)" [attr.aria-labelledby]="'title-' + keyOf(section)">
+        <header class="section-head">
+          <div>
+            <h2 [id]="'title-' + keyOf(section)">{{ labelOf(section) }}</h2>
+            @if (descriptionOf(section)) {
+              <p class="cv-hint">{{ descriptionOf(section) }}</p>
+            }
+          </div>
+          @if (section.kind === 'config') {
+            @if (lastChange(section.group); as last) {
+              <span class="cv-hint meta">Sửa lần cuối {{ fmt.formatDateTime(last.at) }}@if (last.by) { bởi {{ last.by }} }</span>
+            } @else {
+              <span class="cv-hint meta">Đang dùng giá trị mặc định</span>
+            }
+          }
+        </header>
+
+        @if (section.kind === 'showrooms') {
+          <app-sa-showroom-manager />
+        } @else if (section.kind === 'jobs') {
+          <app-sa-job-manager />
+        } @else {
+          <form class="section-body" (submit)="$event.preventDefault(); editor.save(section.group)">
+            @if (isPicker(section.group)) {
+              <div class="picker" role="tablist" aria-label="Chọn trang chính sách">
+                @for (item of section.group.items; track item.key) {
+                  <button type="button" role="tab" class="pick" [class.on]="picked(section.group).key === item.key" [attr.aria-selected]="picked(section.group).key === item.key" (click)="pick(section.group, item.key)">
+                    {{ item.label }}@if (editor.isDirty(item)) { <span class="cv-badge attention">Chưa lưu</span> }
+                  </button>
                 }
               </div>
-              <span class="cv-hint meta">
-                @if (item.isDefault) {
-                  Đang dùng giá trị mặc định
-                } @else if (item.updatedAt) {
-                  Sửa lần cuối {{ fmt.formatDateTime(item.updatedAt) }}@if (item.updatedByName) { bởi {{ item.updatedByName }} }
+              <p class="cv-hint">{{ picked(section.group).description }}</p>
+            }
+            @for (block of blocks(section.group); track $index) {
+              <div class="block">
+                @if (block.title) {
+                  <h3 class="block-title">{{ block.title }}</h3>
                 }
-              </span>
-            </div>
-
-            <div class="fields">
-              @for (field of item.fields; track field.path) {
-                @switch (field.type) {
-                  @case ('boolean') {
-                    <label class="toggle">
-                      <input type="checkbox" [checked]="read(item, field)" (change)="write(item, field, $any($event.target).checked)" />
-                      {{ field.label }}
-                    </label>
-                  }
-                  @case ('weekdays') {
-                    <fieldset class="cv-field days wide">
-                      <legend class="cv-field-label">{{ field.label }}</legend>
-                      <div class="day-row">
-                        @for (d of weekdays; track d.value) {
-                          <label class="day" [class.on]="hasDay(item, field, d.value)">
-                            <input type="checkbox" [checked]="hasDay(item, field, d.value)" (change)="toggleDay(item, field, d.value)" />
-                            {{ d.label }}
-                          </label>
-                        }
-                      </div>
-                    </fieldset>
-                  }
-                  @case ('textarea') {
-                    <div class="cv-field wide">
-                      <label [for]="inputId(item, field)">{{ field.label }}</label>
-                      <textarea class="cv-input" [id]="inputId(item, field)" [value]="display(item, field)" (input)="write(item, field, $any($event.target).value)"></textarea>
-                    </div>
-                  }
-                  @default {
-                    <div class="cv-field">
-                      <label [for]="inputId(item, field)">{{ field.label }}</label>
-                      <span class="with-unit">
-                        <input
-                          class="cv-input"
-                          [id]="inputId(item, field)"
-                          [type]="field.type === 'time' ? 'time' : field.type === 'email' ? 'email' : ['number', 'money', 'percent'].includes(field.type) ? 'number' : 'text'"
-                          [attr.step]="field.type === 'money' ? 1000 : field.type === 'percent' ? 0.1 : null"
-                          [attr.min]="['number', 'money', 'percent'].includes(field.type) ? 0 : null"
-                          [value]="display(item, field)"
-                          (input)="write(item, field, $any($event.target).value)"
-                        />
-                        @if (field.unit) {
-                          <span class="unit">{{ field.unit }}</span>
-                        }
-                      </span>
-                      @if (field.type === 'money' && $any(read(item, field)) >= 1000) {
-                        <span class="cv-hint">{{ fmt.formatMoney($any(read(item, field))) }}</span>
-                      }
-                      @if (field.hint) {
-                        <span class="cv-hint">{{ field.hint }}</span>
-                      }
-                    </div>
-                  }
+                @if (block.scalars.length) {
+                  <div class="scalars">
+                    @for (item of block.scalars; track item.key) {
+                      <app-config-fields [item]="item" [value]="editor.drafts()[item.key]" (valueChange)="editor.setDraft(item.key, $event)" />
+                    }
+                  </div>
                 }
-              }
-            </div>
-
-            @if (itemErrors()[item.key]) {
-              <div class="cv-alert" role="alert">{{ itemErrors()[item.key] }}</div>
+                @for (item of block.objects; track item.key) {
+                  <div class="object-item">
+                    @if (showItemTitle(section.group, item) && !isPicker(section.group)) {
+                      <h3 class="block-title">{{ item.label }}</h3>
+                      @if (item.description) {
+                        <p class="cv-hint item-desc">{{ item.description }}</p>
+                      }
+                    }
+                    <app-config-fields [item]="item" [value]="editor.drafts()[item.key]" (valueChange)="editor.setDraft(item.key, $event)" />
+                  </div>
+                }
+              </div>
             }
 
-            <div class="item-foot">
-              @if (saved() === item.key) {
+            @if (groupError(section.group); as message) {
+              <div class="cv-alert" role="alert">{{ message }}</div>
+            }
+
+            <footer class="section-foot">
+              @if (editor.savedGroup() === section.group.key) {
                 <span class="ok" role="status">Đã lưu</span>
+              } @else if (dirtyCount(section.group) > 0) {
+                <span class="cv-hint" role="status">{{ dirtyCount(section.group) }} mục chưa lưu</span>
               }
-              <button type="button" class="cv-btn" [disabled]="!isDirty(item) || saving() === item.key" (click)="reset(item)">Hoàn tác</button>
-              <button type="submit" class="cv-btn primary" [disabled]="!isDirty(item) || saving() === item.key">Lưu</button>
-            </div>
+              <button type="button" class="cv-btn" [disabled]="dirtyCount(section.group) === 0 || editor.saving() === section.group.key" (click)="editor.reset(section.group)">Hoàn tác</button>
+              <button type="submit" class="cv-btn primary" [disabled]="dirtyCount(section.group) === 0 || editor.saving() === section.group.key">Lưu {{ section.group.label.toLowerCase() }}</button>
+            </footer>
           </form>
         }
       </section>
+    </div>
     }
   </main>
 
-  <aside class="cv-aside" aria-label="Mục lục cấu hình">
-    <section class="cv-aside-block">
-      <h2 class="cv-label">Nhóm cấu hình</h2>
-      <ul class="toc">
-        @for (group of groups() ?? []; track group.key) {
-          <li><button type="button" class="cv-btn link" (click)="scrollTo(group.key)">{{ group.label }}</button></li>
-        }
-      </ul>
-    </section>
+  <aside class="cv-aside" aria-label="Lưu ý cấu hình">
     <section class="cv-aside-block">
       <h2 class="cv-label">Lưu ý</h2>
       <ul class="rules">
-        <li>Mỗi khối lưu riêng; giá trị được kiểm tra theo kiểu trước khi lưu.</li>
+        <li>Mỗi nhóm có nút lưu riêng; giá trị được kiểm tra theo kiểu trước khi lưu.</li>
+        <li>Phí vận chuyển và lịch giao chỉnh ở màn Vận chuyển & lịch giao.</li>
         <li>Thay đổi có hiệu lực cho các chức năng đọc khóa này từ lần xử lý tiếp theo.</li>
         <li>Nhật ký ghi giá trị trước và sau; số tài khoản ngân hàng chỉ giữ 4 số cuối.</li>
       </ul>
