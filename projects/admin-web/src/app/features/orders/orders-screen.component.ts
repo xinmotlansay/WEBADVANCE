@@ -205,8 +205,12 @@ type DetailTab = 'items' | 'payment' | 'shipping' | 'history';
               </thead>
               <tbody>
                 @for (order of orders(); track order.id) {
-                  <tr [class.cv-table__row--selected]="selected().has(order.id)">
-                    <td>
+                  <tr
+                    class="cv-table__row--clickable"
+                    [class.cv-table__row--selected]="selected().has(order.id)"
+                    (click)="openDetail(order)"
+                  >
+                    <td (click)="$event.stopPropagation()">
                       <input
                         type="checkbox"
                         class="cv-table__checkbox"
@@ -216,7 +220,7 @@ type DetailTab = 'items' | 'payment' | 'shipping' | 'history';
                       />
                     </td>
                     <td>
-                      <button type="button" class="cv-table__link" (click)="openDetail(order)">
+                      <button type="button" class="cv-table__link">
                         {{ order.orderCode | orderCode }}
                       </button>
                       @if (order.isOverdue) {

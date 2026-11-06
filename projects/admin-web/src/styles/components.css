@@ -236,6 +236,23 @@
   background: #f0f6ff;
 }
 
+/* Chấm đỏ ở góc trên bên trái chữ đầu của mã: bản ghi đang chờ Admin xử lý */
+.cv-table__link--alert {
+  position: relative;
+}
+
+.cv-table__link--alert::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cv-down);
+  box-shadow: 0 0 0 2px var(--cv-surface);
+}
+
 .cv-table tbody tr.cv-table__row--clickable {
   cursor: pointer;
 }

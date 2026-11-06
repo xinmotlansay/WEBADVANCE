@@ -87,8 +87,8 @@ type ActionKind = 'REDELIVER' | 'RETURN' | 'FINALIZE';
               </thead>
               <tbody>
                 @for (order of rows(); track order.id) {
-                  <tr>
-                    <td><span class="cv-table__link">{{ order.orderCode | orderCode }}</span></td>
+                  <tr class="cv-table__row--clickable" (click)="open(order)">
+                    <td><button type="button" class="cv-table__link">{{ order.orderCode | orderCode }}</button></td>
                     <td>
                       <span class="cv-table__customer">
                         <span class="cv-avatar" aria-hidden="true">{{ initials(order.customer.fullName) }}</span>
@@ -100,7 +100,7 @@ type ActionKind = 'REDELIVER' | 'RETURN' | 'FINALIZE';
                     <td class="cv-num">{{ order.shipment?.redeliveryCount ?? 0 }}/{{ maxRedelivery }}</td>
                     <td><app-status-badge kind="order" [value]="order.status" /></td>
                     <td>
-                      <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary" (click)="open(order)">
+                      <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary">
                         <app-icon name="settings" size="sm" />
                         Xử lý
                       </button>

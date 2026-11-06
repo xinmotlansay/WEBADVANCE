@@ -51,6 +51,14 @@
   color: inherit;
 }
 
+/* .cv-page của Admin cấp cao (admin-ui.css) là flex-wrap + min-height 100vh; ở màn Order Admin nó là
+   khối dọc bình thường, nên đặt lại để hai bên không đè nhau. */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) .cv-page {
+  display: block;
+  min-height: 0;
+  background: transparent;
+}
+
 /* Tiêu đề trang không xuống dòng và không bị cắt; nếu thiếu chỗ thì thanh tìm kiếm và chuông xuống hàng */
 .cv-page-header {
   flex-wrap: wrap;
@@ -149,4 +157,27 @@
   .cv-kpi--3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* ===== Khớp lại với giao diện Admin cấp cao (admin-ui.css) =====
+   layout.css và components.css nạp sau nên đè lên các class trùng tên. Ở đây đặt lại cho đúng ý của từng bên. */
+
+/* .cv-page của Admin cấp cao đã có .cv-main lo phần đệm; layout.css thêm đệm lần nữa nên nội dung bị thu hẹp. */
+.cv-page:has(> .cv-main) {
+  flex: 0 1 auto;
+  padding: 0;
+}
+
+/* .cv-kpi của Admin cấp cao là một ô trong dải .cv-kpis; components.css định nghĩa .cv-kpi là cả dải 5 cột của Order Admin. */
+.cv-kpis > .cv-kpi {
+  display: block;
+  grid-template-columns: none;
+  overflow: visible;
+  border: 0;
+  border-left: 1px solid var(--cv-border);
+  border-radius: 0;
+}
+
+.cv-kpis > .cv-kpi:first-child {
+  border-left: 0;
 }

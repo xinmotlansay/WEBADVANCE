@@ -160,7 +160,12 @@ const STEPS: Array<{ status: WarrantyStatus; label: string }> = [
                 @for (item of items(); track item.id) {
                   <tr class="cv-table__row--clickable" (click)="open(item)">
                     <td>
-                      <button type="button" class="cv-table__link">{{ item.code }}</button>
+                      <button type="button" class="cv-table__link" [class.cv-table__link--alert]="needsAction(item)">
+                        @if (needsAction(item)) {
+                          <span class="cv-sr-only">Cần xử lý. </span>
+                        }
+                        {{ item.code }}
+                      </button>
                     </td>
                     <td>
                       <span class="cv-table__customer">{{ item.productName }}</span>
@@ -682,6 +687,15 @@ export class WarrantyScreenComponent {
   readonly schedule = signal('');
   readonly tracking = signal('');
   readonly note = signal('');
+
+  /** Phiếu đang chờ Admin quyết định hoặc bắt đầu bước tiếp theo; đang sửa chữa thì chưa cần. */
+  needsAction(item: WarrantyRequest): boolean {
+    return (
+      item.status === WarrantyStatus.PENDING_CONFIRMATION ||
+      item.status === WarrantyStatus.RECEIVED ||
+      item.status === WarrantyStatus.INSPECTING
+    );
+  }
 
   readonly pendingCount = computed(
     () => this.items().filter((item) => item.status === WarrantyStatus.PENDING_CONFIRMATION).length,

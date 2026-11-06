@@ -189,7 +189,12 @@ const REFUND_STEPS: Array<{ status: ReturnStatus; label: string }> = [
                 @for (item of items(); track item.id) {
                   <tr class="cv-table__row--clickable" (click)="open(item)">
                     <td>
-                      <button type="button" class="cv-table__link">{{ item.code }}</button>
+                      <button type="button" class="cv-table__link" [class.cv-table__link--alert]="needsAction(item)">
+                        @if (needsAction(item)) {
+                          <span class="cv-sr-only">Cần xử lý. </span>
+                        }
+                        {{ item.code }}
+                      </button>
                     </td>
                     <td>{{ item.orderCode | orderCode }}</td>
                     <td>
@@ -856,6 +861,16 @@ export class ReturnsScreenComponent {
   readonly replacementSku = signal('');
   readonly replacementQuantity = signal(1);
   readonly replacementTrackingCode = signal('');
+
+  /** Yêu cầu đang chờ Admin: duyệt, hẹn lấy hàng, kiểm tra hàng, hoặc xác nhận hoàn tiền ở Thanh toán. */
+  needsAction(item: ReturnRequest): boolean {
+    return (
+      item.status === ReturnStatus.PENDING ||
+      item.status === ReturnStatus.CONFIRMED ||
+      item.status === ReturnStatus.PROCESSING ||
+      item.status === ReturnStatus.AWAITING_REFUND
+    );
+  }
 
   readonly pendingCount = computed(
     () => this.items().filter((item) => item.status === ReturnStatus.PENDING).length,

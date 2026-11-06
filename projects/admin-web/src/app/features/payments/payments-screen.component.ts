@@ -111,158 +111,6 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
         </button>
       </app-page-header>
 
-      <section class="cv-panel" style="margin-bottom: 20px" aria-labelledby="refunds-title">
-        <div class="cv-panel__head">
-          <h2 class="cv-panel__title" id="refunds-title">Hàng đợi hoàn tiền</h2>
-          <span class="cv-tag">{{ refunds().length }} khoản</span>
-        </div>
-
-        @if (refundLoading()) {
-          <app-table-skeleton [rows]="[1, 2]" />
-        } @else if (refunds().length === 0) {
-          <p class="cv-small cv-muted">Không có khoản nào đang chờ hoàn tiền cho khách.</p>
-        } @else {
-          <div class="exception-grid">
-            @for (item of refunds(); track item.id) {
-              <article class="exception">
-                <div class="cv-spread">
-                  <span class="cv-badge cv-badge--warning">{{ refundSourceLabel(item) }}</span>
-                  <span
-                    class="cv-badge"
-                    [class]="'cv-badge cv-badge--' + (item.status === 'PROCESSING' ? 'info' : 'warning')"
-                    >{{ refundLabel(item) }}</span
-                  >
-                </div>
-                <p class="cv-small cv-muted">{{ item.transactionAt | dateVn: 'datetime' }}</p>
-                <p class="exception__code">
-                  @if (item.orderCode) {
-                    {{ item.orderCode | orderCode }}
-                  } @else {
-                    <span class="cv-muted">Chưa gắn đơn</span>
-                  }
-                  @if (item.customerName) {
-                    <span class="cv-muted">· {{ item.customerName }}</span>
-                  }
-                </p>
-                <dl class="cv-kv exception__kv">
-                  <dt>Cần hoàn</dt>
-                  <dd class="cv-num">{{ item.amount | vnd }}</dd>
-                  <dt>Hoàn về</dt>
-                  <dd>{{ destinationLabel(item) }}</dd>
-                  @if (item.refundAccount; as account) {
-                    <dt>Ngân hàng</dt>
-                    <dd>{{ account.bankName }}</dd>
-                    <dt>Số tài khoản</dt>
-                    <dd class="cv-num">{{ account.accountNumber }}</dd>
-                    <dt>Chủ tài khoản</dt>
-                    <dd>{{ account.accountHolder }}</dd>
-                  } @else if (item.refundTo === 'SOURCE_BANK' && item.originalTransactionCode) {
-                    <dt>Giao dịch gốc</dt>
-                    <dd class="cv-num">{{ item.originalTransactionCode }}</dd>
-                  }
-                  @if (item.returnCode) {
-                    <dt>Phiếu trả hàng</dt>
-                    <dd>{{ item.returnCode }}</dd>
-                  }
-                </dl>
-                @if (item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount) {
-                  <p class="cv-small cv-error">Chưa có tài khoản nhận hoàn tiền, cần liên hệ khách.</p>
-                }
-                @if (item.refundTo === 'SOURCE_BANK') {
-                  <p class="cv-small cv-muted">
-                    Hoàn về tài khoản đã chuyển tiền, theo quy định của ngân hàng.
-                  </p>
-                }
-                @if (item.note) {
-                  <p class="cv-small cv-muted">{{ item.note }}</p>
-                }
-                @if (item.status === 'PROCESSING') {
-                  <button
-                    type="button"
-                    class="cv-btn cv-btn--primary cv-btn--block"
-                    (click)="openRefund(item)"
-                  >
-                    <app-icon name="wallet" size="sm" />
-                    Hoàn tất hoàn tiền
-                  </button>
-                } @else {
-                  <button
-                    type="button"
-                    class="cv-btn cv-btn--secondary cv-btn--block"
-                    [disabled]="item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount"
-                    (click)="startingRefund.set(item)"
-                  >
-                    <app-icon name="wallet" size="sm" />
-                    Xác nhận hoàn tiền
-                  </button>
-                }
-              </article>
-            }
-          </div>
-        }
-      </section>
-
-      <section class="cv-panel" style="margin-bottom: 20px" aria-labelledby="exceptions-title">
-        <div class="cv-panel__head">
-          <h2 class="cv-panel__title" id="exceptions-title">Hàng đợi ngoại lệ QR</h2>
-          <span class="cv-tag">{{ exceptions().length }} giao dịch</span>
-        </div>
-
-        @if (exceptionLoading()) {
-          <app-table-skeleton [rows]="[1, 2, 3]" />
-        } @else if (exceptions().length === 0) {
-          <p class="cv-small cv-muted">Không còn giao dịch nào cần đối soát thủ công.</p>
-        } @else {
-          <div class="exception-grid">
-            @for (item of exceptions(); track item.transaction.id) {
-              <article class="exception">
-                <div class="cv-spread">
-                  <span class="cv-badge" [class]="'cv-badge cv-badge--' + toneOf(item.reason)">
-                    {{ labelOf(item.reason) }}
-                  </span>
-                  <span class="cv-small cv-muted">{{
-                    item.transaction.transactionAt | dateVn: 'datetime'
-                  }}</span>
-                </div>
-                <p class="exception__code">
-                  {{ item.transaction.bankTransactionCode }}
-                  <span class="cv-muted">· {{ item.transaction.receivedContent }}</span>
-                </p>
-                <dl class="cv-kv exception__kv">
-                  <dt>Cần thu</dt>
-                  <dd class="cv-num">{{ item.expectedAmount | vnd }}</dd>
-                  <dt>Đã nhận</dt>
-                  <dd class="cv-num">{{ item.receivedAmount | vnd }}</dd>
-                  <dt>Chênh lệch</dt>
-                  <dd
-                    class="cv-num"
-                    [style.color]="
-                      item.receivedAmount - item.expectedAmount < 0
-                        ? 'var(--cv-down)'
-                        : 'var(--cv-up)'
-                    "
-                  >
-                    {{ item.receivedAmount - item.expectedAmount | vnd }}
-                  </dd>
-                  @if (item.transferContent) {
-                    <dt>Nội dung đúng</dt>
-                    <dd>{{ item.transferContent }}</dd>
-                  }
-                </dl>
-                <button
-                  type="button"
-                  class="cv-btn cv-btn--secondary cv-btn--block"
-                  (click)="openResolve(item)"
-                >
-                  <app-icon name="wallet" size="sm" />
-                  Xử lý đối soát
-                </button>
-              </article>
-            }
-          </div>
-        }
-      </section>
-
       <div class="cv-filter-row">
         <app-filter-chip
           label="Đối soát"
@@ -282,7 +130,16 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
           [value]="refundStatus()"
           (valueChange)="refundStatus.set($event); page.set(1); load()"
         />
-        @if (keyword() || reconciliation() !== 'ALL' || type() !== 'ALL' || refundStatus() !== 'ALL') {
+        <button
+          type="button"
+          class="cv-chip"
+          [class.cv-chip--active]="onlyPending()"
+          [attr.aria-pressed]="onlyPending()"
+          (click)="onlyPending.set(!onlyPending())"
+        >
+          Cần xử lý ({{ pendingCount() }})
+        </button>
+        @if (keyword() || onlyPending() || reconciliation() !== 'ALL' || type() !== 'ALL' || refundStatus() !== 'ALL') {
           <button type="button" class="cv-chip" (click)="resetFilters()">
             <app-icon name="x" size="sm" />
             Xóa bộ lọc
@@ -294,7 +151,7 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
         <app-table-skeleton [rows]="[1, 2, 3, 4, 5, 6]" />
       } @else if (error()) {
         <app-error-state [message]="error()" (retry)="load()" />
-      } @else if (transactions().length === 0) {
+      } @else if (visible().length === 0) {
         <app-empty-state
           icon="credit-card"
           title="Không có giao dịch phù hợp"
@@ -323,12 +180,24 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
                 </tr>
               </thead>
               <tbody>
-                @for (item of transactions(); track item.id) {
-                  <tr>
+                @for (item of visible(); track item.id) {
+                  <tr
+                    [class.cv-table__row--clickable]="needsAction(item)"
+                    (click)="needsAction(item) && openAction(item)"
+                  >
                     <td>
-                      <span class="cv-num">{{
-                        item.bankTransactionCode || item.originalTransactionCode || '—'
-                      }}</span>
+                      @if (needsAction(item)) {
+                        <button type="button" class="cv-table__link cv-table__link--alert">
+                          <span class="cv-sr-only">Cần xử lý. </span>
+                          <span class="cv-num">{{
+                            item.bankTransactionCode || item.originalTransactionCode || '—'
+                          }}</span>
+                        </button>
+                      } @else {
+                        <span class="cv-num">{{
+                          item.bankTransactionCode || item.originalTransactionCode || '—'
+                        }}</span>
+                      }
                     </td>
                     <td>
                       @if (item.orderCode) {
@@ -367,7 +236,9 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
               </tbody>
             </table>
           </div>
-          <app-pagination [meta]="meta()" (pageChange)="page.set($event); load()" />
+          @if (!onlyPending()) {
+            <app-pagination [meta]="meta()" (pageChange)="page.set($event); load()" />
+          }
         </div>
       }
     </div>
@@ -376,7 +247,7 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
       <div class="cv-rail__hero">
         <p class="cv-label">Tổng thu trên trang</p>
         <p class="cv-hero-num">{{ pageTotal() | shortVnd }}</p>
-        <p class="cv-small cv-muted">{{ transactions().length }} giao dịch</p>
+        <p class="cv-small cv-muted">{{ visible().length }} giao dịch</p>
       </div>
       <div class="cv-rail__block">
         <p class="cv-label" style="margin-bottom: 12px">Ngoại lệ đang chờ</p>
@@ -408,6 +279,72 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
         <p class="cv-small cv-muted">Không gồm giao dịch đang chờ xử lý.</p>
       </div>
     </aside>
+
+    @if (refundDetail(); as item) {
+      <app-detail-popup
+        [open]="refundDetail() !== null"
+        title="Khoản cần hoàn tiền"
+        (closed)="refundDetail.set(null)"
+      >
+        <div popupBody class="cv-stack">
+          <div class="cv-alert-box">
+            {{ refundSourceLabel(item) }} · {{ refundLabel(item) }} ·
+            {{ item.transactionAt | dateVn: 'datetime' }}
+          </div>
+          <dl class="cv-kv">
+            <dt>Đơn hàng</dt>
+            <dd>{{ item.orderCode ? (item.orderCode | orderCode) : 'Chưa gắn đơn' }}</dd>
+            @if (item.customerName) {
+              <dt>Khách hàng</dt>
+              <dd>{{ item.customerName }}</dd>
+            }
+            <dt>Cần hoàn</dt>
+            <dd class="cv-num">{{ item.amount | vnd }}</dd>
+            <dt>Hoàn về</dt>
+            <dd>{{ destinationLabel(item) }}</dd>
+            @if (item.refundAccount; as account) {
+              <dt>Ngân hàng</dt>
+              <dd>{{ account.bankName }}</dd>
+              <dt>Số tài khoản</dt>
+              <dd class="cv-num">{{ account.accountNumber }}</dd>
+              <dt>Chủ tài khoản</dt>
+              <dd>{{ account.accountHolder }}</dd>
+            } @else if (item.refundTo === 'SOURCE_BANK' && item.originalTransactionCode) {
+              <dt>Giao dịch gốc</dt>
+              <dd class="cv-num">{{ item.originalTransactionCode }}</dd>
+            }
+            @if (item.returnCode) {
+              <dt>Phiếu trả hàng</dt>
+              <dd>{{ item.returnCode }}</dd>
+            }
+          </dl>
+          @if (item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount) {
+            <p class="cv-small cv-error">Chưa có tài khoản nhận hoàn tiền, cần liên hệ khách.</p>
+          }
+          @if (item.refundTo === 'SOURCE_BANK') {
+            <p class="cv-small cv-muted">
+              Hoàn về tài khoản đã chuyển tiền, theo quy định của ngân hàng.
+            </p>
+          }
+          @if (item.note) {
+            <p class="cv-small cv-muted">{{ item.note }}</p>
+          }
+        </div>
+        <div popupFooter>
+          <button type="button" class="cv-btn cv-btn--secondary" (click)="refundDetail.set(null)">
+            Đóng
+          </button>
+          <button
+            type="button"
+            class="cv-btn cv-btn--primary"
+            [disabled]="item.refundTo === 'CUSTOMER_ACCOUNT' && !item.refundAccount"
+            (click)="startingRefund.set(item); refundDetail.set(null)"
+          >
+            Xác nhận hoàn tiền
+          </button>
+        </div>
+      </app-detail-popup>
+    }
 
     @if (resolving(); as item) {
       <app-detail-popup
@@ -594,32 +531,6 @@ const RESOLVE_OPTIONS: Array<{ value: ResolveAction; label: string }> = (
   `,
   styles: [
     `
-      .exception-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 12px;
-      }
-
-      .exception {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 14px;
-        border: 1px solid var(--cv-border);
-        border-radius: var(--cv-radius);
-        background: var(--cv-surface-alt);
-      }
-
-      .exception__code {
-        font-size: var(--cv-text-small);
-        font-weight: 600;
-      }
-
-      .exception__kv {
-        grid-template-columns: 90px 1fr;
-        gap: 4px 8px;
-      }
-
       .rule-list {
         margin: 0;
         padding-left: 18px;
@@ -657,6 +568,32 @@ export class PaymentsScreenComponent {
   readonly refunds = signal<PaymentTransaction[]>([]);
   readonly refundLoading = signal(true);
   readonly refunding = signal<PaymentTransaction | null>(null);
+  readonly refundDetail = signal<PaymentTransaction | null>(null);
+  private readonly exceptionByTransaction = computed(
+    () => new Map(this.exceptions().map((entry) => [entry.transaction.id, entry])),
+  );
+  readonly onlyPending = signal(false);
+  private readonly pendingItems = computed(() => {
+    const byId = new Map<string, PaymentTransaction>();
+    for (const entry of this.exceptions()) byId.set(entry.transaction.id, entry.transaction);
+    for (const entry of this.refunds()) byId.set(entry.id, entry);
+    return [...byId.values()];
+  });
+  readonly pendingCount = computed(() => this.pendingItems().length);
+  /** Bật "Cần xử lý": gom ngoại lệ QR và khoản hoàn chưa xong, không phân trang. */
+  readonly visible = computed(() => {
+    if (!this.onlyPending()) return this.transactions();
+    const keyword = this.keyword().trim().toLowerCase();
+    return this.pendingItems()
+      .filter(
+        (item) =>
+          !keyword ||
+          [item.bankTransactionCode, item.originalTransactionCode, item.orderCode, item.customerName]
+            .some((value) => value?.toLowerCase().includes(keyword)),
+      )
+      .sort((a, b) => b.transactionAt.localeCompare(a.transactionAt));
+  });
+  private readonly refundIds = computed(() => new Set(this.refunds().map((entry) => entry.id)));
   readonly startingRefund = signal<PaymentTransaction | null>(null);
   readonly startMessage = computed(() => {
     const item = this.startingRefund();
@@ -677,7 +614,7 @@ export class PaymentsScreenComponent {
   readonly busy = signal(false);
 
   readonly pageTotal = computed(() =>
-    this.transactions().reduce((sum, item) => sum + item.amount, 0),
+    this.visible().reduce((sum, item) => sum + item.amount, 0),
   );
 
   readonly confirmMessage = computed(() => {
@@ -772,6 +709,22 @@ export class PaymentsScreenComponent {
           );
         },
       });
+  }
+
+  /** Giao dịch đang chờ Admin: ngoại lệ QR cần đối soát hoặc khoản hoàn chưa hoàn tất. */
+  needsAction(item: PaymentTransaction): boolean {
+    return this.exceptionByTransaction().has(item.id) || this.refundIds().has(item.id);
+  }
+
+  openAction(item: PaymentTransaction): void {
+    const exception = this.exceptionByTransaction().get(item.id);
+    if (exception) {
+      this.openResolve(exception);
+      return;
+    }
+    const refund = this.refunds().find((entry) => entry.id === item.id) ?? item;
+    if (refund.status === 'PROCESSING') this.openRefund(refund);
+    else this.refundDetail.set(refund);
   }
 
   openRefund(item: PaymentTransaction): void {
@@ -870,6 +823,7 @@ export class PaymentsScreenComponent {
     this.reconciliation.set('ALL');
     this.type.set('ALL');
     this.refundStatus.set('ALL');
+    this.onlyPending.set(false);
     this.page.set(1);
     this.load();
   }

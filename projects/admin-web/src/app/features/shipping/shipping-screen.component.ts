@@ -3,12 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   CARAVESO_CARRIER,
+  RoleName,
   LateCompensationStatus,
   AdminOrderStatus as OrderStatus,
   type LateCompensationRequest,
   type AdminOrderDetail as OrderDetail,
   type OrderListItem,
 } from 'shared';
+import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { AdminDashboardApi } from '../../core/api/admin-dashboard.api';
 import { AdminOrderApi } from '../../core/api/admin-order.api';
 import { DateVnPipe, OrderCodePipe, VndPipe } from '../../core/format/format.pipes';
@@ -25,6 +27,7 @@ import {
   TableSkeletonComponent,
 } from '../../shared/ui/states/state-components';
 import { StatusBadgeComponent } from '../../shared/ui/status-badge/status-badge.component';
+import { ShippingSettingsComponent } from './shipping-settings.component';
 
 const STAGE_OPTIONS: FilterOption[] = [
   { value: 'ALL', label: 'Tất cả vận chuyển' },
@@ -33,6 +36,32 @@ const STAGE_OPTIONS: FilterOption[] = [
   { value: OrderStatus.SHIPPING, label: 'Đang giao' },
   { value: OrderStatus.DELIVERED, label: 'Đã giao' },
 ];
+
+/** Lọc theo ngày dự kiến giao. "overdue" = đã quá ngày dự kiến mà đơn chưa giao xong. */
+const DATE_OPTIONS: FilterOption[] = [
+  { value: 'ALL', label: 'Mọi ngày giao' },
+  { value: 'today', label: 'Giao hôm nay' },
+  { value: 'tomorrow', label: 'Giao ngày mai' },
+  { value: '7d', label: '7 ngày tới' },
+  { value: 'overdue', label: 'Quá hạn giao' },
+  { value: 'none', label: 'Chưa có lịch giao' },
+];
+
+const DAY_MS = 86_400_000;
+
+function startOfDay(time: number): number {
+  const date = new Date(time);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/** Số nhỏ = cần xử lý sớm hơn. Mỗi công đoạn trước "Đã giao" còn một thao tác chờ Admin. */
+const ACTION_PRIORITY: Partial<Record<OrderStatus, number>> & Record<string, number> = {
+  [OrderStatus.CONFIRMED]: 0,
+  [OrderStatus.HANDED_OVER]: 1,
+  [OrderStatus.SHIPPING]: 2,
+  [OrderStatus.DELIVERED]: 3,
+};
 
 const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
 
@@ -45,6 +74,7 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
     IconComponent,
     FilterChipComponent,
     StatusBadgeComponent,
+    ShippingSettingsComponent,
     DetailPopupComponent,
     ConfirmDialogComponent,
     ReasonDialogComponent,
@@ -73,16 +103,22 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
           <app-icon name="printer" size="sm" />
           In phiếu bàn giao
         </button>
+        @if (isSuperAdmin()) {
+          <button type="button" class="cv-btn cv-btn--secondary" (click)="settings.open()">
+            <app-icon name="settings" size="sm" />
+            Phí và lịch giao
+          </button>
+        }
       </app-page-header>
 
+      <app-shipping-settings #settings />
+
+      @if (pendingCompensations().length > 0) {
       <section class="cv-panel" style="margin-bottom: 20px" aria-labelledby="late-title">
         <div class="cv-panel__head">
           <h2 class="cv-panel__title" id="late-title">Duyệt voucher bù giao trễ</h2>
           <span class="cv-tag">{{ pendingCompensations().length }} chờ duyệt</span>
         </div>
-        @if (pendingCompensations().length === 0) {
-          <p class="cv-small cv-muted">Không có yêu cầu nào chờ duyệt.</p>
-        } @else {
           <div class="late-grid">
             @for (item of pendingCompensations(); track item.id) {
               <article class="late-card">
@@ -103,8 +139,8 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
               </article>
             }
           </div>
-        }
       </section>
+      }
 
       <div class="cv-filter-row">
         <app-filter-chip
@@ -113,7 +149,13 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
           [value]="stage()"
           (valueChange)="stage.set($event)"
         />
-        @if (stage() !== 'ALL' || keyword()) {
+        <app-filter-chip
+          label="Ngày giao"
+          [options]="dateOptions"
+          [value]="dateRange()"
+          (valueChange)="dateRange.set($event)"
+        />
+        @if (stage() !== 'ALL' || dateRange() !== 'ALL' || keyword()) {
           <button type="button" class="cv-chip" (click)="resetFilters()">
             <app-icon name="x" size="sm" />
             Xóa bộ lọc
@@ -152,12 +194,19 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
               </thead>
               <tbody>
                 @for (order of rows(); track order.id) {
-                  <tr>
-                    <td><span class="cv-table__link">{{ order.orderCode | orderCode }}</span></td>
+                  <tr class="cv-table__row--clickable" (click)="openOrder(order)">
+                    <td>
+                      <button type="button" class="cv-table__link" [class.cv-table__link--alert]="needsAction(order)">
+                        @if (needsAction(order)) {
+                          <span class="cv-sr-only">Cần xử lý. </span>
+                        }
+                        {{ order.orderCode | orderCode }}
+                      </button>
+                    </td>
                     <td>
                       <span class="cv-table__customer">
-                        <span class="cv-avatar" aria-hidden="true">{{ initials(order.customerName) }}</span>
-                        {{ order.customerName || 'Chưa cập nhật' }}
+                        <span class="cv-avatar" aria-hidden="true">{{ initials(order.customer.fullName) }}</span>
+                        {{ order.customer.fullName || 'Chưa cập nhật' }}
                       </span>
                     </td>
                     <td>{{ order.shipment?.assignedTeam || order.shipment?.carrier || 'Chưa gán' }}</td>
@@ -166,7 +215,7 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
                     <td class="cv-num">{{ order.shipment?.redeliveryCount ?? 0 }}/2</td>
                     <td><app-status-badge kind="order" [value]="order.status" /></td>
                     <td>
-                      <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary" (click)="openOrder(order)">
+                      <button type="button" class="cv-btn cv-btn--sm cv-btn--secondary">
                         <app-icon name="settings" size="sm" />
                         Xử lý
                       </button>
@@ -218,7 +267,7 @@ const CARRIERS = [CARAVESO_CARRIER, 'GHN', 'GHTK', 'Viettel Post'];
         <div popupBody class="cv-stack">
           <div class="cv-spread">
             <app-status-badge kind="order" [value]="order.status" />
-            <span class="cv-small cv-muted">{{ order.customerName }}</span>
+            <span class="cv-small cv-muted">{{ order.customer.fullName }}</span>
           </div>
 
           <div class="cv-field">
@@ -344,12 +393,17 @@ export class ShippingScreenComponent {
   private readonly dashboardApi = inject(AdminDashboardApi);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AdminAuthService);
+  /** Chỉ Admin cấp cao được sửa phí và lịch giao. */
+  protected readonly isSuperAdmin = computed(() => this.auth.role() === RoleName.SUPER_ADMIN);
 
   readonly stageOptions = STAGE_OPTIONS;
+  readonly dateOptions = DATE_OPTIONS;
   readonly carriers = CARRIERS;
 
   readonly keyword = signal('');
   readonly stage = signal<string>('ALL');
+  readonly dateRange = signal<string>('ALL');
   readonly loading = signal(true);
   readonly error = signal('');
   readonly allOrders = signal<OrderDetail[]>([]);
@@ -374,8 +428,10 @@ export class ShippingScreenComponent {
   readonly rows = computed(() => {
     const keyword = this.keyword().trim().toLowerCase();
     const stage = this.stage();
-    return this.allOrders().filter((order) => {
+    const dateRange = this.dateRange();
+    const matched = this.allOrders().filter((order) => {
       if (stage !== 'ALL' && order.status !== stage) return false;
+      if (!this.matchesDate(order, dateRange)) return false;
       if (!keyword) return true;
       return (
         order.orderCode.toLowerCase().includes(keyword) ||
@@ -384,6 +440,9 @@ export class ShippingScreenComponent {
         (order.shipment?.trackingCode ?? '').toLowerCase().includes(keyword)
       );
     });
+    // Đơn cần xử lý lên trên (chờ bàn giao → đã bàn giao → đang giao), đơn đã giao xuống cuối; sort ổn định
+    // nên trong cùng nhóm vẫn giữ thứ tự mới nhất trước.
+    return [...matched].sort((a, b) => ACTION_PRIORITY[a.status] - ACTION_PRIORITY[b.status]);
   });
 
   readonly stageCounts = computed(() => {
@@ -469,9 +528,37 @@ export class ShippingScreenComponent {
       .subscribe({ next: (items) => this.compensations.set(items), error: () => undefined });
   }
 
+  /** Chỉ đơn đã xác nhận mà chưa bàn giao mới chờ Admin; sau đó đơn vị vận chuyển/đội xe lo phần giao. */
+  needsAction(order: OrderDetail): boolean {
+    return order.status === OrderStatus.CONFIRMED;
+  }
+
+  private matchesDate(order: OrderDetail, range: string): boolean {
+    if (range === 'ALL') return true;
+    const estimated = order.shipment?.estimatedDeliveryDate;
+    if (range === 'none') return !estimated;
+    if (!estimated) return false;
+
+    const day = startOfDay(new Date(estimated).getTime());
+    const today = startOfDay(Date.now());
+    switch (range) {
+      case 'today':
+        return day === today;
+      case 'tomorrow':
+        return day === today + DAY_MS;
+      case '7d':
+        return day >= today && day <= today + 7 * DAY_MS;
+      case 'overdue':
+        return day < today && order.status !== OrderStatus.DELIVERED;
+      default:
+        return true;
+    }
+  }
+
   resetFilters(): void {
     this.keyword.set('');
     this.stage.set('ALL');
+    this.dateRange.set('ALL');
   }
 
   initials(name: string | null | undefined): string {
