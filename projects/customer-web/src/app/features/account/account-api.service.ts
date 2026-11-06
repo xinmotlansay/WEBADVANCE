@@ -140,6 +140,7 @@ export interface AccountVoucher {
   status: 'UNUSED' | 'USED' | 'EXPIRED';
   expiresAt: string;
   source: string;
+  seenAt: string | null;
 }
 
 export interface WalkwayPassage {
@@ -279,6 +280,13 @@ export class AccountApiService {
 
   vouchers(): Observable<AccountVoucher[]> {
     return this.get('/users/me/vouchers');
+  }
+  /** Voucher được tặng mà khách chưa xem (dải thông báo dưới header). */
+  newGiftVouchers(): Observable<AccountVoucher[]> {
+    return this.get('/users/me/vouchers/new');
+  }
+  markGiftVouchersSeen(): Observable<unknown> {
+    return this.send('post', '/users/me/vouchers/seen');
   }
 
   walkwayProfiles(): Observable<WalkwayProfile[]> {

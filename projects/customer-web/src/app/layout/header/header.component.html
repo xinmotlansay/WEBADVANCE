@@ -1,7 +1,14 @@
 <div class="topbar">
   <div class="container topbar__inner">
+    <!-- Thanh thông báo do Marketing soạn; tắt / hết hạn / lỗi thì để trống, topbar vẫn giữ các link. -->
     <p class="topbar__promo">
-      Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso
+      @if (announcement(); as bar) {
+        @if (bar.linkUrl) {
+          <a [cvLink]="bar.linkUrl">{{ bar.text }}</a>
+        } @else {
+          {{ bar.text }}
+        }
+      }
     </p>
     <a class="topbar__support" routerLink="/support">Đổi trả &amp; Bảo hành</a>
     <div class="topbar__account">
@@ -168,3 +175,5 @@
     </div>
   </div>
 </header>
+
+<app-gift-voucher-strip />

@@ -68,6 +68,13 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next
     return;
   }
 
+  if (err && typeof err === 'object' && 'type' in err && err.type === 'entity.too.large') {
+    res.status(413).json({
+      success: false,
+      error: { code: 'FILE_TOO_LARGE', message: 'File vượt quá dung lượng cho phép' },
+    });
+    return;
+  }
   if (err instanceof SyntaxError && 'body' in err) {
     res
       .status(400)

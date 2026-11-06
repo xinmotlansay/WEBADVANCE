@@ -621,7 +621,7 @@ Body như 5.5, thêm `"includeCaution": false`. Trả tối đa 6 `ProductListIt
 | :-- | :-- | :-- | :-- | :-- |
 | GET | `/collections` | P | FR-26 | Danh sách (tên, slogan, ảnh đại diện), theo `displayOrder` |
 | GET | `/collections/:slug` | P | FR-26 | Chi tiết: ảnh + hotspot + sản phẩm thuộc collection |
-| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng |
+| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng, theo `displayOrder` |
 | GET | `/inspirations/:id` | P | FR-27 | Ảnh + danh sách sản phẩm popup |
 | GET | `/banners` | P | | Banner đang hiển thị (trong `startDate–endDate`, `VISIBLE`) |
 | POST | `/banners/:id/impression` | P | MA-09 | Ghi lượt hiển thị |
@@ -1046,21 +1046,30 @@ Quy tắc:
 | POST | `/admin/contents` | MA-06 | Tạo (nháp hoặc xuất bản) |
 | PUT | `/admin/contents/:id` | MA-06 | Sửa |
 | PATCH | `/admin/contents/:id/status` | MA-06 | `DRAFT/VISIBLE/HIDDEN` |
-| GET | `/admin/collections` | MA-07 | Danh sách |
-| POST | `/admin/collections` | MA-07 | Tạo (kèm `images`, `hotspots`, `products`) |
-| PUT | `/admin/collections/:id` | MA-07 | Sửa (thay toàn bộ nội dung) |
-| PATCH | `/admin/collections/:id/status` | MA-07 | Ẩn/hiện |
-| GET | `/admin/inspirations` | MA-08 | Danh sách |
-| POST | `/admin/inspirations` | MA-08 | Tạo |
-| PUT | `/admin/inspirations/:id` | MA-08 | Sửa ảnh và danh sách sản phẩm popup |
-| PATCH | `/admin/inspirations/:id/status` | MA-08 | Ẩn/hiện |
+| GET | `/admin/marketing/collections` | MA-07 | Danh sách (`?status=&q=`), kèm `thumbnail`, `imageCount`, `productCount`, `flags: ['INACTIVE_PRODUCT']` |
+| GET | `/admin/marketing/collections/:id` | MA-07 | Chi tiết cho form (`productIds` theo thứ tự, `images[].hotspots[]`, `inactiveProductIds`) |
+| POST | `/admin/marketing/collections` | MA-07 | Tạo (trạng thái `HIDDEN`, đứng cuối) |
+| PATCH | `/admin/marketing/collections/:id` | MA-07 | Sửa cả form kèm `version`; không gửi `images` = giữ ảnh cũ |
+| POST | `/admin/marketing/collections/:id/hide`, `/show` | MA-07 | Ẩn/hiện; hiện cần ≥ 1 ảnh và ≥ 1 sản phẩm (`E-MKT-020-02`) |
+| DELETE | `/admin/marketing/collections/:id` | MA-07 | Xóa cứng, phải ẩn trước (`E-MKT-020-03`) |
+| POST | `/admin/marketing/collections/reorder` | MA-07 | `{ ids }` đủ mọi collection theo thứ tự mới → `displayOrder` |
+| POST | `/admin/marketing/collections/images` | MA-07 | Multipart `file`: JPG/PNG/WEBP ≤ 3 MB, cạnh ngắn ≥ 800 px (`E-MKT-020-04`) → `{ url, width, height }` |
+| GET | `/admin/marketing/inspirations` | MA-08 | Danh sách (`?status=`) theo `displayOrder`, kèm `productIds`, `flags` |
+| GET | `/admin/marketing/inspirations/:id` | MA-08 | Chi tiết cho form |
+| POST | `/admin/marketing/inspirations` | MA-08 | Tạo `{ imageUrl, productIds }` (≤ 12, `ACTIVE`, bỏ trùng), trạng thái `HIDDEN` |
+| PATCH | `/admin/marketing/inspirations/:id` | MA-08 | Sửa kèm `version` |
+| POST | `/admin/marketing/inspirations/:id/hide`, `/show` | MA-08 | Ẩn/hiện; hiện cần ≥ 1 sản phẩm (`E-MKT-021-02`) |
+| DELETE | `/admin/marketing/inspirations/:id` | MA-08 | Xóa cứng, phải ẩn trước (`E-MKT-021-03`) |
+| POST | `/admin/marketing/inspirations/reorder` | MA-08 | `{ ids }` đủ mọi ảnh → `displayOrder` |
+| POST | `/admin/marketing/inspirations/images` | MA-08 | Như ảnh collection, lưu `uploads/inspirations` |
 | GET | `/admin/reports/marketing` | MA-09 | Báo cáo (`?from=&to=`): lượt dùng voucher, doanh thu theo chương trình, banner impression/click. Chỉ số tổng hợp, không có thông tin cá nhân |
 
 Quy tắc chính:
 - **Promotion**: `discountType`, `discountValue`, `maxDiscountValue`, `minOrderValue`, `startDate/endDate`; `status` tự chuyển `UPCOMING → RUNNING → ENDED` theo thời gian, `PAUSED` do admin.
 - **Một sản phẩm một chương trình**: tại một thời điểm, mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi (không tính voucher). Khi tạo, sửa hoặc kích hoạt lại (`PATCH .../status`), backend mở rộng `targets[].categoryId` thành danh sách sản phẩm rồi kiểm tra chồng lấn thời gian với các chương trình `UPCOMING`, `RUNNING`, `PAUSED` khác. Vi phạm trả `409 PROMOTION_CONFLICT`.
 - **Voucher body** (`POST /admin/vouchers`): `code` (unique, uppercase), `type`, `customerGroup`, `stackableWithPromotion`, `discountType/Value`, `maxDiscountValue`, `minOrderValue`, `scope[]`, `totalUsageLimit`, `perUserLimit`, `startDate/endDate`. `type = ASSIGNED` thì `customerGroup` bỏ qua, dùng `/assign`.
-- **Collection** hotspot: `images[].hotspots[] = { productId, x, y, displayOrder }` với `x, y ∈ [0,1]`. Cần ít nhất một ảnh `isThumbnail`.
+- **Collection** hotspot: `images[].hotspots[] = { productId, x, y }` với `x, y ∈ [0,1]`, tối đa 10 ảnh, 8 điểm/ảnh. Server giữ đúng một ảnh `isThumbnail` (không chọn → ảnh đầu) và tự thêm sản phẩm của hotspot vào cuối `products`. Slug trùng → `409 E-MKT-020-01`.
+- **Collection, Nguồn cảm hứng**: sửa với `version` cũ → `409 E-COM-05`. Sản phẩm mới chọn phải `ACTIVE`; sản phẩm đã có mà ngừng bán được giữ và gắn cờ `INACTIVE_PRODUCT`.
 - MA không xem được thông tin cá nhân khách ở báo cáo (PA/MA-10).
 
 ### 11.2. Order Admin (OA-01 → OA-16), quyền `OA`
@@ -1402,6 +1411,7 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 | 1.7 | 2026-10-21 | Giỏ hàng và thanh toán (`cart-checkout-spec.md`): chặn vượt tồn ở `/cart*` (`INSUFFICIENT_STOCK`, cảnh báo `EXCEEDS_STOCK`), lắp đặt chỉ cấp 3–4 và tính theo số lượng, voucher không giảm phí, ngày giao dự kiến theo `leadDays`, hẹn lịch chỉ đơn có hàng cấp 3–4 (`schedulable`), `POST /orders` thêm `expectedTotal` (`PRICE_CHANGED`) và `invoiceInfo` (FR-45), lưu `orders.source` và trả dòng vào giỏ khi đơn từ giỏ bị hủy lúc chờ thanh toán, gửi email hóa đơn khi khách chọn |
 | 1.8 | 2026-10-21 | `GET /cart`: thêm `variant.sku`, `variant.originalPrice` (giá gốc gạch ngang như thẻ sản phẩm), `variant.installationService`, `variant.unitInstallationFee`; ghi rõ `priceAtAdd`/`currentPrice` là giá sau khuyến mãi; `GET /config/public` đã trả `payment`, `shipping`, `invoice` |
 | 1.9 | 2026-10-22 | Giỏ hàng và thanh toán (đã code): `/users/me/addresses` có `GET`, `POST`, `PATCH` (chưa có `DELETE`); `POST /checkout/preview` trả `blockingIssues` dạng object, thêm mã `NO_ITEMS`, `items[].cartItemId/product/variant` và `address`; `POST /orders` gửi lại cùng `Idempotency-Key` trả `200`, lỗi chặn kèm `details.preview`; `GET /orders/:id/payment` cùng cấu trúc `POST /orders` thêm `paid`, `expired`; `GET /orders/:id` bản rút gọn; webhook xác thực bằng `X-Webhook-Secret`; body không phải JSON trả `400 VALIDATION_ERROR` |
+| 1.10 | 2026-11-05 | Collection và Nguồn cảm hứng (MA-07/08): endpoint admin thật dưới `/admin/marketing/*` (sửa bằng `PATCH` + `version`, ẩn/hiện, xóa, sắp xếp, tải ảnh); `GET /inspirations` sắp theo `displayOrder` |
 
 ---
 

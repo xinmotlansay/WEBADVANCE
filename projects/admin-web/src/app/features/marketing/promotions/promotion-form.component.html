@@ -1,0 +1,260 @@
+<main class="cv-main form-main">
+  <a class="cv-back" routerLink="/marketing/khuyen-mai"><span aria-hidden="true">←</span> Khuyến mãi</a>
+  <header class="cv-page-head">
+    <h1>{{ id() ? 'Chỉnh sửa chương trình' : 'Tạo chương trình khuyến mãi' }}</h1>
+  </header>
+
+  @if (loading()) {
+    <div aria-busy="true" aria-label="Đang tải">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <span class="cv-skeleton sk"></span>
+      }
+    </div>
+  } @else if (loadError()) {
+    <div class="cv-alert" role="alert">
+      <span>{{ loadError() }}</span>
+      <a routerLink="/marketing/khuyen-mai" class="cv-btn">Về danh sách</a>
+    </div>
+  } @else {
+    <form
+      class="cv-card form"
+      (ngSubmit)="save(id() && !isDraft ? 'save' : 'activate')"
+      #f="ngForm"
+    >
+      @if (info()) {
+        <p class="cv-alert cv-alert--warn" role="status">{{ info() }}</p>
+      }
+      @if (!isDraft) {
+        <p class="cv-alert cv-alert--warn" role="status">
+          Chương trình {{ detail()?.code }} đang ở trạng thái
+          {{
+            status === 'UPCOMING'
+              ? 'Sắp diễn ra'
+              : status === 'PAUSED'
+                ? 'Tạm dừng'
+                : 'Đang diễn ra'
+          }}; một số trường bị khóa.
+        </p>
+      }
+
+      <h2 class="group">Thông tin</h2>
+      <div class="cv-field">
+        <label for="type">Loại chương trình</label>
+        <select id="type" name="type" [(ngModel)]="m.scopeType" [disabled]="lockType">
+          <option value="PRODUCT">Giảm giá sản phẩm</option>
+          <option value="CATEGORY">Giảm giá danh mục</option>
+        </select>
+        @if (lockType) {
+          <span class="cv-hint">{{ lockWhy }} Dùng "Hủy kích hoạt" để về Nháp rồi đổi loại.</span>
+        }
+      </div>
+      <div class="cv-field">
+        <label for="name">Tên chương trình (hiển thị cho khách)</label>
+        <input id="name" name="name" [(ngModel)]="m.name" required minlength="5" maxlength="100" />
+      </div>
+      <div class="cv-field">
+        <label for="desc">Mô tả</label>
+        <textarea
+          id="desc"
+          name="desc"
+          rows="2"
+          [(ngModel)]="m.description"
+          maxlength="500"
+        ></textarea>
+        <span class="cv-hint">Không bắt buộc, tối đa 500 ký tự.</span>
+      </div>
+
+      <h2 class="group">Thời gian</h2>
+      <div class="grid">
+        @if (isDraft) {
+          <div class="cv-field">
+            <label class="check"
+              ><input type="checkbox" name="now" [(ngModel)]="m.startNow" /> Bắt đầu ngay</label
+            >
+          </div>
+        }
+        @if (!m.startNow || !isDraft) {
+          <div class="cv-field">
+            <label for="start">Bắt đầu</label>
+            <input
+              id="start"
+              name="start"
+              type="datetime-local"
+              [(ngModel)]="m.startDate"
+              [readOnly]="lockValue"
+            />
+            @if (lockValue) {
+              <span class="cv-hint">{{ lockWhy }}</span>
+            }
+          </div>
+        }
+        <div class="cv-field">
+          <label for="end">Kết thúc</label>
+          <input id="end" name="end" type="datetime-local" [(ngModel)]="m.endDate" />
+          <span class="cv-hint"
+            >Sau thời gian bắt đầu ít nhất 1 giờ; tổng thời lượng tối đa 90 ngày.</span
+          >
+        </div>
+      </div>
+
+      <h2 class="group">Mức giảm</h2>
+      <div class="grid">
+        <div class="cv-field">
+          <label for="dt">Kiểu giảm</label>
+          <select id="dt" name="dt" [(ngModel)]="m.discountType" [disabled]="lockValue">
+            <option value="PERCENT">Phần trăm</option>
+            <option value="FIXED_AMOUNT">Số tiền cố định</option>
+          </select>
+        </div>
+        <div class="cv-field">
+          <label for="dv">{{
+            m.discountType === 'PERCENT' ? 'Giá trị giảm (%)' : 'Số tiền giảm (₫)'
+          }}</label>
+          <input
+            id="dv"
+            name="dv"
+            type="number"
+            [(ngModel)]="m.discountValue"
+            [readOnly]="lockValue"
+            [attr.min]="m.discountType === 'PERCENT' ? 1 : 1000"
+            [attr.max]="m.discountType === 'PERCENT' ? 90 : null"
+            [step]="m.discountType === 'PERCENT' ? 1 : 1000"
+          />
+          <span class="cv-hint">{{
+            lockValue
+              ? valueLockWhy
+              : m.discountType === 'PERCENT'
+                ? 'Số nguyên 1–90.'
+                : 'Bội số của 1.000 và nhỏ hơn giá bán thấp nhất.'
+          }}</span>
+        </div>
+        @if (m.discountType === 'PERCENT') {
+          <div class="cv-field">
+            <label for="mx">Mức giảm tối đa (₫)</label>
+            <input
+              id="mx"
+              name="mx"
+              type="number"
+              [(ngModel)]="m.maxDiscountValue"
+              min="1000"
+              step="1000"
+              [readOnly]="lockValue"
+            />
+            <span class="cv-hint">Không bắt buộc; bội số của 1.000.</span>
+          </div>
+        }
+      </div>
+
+      <h2 class="group">Phạm vi áp dụng</h2>
+      @if (m.scopeType === 'PRODUCT') {
+        <app-product-picker
+          label="Sản phẩm (tối đa 500)"
+          inputId="pp"
+          hint="Chỉ chọn được sản phẩm đang kinh doanh."
+          [(ids)]="m.productIds"
+        />
+      } @else {
+        <div class="cv-field">
+          <span class="label" id="cat-l">Danh mục (1–20)</span>
+          <div class="checks" role="group" aria-labelledby="cat-l">
+            @for (c of categories(); track c.id) {
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [checked]="m.categoryIds.includes(c.id)"
+                  (change)="toggleCategory(c.id)"
+                />
+                {{ c.name }}
+              </label>
+            } @empty {
+              <span class="cv-muted">Không có danh mục nào để chọn.</span>
+            }
+          </div>
+        </div>
+        <app-product-picker
+          label="Sản phẩm loại trừ (tối đa 200)"
+          inputId="px"
+          [(ids)]="m.excludedProductIds"
+        />
+      }
+
+      <h2 class="group">Xem trước giá</h2>
+      <button type="button" class="cv-btn" (click)="refreshPreview()">Xem trước giá</button>
+      @if (previewError()) {
+        <p class="cv-alert" role="alert">{{ previewError() }}</p>
+      }
+      @if (preview(); as pv) {
+        @if (pv.lines.length === 0) {
+          <p class="cv-muted">Chưa có biến thể nào trong phạm vi.</p>
+        } @else {
+          <div class="cv-table-wrap pv">
+            <table class="cv-table">
+              <thead>
+                <tr>
+                  <th scope="col">Sản phẩm</th>
+                  <th scope="col" class="cv-num">Giá gốc</th>
+                  <th scope="col" class="cv-num">Sau giảm</th>
+                  <th scope="col" class="cv-num">Giảm</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of pv.lines; track l.variantId) {
+                  <tr>
+                    <td>
+                      {{ l.productName }} <span class="cv-muted">{{ l.sku }}</span>
+                    </td>
+                    <td class="cv-num">{{ money(l.price) }}</td>
+                    <td class="cv-num">{{ money(l.finalPrice) }}</td>
+                    <td class="cv-num">
+                      {{ l.percent }}%
+                      @if (l.percent > 50) {
+                        <span class="cv-badge cv-badge--attention">Trên 50%</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (pv.total > pv.lines.length) {
+            <p class="cv-muted">Hiện {{ pv.lines.length }}/{{ pv.total }} biến thể.</p>
+          }
+        }
+      }
+
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <div class="cv-alert" role="alert">
+            <span>{{ error() }}</span>
+            @if (conflict()) {
+              <button type="button" class="cv-btn" (click)="excludeAndRetry()">
+                Loại trừ các biến thể trùng
+              </button>
+            }
+          </div>
+        }
+        @if ((!id() || status === 'DRAFT') && !m.name.trim()) {
+          <span class="cv-actions-bar__note">Nhập tên chương trình để lưu nháp.</span>
+        }
+        <a routerLink="/marketing/khuyen-mai" class="cv-btn">Hủy</a>
+        @if (!id() || status === 'DRAFT') {
+          <button
+            type="button"
+            class="cv-btn"
+            [disabled]="busy() || !m.name.trim()"
+            (click)="save('draft')"
+          >
+            Lưu nháp
+          </button>
+          <button type="submit" class="cv-btn cv-btn--primary" [disabled]="busy()">
+            Kích hoạt
+          </button>
+        } @else {
+          <button type="submit" class="cv-btn cv-btn--primary" [disabled]="busy()">
+            Lưu thay đổi
+          </button>
+        }
+      </div>
+    </form>
+  }
+</main>

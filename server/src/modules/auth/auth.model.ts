@@ -1,4 +1,4 @@
-import { Schema, model, type HydratedDocument, type Types } from 'mongoose';
+import { Schema, model, type Types } from 'mongoose';
 import { AuthSource, OtpChannel, OtpPurpose, UserStatus } from '../../lib/shared-enums.js';
 
 export interface IRole {
@@ -102,7 +102,6 @@ userSchema.index(
   { unique: true, partialFilterExpression: { googleId: { $type: 'string' } } },
 );
 
-export type UserDocument = HydratedDocument<IUser>;
 export const UserModel = model<IUser>('User', userSchema);
 
 export interface IOtp {
@@ -115,6 +114,7 @@ export interface IOtp {
   expiresAt: Date;
   isVerified: boolean;
   verifiedAt: Date | null;
+  consumedAt: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -130,6 +130,7 @@ const otpSchema = new Schema<IOtp>(
     expiresAt: { type: Date, required: true },
     isVerified: { type: Boolean, default: false },
     verifiedAt: { type: Date, default: null },
+    consumedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
@@ -137,5 +138,22 @@ const otpSchema = new Schema<IOtp>(
 otpSchema.index({ target: 1, purpose: 1, createdAt: -1 });
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export type OtpDocument = HydratedDocument<IOtp>;
 export const OtpModel = model<IOtp>('Otp', otpSchema);
+
+/** Một phiên đăng nhập = một refresh token (chỉ lưu bản băm sha256). */
+export interface IAuthSession {
+  tokenHash: string;
+  userId: Types.ObjectId;
+  expiresAt: Date;
+}
+
+const authSessionSchema = new Schema<IAuthSession>({
+  tokenHash: { type: String, required: true, unique: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  expiresAt: { type: Date, required: true },
+});
+
+// TTL chỉ dọn khoảng mỗi 60 giây, nên truy vấn vẫn phải tự lọc `expiresAt > now`.
+authSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const AuthSessionModel = model<IAuthSession>('AuthSession', authSessionSchema);

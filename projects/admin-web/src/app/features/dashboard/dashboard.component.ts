@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RoleName } from 'shared';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { ROLE_LABELS } from '../../core/navigation/admin-nav.config';
+import { MarketingDashboardComponent } from '../marketing/dashboard/marketing-dashboard.component';
 import { OverviewComponent } from '../super-admin/overview/overview.component';
 
 /**
@@ -10,7 +11,7 @@ import { OverviewComponent } from '../super-admin/overview/overview.component';
  */
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [OverviewComponent],
+  imports: [OverviewComponent, MarketingDashboardComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,5 +24,7 @@ export class DashboardComponent {
 
   readonly user = this.auth.user;
   readonly isSuperAdmin = computed(() => this.user()?.roleName === RoleName.SUPER_ADMIN);
+  /** Marketing Admin có dashboard riêng (FR-MKT_AD-002). */
+  readonly isMarketing = computed(() => this.user()?.roleName === RoleName.MARKETING_ADMIN);
   readonly roleLabel = computed(() => ROLE_LABELS[this.user()?.roleName ?? ''] ?? 'Quản trị viên');
 }

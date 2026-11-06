@@ -1,0 +1,54 @@
+:host {
+  display: block;
+}
+.form-main {
+  max-width: 880px;
+}
+.sk {
+  height: 56px;
+  margin-bottom: 4px;
+}
+.group {
+  margin: 8px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 16px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+}
+.row input {
+  flex: 1;
+}
+.label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.done {
+  max-width: 480px;
+}
+.code {
+  font-size: 34px;
+  margin: 12px 0 16px;
+}

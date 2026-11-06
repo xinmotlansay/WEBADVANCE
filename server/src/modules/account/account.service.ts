@@ -12,6 +12,7 @@ import { buildListItems, type ProductListItem } from '../products/product.servic
 import { ReturnRequestModel, WarrantyRequestModel } from '../after-sales/after-sales.model.js';
 import { UserVoucherModel } from '../vouchers/user-voucher.model.js';
 import { VoucherModel } from '../vouchers/voucher.model.js';
+import { isNewGift } from '../vouchers/voucher.rules.js';
 import type { ChangeContactBody, UpdateProfileBody, WalkwayProfileBody } from './account.schema.js';
 import { WalkwayProfileModel, type WalkwayProfileDoc } from './walkway-profile.model.js';
 import { WishlistModel } from './wishlist.model.js';
@@ -212,6 +213,7 @@ export interface UserVoucherView {
   status: 'UNUSED' | 'USED' | 'EXPIRED';
   expiresAt: string;
   source: string;
+  seenAt: string | null;
 }
 
 export async function listUserVouchers(
@@ -243,10 +245,24 @@ export async function listUserVouchers(
         status: state,
         expiresAt: expiresAt.toISOString(),
         source: row.source,
+        seenAt: row.seenAt?.toISOString() ?? null,
       },
     ];
   });
   return status ? views.filter((view) => view.status === status) : views;
+}
+
+/** Voucher được tặng mà khách chưa xem, để hiện dải thông báo. */
+export async function listNewGifts(userId: Types.ObjectId, now = new Date()): Promise<UserVoucherView[]> {
+  return (await listUserVouchers(userId, 'UNUSED', now)).filter(isNewGift);
+}
+
+/** Khách đã xem/đóng dải thông báo: đánh dấu mọi voucher tặng chưa dùng là đã xem. */
+export async function markGiftsSeen(userId: Types.ObjectId, now = new Date()): Promise<void> {
+  await UserVoucherModel.updateMany(
+    { userId, source: 'GIFTED', status: 'UNUSED', seenAt: null },
+    { $set: { seenAt: now } },
+  );
 }
 
 // ------------------------------------------------------------ Hồ sơ lối đi

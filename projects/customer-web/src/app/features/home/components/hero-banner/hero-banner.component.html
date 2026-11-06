@@ -7,14 +7,20 @@
     (mouseleave)="startAutoplay()"
   >
     @for (banner of banners(); track banner.id; let i = $index) {
-      <img
-        class="hero__img"
-        [class.hero__img--active]="i === index()"
-        [src]="banner.imageUrl"
-        [alt]="banner.title"
-        [attr.loading]="i === 0 ? 'eager' : 'lazy'"
-        [attr.aria-hidden]="i !== index()"
-      />
+      <!-- display: contents trong CSS để <picture> không đổi bố cục của ảnh. -->
+      <picture>
+        @if (banner.mobileImageUrl) {
+          <source media="(max-width: 767px)" [srcset]="banner.mobileImageUrl" />
+        }
+        <img
+          class="hero__img"
+          [class.hero__img--active]="i === index()"
+          [src]="banner.imageUrl"
+          [alt]="banner.title"
+          [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+          [attr.aria-hidden]="i !== index()"
+        />
+      </picture>
     }
 
     <div class="hero__shade"></div>
@@ -25,7 +31,16 @@
         <p>{{ banner.content }}</p>
       </div>
 
-      <a class="hero__cta" [routerLink]="banner.linkUrl || '/products'">Xem thêm</a>
+      @if (banner.linkUrl) {
+        <a
+          class="hero__cta"
+          [cvLink]="banner.linkUrl"
+          [newTab]="banner.openInNewTab"
+          (click)="tracker.click(banner.id)"
+        >
+          {{ banner.ctaLabel || 'Xem thêm' }}
+        </a>
+      }
     }
 
     @if (banners().length > 1) {

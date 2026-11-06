@@ -1,5 +1,12 @@
 <app-hero-banner [banners]="banners()" />
 
+@if (homeContent().length) {
+  <!-- Khối nội dung do Marketing soạn (FR-015); lỗi / trống thì các khối cố định bên dưới vẫn hiện. -->
+  <div class="container">
+    <app-content-blocks [blocks]="homeContent()" />
+  </div>
+}
+
 <div class="container home">
   @if (newProducts().length) {
     <app-product-section
@@ -31,6 +38,10 @@
 }
 
 <div class="container home">
+  @if (middleBanners().length) {
+    <app-middle-banners [banners]="middleBanners()" />
+  }
+
   @if (recommended().length) {
     <app-product-section title="Có thể bạn sẽ thích" layout="grid" [products]="recommended()" />
   }
@@ -53,3 +64,5 @@
 @if (showrooms().length) {
   <app-showroom-network [showrooms]="showrooms()" />
 }
+
+<app-popup-banner [banners]="popupBanners()" />

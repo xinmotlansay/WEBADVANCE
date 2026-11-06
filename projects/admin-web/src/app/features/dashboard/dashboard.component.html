@@ -4,6 +4,10 @@
 
 @if (isSuperAdmin()) {
   <app-sa-overview />
+} @else if (isMarketing()) {
+  @defer {
+    <app-marketing-dashboard />
+  }
 } @else {
   <main class="page">
     <section class="body">

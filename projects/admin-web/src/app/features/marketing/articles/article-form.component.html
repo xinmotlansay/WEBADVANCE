@@ -1,0 +1,135 @@
+<main class="cv-main">
+  <a class="cv-back" routerLink="/marketing/bai-viet"><span aria-hidden="true">←</span> Bài viết &amp; thông báo</a>
+  <header class="cv-page-head">
+    <h1>{{ loaded ? 'Sửa ' + loaded.code : 'Thêm bài viết' }}</h1>
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else {
+    <div class="layout">
+    <form class="form cv-card" (ngSubmit)="save('PUBLISH')">
+      <div class="cols">
+        <div class="cv-field">
+          <label for="a-type">Loại</label>
+          <select id="a-type" name="type" class="cv-input" [(ngModel)]="type">
+            @for (t of TYPES; track t[0]) {
+              <option [value]="t[0]">{{ t[1] }}</option>
+            }
+          </select>
+        </div>
+        @if (type === 'ARTICLE') {
+          <div class="cv-field">
+            <label for="a-cat">Chuyên mục</label>
+            <select id="a-cat" name="category" class="cv-input" [(ngModel)]="category">
+              <option value="">— Chọn chuyên mục —</option>
+              @for (c of CATEGORIES; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
+      <div class="cv-field">
+        <label for="a-title">Tiêu đề (10–150 ký tự)</label>
+        <input id="a-title" name="title" class="cv-input" maxlength="150" [(ngModel)]="title" required />
+      </div>
+      <div class="cv-field">
+        <label for="a-slug">Đường dẫn (slug)</label>
+        <input id="a-slug" name="slug" class="cv-input" maxlength="160" [(ngModel)]="slug" />
+        <span class="cv-hint">
+          Bỏ trống để tự sinh từ tiêu đề. Bài đã đăng mà đổi đường dẫn sẽ được chuyển hướng 301 từ đường dẫn cũ.
+        </span>
+      </div>
+
+      <div class="cv-field">
+        <span class="lbl" id="l-cover">Ảnh bìa</span>
+        <label class="drop" [class.drop--off]="uploading()">
+          <input class="file" type="file" aria-labelledby="l-cover" accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="pickCover($event)" />
+          <span class="drop__thumb">
+            @if (coverUrl) {
+              <img [src]="coverUrl" alt="Ảnh bìa" />
+            } @else {
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M4 5h16v14H4z" /></svg>
+            }
+          </span>
+          <span class="drop__text">
+            <strong>{{ uploading() ? 'Đang tải ảnh…' : coverUrl ? 'Đổi ảnh bìa' : 'Chọn ảnh bìa' }}</strong>
+            <small>JPG, PNG, WEBP · tối đa 2 MB · tối thiểu 1200 × 630 px</small>
+          </span>
+        </label>
+        @if (coverUrl) {
+          <button type="button" class="cv-link-btn rm" (click)="coverUrl = ''">Bỏ ảnh bìa</button>
+        }
+      </div>
+
+      <div class="cv-field">
+        <label for="a-sum">Tóm tắt (50–300 ký tự)</label>
+        <textarea id="a-sum" name="summary" class="cv-input" rows="3" maxlength="300" [(ngModel)]="summary"></textarea>
+        <span class="cv-hint">{{ summary.length }}/300</span>
+      </div>
+      <div class="cv-field">
+        <label for="a-body">Nội dung (200–50.000 ký tự, HTML cơ bản: h2–h4, p, ul/ol, a, img, YouTube)</label>
+        <textarea id="a-body" name="content" class="cv-input" rows="14" [(ngModel)]="content"></textarea>
+        <span class="cv-hint">Hệ thống tự loại bỏ mã không an toàn khi lưu. {{ content.length }}/50.000</span>
+      </div>
+
+      <div class="cv-field">
+        <label for="a-tags">Thẻ (tối đa 10, cách nhau bằng dấu phẩy, mỗi thẻ 2–30 ký tự)</label>
+        <input id="a-tags" name="tags" class="cv-input" [(ngModel)]="tagsText" />
+      </div>
+      <app-product-picker label="Sản phẩm liên quan (tối đa 8)" inputId="rp" [(ids)]="relatedProductIds" />
+
+      <div class="cols">
+        <div class="cv-field">
+          <label for="a-seo">SEO title (tối đa 60 ký tự)</label>
+          <input id="a-seo" name="seoTitle" class="cv-input" maxlength="60" [(ngModel)]="seoTitle" />
+        </div>
+        <div class="cv-field">
+          <label for="a-meta">Meta description (tối đa 160 ký tự)</label>
+          <input id="a-meta" name="meta" class="cv-input" maxlength="160" [(ngModel)]="metaDescription" />
+        </div>
+      </div>
+
+      @if (type === 'ANNOUNCEMENT') {
+        <div class="cv-field check">
+          <label>
+            <input type="checkbox" name="pinned" [(ngModel)]="pinned" />
+            Ghim đầu trang tin tức (tối đa 3 thông báo)
+          </label>
+        </div>
+      }
+
+      <div class="cv-field">
+        <label for="a-at">Thời gian đăng (chỉ dùng khi bấm "Lên lịch", sau hiện tại ít nhất 5 phút)</label>
+        <input id="a-at" name="publishAt" class="cv-input" type="datetime-local" [(ngModel)]="publishAt" />
+      </div>
+
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('DRAFT')">Lưu nháp</button>
+        <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('SCHEDULE')">Lên lịch</button>
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Đang lưu…' : 'Đăng ngay' }}
+        </button>
+      </div>
+    </form>
+    <aside class="cv-card pv" aria-label="Xem trước bài viết">
+      <h2 class="pv__head">Xem trước <small>tự cập nhật khi bạn nhập</small></h2>
+      <article class="preview">
+        <h1>{{ title || 'Chưa có tiêu đề' }}</h1>
+        @if (coverUrl) {
+          <img class="pic" [src]="coverUrl" alt="" />
+        }
+        @if (summary) {
+          <p><em>{{ summary }}</em></p>
+        }
+        <div [innerHTML]="content"></div>
+      </article>
+    </aside>
+    </div>
+  }
+</main>

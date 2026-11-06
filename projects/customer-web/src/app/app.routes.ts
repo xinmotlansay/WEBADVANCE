@@ -76,6 +76,17 @@ export const routes: Routes = [
     data: { layout: 'solid' },
     loadChildren: () => import('./features/account/account.routes').then((m) => m.ACCOUNT_ROUTES),
   },
+  {
+    path: 'news',
+    data: { layout: 'solid' },
+    loadChildren: () => import('./features/news/news.routes').then((m) => m.NEWS_ROUTES),
+  },
+  {
+    // Landing page do Marketing soạn.
+    path: 'lp/:slug',
+    data: { layout: 'solid' },
+    loadComponent: () => import('./features/landing/landing.component').then((m) => m.LandingComponent),
+  },
   // Các trang chưa làm (sản phẩm, tìm kiếm...) tạm đưa về trang chủ.
   { path: '**', redirectTo: '' },
 ];

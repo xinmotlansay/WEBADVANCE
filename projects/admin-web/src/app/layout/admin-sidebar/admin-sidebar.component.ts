@@ -57,6 +57,14 @@ export class AdminSidebarComponent {
     this.drawerOpen.set(false);
   }
 
+  /** Đã chọn mục: thu sidebar lại (bỏ focus để không giữ trạng thái mở) và đóng ngăn kéo. */
+  onLinkClick(event: Event): void {
+    if (event.defaultPrevented) return; // lần chạm đầu trên cảm ứng chỉ mở rộng
+    this.touchOpen.set(false);
+    this.closeDrawer();
+    (event.currentTarget as HTMLElement).blur();
+  }
+
   onNavClick(event: Event): void {
     const isTouch = window.matchMedia('(hover: none)').matches;
     if (isTouch && !this.touchOpen() && !this.drawerOpen()) {

@@ -4,6 +4,7 @@ import {
   CatalogApiService,
   type Banner,
   type Category,
+  type ContentBlock,
   type CollectionSummary,
   type FlashSale,
   type InspirationSummary,
@@ -19,6 +20,9 @@ import { InspirationGalleryComponent } from './components/inspiration-gallery/in
 import { ShowroomNetworkComponent } from './components/showroom-network/showroom-network.component';
 import { ProductSectionComponent } from './components/product-section/product-section.component';
 import { ViewRoomCtaComponent } from './components/view-room-cta/view-room-cta.component';
+import { MiddleBannersComponent } from './components/middle-banners/middle-banners.component';
+import { PopupBannerComponent } from './components/popup-banner/popup-banner.component';
+import { ContentBlocksComponent } from '../../shared/ui/content-blocks/content-blocks.component';
 
 const COMPLETE_ROOM_SLUG = 'phong-khach';
 
@@ -33,6 +37,9 @@ const COMPLETE_ROOM_SLUG = 'phong-khach';
     InspirationGalleryComponent,
     ViewRoomCtaComponent,
     ShowroomNetworkComponent,
+    ContentBlocksComponent,
+    MiddleBannersComponent,
+    PopupBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home.component.html',
@@ -47,6 +54,9 @@ export class HomeComponent {
   }
 
   protected readonly banners = this.load<Banner[]>(this.api.getBanners(), []);
+  protected readonly middleBanners = this.load<Banner[]>(this.api.getBanners('HOME_MIDDLE'), []);
+  protected readonly popupBanners = this.load<Banner[]>(this.api.getBanners('POPUP'), []);
+  protected readonly homeContent = this.load<ContentBlock[]>(this.api.getHomeContent(), []);
   protected readonly collections = this.load<CollectionSummary[]>(this.api.getCollections(), []);
   protected readonly inspirations = this.load<InspirationSummary[]>(this.api.getInspirations(), []);
   protected readonly showrooms = this.load<Showroom[]>(this.api.getShowrooms(), []);

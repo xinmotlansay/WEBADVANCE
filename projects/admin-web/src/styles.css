@@ -4,6 +4,7 @@
 @import "./styles/layout.css";
 @import "./styles/components.css";
 @import "./styles/order-screens.css";
+@import "./styles/marketing-ui.css";
 
 /* Token màu và font theo docs/admin-ui-rule.md (mục 2, 3, phụ lục). Không ghi hex trong component. */
 :root {
@@ -38,13 +39,20 @@
   --cv-ok-text: #1b6b3f;
   --cv-attn-bg: #fff1db;
   --cv-attn-text: #8a4b00;
+  --cv-success-bg: #e2f4ea;
+  --cv-success-text: #1b6b3f;
+  --cv-attention-bg: #fff1db;
+  --cv-attention-text: #8a4b00;
   --cv-info-bg: #e3eef9;
+  --cv-info-text: #0b3056;
   --cv-neutral-bg: #f1f1f4;
   --cv-neutral-text: #4a5568;
   --cv-up: #1b7a46;
   --cv-down: #b42318;
   --cv-chip-dash: #afc0d2;
+  --cv-chip-dashed: #afc0d2;
   --cv-line-soft: #eef3f8;
+  --cv-row-line: #eef3f8;
   --cv-bar-muted: #c9d9ea;
   --cv-initials-bg: #e3edf7;
   --cv-shadow: 0 16px 40px rgba(11, 48, 86, 0.2);

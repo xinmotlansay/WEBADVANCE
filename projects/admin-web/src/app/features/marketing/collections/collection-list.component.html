@@ -1,0 +1,132 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Collection</h1>
+    <div class="row-btns">
+      <a class="cv-btn" routerLink="/marketing/nguon-cam-hung">Nguồn cảm hứng</a>
+      <a class="cv-btn cv-btn--primary" routerLink="tao-moi">Thêm collection</a>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="cv-field">
+      <label for="f-status">Trạng thái</label>
+      <select id="f-status" class="cv-input" [(ngModel)]="status" (ngModelChange)="reload()">
+        <option value="">Tất cả</option>
+        @for (s of STATUSES; track s[0]) {
+          <option [value]="s[0]">{{ s[1] }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="f-q">Tìm theo tên hoặc slug</label>
+      <input id="f-q" class="cv-input" type="search" [(ngModel)]="search" (keyup.enter)="reload()" (blur)="reload()" />
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="cv-alert" role="alert">{{ error() }}</p>
+  }
+
+  @switch (load().state) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        @for (i of [1, 2, 3]; track i) {
+          <span class="cv-skeleton sk"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>{{ $any(load()).message }}</span>
+        <button type="button" class="cv-btn" (click)="reload()">Thử lại</button>
+      </div>
+    }
+    @default {
+      @let rows = $any(load()).rows;
+      @if (rows.length === 0) {
+        <div class="cv-empty">
+          @if (hasFilter()) {
+            <p>Không tìm thấy collection phù hợp.</p>
+            <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
+          } @else {
+            <strong>Chưa có collection nào</strong>
+            <p>Bấm "Thêm collection" ở góc trên để tạo bộ sưu tập đầu tiên.</p>
+          }
+        </div>
+      } @else {
+        @if (!hasFilter()) {
+          <p class="cv-muted">Thứ tự trong bảng là thứ tự hiển thị trên trang chủ.</p>
+        }
+        <div class="cv-table-wrap">
+          <table class="cv-table">
+            <thead>
+              <tr>
+                <th scope="col">Ảnh đại diện</th>
+                <th scope="col">Tên / Slug</th>
+                <th scope="col" class="num">Ảnh</th>
+                <th scope="col" class="num">Sản phẩm</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Thứ tự</th>
+                <th scope="col">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of rows; track c.id; let i = $index, first = $first, last = $last) {
+                <tr>
+                  <td>
+                    @if (c.thumbnail) {
+                      <img class="thumb" [src]="c.thumbnail" alt="" />
+                    }
+                  </td>
+                  <td>
+                    <strong>{{ c.name }}</strong>
+                    <div class="cv-muted">/collections/{{ c.slug }}</div>
+                    @if (c.flags.includes('INACTIVE_PRODUCT')) {
+                      <span class="cv-badge cv-badge--danger">Có sản phẩm ngừng bán</span>
+                    }
+                  </td>
+                  <td class="num">{{ c.imageCount }}</td>
+                  <td class="num">{{ c.productCount }}</td>
+                  <td><span class="cv-badge" [class]="STATUS_BADGE[c.status]">{{ STATUS_LABEL[c.status] }}</span></td>
+                  <td>
+                    <div class="row-btns">
+                    <button
+                      type="button"
+                      class="cv-btn cv-btn--icon"
+                      [attr.aria-label]="'Đưa ' + c.name + ' lên trên'"
+                      [disabled]="first || hasFilter() || busy()"
+                      (click)="move(rows, i, -1)"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      class="cv-btn cv-btn--icon"
+                      [attr.aria-label]="'Đưa ' + c.name + ' xuống dưới'"
+                      [disabled]="last || hasFilter() || busy()"
+                      (click)="move(rows, i, 1)"
+                    >
+                      ↓
+                    </button>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="row-btns">
+                    <a class="cv-btn" [routerLink]="[c.id, 'sua']">Sửa</a>
+                    <button type="button" class="cv-btn" [disabled]="busy()" (click)="toggleHidden(c)">
+                      {{ c.status === 'VISIBLE' ? 'Ẩn' : 'Hiển thị' }}
+                    </button>
+                    @if (c.status === 'HIDDEN') {
+                      <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy()" (click)="remove(c)">Xóa</button>
+                    }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  }
+</main>

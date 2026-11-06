@@ -1,0 +1,101 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 160px;
+}
+.block {
+  max-width: 880px;
+  margin-bottom: 12px;
+}
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.block-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+}
+.block-off {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cv-muted);
+}
+.move {
+  display: inline-flex;
+  gap: 4px;
+}
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  padding: 8px 12px;
+}
+.pic {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+  margin-top: 8px;
+  object-fit: contain;
+}
+.notice {
+  margin: 0 0 12px;
+}
+/* Thanh đăng dính đáy màn hình: danh sách khối dài vẫn luôn thấy nút lưu. */
+.bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 880px;
+  margin: 16px 0 24px;
+  padding: 12px 20px;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius-lg);
+  background: var(--cv-surface);
+  box-shadow: var(--cv-shadow);
+}
+.when {
+  flex: 1;
+  margin: 0;
+}
+
+.history h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history li,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.history li {
+  justify-content: space-between;
+}

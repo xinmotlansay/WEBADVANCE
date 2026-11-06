@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { RoleName } from 'shared';
 import { AdminAuthService } from './core/auth/admin-auth.service';
+import { marketingGuard } from './features/marketing/marketing.guard';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
@@ -166,6 +167,12 @@ export const routes: Routes = [
               import('./features/super-admin/system/system-config.component').then((m) => m.SystemConfigComponent),
           },
         ],
+      },
+      {
+        path: 'marketing',
+        canActivate: [marketingGuard],
+        loadChildren: () =>
+          import('./features/marketing/marketing.routes').then((m) => m.MARKETING_ROUTES),
       },
     ],
   },

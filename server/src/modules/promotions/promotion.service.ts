@@ -45,16 +45,38 @@ export function resolvePromotion(
   if (direct) return direct;
   for (const categoryId of categoryIds) {
     const byCategory = index.byCategory.get(categoryId.toString());
-    if (byCategory) return byCategory;
+    // Sản phẩm bị loại trừ khỏi chương trình danh mục (FR-004).
+    const excluded = byCategory?.promotion.excludedProductIds?.some((id) => id.equals(productId));
+    if (byCategory && !excluded) return byCategory;
   }
   return null;
 }
 
+export interface DiscountRule {
+  discountType: 'PERCENT' | 'FIXED_AMOUNT';
+  discountValue: number;
+  maxDiscountValue?: number | null;
+}
+
+/**
+ * Mức giảm trên giá bán (BR-PROMO-04): giá sau giảm làm tròn xuống hàng nghìn và không thấp hơn
+ * 1.000đ. Dùng chung cho giá khách thấy, checkout và bảng xem trước của Marketing Admin.
+ */
+export function discountFor(salePrice: number, rule: DiscountRule): number {
+  if (salePrice <= 1000) return 0;
+  const raw =
+    rule.discountType === 'PERCENT' ? (salePrice * rule.discountValue) / 100 : rule.discountValue;
+  const capped =
+    typeof rule.maxDiscountValue === 'number' ? Math.min(raw, rule.maxDiscountValue) : raw;
+  const final = Math.max(1000, Math.floor((salePrice - Math.max(0, capped)) / 1000) * 1000);
+  return Math.max(0, Math.min(salePrice - final, salePrice));
+}
+
 export function calcPromotionDiscount(salePrice: number, applied: AppliedPromotion): number {
   const { promotion, target } = applied;
-  const value = target.specificDiscountValue ?? promotion.discountValue;
-  const raw = promotion.discountType === 'PERCENT' ? (salePrice * value) / 100 : value;
-  const capped =
-    promotion.maxDiscountValue !== undefined ? Math.min(raw, promotion.maxDiscountValue) : raw;
-  return Math.max(0, Math.min(Math.round(capped), salePrice));
+  return discountFor(salePrice, {
+    discountType: promotion.discountType,
+    discountValue: target.specificDiscountValue ?? promotion.discountValue,
+    maxDiscountValue: promotion.maxDiscountValue,
+  });
 }

@@ -1,7 +1,8 @@
 import { Schema, model, type Types } from 'mongoose';
 
 export type VoucherType = 'PUBLIC' | 'COLLECTIBLE' | 'ASSIGNED';
-export type CustomerGroup = 'ALL' | 'NEW_CUSTOMER' | 'BIRTHDAY_MONTH';
+/** `ACCOUNT`: mọi khách có tài khoản (FR-008); phía khách coi như `ALL` vì đã bắt buộc đăng nhập. */
+export type CustomerGroup = 'ALL' | 'NEW_CUSTOMER' | 'BIRTHDAY_MONTH' | 'ACCOUNT';
 
 export interface VoucherScope {
   productId?: Types.ObjectId;
@@ -29,7 +30,20 @@ export interface VoucherDoc {
   usedCount: number;
   startDate: Date;
   endDate: Date;
+  /** Vô hiệu hóa (FR-010) đặt `PAUSED` để checkout chặn mã; trạng thái hiển thị dùng `voucherStatus()`. */
   status: 'ACTIVE' | 'PAUSED' | 'EXPIRED';
+  /** Mô tả hiển thị cho khách (FR-008). */
+  description?: string;
+  /** PUBLIC hiện ở mục "Ưu đãi"; PRIVATE chỉ ai có mã. */
+  visibility?: 'PUBLIC' | 'PRIVATE';
+  disabledAt?: Date | null;
+  disableReason?: string | null;
+  /** Voucher của chiến dịch giữ khách theo phân khúc ML (Task M9); không có = voucher thường. */
+  mlSegment?: 'RETAIN' | 'NURTURE' | 'NO_SPEND' | 'LET_BE';
+  /** Nhóm đối chứng chốt lúc gửi (chấm lại sau đó đổi phân khúc cũng không làm đổi nhóm này). */
+  mlControlIds?: Types.ObjectId[];
+  /** Khóa lạc quan (E-COM-05). */
+  version?: number;
 }
 
 const voucherSchema = new Schema<VoucherDoc>(
@@ -40,7 +54,7 @@ const voucherSchema = new Schema<VoucherDoc>(
     type: { type: String, required: true, enum: ['PUBLIC', 'COLLECTIBLE', 'ASSIGNED'] },
     customerGroup: {
       type: String,
-      enum: ['ALL', 'NEW_CUSTOMER', 'BIRTHDAY_MONTH'],
+      enum: ['ALL', 'NEW_CUSTOMER', 'BIRTHDAY_MONTH', 'ACCOUNT'],
       default: 'ALL',
     },
     stackableWithPromotion: { type: Boolean, default: false },
@@ -61,6 +75,13 @@ const voucherSchema = new Schema<VoucherDoc>(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     status: { type: String, required: true, enum: ['ACTIVE', 'PAUSED', 'EXPIRED'] },
+    description: String,
+    visibility: { type: String, enum: ['PUBLIC', 'PRIVATE'], default: 'PUBLIC' },
+    disabledAt: Date,
+    disableReason: String,
+    mlSegment: { type: String, enum: ['RETAIN', 'NURTURE', 'NO_SPEND', 'LET_BE'] },
+    mlControlIds: { type: [Schema.Types.ObjectId], default: undefined },
+    version: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

@@ -5,6 +5,10 @@ export interface InspirationDoc {
   imageUrl: string;
   status: 'VISIBLE' | 'HIDDEN';
   products: { productId: Types.ObjectId; displayOrder: number }[];
+  /** Thứ tự trong lưới khách (tăng dần). */
+  displayOrder: number;
+  /** Khóa lạc quan khi admin sửa. */
+  version: number;
 }
 
 const inspirationSchema = new Schema<InspirationDoc>(
@@ -18,6 +22,8 @@ const inspirationSchema = new Schema<InspirationDoc>(
         displayOrder: { type: Number, required: true },
       },
     ],
+    displayOrder: { type: Number, default: 0 },
+    version: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
