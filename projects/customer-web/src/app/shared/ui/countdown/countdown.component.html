@@ -1,0 +1,8 @@
+<ol class="countdown" aria-label="Thời gian còn lại">
+  @for (unit of units(); track unit.label) {
+    <li>
+      <strong>{{ unit.value }}</strong>
+      <small>{{ unit.label }}</small>
+    </li>
+  }
+</ol>

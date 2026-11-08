@@ -5,7 +5,7 @@ import { findRunningPromotions } from './promotion.service.js';
 const FLASH_SALE_LIMIT = 10;
 
 export interface FlashSale {
-  promotion: { id: string; name: string; startDate: Date; endDate: Date };
+  promotion: { id: string; name: string; description: string; startDate: Date; endDate: Date };
   products: ProductListItem[];
 }
 
@@ -27,6 +27,7 @@ export async function getFlashSale(): Promise<FlashSale | null> {
     promotion: {
       id: promotion._id.toString(),
       name: promotion.name,
+      description: promotion.description ?? '',
       startDate: promotion.startDate,
       endDate: promotion.endDate,
     },

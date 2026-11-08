@@ -1,0 +1,137 @@
+<section class="account-screen reviews-screen">
+  <div class="screen-heading"><h1>Đánh giá</h1></div>
+  <nav class="review-tabs" role="tablist" aria-label="Loại đánh giá">
+    <button type="button" role="tab" [attr.aria-selected]="activeTab() === 'pending'" [class.active]="activeTab() === 'pending'" (click)="activeTab.set('pending')">
+      Chờ đánh giá <span class="count">{{ reviewItems().length }}</span>
+    </button>
+    <button type="button" role="tab" [attr.aria-selected]="activeTab() === 'submitted'" [class.active]="activeTab() === 'submitted'" (click)="activeTab.set('submitted')">
+      Đã đánh giá <span class="count">{{ submittedItems().length }}</span>
+    </button>
+  </nav>
+  @if (notice(); as notice) { <p class="form-notice" [class.error]="notice.error" role="status">{{ notice.text }}</p> }
+
+  @if (loading()) {
+    <p class="state-line" role="status">Đang tải sản phẩm cần đánh giá...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else if (activeTab() === 'pending') {
+    @for (item of reviewItems(); track item.orderItemId) {
+      <article class="review-card" [class.is-editing]="selectedItem()?.orderItemId === item.orderItemId">
+        <header class="card-head">
+          <span>Đơn #{{ item.orderCode }}</span>
+          <span>Giao ngày {{ formatDate(item.deliveredAt) }}</span>
+        </header>
+        <div class="review-item">
+          @if (item.image) { <img [src]="item.image" [alt]="item.name" /> } @else { <span class="image-placeholder"><app-account-icon name="image-plus" [size]="26" /></span> }
+          <div class="product-info">
+            <strong>{{ item.name }}</strong>
+            <span>{{ item.color || item.sku }}</span>
+          </div>
+          @if (selectedItem()?.orderItemId !== item.orderItemId) {
+            <button class="primary-button write-button" type="button" (click)="chooseReview(item)">
+              <app-account-icon name="star" [size]="16" /> Viết đánh giá
+            </button>
+          }
+        </div>
+
+        @if (selectedItem()?.orderItemId === item.orderItemId) {
+          <form class="review-editor" (ngSubmit)="submitReview()">
+            <div class="field">
+              <span class="field-label">Bạn thấy sản phẩm thế nào?</span>
+              <div class="rating-row">
+                <div class="rating-picker" role="radiogroup" aria-label="Chọn số sao">
+                  @for (star of stars; track star) {
+                    <button type="button" role="radio" [class.on]="star <= rating()" [attr.aria-checked]="rating() === star" [attr.aria-label]="star + ' sao'" (click)="rating.set(star)">
+                      <app-account-icon [name]="star <= rating() ? 'star-filled' : 'star'" [size]="34" [strokeWidth]="1" />
+                    </button>
+                  }
+                </div>
+                <span class="rating-text" [class.set]="rating() > 0">{{ rating() ? ratingLabels[rating()] : 'Chọn số sao' }}</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="review-text">Chia sẻ cảm nhận của bạn</label>
+              <div class="textarea-box">
+                <textarea id="review-text" [(ngModel)]="reviewText" name="reviewText" maxlength="1000" placeholder="Chất liệu, kích thước, độ hoàn thiện, trải nghiệm sử dụng..."></textarea>
+                <small>{{ reviewText.length }}/1000</small>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">Hình ảnh thực tế <em>(tối đa 4 ảnh, không bắt buộc)</em></span>
+              <div class="image-list">
+                @for (image of selectedImages(); track image; let index = $index) {
+                  <span class="image-preview"><img [src]="image" alt="Ảnh đính kèm" /><button type="button" aria-label="Bỏ ảnh" (click)="removeImage(index)"><app-account-icon name="close" [size]="12" [strokeWidth]="2.5" /></button></span>
+                }
+                @if (selectedImages().length < 4) {
+                  <label class="upload-box" aria-label="Thêm hình ảnh thực tế (tối đa 4 ảnh)">
+                    <app-account-icon name="image-plus" [size]="26" [strokeWidth]="1.4" />
+                    <span>Thêm ảnh</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="selectFiles($event)" />
+                  </label>
+                }
+              </div>
+            </div>
+            <div class="editor-actions">
+              <button class="outline-button" type="button" (click)="cancelReview()">Huỷ</button>
+              <button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Đang gửi...' : 'Gửi đánh giá' }}</button>
+            </div>
+          </form>
+        }
+      </article>
+    } @empty {
+      <div class="empty-state"><app-account-icon name="star" [size]="36" /><h2>Không có sản phẩm chờ đánh giá</h2><p>Sản phẩm trong đơn đã giao thành công (trong vòng 90 ngày) sẽ xuất hiện ở đây.</p></div>
+    }
+  } @else {
+    @for (review of submittedItems(); track review.id) {
+      <article class="review-card">
+        <header class="card-head">
+          <span>Đơn #{{ review.orderCode }}</span>
+          <span>Đánh giá ngày {{ formatDate(review.createdAt) }}</span>
+        </header>
+        <div class="review-item">
+          @if (review.image) { <img [src]="review.image" [alt]="review.name" /> } @else { <span class="image-placeholder"><app-account-icon name="image-plus" [size]="26" /></span> }
+          <div class="product-info">
+            <strong>{{ review.name }}</strong>
+            <span>{{ review.color || review.sku }}</span>
+            <div class="submitted-stars" [attr.aria-label]="review.rating + ' trên 5 sao'">
+              @for (star of stars; track star) { <app-account-icon [name]="star <= review.rating ? 'star-filled' : 'star'" [size]="18" [strokeWidth]="1" /> }
+              <b>{{ ratingLabels[review.rating] }}</b>
+            </div>
+          </div>
+          @if (statusLabel(review)) { <span class="status-badge">{{ statusLabel(review) }}</span> }
+        </div>
+        <div class="submitted-review">
+          @if (review.rejectReason) { <p class="api-error">{{ review.rejectReason }}</p> }
+          @if (editingId() === review.id) {
+            <div class="rating-row">
+              <div class="rating-picker" role="radiogroup" aria-label="Chọn số sao">
+                @for (star of stars; track star) {
+                  <button type="button" role="radio" [class.on]="star <= editRating()" [attr.aria-checked]="editRating() === star" [attr.aria-label]="star + ' sao'" (click)="editRating.set(star)">
+                    <app-account-icon [name]="star <= editRating() ? 'star-filled' : 'star'" [size]="28" [strokeWidth]="1" />
+                  </button>
+                }
+              </div>
+              <span class="rating-text set">{{ ratingLabels[editRating()] }}</span>
+            </div>
+            <div class="textarea-box"><textarea [(ngModel)]="editText" name="editText" maxlength="1000" aria-label="Nội dung đánh giá"></textarea><small>{{ editText.length }}/1000</small></div>
+            <div class="editor-actions">
+              <button class="outline-button" type="button" (click)="editingId.set('')">Huỷ</button>
+              <button class="primary-button" type="button" [disabled]="saving()" (click)="saveEdit(review)">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
+            </div>
+          } @else {
+            <p class="comment">{{ review.comment }}</p>
+            @if (review.images.length) {
+              <div class="image-list">@for (image of review.images; track image) { <img class="submitted-image" [src]="image" alt="Ảnh thực tế" /> }</div>
+            }
+            <div class="review-actions">
+              <button class="link-button" type="button" (click)="startEdit(review)">Sửa</button>
+              <button class="link-button danger" type="button" (click)="removeReview(review)">Xóa</button>
+            </div>
+          }
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-state"><app-account-icon name="star" [size]="36" /><h2>Chưa có đánh giá nào</h2><p>Các đánh giá bạn đã gửi sẽ hiển thị ở đây.</p></div>
+    }
+  }
+</section>

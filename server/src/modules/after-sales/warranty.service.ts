@@ -1,0 +1,158 @@
+import type { Types } from 'mongoose';
+import { nextRequestCode } from './request-code.js';
+import { emitToAgents } from '../../socket/index.js';
+import { AppError } from '../../utils/app-error.js';
+import {
+  OrderModel,
+  UploadedFileModel,
+  WarrantyCardModel,
+  WarrantyRequestModel,
+  type WarrantyRequestDoc,
+} from './after-sales.model.js';
+import { thumbnailsByVariant, variantLabel as labelOf } from './item-display.js';
+import { normalizeSearch } from '../products/search.service.js';
+import type { z } from 'zod';
+import type { warrantySchema } from './after-sales.schema.js';
+
+export async function validateEvidence(userId: Types.ObjectId, urls: string[], purpose: string) {
+  const files = await UploadedFileModel.find({ userId, purpose, url: { $in: urls } }).lean();
+  if (new Set(urls).size !== urls.length || files.length !== urls.length)
+    throw new AppError(
+      'VALIDATION_ERROR',
+      400,
+      'Minh chứng không hợp lệ hoặc không thuộc tài khoản này',
+    );
+  return files;
+}
+export function timeline(request: {
+  status: string;
+  requestedAt: Date;
+  approvedAt?: Date;
+  completedAt?: Date;
+  rejectReason?: string;
+  timeline?: { status: string; at: Date; note?: string }[];
+}, initialStatus = 'PENDING_CONFIRMATION') {
+  if (request.timeline?.length && request.timeline.at(-1)?.status === request.status)
+    return request.timeline;
+  const first = request.timeline?.[0]?.status ?? initialStatus;
+  return [
+    { status: first, at: request.requestedAt },
+    ...(request.status !== first
+      ? [
+          {
+            status: request.status,
+            at: request.completedAt ?? request.approvedAt ?? request.requestedAt,
+            note: request.rejectReason,
+          },
+        ]
+      : []),
+  ];
+}
+/**
+ * Tiến trình cho khách: ưu tiên lịch sử do Order Admin ghi (có đủ từng bước và ghi chú), thiếu thì dùng
+ * `timeline(...)` suy ra từ trạng thái hiện tại.
+ */
+function customerTimeline(request: WarrantyRequestDoc) {
+  const history = request.history ?? [];
+  if (!history.length) return timeline(request);
+  const first = { status: 'PENDING_CONFIRMATION', at: request.requestedAt };
+  return [
+    ...(history.some((entry) => entry.status === 'PENDING_CONFIRMATION') ? [] : [first]),
+    ...history.map((entry) => ({ status: entry.status, at: entry.at, ...(entry.note ? { note: entry.note } : {}) })),
+  ];
+}
+export async function warrantyCards(userId: Types.ObjectId, query?: string, status?: string) {
+  const orders = await OrderModel.find({ userId }).lean();
+  const byId = new Map(orders.map((o) => [o._id.toString(), o]));
+  const cards = await WarrantyCardModel.find({ orderId: { $in: orders.map((o) => o._id) } })
+    .sort({ expiresAt: -1 })
+    .lean();
+  const variantIds = cards.flatMap((card) => {
+    const item = byId.get(card.orderId.toString())?.items.find((i) => i._id.equals(card.orderItemId));
+    return item ? [item.variantId] : [];
+  });
+  const thumbByVariant = await thumbnailsByVariant(variantIds);
+  return cards
+    .map((card) => {
+      const order = byId.get(card.orderId.toString())!;
+      const item = order.items.find((i) => i._id.equals(card.orderItemId));
+      const productName = item?.snapshot.name ?? 'Sản phẩm đổi mới';
+      const variantLabel = labelOf(item?.snapshot);
+      const thumbnail = item ? (thumbByVariant.get(item.variantId.toString()) ?? '') : '';
+      const remainingDays = Math.max(
+        0,
+        Math.ceil((card.expiresAt.getTime() - Date.now()) / 86400000),
+      );
+      return {
+        id: card._id.toString(),
+        orderId: card.orderId.toString(),
+        orderCode: order.orderCode,
+        productName,
+        variantLabel,
+        thumbnail,
+        serialNumber: card.serialNumber ?? '',
+        quantity: card.quantity,
+        warrantyMonths: card.warrantyMonths,
+        activatedAt: card.activatedAt,
+        expiresAt: card.expiresAt,
+        status: card.status === 'VALID' && !remainingDays ? 'EXPIRED' : card.status,
+        remainingDays,
+        recipientPhone: order.shippingAddress?.recipientPhone ?? '',
+      };
+    })
+    .filter(
+      (card) =>
+        (!status || card.status === status) &&
+        (!query ||
+          normalizeSearch(`${card.serialNumber} ${card.orderCode} ${card.recipientPhone}`).includes(
+            normalizeSearch(query),
+          )),
+    )
+    .map(({ recipientPhone: _phone, ...card }) => card);
+}
+export async function createWarranty(userId: Types.ObjectId, body: z.infer<typeof warrantySchema>) {
+  const card = await WarrantyCardModel.findById(body.warrantyCardId).lean();
+  if (!card || !(await OrderModel.exists({ _id: card.orderId, userId })))
+    throw new AppError('NOT_FOUND', 404, 'Không tìm thấy phiếu bảo hành');
+  if (card.status !== 'VALID' || card.expiresAt.getTime() < Date.now())
+    throw new AppError('WARRANTY_EXPIRED', 409, 'Phiếu đã hết hạn hoặc không còn hiệu lực');
+  await validateEvidence(userId, body.evidence, 'WARRANTY_EVIDENCE');
+  const now = new Date();
+  const request = await WarrantyRequestModel.create({
+    ...body,
+    code: await nextRequestCode('BH', WarrantyRequestModel as never),
+    orderId: card.orderId,
+    orderItemId: card.orderItemId,
+    userId,
+    status: 'PENDING_CONFIRMATION',
+    requestedAt: now,
+    timeline: [{ status: 'PENDING_CONFIRMATION', at: now }],
+    history: [{ at: now, status: 'PENDING_CONFIRMATION', note: null }],
+  });
+  // Báo cho Order Admin đang mở màn Bảo hành để danh sách tự làm mới.
+  emitToAgents('warranty:created', { id: String(request._id), code: request.code });
+  return request;
+}
+export async function warrantyRequestDto(request: WarrantyRequestDoc) {
+  const card = await WarrantyCardModel.findById(request.warrantyCardId).lean();
+  const order = card ? await OrderModel.findById(card.orderId).lean() : null;
+  return {
+    id: request._id.toString(),
+    code: request.code ?? '',
+    warrantyCardId: request.warrantyCardId.toString(),
+    productName:
+      order?.items.find((i) => i._id.equals(card?.orderItemId))?.snapshot.name ?? 'Sản phẩm',
+    defectType: request.defectType ?? '',
+    defectDescription: request.defectDescription,
+    evidence: request.evidence,
+    contact: request.contact ?? { name: order?.shippingAddress?.recipientName ?? '', phone: order?.shippingAddress?.recipientPhone ?? '', address: order?.shippingAddress?.addressLine ?? '' },
+    status: request.status,
+    requestedAt: request.requestedAt,
+    rejectReason: request.rejectReason,
+    inspectionResult: request.inspectionResult,
+    resolution: request.resolution,
+    homeServiceSchedule: request.homeServiceSchedule ?? null,
+    trackingCode: request.returnShipment?.trackingCode ?? request.customerShipment?.trackingCode ?? null,
+    timeline: customerTimeline(request),
+  };
+}

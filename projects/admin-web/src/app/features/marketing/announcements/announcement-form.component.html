@@ -1,0 +1,61 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>{{ id ? 'Sửa thông báo' : 'Tạo thông báo' }}</h1>
+    <a class="cv-btn" routerLink="/marketing/thanh-thong-bao">Quay lại danh sách</a>
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else {
+    <div class="grid">
+      <form class="cv-card form" (ngSubmit)="save()">
+        <div class="cv-field">
+          <label for="a-text">Nội dung (5–120 ký tự)</label>
+          <input id="a-text" class="cv-input" name="text" maxlength="120" [(ngModel)]="text" />
+          <span class="cv-hint">{{ text.length }}/120</span>
+        </div>
+        <div class="cv-field">
+          <label for="a-link">Liên kết (tùy chọn)</label>
+          <input id="a-link" class="cv-input" name="link" maxlength="500" placeholder="/promotions hoặc https://…" [(ngModel)]="linkUrl" />
+        </div>
+        <div class="cv-field">
+          <label for="a-end">Tự ngừng hiển thị lúc (tùy chọn)</label>
+          <input id="a-end" class="cv-input" name="end" type="datetime-local" [(ngModel)]="endAt" />
+          <span class="cv-hint">Giờ bắt đầu chọn khi bấm Đăng: đăng ngay hoặc lên lịch.</span>
+        </div>
+
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <div class="actions">
+          <button type="submit" class="cv-btn" [disabled]="saving()">{{ isDraft ? 'Lưu nháp' : 'Lưu thay đổi' }}</button>
+          @if (isDraft) {
+            <button type="button" class="cv-btn cv-btn--primary" [disabled]="saving()" (click)="openPublish()">Đăng…</button>
+          }
+        </div>
+      </form>
+
+      <aside class="cv-card pv" aria-label="Xem trước">
+        <h2 class="cv-section-label">Xem trước trên website</h2>
+        <div class="pv-bar">
+          @if (linkUrl.trim()) {
+            <span class="pv-text pv-text--link">{{ text || 'Nội dung thông báo' }}</span>
+          } @else {
+            <span class="pv-text">{{ text || 'Nội dung thông báo' }}</span>
+          }
+        </div>
+        <p class="cv-muted">Thanh này nằm trên cùng mọi trang của khách. Nhiều thông báo đang chạy sẽ hiện lần lượt.</p>
+      </aside>
+    </div>
+  }
+</main>
+
+@if (publishOpen() && loaded(); as a) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Thanh thông báo', name: a.text, note: a.linkUrl ? 'Liên kết: ' + a.linkUrl : '' }"
+    [busy]="saving()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="publishOpen.set(false)"
+  />
+}

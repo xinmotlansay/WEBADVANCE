@@ -1,0 +1,333 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 160px;
+}
+
+/* ---------- Thanh đầu trang: tên, trạng thái, nút đăng (dính trên cùng, như Meta Business Suite) ---------- */
+.ed-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cv-border);
+  background: var(--cv-surface);
+}
+.ed-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ed-title h1 {
+  margin: 0;
+}
+.ed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ed-publish {
+  position: relative;
+}
+.ed-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 16px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 20px;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius-lg);
+  background: var(--cv-surface);
+  box-shadow: var(--cv-shadow-float);
+}
+.ed-modes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ed-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  cursor: pointer;
+}
+.ed-mode:has(input:checked) {
+  border-color: var(--cv-navy);
+  background: var(--cv-surface-alt);
+}
+.ed-mode span {
+  display: grid;
+  gap: 4px;
+}
+.ed-mode small {
+  color: var(--cv-muted);
+  font-size: 13px;
+}
+.ed-pop-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Bố cục hai cột: soạn bên trái, xem trước + lịch sử bên phải ---------- */
+.ed-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+.ed-form {
+  min-width: 0;
+}
+.ed-side {
+  position: sticky;
+  top: 88px;
+  display: grid;
+  gap: 16px;
+}
+@media (max-width: 1279px) {
+  .ed-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ed-side {
+    position: static;
+  }
+}
+
+.block {
+  margin-bottom: 12px;
+}
+.notice {
+  margin: 0 0 12px;
+}
+
+/* ---------- Khối nội dung dạng accordion ---------- */
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ed-toggle {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--cv-navy);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ed-toggle:disabled {
+  cursor: default;
+}
+.ed-caret {
+  grid-row: span 2;
+  color: var(--cv-muted);
+}
+.ed-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+.ed-sub {
+  overflow: hidden;
+  color: var(--cv-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-block--off .ed-name {
+  color: var(--cv-muted);
+}
+.ed-block--off {
+  background: var(--cv-surface-alt);
+}
+.ed-block > :not(.block-head) {
+  margin-top: 16px;
+}
+.move {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Công tắc bật/tắt (vuông nhẹ theo quy tắc UI, không dùng hình tròn). */
+.ed-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cv-navy);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ed-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ed-switch-track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-border-strong);
+  transition: background 0.15s ease;
+}
+.ed-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--cv-surface);
+  transition: transform 0.15s ease;
+}
+.ed-switch input:checked + .ed-switch-track {
+  background: var(--cv-navy);
+}
+.ed-switch input:checked + .ed-switch-track::after {
+  transform: translateX(16px);
+}
+.ed-switch input:focus-visible + .ed-switch-track {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: 2px;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  padding: 8px 12px;
+}
+.pic {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+  margin-top: 8px;
+  object-fit: contain;
+}
+
+/* ---------- Xem trước ---------- */
+.ed-preview {
+  display: grid;
+  gap: 12px;
+}
+.ed-preview h2 {
+  margin: 0;
+}
+.ed-frame {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface-alt);
+}
+.ed-frame-top {
+  height: 16px;
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-border-strong);
+}
+.ed-frame-top--bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  min-height: 28px;
+  padding: 4px 12px;
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font-size: 12px;
+  text-align: center;
+}
+.ed-frame-top--off {
+  background: var(--cv-border-strong);
+  color: var(--cv-muted);
+}
+.ed-frame-block {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--cv-border);
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-surface);
+}
+.ed-frame-block small {
+  color: var(--cv-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.ed-frame-block strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-frame-empty {
+  margin: 0;
+  padding: 8px;
+  color: var(--cv-muted);
+  font-size: 13px;
+}
+
+/* ---------- Lịch sử phiên bản ---------- */
+.history h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.history ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history li,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.history li {
+  justify-content: space-between;
+  font-size: 13px;
+}

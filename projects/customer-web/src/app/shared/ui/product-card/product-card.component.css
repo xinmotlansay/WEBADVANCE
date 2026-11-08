@@ -34,13 +34,16 @@
   place-items: center;
   width: 32px;
   height: 32px;
+  min-width: 0;
+  min-height: 0; /* trang .feature-page đặt min-height cho mọi nút, làm nút bị méo */
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-white) 90%, transparent);
   color: var(--color-muted);
 }
-.wish:hover {
+.wish:hover,
+.wish--on {
   color: var(--color-accent);
 }
 
@@ -110,10 +113,16 @@
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.02em;
 }
-.buy:hover,
-.cart:hover {
+.buy:hover:not(:disabled),
+.cart:hover:not(:disabled) {
   background: var(--color-black);
   color: var(--color-white);
+}
+.buy:disabled,
+.cart:disabled {
+  cursor: not-allowed;
+  border-color: var(--color-gray-light);
+  color: var(--color-muted);
 }
 
 .buy {

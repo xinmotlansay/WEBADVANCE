@@ -1,0 +1,109 @@
+<main class="screen">
+  @let r = result();
+  @let s = status();
+  <h1 class="screen-heading">Ưu đãi 10% cho khách hàng mới</h1>
+  <p class="lead">Hoàn thiện thông tin, bấm xác nhận trong email để mã <strong>NEW11</strong> vào Ví voucher của bạn.</p>
+
+  @if (!isAuthenticated()) {
+    <section class="block block--notice">
+      <h2>Đăng nhập để nhận ưu đãi</h2>
+      <div class="actions">
+        <a class="primary-button" routerLink="/auth/register" [queryParams]="registerQuery">Đăng ký</a>
+        <a class="outline-button" routerLink="/auth/login" [queryParams]="registerQuery">Đăng nhập</a>
+      </div>
+    </section>
+  } @else if (r) {
+    <section class="block block--notice">
+      <h2>Kiểm tra email của bạn</h2>
+      @if (r.emailSent) {
+        <p>Chúng tôi đã gửi email tới <strong>{{ r.sentTo }}</strong>. Bấm <strong>Xác nhận</strong> trong email để mã {{ r.code }} được lưu vào Ví voucher.</p>
+      } @else {
+        <p>Chưa gửi được email tới <strong>{{ r.sentTo }}</strong>. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.</p>
+      }
+      <div class="actions"><a class="primary-button" routerLink="/products">Mua sắm ngay</a></div>
+    </section>
+  } @else if (s) {
+    @if (!s.eligible) {
+      <section class="block block--notice"><p>Ưu đãi chỉ dành cho khách hàng chưa có đơn hàng.</p></section>
+    } @else if (s.claimed) {
+      <section class="block block--notice">
+        <p>Mã NEW11 đã nằm trong Ví voucher của bạn.</p>
+        <div class="actions"><a class="primary-button" routerLink="/account/vouchers">Xem ví voucher</a></div>
+      </section>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <h2 class="section-heading">Thông tin của tôi</h2>
+
+        @if (errorMessage()) { <p class="api-error" role="alert">{{ errorMessage() }}</p> }
+
+        <fieldset class="name-field" [class.invalid]="invalid('fullName')">
+          <legend>Họ và tên</legend>
+          <input formControlName="fullName" maxlength="120" autocomplete="name" aria-label="Họ và tên" />
+        </fieldset>
+
+        <div class="field-row">
+          <label class="field-label" for="wo-dob">Ngày sinh:</label>
+          <div class="input-box" [class.invalid]="invalid('dateOfBirth')">
+            <input id="wo-dob" type="date" formControlName="dateOfBirth" [max]="today" autocomplete="bday" />
+          </div>
+          <label class="field-label gender-label" for="wo-gender">Giới tính:</label>
+          <div class="input-box gender-box" [class.invalid]="invalid('gender')">
+            <select id="wo-gender" formControlName="gender">
+              <option value="" disabled>Chưa chọn</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
+            </select>
+          </div>
+        </div>
+
+        <section class="block">
+          <h2>Thông tin liên hệ</h2>
+          @if (s.email) {
+            <p class="contact-row"><strong>Email:</strong> <span>{{ s.email }}</span></p>
+          } @else {
+            <div class="field-row field-row--wide">
+              <label class="field-label" for="wo-email">Email:</label>
+              <div class="input-box"><input id="wo-email" type="email" formControlName="email" autocomplete="email" placeholder="ban@example.com" /></div>
+            </div>
+          }
+          @if (s.phoneNumber) {
+            <p class="contact-row"><strong>Số điện thoại:</strong> <span>{{ s.phoneNumber }}</span></p>
+          } @else {
+            <div class="field-row field-row--wide">
+              <label class="field-label" for="wo-phone">Số điện thoại:</label>
+              <div class="input-box"><input id="wo-phone" type="tel" formControlName="phoneNumber" autocomplete="tel" placeholder="0901234567" /></div>
+            </div>
+          }
+        </section>
+
+        <section class="block">
+          <h2>Địa chỉ nhận hàng</h2>
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-address">Số nhà, đường:</label>
+            <div class="input-box" [class.invalid]="invalid('addressLine')"><input id="wo-address" formControlName="addressLine" autocomplete="street-address" /></div>
+          </div>
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-ward">Phường/Xã:</label>
+            <div class="input-box" [class.invalid]="invalid('ward')"><input id="wo-ward" formControlName="ward" /></div>
+          </div>
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-district">Quận/Huyện:</label>
+            <div class="input-box"><input id="wo-district" formControlName="district" /></div>
+          </div>
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-province">Tỉnh/Thành phố:</label>
+            <div class="input-box" [class.invalid]="invalid('province')"><input id="wo-province" formControlName="province" autocomplete="address-level1" /></div>
+          </div>
+        </section>
+
+        <section class="block block--last">
+          <button class="primary-button" type="submit" [disabled]="loading() || form.invalid">{{ loading() ? 'Đang gửi...' : 'Nhận mã giảm giá' }}</button>
+          <p class="terms">Cần điền đầy đủ thông tin để nhận mã. Mã dùng một lần cho đơn hàng đầu tiên, hiệu lực 30 ngày và không áp dụng chung với sản phẩm đang khuyến mãi.</p>
+        </section>
+      </form>
+    }
+  } @else {
+    <p class="lead" aria-live="polite">Đang tải…</p>
+  }
+</main>

@@ -1,0 +1,24 @@
+<nav class="crumbs" aria-label="Đường dẫn">
+  <ol class="container">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+    <li aria-current="page">Nguồn cảm hứng</li>
+  </ol>
+</nav>
+
+<section class="list">
+  <header class="container list__head">
+    <h1>Nguồn cảm hứng</h1>
+    <p>Chạm vào một không gian để xem những sản phẩm có trong ảnh.</p>
+  </header>
+
+  @if (items(); as list) {
+    @if (list.length) {
+      <app-inspiration-grid class="wall" [items]="list" />
+    } @else {
+      <p class="container state">Hiện chưa có nguồn cảm hứng nào.</p>
+    }
+  } @else if (items() === null) {
+    <p class="container state">Không tải được nguồn cảm hứng. Vui lòng thử lại.</p>
+  }
+</section>

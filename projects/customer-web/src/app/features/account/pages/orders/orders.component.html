@@ -1,0 +1,135 @@
+<section class="account-screen orders-screen">
+  <h1 class="screen-heading">Đơn hàng</h1>
+  @if (notice(); as notice) { <p class="form-notice" [class.error]="notice.error" role="status">{{ notice.text }}</p> }
+
+  @if (loading()) {
+    <p role="status">Đang tải đơn hàng...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <div class="filter-tabs" role="tablist" aria-label="Lọc đơn hàng theo trạng thái">
+      @for (tab of filters; track tab.value) {
+        <button type="button" role="tab" [class.active]="filter() === tab.value" [attr.aria-selected]="filter() === tab.value" (click)="filter.set(tab.value)">{{ tab.label }}</button>
+      }
+    </div>
+
+    @for (order of visibleOrders(); track order.id) {
+      <article class="order-card">
+        <header class="order-header">
+          <div class="order-meta"><strong>Đơn #{{ order.code }}</strong><span>Đặt ngày {{ order.date }}</span></div>
+          <p class="order-status" [attr.data-tone]="order.tone"><app-account-icon [name]="order.statusIcon" [size]="16" />{{ order.status }}</p>
+        </header>
+
+        <div class="order-body">
+          <p class="order-items-text">
+            <strong>{{ order.items[0].name }}</strong>
+            @if (order.items.length > 1) { <span>và {{ order.items.length - 1 }} sản phẩm khác</span> }
+          </p>
+          <p class="order-total"><span>{{ order.paymentText }}</span><strong>{{ formatPrice(order.total) }}<u>đ</u></strong></p>
+        </div>
+        @if (order.refund; as refund) {
+          <p class="refund-note" [attr.data-tone]="refund.tone"><strong>{{ refund.label }}.</strong> {{ refund.text }}</p>
+        }
+
+        <footer class="order-footer">
+          <button class="tracking-button" type="button" [attr.aria-expanded]="expandedOrder() === order.id" (click)="toggleTracking(order)">
+            Theo dõi đơn <app-account-icon [name]="expandedOrder() === order.id ? 'chevron-up' : 'chevron-down'" [size]="14" />
+          </button>
+          <div class="order-actions">
+            @if (order.cancellable) {
+              <button class="cancel-button" type="button" (click)="openCancel(order)">Huỷ đơn</button>
+            }
+            <button class="detail-button" type="button" (click)="detailOrder.set(order)">Chi tiết</button>
+          </div>
+        </footer>
+
+        @if (expandedOrder() === order.id) {
+          <div class="tracking-panel">
+            <strong>{{ order.trackingTitle }}</strong>
+            <ol class="steps">
+              @for (step of order.steps; track $index) {
+                <li [class.done]="step.done">
+                  <app-account-icon [name]="step.icon" [size]="18" />
+                  <div><span>{{ step.label }}</span>@if (step.note) { <small>{{ step.note }}</small> }</div>
+                </li>
+              }
+            </ol>
+          </div>
+        }
+
+        @if (cancellingOrder() === order.id) {
+          <div class="modal-backdrop" (click)="cancellingOrder.set('')">
+            <form class="cancel-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="confirmCancel(order)">
+              <h3>Huỷ đơn #{{ order.code }}</h3>
+              <p class="modal-hint">Chọn lý do huỷ đơn</p>
+              @for (reason of cancelReasons; track reason) {
+                <label><input type="radio" name="cancelReason" [value]="reason" [(ngModel)]="cancelReason" /> {{ reason }}</label>
+              }
+              @if (order.refundToSourceBank) {
+                <p class="modal-hint">Đơn đã thanh toán: tiền được hoàn về chính tài khoản ngân hàng bạn đã chuyển, theo quy định của ngân hàng (thường 3–7 ngày làm việc). Bạn không cần nhập thêm tài khoản.</p>
+              }
+              <div class="modal-buttons">
+                <button class="outline-button" type="button" (click)="cancellingOrder.set('')">Không huỷ</button>
+                <button class="danger-button" type="submit" [disabled]="cancelling()">{{ cancelling() ? 'Đang huỷ...' : 'Xác nhận huỷ' }}</button>
+              </div>
+            </form>
+          </div>
+        }
+      </article>
+    } @empty {
+      <div class="empty-state"><app-account-icon name="archive" [size]="36" /><h2>{{ filter() === 'ALL' ? 'Chưa có đơn hàng' : 'Không có đơn hàng ở trạng thái này' }}</h2><p>{{ filter() === 'ALL' ? 'Không tìm thấy đơn hàng gắn với tài khoản này.' : 'Thử chọn trạng thái khác để xem các đơn còn lại.' }}</p></div>
+    }
+
+    @if (detailOrder(); as order) {
+      <div class="modal-backdrop" (click)="detailOrder.set(null)">
+        <section class="detail-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+          <button class="modal-close" type="button" aria-label="Đóng" (click)="detailOrder.set(null)">&times;</button>
+          <header class="detail-head">
+            <h3>Đơn #{{ order.code }}</h3>
+            <p>Đặt ngày {{ order.date }} · <span class="order-status" [attr.data-tone]="order.tone">{{ order.status }}</span></p>
+          </header>
+
+          <h4>Sản phẩm</h4>
+          <ul class="order-products">
+            @for (product of order.items; track $index) {
+              <li>
+                <span class="thumb">@if (product.image) { <img [src]="product.image" [alt]="product.name" loading="lazy" /> }</span>
+                <div class="product-info">
+                  <strong>{{ product.name }}</strong>
+                  @if (product.details) { <span>{{ product.details }}</span> }
+                  <span class="qty">{{ formatPrice(product.unitPrice) }}<u>đ</u> &times; {{ product.quantity }}</span>
+                </div>
+                <div class="product-side">
+                  <strong class="price">{{ formatPrice(product.total) }}<u>đ</u></strong>
+                  @if (order.delivered) { <a class="review-link" routerLink="/account/reviews" (click)="detailOrder.set(null)">Đánh giá</a> }
+                </div>
+              </li>
+            }
+          </ul>
+
+          <h4>Thanh toán</h4>
+          <dl class="fee-list">
+            @for (fee of order.fees; track fee.label) {
+              <div [class.discount]="fee.discount"><dt>{{ fee.label }}</dt><dd>{{ fee.discount ? '-' : '' }}{{ formatPrice(fee.amount) }}<u>đ</u></dd></div>
+            }
+            <div class="grand"><dt>Tổng cộng</dt><dd>{{ formatPrice(order.total) }}<u>đ</u></dd></div>
+          </dl>
+          <p class="payment-text">{{ order.paymentText }}</p>
+          @if (order.refund; as refund) {
+            <p class="refund-note" [attr.data-tone]="refund.tone"><strong>{{ refund.label }}.</strong> {{ refund.text }}</p>
+          }
+
+          <h4>{{ order.trackingTitle }}</h4>
+          <ol class="steps">
+            @for (step of order.steps; track $index) {
+              <li [class.done]="step.done">
+                <app-account-icon [name]="step.icon" [size]="18" />
+                <div><span>{{ step.label }}</span>@if (step.note) { <small>{{ step.note }}</small> }</div>
+              </li>
+            }
+          </ol>
+        </section>
+      </div>
+    }
+  }
+</section>

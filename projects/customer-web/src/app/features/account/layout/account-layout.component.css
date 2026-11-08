@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  width: 100%;
+  padding-top: var(--header-offset);
+  /* Token màu của thiết kế trang tài khoản, dùng chung cho các trang con. */
+  --navy: var(--color-primary);
+  --navy-dark: color-mix(in srgb, var(--color-primary) 80%, black);
+  --gray-light: #d9d9d9;
+  --gray: #c4c4c4;
+  --muted: #7b8185;
+  --line: #e7e8e8;
+}
+.account-layout {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--page-gutter) var(--space-2xl);
+  border: 0;
+}
+.account-body {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: clamp(16px, 2.5vw, 32px);
+}
+.account-sidebar { align-self: start; min-width: 0; padding: 0; border: 0; border-right: 1px solid var(--line); }
+.account-sidebar nav { display: grid; gap: 0; }
+.account-sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  border: 0;
+  background: none;
+  color: var(--color-text, #111);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.account-sidebar nav a:hover { color: var(--navy); background: none; }
+.account-sidebar nav a.active { font-weight: 700; }
+.nav-badge {
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+.account-content { width: 100%; max-width: 1000px; min-width: 0; }
+@media (max-width: 900px) {
+  .account-body { grid-template-columns: 150px minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  .account-body { grid-template-columns: 1fr; gap: 20px; }
+    .account-sidebar nav { display: flex; overflow-x: auto; border-bottom: 1px solid var(--gray-light); }
+  .account-sidebar nav a { min-height: 32px; flex: 0 0 auto; padding: 0 10px; font-size: 14px; white-space: nowrap; }
+  .account-sidebar nav a.active { border-bottom: 2px solid var(--navy); }
+}

@@ -1,0 +1,22 @@
+<app-admin-sidebar
+  [items]="navItems()"
+  [fullName]="user()?.fullName ?? ''"
+  [avatar]="user()?.avatar ?? ''"
+  [roleLabel]="roleLabel()"
+  (logout)="logout()"
+/>
+
+<div class="content">
+  @if (warningSecondsLeft() !== null) {
+    <div class="notice" role="alert">
+      <span>
+        Phiên sắp hết hạn do không thao tác. Còn <strong>{{ warningSecondsLeft() }} giây</strong>.
+      </span>
+      <button type="button" class="btn-primary" (click)="extendSession()">Tiếp tục phiên</button>
+    </div>
+  }
+
+  <router-outlet />
+</div>
+
+<app-toast-host />

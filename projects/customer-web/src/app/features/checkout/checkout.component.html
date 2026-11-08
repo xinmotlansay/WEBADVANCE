@@ -1,0 +1,565 @@
+<app-compact-header [minimal]="true" />
+
+<section class="page">
+  <div class="container">
+    <header class="intro">
+      <h1>Thanh toán</h1>
+    </header>
+
+    @if (preview(); as p) {
+      <div class="layout">
+        <div class="sections">
+          <!-- Địa chỉ giao hàng -->
+          <section aria-labelledby="sec-address">
+            <h2 id="sec-address" class="heading">Địa chỉ giao hàng</h2>
+            @if (submitted() && !addingAddress() && issueOf('ADDRESS_REQUIRED'); as issue) {
+              <p class="error">{{ issueMessage(issue) }}</p>
+            }
+
+            @if (addingAddress()) {
+              <form class="form" [formGroup]="addressForm" novalidate (ngSubmit)="place()">
+                <label class="field">
+                  <span>Họ và Tên <b class="req">*</b></span>
+                  <input
+                    formControlName="recipientName"
+                    autocomplete="name"
+                    placeholder="Nhập họ tên đầy đủ"
+                    [attr.aria-invalid]="addressInvalid('recipientName')"
+                  />
+                  @if (addressInvalid('recipientName')) {
+                    <small class="error">Nhập họ tên</small>
+                  }
+                </label>
+                <label class="field">
+                  <span>Số điện thoại <b class="req">*</b></span>
+                  <input
+                    formControlName="recipientPhone"
+                    type="tel"
+                    inputmode="tel"
+                    autocomplete="tel"
+                    placeholder="Nhập số điện thoại"
+                    [attr.aria-invalid]="addressInvalid('recipientPhone')"
+                  />
+                  @if (addressInvalid('recipientPhone')) {
+                    <small class="error">Số điện thoại gồm 10 số, bắt đầu bằng 0</small>
+                  }
+                </label>
+                <label class="field">
+                  <span>Thành phố/ Tỉnh <b class="req">*</b></span>
+                  <select
+                    formControlName="province"
+                    autocomplete="address-level1"
+                    [attr.aria-invalid]="addressInvalid('province')"
+                    (change)="changeProvince()"
+                  >
+                    <option value="" disabled>
+                      {{ units() ? 'Lựa chọn Tỉnh/ Thành phố' : 'Đang tải...' }}
+                    </option>
+                    @for (province of units()?.provinces; track province.name) {
+                      <option [value]="province.name">{{ province.name }}</option>
+                    }
+                  </select>
+                  @if (addressInvalid('province')) {
+                    <small class="error">Chọn tỉnh / thành phố</small>
+                  }
+                </label>
+                <label class="field">
+                  <span>Phường/ Xã <b class="req">*</b></span>
+                  <select
+                    formControlName="ward"
+                    autocomplete="address-level2"
+                    [attr.aria-invalid]="addressInvalid('ward')"
+                  >
+                    <option value="" disabled>
+                      {{ wards().length ? 'Lựa chọn Phường/ Xã' : 'Chọn Tỉnh/ Thành phố trước' }}
+                    </option>
+                    @for (ward of wards(); track ward) {
+                      <option [value]="ward">{{ ward }}</option>
+                    }
+                  </select>
+                  @if (addressInvalid('ward')) {
+                    <small class="error">Chọn phường / xã</small>
+                  }
+                </label>
+                <label class="field">
+                  <span>Địa chỉ <b class="req">*</b></span>
+                  <input
+                    formControlName="addressLine"
+                    autocomplete="address-line1"
+                    placeholder="Nhập địa chỉ giao hàng (số nhà, tên đường)"
+                    [attr.aria-invalid]="addressInvalid('addressLine')"
+                  />
+                  @if (addressInvalid('addressLine')) {
+                    <small class="error">Nhập số nhà, tên đường</small>
+                  }
+                </label>
+                @if (addresses()?.length) {
+                  <label class="switch">
+                    <input type="checkbox" role="switch" formControlName="isDefault" />
+                    Đặt làm địa chỉ mặc định
+                  </label>
+                  <button type="button" class="link" (click)="addingAddress.set(false)">
+                    Chọn địa chỉ đã lưu
+                  </button>
+                }
+              </form>
+            } @else {
+              <div class="options" role="radiogroup" aria-label="Chọn địa chỉ giao hàng">
+                @for (a of addresses(); track a.id) {
+                  <label class="option" [class.option--active]="addressId() === a.id">
+                    <input
+                      type="radio"
+                      class="radio"
+                      name="address"
+                      [checked]="addressId() === a.id"
+                      (change)="selectAddress(a.id)"
+                    />
+                    <span>
+                      <strong>{{ a.recipientName }}</strong> · {{ a.recipientPhone }}
+                      @if (a.isDefault) {
+                        <span class="tag">Mặc định</span>
+                      }
+                      <span class="muted block">{{ addressText(a) }}</span>
+                    </span>
+                  </label>
+                }
+              </div>
+              <button type="button" class="link" (click)="startAddingAddress()">
+                + Thêm địa chỉ mới
+              </button>
+            }
+
+            <label class="field field--spaced">
+              <span>Ghi chú</span>
+              <input
+                maxlength="500"
+                placeholder="Toà nhà lớn, gọi trước khi giao hàng,..."
+                [value]="note()"
+                (input)="note.set($any($event.target).value)"
+              />
+            </label>
+          </section>
+
+          <!-- Giao hàng và lắp đặt -->
+          <section aria-labelledby="sec-delivery">
+            <h2 id="sec-delivery" class="heading">Giao hàng và lắp đặt</h2>
+            <p>
+              Dự kiến giao: <strong>{{ formatDay(p.delivery.estimatedDeliveryDate) }}</strong>
+            </p>
+            @if (p.delivery.schedulable) {
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [checked]="wantSchedule()"
+                  (change)="toggleSchedule($any($event.target).checked)"
+                />
+                Hẹn ngày giao và lắp đặt
+              </label>
+              @if (wantSchedule()) {
+                <div class="form form--row">
+                  <label class="field">
+                    <span>Ngày giao</span>
+                    <select
+                      [value]="scheduleDate()"
+                      (change)="scheduleDate.set($any($event.target).value)"
+                    >
+                      @for (d of dateOptions(); track d) {
+                        <option [value]="d" [selected]="d === scheduleDate()">
+                          {{ formatDay(d) }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Khung giờ</span>
+                    <select (change)="scheduleSlot.set($any($event.target).value)">
+                      @for (s of slotOptions(); track s.code) {
+                        <option [value]="s.code" [selected]="s.code === scheduleSlot()">
+                          {{ s.label }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                </div>
+              }
+            }
+            @if (issueOf('SCHEDULE_INVALID'); as issue) {
+              <p class="error">{{ issueMessage(issue) }}</p>
+            }
+
+            <ul class="installs">
+              @for (item of p.items; track item.variantId) {
+                @switch (item.variant.installationService) {
+                  @case ('OPTIONAL') {
+                    <li>
+                      <label class="check">
+                        <input
+                          type="checkbox"
+                          [checked]="item.hasInstallation"
+                          [disabled]="previewing()"
+                          (change)="setInstallation(item, $any($event.target).checked)"
+                        />
+                        Lắp đặt {{ item.product.name }}
+                      </label>
+                      <span class="muted"
+                        >+{{ item.variant.unitInstallationFee * item.quantity | vnd }}</span
+                      >
+                    </li>
+                  }
+                  @case ('REQUIRED') {
+                    <li>
+                      <span>{{ item.product.name }}: bắt buộc lắp đặt</span>
+                      <span class="muted"
+                        >+{{ item.variant.unitInstallationFee * item.quantity | vnd }}</span
+                      >
+                    </li>
+                  }
+                }
+              }
+            </ul>
+          </section>
+
+          <!-- Hóa đơn VAT -->
+          <section aria-labelledby="sec-invoice">
+            <h2 id="sec-invoice" class="heading">Hóa đơn VAT</h2>
+            @let inv = invoice();
+            <div class="radios" role="radiogroup" aria-label="Loại hóa đơn">
+              @for (
+                t of [
+                  ['NONE', 'Không cần xuất hóa đơn'],
+                  ['PERSONAL', 'Cá nhân'],
+                  ['COMPANY', 'Công ty'],
+                ];
+                track t[0]
+              ) {
+                <label class="check">
+                  <input
+                    type="radio"
+                    name="invoiceType"
+                    [checked]="inv.type === t[0]"
+                    (change)="setInvoice({ type: $any(t[0]) })"
+                  />
+                  {{ t[1] }}
+                </label>
+              }
+            </div>
+
+            @if (inv.type !== 'NONE') {
+              <div class="form">
+                <label class="field">
+                  <span
+                    >{{ inv.type === 'COMPANY' ? 'Tên công ty' : 'Họ tên' }}
+                    <b class="req">*</b></span
+                  >
+                  <input
+                    [value]="inv.buyerName"
+                    maxlength="200"
+                    [attr.aria-invalid]="!!invoiceError('buyerName')"
+                    (input)="setInvoice({ buyerName: $any($event.target).value })"
+                  />
+                  @if (invoiceError('buyerName'); as e) {
+                    <small class="error">{{ e }}</small>
+                  }
+                </label>
+                <label class="field">
+                  <span>
+                    @if (inv.type === 'COMPANY') {
+                      Mã số thuế <b class="req">*</b>
+                    } @else {
+                      Mã số thuế cá nhân hoặc CCCD
+                    }
+                  </span>
+                  <input
+                    [value]="inv.taxCode"
+                    inputmode="numeric"
+                    maxlength="14"
+                    [attr.aria-invalid]="!!invoiceError('taxCode')"
+                    (input)="setInvoice({ taxCode: $any($event.target).value })"
+                  />
+                  @if (invoiceError('taxCode'); as e) {
+                    <small class="error">{{ e }}</small>
+                  }
+                </label>
+                <label class="field">
+                  <span
+                    >{{ inv.type === 'COMPANY' ? 'Địa chỉ công ty' : 'Địa chỉ' }}
+                    <b class="req">*</b></span
+                  >
+                  <input
+                    [value]="inv.address"
+                    maxlength="300"
+                    [attr.aria-invalid]="!!invoiceError('address')"
+                    (input)="setInvoice({ address: $any($event.target).value })"
+                  />
+                  @if (invoiceError('address'); as e) {
+                    <small class="error">{{ e }}</small>
+                  }
+                </label>
+                @if (inv.type === 'PERSONAL' && p.address) {
+                  <button type="button" class="link" (click)="useShippingAddressForInvoice()">
+                    Dùng địa chỉ giao hàng
+                  </button>
+                }
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [checked]="inv.sendEmail"
+                    (change)="setInvoice({ sendEmail: $any($event.target).checked })"
+                  />
+                  Gửi hóa đơn qua email
+                </label>
+                @if (inv.sendEmail) {
+                  <label class="field">
+                    <span>Email <b class="req">*</b></span>
+                    <input
+                      type="email"
+                      autocomplete="email"
+                      [value]="inv.email"
+                      [attr.aria-invalid]="!!invoiceError('email')"
+                      (input)="setInvoice({ email: $any($event.target).value })"
+                    />
+                    @if (invoiceError('email'); as e) {
+                      <small class="error">{{ e }}</small>
+                    }
+                  </label>
+                  <p class="muted">Hóa đơn điện tử được gửi sau khi giao hàng thành công.</p>
+                }
+              </div>
+            }
+          </section>
+
+          <!-- Phương thức thanh toán -->
+          <section aria-labelledby="sec-payment">
+            <h2 id="sec-payment" class="heading">Phương thức thanh toán</h2>
+            @let qr = payment() === 'QR_FULL' || payment() === 'QR_DEPOSIT';
+            <div class="methods" role="radiogroup" aria-label="Phương thức thanh toán">
+              <label
+                class="method"
+                [class.method--active]="payment() === 'COD'"
+                [class.method--disabled]="!isPaymentAvailable('COD', p.payment)"
+              >
+                <app-icon name="lucide:hand-coins" [size]="32" />
+                <span class="method__body">
+                  <span class="method__name">Thanh toán khi nhận hàng</span>
+                  @if (!isPaymentAvailable('COD', p.payment) && p.payment.depositRequired) {
+                    <span class="muted">
+                      Đơn trên {{ config()?.payment?.depositThreshold ?? 20000000 | vnd }} cần đặt
+                      cọc {{ p.payment.depositRate * 100 }}% qua chuyển khoản
+                    </span>
+                  }
+                </span>
+                <input
+                  type="radio"
+                  class="radio radio--lg"
+                  name="payment"
+                  [checked]="payment() === 'COD'"
+                  [disabled]="!isPaymentAvailable('COD', p.payment)"
+                  (change)="payment.set('COD')"
+                />
+              </label>
+
+              <div class="method" [class.method--active]="qr">
+                <label class="method__row">
+                  <app-icon name="lucide:qr-code" [size]="32" />
+                  <span class="method__body">
+                    <span class="method__name">Chuyển khoản ngân hàng (QR)</span>
+                    <span class="muted">Quét mã QR bằng ứng dụng ngân hàng, xác nhận tự động</span>
+                  </span>
+                  <input
+                    type="radio"
+                    class="radio radio--lg"
+                    name="payment"
+                    [checked]="qr"
+                    [disabled]="!isPaymentAvailable('QR_FULL', p.payment)"
+                    (change)="payment.set(p.payment.depositRequired ? 'QR_DEPOSIT' : 'QR_FULL')"
+                  />
+                </label>
+                @if (qr && p.payment.depositRequired) {
+                  <div class="method__sub" role="radiogroup" aria-label="Số tiền chuyển khoản">
+                    <label class="check">
+                      <input
+                        type="radio"
+                        name="qrAmount"
+                        [checked]="payment() === 'QR_DEPOSIT'"
+                        [disabled]="!isPaymentAvailable('QR_DEPOSIT', p.payment)"
+                        (change)="payment.set('QR_DEPOSIT')"
+                      />
+                      <span>
+                        Đặt cọc {{ p.payment.depositRate * 100 }}% –
+                        <strong>{{ p.payment.depositAmount | vnd }}</strong>
+                        <span class="muted block">
+                          Còn lại {{ p.payment.codAmountIfDeposit | vnd }} thanh toán khi nhận hàng
+                        </span>
+                      </span>
+                    </label>
+                    <label class="check">
+                      <input
+                        type="radio"
+                        name="qrAmount"
+                        [checked]="payment() === 'QR_FULL'"
+                        (change)="payment.set('QR_FULL')"
+                      />
+                      <span>
+                        Thanh toán toàn bộ –
+                        <strong>{{ p.summary.totalAmount | vnd }}</strong>
+                      </span>
+                    </label>
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="summary" aria-labelledby="sec-summary">
+          <h2 id="sec-summary" class="heading">Thông tin đơn hàng</h2>
+          <div class="order" [class.order--busy]="previewing()">
+            <h3 class="order__title">Tổng sản phẩm ({{ itemCount() }})</h3>
+            <ul class="items">
+              @for (item of p.items; track item.variantId) {
+                <li class="item">
+                  <img
+                    class="item__thumb"
+                    [src]="item.product.thumbnail"
+                    [alt]="item.product.name"
+                  />
+                  <div class="item__body">
+                    <p class="item__name">{{ item.product.name }}</p>
+                    <dl class="item__specs">
+                      @if (sizeText(item); as size) {
+                        <div>
+                          <dt>Kích thước:</dt>
+                          <dd>{{ size }}</dd>
+                        </div>
+                      }
+                      @if (item.variant.material) {
+                        <div>
+                          <dt>Chất liệu:</dt>
+                          <dd>{{ item.variant.material }}</dd>
+                        </div>
+                      }
+                      @if (item.variant.color) {
+                        <div>
+                          <dt>Màu:</dt>
+                          <dd>{{ item.variant.color }}</dd>
+                        </div>
+                      }
+                      <div>
+                        <dt>Số lượng:</dt>
+                        <dd>{{ item.quantity }}</dd>
+                      </div>
+                      @if (item.hasInstallation) {
+                        <div>
+                          <dt>Lắp đặt:</dt>
+                          <dd>Có</dd>
+                        </div>
+                      }
+                    </dl>
+                    <p class="item__price">{{ item.finalAmount | vnd }}</p>
+                    @if (blockingMessage(item); as msg) {
+                      <p class="error">{{ msg }}</p>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+
+            <dl class="rows">
+              <div>
+                <dt>Tạm tính ({{ p.items.length }} mặt hàng)</dt>
+                <dd>{{ p.summary.subtotal | vnd }}</dd>
+              </div>
+              <div>
+                <dt>Phí giao hàng</dt>
+                <dd>
+                  @if (p.summary.shippingFee) {
+                    {{ p.summary.shippingFee | vnd }}
+                  } @else {
+                    Miễn phí giao hàng
+                  }
+                </dd>
+              </div>
+              @if (p.summary.installationFee) {
+                <div>
+                  <dt>Phí lắp đặt</dt>
+                  <dd>{{ p.summary.installationFee | vnd }}</dd>
+                </div>
+              }
+              @if (p.summary.promotionDiscount + p.summary.voucherDiscount; as discount) {
+                <div>
+                  <dt>Tổng giảm giá</dt>
+                  <dd class="discount">−{{ discount | vnd }}</dd>
+                </div>
+              }
+            </dl>
+
+            <div class="total">
+              <span>Tổng tiền</span>
+              <span class="total__value">
+                <strong>{{ p.summary.totalAmount | vnd }}</strong>
+                <small>(Đã bao gồm VAT)</small>
+              </span>
+            </div>
+            @if (payment() === 'QR_DEPOSIT') {
+              <dl class="rows rows--pay">
+                <div>
+                  <dt>Trả ngay (QR)</dt>
+                  <dd>{{ p.payment.depositAmount | vnd }}</dd>
+                </div>
+                <div>
+                  <dt>Khi nhận hàng</dt>
+                  <dd>{{ p.payment.codAmountIfDeposit | vnd }}</dd>
+                </div>
+              </dl>
+            }
+
+            @if (notice(); as n) {
+              <p class="notice" role="alert">{{ n }}</p>
+            } @else if (submitted() && firstProblem()) {
+              <p class="error" role="alert">{{ firstProblem() }}</p>
+            }
+            @if (previewError(); as e) {
+              <p class="error" role="alert">{{ e }}</p>
+            }
+            <button
+              type="button"
+              class="btn btn--primary place"
+              [disabled]="placing() || previewing()"
+              (click)="place()"
+            >
+              {{ placing() ? 'Đang xử lý...' : 'Thanh toán' }}
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Điện thoại: thanh tổng tiền dính đáy màn hình. -->
+      <div class="bottom-bar">
+        <div>
+          <span class="bottom-bar__label">Tổng tiền</span>
+          <strong>{{ p.summary.totalAmount | vnd }}</strong>
+        </div>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="placing() || previewing()"
+          (click)="place()"
+        >
+          Thanh toán
+        </button>
+      </div>
+    } @else if (previewError()) {
+      <div class="empty">
+        <h2>Không tải được thông tin thanh toán</h2>
+        <p>{{ previewError() }}</p>
+        <button type="button" class="btn" (click)="refresh()">Thử lại</button>
+      </div>
+    } @else {
+      <div aria-busy="true">
+        @for (n of [1, 2, 3]; track n) {
+          <div class="skeleton"></div>
+        }
+      </div>
+    }
+  </div>
+</section>

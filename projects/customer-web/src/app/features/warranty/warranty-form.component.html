@@ -1,0 +1,138 @@
+<section class="warranty" [class.feature-page]="!embedded()" [class.container]="!embedded()">
+  <div class="form-panel">
+    @if (!embedded()) {
+      <p class="eyebrow">CARAVESO / BẢO HÀNH</p>
+      <a routerLink="/account/after-sales">← Phiếu và yêu cầu của tôi</a>
+    }
+    <header class="intro" [class.compact]="embedded()">
+      <h2>Điền thông tin bảo hành</h2>
+      <p>Vui lòng điền đầy đủ thông tin để chúng tôi tiếp nhận và xử lý yêu cầu bảo hành của bạn</p>
+    </header>
+    @if (cards() === undefined) {
+      <p role="status">Đang tải phiếu bảo hành…</p>
+    } @else if (cards() === null) {
+      <div class="state" role="alert">
+        Không tải được phiếu. <button (click)="reload()">Thử lại</button>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <h3>1. Thông tin sản phẩm</h3>
+        @if (!presetCardId()) {
+          <label class="field">
+            <span>Sản phẩm / phiếu bảo hành <b class="req">*</b></span>
+            <select formControlName="warrantyCardId">
+              <option value="">Chọn phiếu còn hạn</option>
+              @for (card of cards(); track card.id) {
+                @if (card.status === 'VALID') {
+                  <option [value]="card.id">
+                    {{ card.productName }} · {{ card.orderCode }} · còn {{ card.remainingDays }} ngày
+                  </option>
+                }
+              }
+            </select>
+          </label>
+        }
+        @if (selected(); as card) {
+          <article class="product-card">
+            <div class="thumb">
+              @if (card.thumbnail) {
+                <img [src]="card.thumbnail" [alt]="card.productName" />
+              }
+            </div>
+            <div class="product-info">
+              <h4>{{ card.productName }}</h4>
+              @if (card.variantLabel) {
+                <p><b>Phân loại:</b> {{ card.variantLabel }}</p>
+              }
+              <p><b>Mã đơn hàng:</b> {{ card.orderCode }}</p>
+            </div>
+            <div class="product-side">
+              <span class="badge" [class.off]="card.status !== 'VALID'">
+                {{ card.status === 'VALID' ? 'Còn bảo hành' : 'Hết bảo hành' }}
+              </span>
+              <p><b>Hạn bảo hành:</b> {{ card.expiresAt | date: 'dd/MM/yyyy' : '+0700' }}</p>
+            </div>
+          </article>
+        }
+
+        <h3>2. Thông tin khách hàng</h3>
+        <div formGroupName="contact" class="grid">
+          <label class="field">
+            <span>Họ và Tên <b class="req">*</b></span>
+            <input formControlName="name" autocomplete="name" placeholder="Nhập họ tên đầy đủ" />
+          </label>
+          <label class="field">
+            <span>Số điện thoại <b class="req">*</b></span>
+            <input formControlName="phone" autocomplete="tel" type="tel" placeholder="Nhập số điện thoại" />
+          </label>
+          <label class="field full">
+            <span>Email <b class="req">*</b></span>
+            <input formControlName="email" autocomplete="email" type="email" placeholder="Nhập địa chỉ email" />
+          </label>
+          <label class="field full">
+            <span>Địa chỉ <b class="req">*</b></span>
+            <input
+              formControlName="address"
+              autocomplete="street-address"
+              placeholder="Nhập địa chỉ (số nhà, đường, phường/ xã, quận/ huyện, tỉnh/ thành phố)"
+            />
+          </label>
+        </div>
+
+        <h3>3. Nội dung yêu cầu bảo hành</h3>
+        <label class="field">
+          <span>Lỗi gặp phải <b class="req">*</b></span>
+          <select formControlName="defectType">
+            <option value="">Chọn lỗi gặp phải</option>
+            @for (type of defectTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span>Mô tả chi tiết <b class="req">*</b></span>
+          <span class="area">
+            <textarea
+              formControlName="defectDescription"
+              rows="6"
+              maxlength="500"
+              placeholder="Vui lòng mô tả đầy đủ chi tiết lỗi bạn đang gặp phải"
+            ></textarea>
+            <small class="count">{{ form.controls.defectDescription.value.length }}/500</small>
+          </span>
+        </label>
+        <app-evidence-upload
+          purpose="WARRANTY_EVIDENCE"
+          [max]="5"
+          [(urls)]="evidence"
+          (busyChange)="uploading.set($event)"
+        />
+        <label class="agree">
+          <input type="checkbox" formControlName="agree" />
+          <span>
+            Tôi đã đọc và đồng ý với
+            <a routerLink="/policies/warranty" target="_blank">chính sách bảo hành</a> của CaraVeso
+          </span>
+        </label>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+        <div class="actions">
+          <button class="primary" [disabled]="loading() || uploading()">
+            {{ loading() ? 'Đang gửi…' : 'Gửi yêu cầu bảo hành' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>

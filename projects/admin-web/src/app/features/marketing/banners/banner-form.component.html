@@ -1,0 +1,202 @@
+<main class="cv-main">
+  <a class="cv-back" routerLink="/marketing/banner"><span aria-hidden="true">←</span> Banner</a>
+  <header class="cv-page-head">
+    <h1>{{ editing ? 'Sửa banner ' + loaded?.code : 'Thêm banner' }}</h1>
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else {
+    <form class="form cv-card" (ngSubmit)="primary()">
+      @if (lockedExpired) {
+        <p class="cv-card cv-card--warn">Banner đã hết hạn chỉ được gia hạn: nhập thời gian kết thúc mới sau thời điểm hiện tại.</p>
+      }
+
+      <section class="sec" aria-labelledby="s-pos">
+        <h2 id="s-pos">Vị trí</h2>
+        @if (POSITIONS.length === 1) {
+          <p class="cv-muted">
+            {{ POSITION_LABEL[position] }}. Kích thước ảnh khuyến nghị: {{ RECOMMENDED[position] }} px.
+          </p>
+        } @else {
+        <div class="cv-field">
+          <label for="b-pos">Vị trí hiển thị</label>
+          <select id="b-pos" name="position" class="cv-input" [(ngModel)]="position" [disabled]="editing">
+            @for (p of POSITIONS; track p) {
+              <option [value]="p">{{ POSITION_LABEL[p] }}</option>
+            }
+          </select>
+          <span class="cv-hint">
+            {{ editing ? 'Không đổi được vị trí; muốn chuyển hãy dùng Nhân bản sang vị trí khác.' : 'Kích thước ảnh khuyến nghị: ' + RECOMMENDED[position] + ' px.' }}
+          </span>
+        </div>
+        }
+      </section>
+
+      <section class="sec" aria-labelledby="s-img">
+        <h2 id="s-img">Hình ảnh</h2>
+        <div class="cols">
+          <div class="cv-field">
+            <span class="lbl" id="l-img">Ảnh desktop</span>
+            <label class="drop" [class.drop--off]="lockedExpired || uploading() === 'desktop'">
+              <input class="file" type="file" aria-labelledby="l-img" accept="image/jpeg,image/png,image/webp" [disabled]="lockedExpired || uploading() === 'desktop'" (change)="pick($event, 'desktop')" />
+              <span class="drop__thumb">
+                @if (imageUrl) {
+                  <img [src]="imageUrl" [alt]="title || 'Ảnh desktop'" />
+                } @else {
+                  <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M4 5h16v14H4z" /></svg>
+                }
+              </span>
+              <span class="drop__text">
+                <strong>{{ uploading() === 'desktop' ? 'Đang tải ảnh…' : imageUrl ? 'Đổi ảnh desktop' : 'Chọn ảnh desktop' }}</strong>
+                <small>JPG, PNG, WEBP · tối đa 2 MB</small>
+              </span>
+            </label>
+            @if (uploadError().desktop) {
+              <p class="cv-alert" role="alert">{{ uploadError().desktop }}</p>
+            }
+          </div>
+          <div class="cv-field">
+            <span class="lbl" id="l-mob">Ảnh mobile <em>(tùy chọn)</em></span>
+            <label class="drop" [class.drop--off]="lockedExpired || uploading() === 'mobile'">
+              <input class="file" type="file" aria-labelledby="l-mob" accept="image/jpeg,image/png,image/webp" [disabled]="lockedExpired || uploading() === 'mobile'" (change)="pick($event, 'mobile')" />
+              <span class="drop__thumb drop__thumb--mobile">
+                @if (mobileImageUrl) {
+                  <img [src]="mobileImageUrl" alt="Ảnh mobile" />
+                } @else {
+                  <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M7 3h10v18H7zM11 18h2" /></svg>
+                }
+              </span>
+              <span class="drop__text">
+                <strong>{{ uploading() === 'mobile' ? 'Đang tải ảnh…' : mobileImageUrl ? 'Đổi ảnh mobile' : 'Chọn ảnh mobile' }}</strong>
+                <small>JPG, PNG, WEBP · tối đa 1 MB</small>
+              </span>
+            </label>
+            @if (uploadError().mobile) {
+              <p class="cv-alert" role="alert">{{ uploadError().mobile }}</p>
+            }
+            @if (mobileImageUrl) {
+              <button type="button" class="cv-link-btn rm" (click)="mobileImageUrl = ''" [disabled]="lockedExpired">Bỏ ảnh mobile</button>
+            } @else {
+              <span class="cv-hint">Bỏ trống thì mobile dùng ảnh desktop.</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="sec" aria-labelledby="s-txt">
+        <h2 id="s-txt">Nội dung</h2>
+        <div class="cv-field">
+          <label for="b-title">Tiêu đề</label>
+          <input id="b-title" name="title" class="cv-input" maxlength="100" [(ngModel)]="title" [disabled]="lockedExpired" required />
+          <span class="cv-hint">5–100 ký tự, dùng làm văn bản thay thế của ảnh.</span>
+        </div>
+        <div class="cv-field">
+          <label for="b-content">Nội dung phụ</label>
+          <input id="b-content" name="content" class="cv-input" maxlength="200" [(ngModel)]="content" [disabled]="lockedExpired" />
+          <span class="cv-hint">Tối đa 200 ký tự.</span>
+        </div>
+      </section>
+
+      <section class="sec" aria-labelledby="s-link">
+        <h2 id="s-link">Liên kết</h2>
+        <div class="cols cols--2">
+          <div class="cv-field">
+            <label for="b-link">Liên kết</label>
+            <input id="b-link" name="link" class="cv-input" maxlength="500" placeholder="/products/ten-san-pham hoặc https://…" [(ngModel)]="linkUrl" [disabled]="lockedExpired" />
+            <span class="cv-hint">Bắt đầu bằng "/" (nội bộ) hoặc "https://". Liên kết ngoài sẽ hỏi xác nhận khi lưu.</span>
+          </div>
+          <div class="cv-field">
+            <label for="b-cta">Nút CTA</label>
+            <input id="b-cta" name="cta" class="cv-input" maxlength="20" [(ngModel)]="ctaLabel" [disabled]="lockedExpired" />
+            <span class="cv-hint">2–20 ký tự. Có nút CTA thì bắt buộc có liên kết.</span>
+          </div>
+        </div>
+        <label class="inline">
+          <input type="checkbox" name="newtab" [ngModel]="openInNewTab ?? isExternal" (ngModelChange)="openInNewTab = $event" [disabled]="lockedExpired" />
+          Mở liên kết trong tab mới
+        </label>
+      </section>
+
+      <section class="sec" aria-labelledby="s-time">
+        <h2 id="s-time">Lịch hiển thị</h2>
+        <div class="cols">
+          <div class="cv-field">
+            <label>Bắt đầu</label>
+            <p class="cv-muted">
+              @if (editing && !startNow) { {{ startDate.replace('T', ' ') }}. } @else { Chọn khi bấm Đăng: đăng ngay hoặc lên lịch. }
+            </p>
+          </div>
+          <div class="cv-field">
+            <label for="b-end">Kết thúc</label>
+            <input id="b-end" name="end" type="datetime-local" class="cv-input" [(ngModel)]="endDate" />
+            <span class="cv-hint">Bỏ trống = không giới hạn.</span>
+          </div>
+          <div class="cv-field">
+            <label for="b-order">Thứ tự</label>
+            <input id="b-order" name="order" type="number" min="1" max="99" class="cv-input" [(ngModel)]="displayOrder" [disabled]="lockedExpired" />
+            <span class="cv-hint">Từ 1 đến 99.</span>
+          </div>
+        </div>
+      </section>
+
+      @if (position === 'CATEGORY') {
+        <fieldset class="cv-field cats">
+          <legend>Danh mục áp dụng (1–20)</legend>
+          @for (c of categories(); track c.id) {
+            <label class="inline">
+              <input type="checkbox" [checked]="categoryIds.includes(c.id)" (change)="toggleCategory(c.id)" [disabled]="lockedExpired" />
+              {{ c.name }}
+            </label>
+          }
+        </fieldset>
+      }
+      @if (position === 'POPUP') {
+        <div class="cv-field">
+          <label for="b-freq">Tần suất hiển thị popup</label>
+          <select id="b-freq" name="freq" class="cv-input" [(ngModel)]="popupFrequency" [disabled]="lockedExpired">
+            @for (q of FREQUENCIES; track q[0]) {
+              <option [value]="q[0]">{{ q[1] }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <button type="button" class="cv-btn" (click)="openPreview()" [disabled]="!imageUrl">Xem trước</button>
+        @if (!lockedExpired) {
+          <button type="button" class="cv-btn" [disabled]="saving()" (click)="save(false)">Lưu nháp</button>
+        }
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Đang lưu…' : lockedExpired ? 'Gia hạn' : savesDirectly ? 'Lưu thay đổi' : 'Đăng…' }}
+        </button>
+      </div>
+    </form>
+  }
+@if (publishOpen()) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Banner · ' + POSITION_LABEL[position], name: title || 'Banner chưa đặt tên', thumbnail: imageUrl }"
+    [busy]="saving()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="publishOpen.set(false)"
+  />
+}
+</main>
+
+<dialog #preview class="cv-dialog wide" aria-labelledby="pv-title">
+  <div class="dlg">
+    <h2 id="pv-title">Xem trước</h2>
+    <div class="cv-segmented" role="group" aria-label="Thiết bị">
+      <button type="button" [attr.aria-pressed]="!previewMobile()" (click)="previewMobile.set(false)">Desktop</button>
+      <button type="button" [attr.aria-pressed]="previewMobile()" (click)="previewMobile.set(true)">Mobile</button>
+    </div>
+    <div class="frame" [class.frame--mobile]="previewMobile()">
+      <img [src]="previewMobile() ? mobileImageUrl || imageUrl : imageUrl" [alt]="title" />
+    </div>
+    <div class="foot"><button type="button" class="cv-btn" (click)="closePreview()">Đóng</button></div>
+  </div>
+</dialog>

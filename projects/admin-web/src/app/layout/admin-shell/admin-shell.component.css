@@ -1,0 +1,54 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--cv-surface);
+}
+
+/* Chừa chỗ cho thanh menu nổi (lề 16 + rộng 56 + lề 16); khi mở rộng là overlay nên không đổi bố cục */
+.content {
+  min-height: 100vh;
+  padding-left: 88px;
+}
+
+.notice {
+  margin: 24px 32px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--cv-warn-border);
+  border-radius: var(--cv-radius-lg);
+  background: var(--cv-warn-bg);
+  color: var(--cv-warn-text);
+  font-size: 13px;
+}
+
+.btn-primary {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--cv-radius);
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--cv-navy-hover);
+}
+
+@media (max-width: 767px) {
+  .content {
+    padding-left: 0;
+    padding-top: 60px;
+  }
+
+  .notice {
+    margin: 0 16px;
+  }
+}

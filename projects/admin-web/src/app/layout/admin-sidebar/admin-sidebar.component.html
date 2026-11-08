@@ -1,0 +1,80 @@
+<button
+  type="button"
+  class="menu-btn"
+  aria-label="Mở menu"
+  [attr.aria-expanded]="drawerOpen()"
+  (click)="toggleDrawer()"
+>
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path [attr.d]="icons.menu" />
+  </svg>
+</button>
+
+@if (drawerOpen()) {
+  <div class="backdrop" (click)="closeDrawer()"></div>
+}
+
+<!-- Hai ô cùng một cột: tài khoản admin và menu (đáy menu ghim CaraVeso + đăng xuất). Hover hoặc focus bất kỳ ô nào thì cả cột mở rộng. -->
+<div
+  class="rail"
+  [class.touch-open]="touchOpen()"
+  [class.drawer-open]="drawerOpen()"
+  (click)="onNavClick($event)"
+>
+  <div class="tile account" role="group" [attr.aria-label]="'Tài khoản: ' + fullName() + ', ' + roleLabel()">
+    <div class="avatar" aria-hidden="true">
+      @if (avatar() && !avatarFailed()) {
+        <img [src]="avatar()" alt="" (error)="avatarFailed.set(true)" />
+      } @else {
+        {{ initials() }}
+      }
+    </div>
+    <div class="tx account-text">
+      <div class="name">{{ fullName() }}</div>
+      <div class="role">{{ roleLabel() }}</div>
+    </div>
+  </div>
+
+  <nav class="sb" [attr.aria-label]="'Menu ' + roleLabel()">
+    <div class="items">
+      @for (item of items(); track item.label) {
+        @if (item.path !== null) {
+          <a
+            class="ni"
+            [routerLink]="item.path"
+            routerLinkActive="on"
+            [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+            (click)="onLinkClick($event)"
+          >
+            <ng-container *ngTemplateOutlet="content; context: { $implicit: item }" />
+          </a>
+        } @else {
+          <a class="ni" href="#" (click)="onInertClick($event)">
+            <ng-container *ngTemplateOutlet="content; context: { $implicit: item }" />
+          </a>
+        }
+      }
+    </div>
+
+    <hr class="divider" />
+
+    <div class="foot">
+      <div class="foot-brand">
+        <div class="foot-logo"><span class="foot-c">C</span><span class="tx">araVeso</span></div>
+        <div class="foot-label">Trang quản trị</div>
+      </div>
+      <button type="button" class="foot-logout" aria-label="Đăng xuất" title="Đăng xuất" (click)="onLogout()">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path [attr.d]="icons.logout" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<ng-template #content let-item>
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path [attr.d]="icons[item.icon]" />
+  </svg>
+  <span class="tx">{{ item.label }}</span>
+</ng-template>

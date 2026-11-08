@@ -1,0 +1,21 @@
+<nav class="page-crumbs" aria-label="Đường dẫn">
+  <ol class="container">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+    <li aria-current="page">Đổi trả &amp; Bảo hành</li>
+  </ol>
+</nav>
+<section class="feature-page container support-page">
+  <app-support-intro [config]="config()" [activePanel]="panel()" (viewSelected)="togglePanel($event)">
+    @if (panel(); as kind) {
+      <app-support-request-panel
+        [kind]="kind"
+        [loggedIn]="!!auth.user()"
+        [cards]="cards()"
+        [presetCardId]="params().get('card') ?? ''"
+        (closed)="togglePanel(kind)"
+        (requestCreated)="onCreated($event.kind, $event.id)"
+      />
+    }
+  </app-support-intro>
+</section>

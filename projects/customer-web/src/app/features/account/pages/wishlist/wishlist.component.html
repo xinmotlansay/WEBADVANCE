@@ -1,0 +1,41 @@
+<section class="account-screen wishlist-screen">
+  <h1 class="screen-heading">Danh sách yêu thích</h1>
+  @if (guest()) {
+    <p class="form-notice guest-notice" role="status">
+      Danh sách yêu thích này chỉ được lưu tạm thời và sẽ mất khi bạn đóng trình duyệt.
+      <a routerLink="/auth/login" [queryParams]="{ returnUrl: '/account/wishlist' }">Đăng nhập</a> để lưu lại vào tài khoản.
+    </p>
+  }
+  @if (notice(); as notice) { <p class="form-notice" [class.error]="notice.error" role="status">{{ notice.text }}</p> }
+
+  @if (loading()) {
+    <p role="status">Đang tải danh sách yêu thích...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <div class="wishlist-grid">
+      @for (product of products(); track product.id) {
+        <article class="wishlist-card">
+          <div class="wishlist-image">
+            <a [routerLink]="['/products', product.slug]"><img [src]="product.thumbnail" [alt]="product.name" /></a>
+            <button type="button" class="favorite-heart" [attr.aria-label]="'Bỏ ' + product.name + ' khỏi danh sách yêu thích'" (click)="remove(product)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
+            </button>
+          </div>
+          <div class="wishlist-info">
+            <h2>{{ product.name }}</h2>
+            <p>{{ product.shortDescription }}</p>
+            <strong>{{ formatPrice(product.priceFrom) }}</strong>
+            @if (product.stockStatus === 'OUT_OF_STOCK') { <small>Tạm hết hàng</small> }
+          </div>
+          <div class="wishlist-actions">
+            <button type="button" class="buy-now-link" [disabled]="product.stockStatus === 'OUT_OF_STOCK'" (click)="addToCart(product, 'buy')">Mua ngay</button>
+            <button type="button" class="wishlist-cart" [disabled]="product.stockStatus === 'OUT_OF_STOCK'" (click)="addToCart(product)" [attr.aria-label]="'Thêm ' + product.name + ' vào giỏ'"><app-account-icon name="cart" [size]="18" /></button>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state"><app-account-icon name="heart" [size]="36" /><h2>Danh sách yêu thích đang trống</h2><p>Lưu sản phẩm bạn quan tâm để xem lại sau.</p></div>
+      }
+    </div>
+  }
+</section>

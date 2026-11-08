@@ -1,0 +1,127 @@
+<div class="cv-page">
+  <main class="cv-main">
+    <header class="cv-head">
+      <div>
+        <h1 class="cv-h1">Nhật ký & cấu hình</h1>
+        <p class="cv-sub">Thông số vận hành toàn hệ thống, mọi thay đổi được ghi nhật ký</p>
+      </div>
+    </header>
+
+    <app-sa-system-tabs />
+
+    @if (editor.error()) {
+      <div class="cv-alert gap" role="alert">
+        <span>Không tải được cấu hình. {{ editor.error() }}</span>
+        <button type="button" class="cv-btn" (click)="editor.load()">Thử lại</button>
+      </div>
+    }
+
+    @if (editor.loading() && !editor.groups()) {
+      @for (i of [1, 2, 3]; track i) {
+        <div class="cv-card gap"><span class="cv-skeleton w40"></span><span class="cv-skeleton tall"></span></div>
+      }
+    }
+
+    @if (active(); as section) {
+    <div class="layout">
+      <nav class="sections" aria-label="Nhóm cấu hình">
+        @for (item of sections(); track keyOf(item)) {
+          <button type="button" class="sec-btn" [class.on]="keyOf(item) === keyOf(section)" [attr.aria-current]="keyOf(item) === keyOf(section) ? 'true' : null" (click)="select(keyOf(item))">
+            <span>{{ labelOf(item) }}</span>
+            @if (item.kind === 'config' && dirtyCount(item.group) > 0) {
+              <span class="cv-badge attention">Chưa lưu</span>
+            }
+          </button>
+        }
+      </nav>
+      <section class="cv-card section" [id]="'nhom-' + keyOf(section)" [attr.aria-labelledby]="'title-' + keyOf(section)">
+        <header class="section-head">
+          <div>
+            <h2 [id]="'title-' + keyOf(section)">{{ labelOf(section) }}</h2>
+            @if (descriptionOf(section)) {
+              <p class="cv-hint">{{ descriptionOf(section) }}</p>
+            }
+          </div>
+          @if (section.kind === 'config') {
+            @if (lastChange(section.group); as last) {
+              <span class="cv-hint meta">Sửa lần cuối {{ fmt.formatDateTime(last.at) }}@if (last.by) { bởi {{ last.by }} }</span>
+            } @else {
+              <span class="cv-hint meta">Đang dùng giá trị mặc định</span>
+            }
+          }
+        </header>
+
+        @if (section.kind === 'showrooms') {
+          <app-sa-showroom-manager />
+        } @else if (section.kind === 'jobs') {
+          <app-sa-job-manager />
+        } @else {
+          <form class="section-body" (submit)="$event.preventDefault(); editor.save(section.group)">
+            @if (isPicker(section.group)) {
+              <div class="picker" role="tablist" aria-label="Chọn trang chính sách">
+                @for (item of section.group.items; track item.key) {
+                  <button type="button" role="tab" class="pick" [class.on]="picked(section.group).key === item.key" [attr.aria-selected]="picked(section.group).key === item.key" (click)="pick(section.group, item.key)">
+                    {{ item.label }}@if (editor.isDirty(item)) { <span class="cv-badge attention">Chưa lưu</span> }
+                  </button>
+                }
+              </div>
+              <p class="cv-hint">{{ picked(section.group).description }}</p>
+            }
+            @for (block of blocks(section.group); track $index) {
+              <div class="block">
+                @if (block.title) {
+                  <h3 class="block-title">{{ block.title }}</h3>
+                }
+                @if (block.scalars.length) {
+                  <div class="scalars">
+                    @for (item of block.scalars; track item.key) {
+                      <app-config-fields [item]="item" [value]="editor.drafts()[item.key]" (valueChange)="editor.setDraft(item.key, $event)" />
+                    }
+                  </div>
+                }
+                @for (item of block.objects; track item.key) {
+                  <div class="object-item">
+                    @if (showItemTitle(section.group, item) && !isPicker(section.group)) {
+                      <h3 class="block-title">{{ item.label }}</h3>
+                      @if (item.description) {
+                        <p class="cv-hint item-desc">{{ item.description }}</p>
+                      }
+                    }
+                    <app-config-fields [item]="item" [value]="editor.drafts()[item.key]" (valueChange)="editor.setDraft(item.key, $event)" />
+                  </div>
+                }
+              </div>
+            }
+
+            @if (groupError(section.group); as message) {
+              <div class="cv-alert" role="alert">{{ message }}</div>
+            }
+
+            <footer class="section-foot">
+              @if (editor.savedGroup() === section.group.key) {
+                <span class="ok" role="status">Đã lưu</span>
+              } @else if (dirtyCount(section.group) > 0) {
+                <span class="cv-hint" role="status">{{ dirtyCount(section.group) }} mục chưa lưu</span>
+              }
+              <button type="button" class="cv-btn" [disabled]="dirtyCount(section.group) === 0 || editor.saving() === section.group.key" (click)="editor.reset(section.group)">Hoàn tác</button>
+              <button type="submit" class="cv-btn primary" [disabled]="dirtyCount(section.group) === 0 || editor.saving() === section.group.key">Lưu {{ section.group.label.toLowerCase() }}</button>
+            </footer>
+          </form>
+        }
+      </section>
+    </div>
+    }
+  </main>
+
+  <aside class="cv-aside" aria-label="Lưu ý cấu hình">
+    <section class="cv-aside-block">
+      <h2 class="cv-label">Lưu ý</h2>
+      <ul class="rules">
+        <li>Mỗi nhóm có nút lưu riêng; giá trị được kiểm tra theo kiểu trước khi lưu.</li>
+        <li>Phí vận chuyển và lịch giao chỉnh ở màn Vận chuyển & lịch giao.</li>
+        <li>Thay đổi có hiệu lực cho các chức năng đọc khóa này từ lần xử lý tiếp theo.</li>
+        <li>Nhật ký ghi giá trị trước và sau; số tài khoản ngân hàng chỉ giữ 4 số cuối.</li>
+      </ul>
+    </section>
+  </aside>
+</div>

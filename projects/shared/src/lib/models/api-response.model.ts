@@ -11,6 +11,12 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+/** Body lỗi chuẩn (API Design 0.3, 0.4). */
+export interface ApiErrorBody {
+  success: false;
+  error: { code: string; message: string; details?: unknown };
+}
+
 export interface ApiPageResponse<T> {
   success: true;
   data: T[];

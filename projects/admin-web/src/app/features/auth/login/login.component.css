@@ -1,0 +1,316 @@
+:host {
+  display: block;
+}
+
+.login {
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--cv-page);
+}
+
+/* Cột thương hiệu: ảnh showroom chìm vào nền navy */
+.brand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 1 1 520px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 32px 24px;
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+}
+
+/* Ảnh đơn sắc hòa vào nền navy */
+.brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url('/images/login-showroom.jpg') center / cover no-repeat;
+  mix-blend-mode: luminosity;
+  opacity: 0.4;
+}
+
+/* Phủ navy: đậm ở trên/dưới và ở bên trái, nơi đặt chữ, để slogan đọc rõ trên mảng tường sáng của ảnh */
+.brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--cv-navy) 75%, transparent) 0%, transparent 85%),
+    linear-gradient(
+      180deg,
+      var(--cv-navy) 0%,
+      color-mix(in srgb, var(--cv-navy) 45%, transparent) 30%,
+      color-mix(in srgb, var(--cv-navy) 45%, transparent) 70%,
+      var(--cv-navy) 100%
+    );
+}
+
+.brand-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brand-logo {
+  font-family: var(--cv-font-logo);
+  font-size: 40px;
+  letter-spacing: 1px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--cv-accent);
+}
+
+.brand-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 460px;
+}
+
+.brand-slogan {
+  margin: 0;
+  max-width: 460px;
+  text-wrap: balance;
+  font-size: 34px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.brand-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--cv-on-navy);
+}
+
+.brand-security {
+  max-width: 460px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cv-navy-line);
+}
+
+.brand-security-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.brand-security p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--cv-on-navy);
+}
+
+/* Cột form */
+.panel {
+  flex: 1 1 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px 24px;
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius-xl);
+}
+
+.card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-head h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.card-head p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--cv-muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface-alt);
+  color: var(--cv-navy);
+  font: inherit;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: var(--cv-muted);
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--cv-danger-border);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: 1px;
+}
+
+.password-row {
+  display: flex;
+  gap: 8px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--cv-danger-text);
+}
+
+/* Nút */
+.btn-primary,
+.btn-secondary {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--cv-radius);
+}
+
+.btn-primary {
+  height: 48px;
+  border: 0;
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--cv-navy-hover);
+}
+
+.btn-secondary {
+  height: 46px;
+  min-width: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--cv-border-strong);
+  background: var(--cv-surface);
+  color: var(--cv-navy);
+  font-size: 13px;
+}
+
+.btn-secondary:hover {
+  background: var(--cv-surface-alt);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Thông báo */
+.alert {
+  padding: 12px 16px;
+  border: 1px solid var(--cv-danger-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notice {
+  padding: 12px 16px;
+  border: 1px solid var(--cv-warn-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-warn-bg);
+  color: var(--cv-warn-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.foot {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cv-muted);
+}
+
+/* Hai dòng chú thích gần nhau: bù lại khoảng cách 20px của form */
+.foot + .foot {
+  margin-top: -12px;
+}
+
+@media (min-width: 768px) {
+  .brand {
+    padding: 56px 64px;
+  }
+
+  /* Khối chữ đặt ngang chỗ chữ GLOSTER trong ảnh (khoảng 1/3 chiều cao) thay vì sát đáy */
+  .brand-body {
+    position: absolute;
+    top: 34%;
+    left: 64px;
+    right: 64px;
+  }
+
+  .brand-slogan {
+    font-size: 44px;
+  }
+
+  .panel {
+    padding: 48px 24px;
+  }
+
+  .card {
+    padding: 40px;
+  }
+}
+
+@media (max-width: 767px) {
+  .brand {
+    flex-basis: auto;
+  }
+}

@@ -3,12 +3,28 @@ import { Schema, model, type Types } from 'mongoose';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'HIDDEN' | 'DISCONTINUED';
 export type ManualBadge = 'ON' | 'OFF' | null;
 
+/** `WALL` = treo tường (tranh, đồng hồ...): View your Room chỉ cho đặt dính tường. */
+export type ProductPlacement = 'FLOOR' | 'WALL';
+
+export type MediaPurpose = 'MAIN' | 'VARIANT' | 'LIFESTYLE' | 'DIMENSION' | 'PART' | 'MODEL';
+
 export interface ProductMedia {
   variantId?: Types.ObjectId | null;
   type: 'IMAGE' | 'VIDEO_360' | 'MODEL_3D';
   url: string;
   format?: string;
   displayOrder: number;
+  purpose?: MediaPurpose;
+}
+
+export interface ProductPart {
+  _id: Types.ObjectId;
+  name: string;
+  description?: string;
+  quantity: number;
+  image?: string;
+  displayOrder?: number;
+  isDetachable: boolean;
 }
 
 export interface ProductDoc {
@@ -20,6 +36,7 @@ export interface ProductDoc {
   description?: string;
   searchKeywords?: string;
   tags: string[];
+  seo?: { title?: string; description?: string };
   categoryIds: Types.ObjectId[];
   manualBadges: { isNew: ManualBadge; isBestSeller: ManualBadge };
   isAutoBestSeller: boolean;
@@ -27,7 +44,9 @@ export interface ProductDoc {
   warrantyMonths: number;
   warrantyTerms?: string;
   status: ProductStatus;
+  placement?: ProductPlacement;
   media: ProductMedia[];
+  parts: ProductPart[];
 }
 
 const productSchema = new Schema<ProductDoc>(
@@ -39,6 +58,7 @@ const productSchema = new Schema<ProductDoc>(
     description: String,
     searchKeywords: String,
     tags: [String],
+    seo: { title: String, description: String },
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'categories' }],
     manualBadges: {
       isNew: { type: String, enum: ['ON', 'OFF', null], default: null },
@@ -54,6 +74,7 @@ const productSchema = new Schema<ProductDoc>(
       enum: ['DRAFT', 'ACTIVE', 'HIDDEN', 'DISCONTINUED'],
       default: 'DRAFT',
     },
+    placement: { type: String, enum: ['FLOOR', 'WALL'], default: 'FLOOR' },
     media: [
       {
         _id: false,
@@ -62,6 +83,20 @@ const productSchema = new Schema<ProductDoc>(
         url: { type: String, required: true },
         format: String,
         displayOrder: { type: Number, required: true },
+        purpose: {
+          type: String,
+          enum: ['MAIN', 'VARIANT', 'LIFESTYLE', 'DIMENSION', 'PART', 'MODEL'],
+        },
+      },
+    ],
+    parts: [
+      {
+        name: { type: String, required: true },
+        description: String,
+        quantity: { type: Number, required: true, min: 1 },
+        image: String,
+        displayOrder: Number,
+        isDetachable: { type: Boolean, default: false },
       },
     ],
   },

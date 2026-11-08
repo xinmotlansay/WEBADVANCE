@@ -1,0 +1,25 @@
+<section class="account-screen vouchers-screen">
+  <div class="screen-heading"><h1>Ví voucher</h1></div>
+  <p class="screen-intro">Lưu giữ và quản lý các ưu đãi dành riêng cho bạn.</p>
+  @if (notice()) { <p class="form-notice" role="status">{{ notice() }}</p> }
+  @if (loading()) {
+    <p role="status">Đang tải ví voucher...</p>
+  } @else if (loadError()) {
+    <p class="api-error" role="alert">{{ loadError() }}</p>
+  } @else {
+  <nav class="voucher-filters" aria-label="Lọc voucher">
+    @for (item of filters; track item) { <button type="button" [class.active]="filter() === item" (click)="filter.set(item)">{{ item }}</button> }
+  </nav>
+  <div class="voucher-list">
+    @for (voucher of filteredVouchers(); track voucher.id) {
+      <article class="voucher-card" [class.unavailable]="isUnavailable(voucher)">
+        <div class="voucher-ticket"><span>CARAVESO</span><strong>{{ voucher.value }}</strong><small>VOUCHER</small></div>
+        <div class="voucher-description"><div class="voucher-title-row"><h2>{{ voucher.title }}</h2><span [class.expiring]="voucher.status === 'Sắp hết hạn'">{{ voucher.status }}</span></div><p>{{ voucher.condition }}</p><p class="voucher-expiry">Hạn sử dụng: {{ voucher.expiry }}</p><button class="link-button" type="button" (click)="showCondition(voucher)">Điều kiện áp dụng</button></div>
+        <button class="outline-button voucher-use" type="button" [disabled]="isUnavailable(voucher)" (click)="useVoucher(voucher)">{{ voucher.status === 'Đã sử dụng' ? 'Đã sử dụng' : voucher.status === 'Hết hạn' ? 'Hết hạn' : 'Dùng ngay' }}</button>
+      </article>
+    } @empty {
+      <div class="empty-state"><span>▣</span><h2>Chưa có voucher</h2><p>Không tìm thấy voucher gắn với tài khoản này.</p></div>
+    }
+  </div>
+  }
+</section>

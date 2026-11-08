@@ -1,0 +1,14 @@
+:host { display: block; }
+.sk { height: 64px; }
+.notice { margin: 0 0 12px; padding: 10px 14px; }
+.pv { display: grid; gap: 10px; margin-bottom: 16px; }
+.pv h2 { margin: 0; }
+.pv p { margin: 0; }
+.pv-bar { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 40px; padding: 0 16px; border-radius: 8px; background: var(--cv-navy); color: #fff; font-size: 14px; text-align: center; }
+.pv-text { text-decoration: underline; text-underline-offset: 2px; }
+.pv-empty { color: var(--cv-on-navy); }
+.pv-nav { width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.15); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.row--off td { opacity: 0.65; }
+.row__link { color: inherit; text-decoration: none; }
+.row__link:hover { text-decoration: underline; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -1,0 +1,130 @@
+<div class="backdrop" (click)="closed.emit()">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="picker-title" (click)="$event.stopPropagation()">
+    <header class="head">
+      @if (slug()) {
+        <button type="button" class="back" (click)="back()">
+          <app-icon name="lucide:chevron-left" [size]="18" /> Danh sách sản phẩm
+        </button>
+      }
+      <h2 id="picker-title">{{ slug() ? 'Chọn màu sắc / chất liệu' : 'Chọn sản phẩm thay thế' }}</h2>
+      <button type="button" class="close" aria-label="Đóng" (click)="closed.emit()">
+        <app-icon name="lucide:x" [size]="24" />
+      </button>
+    </header>
+
+    @if (!slug()) {
+      <div class="toolbar">
+        <label class="search">
+          <app-icon name="lucide:search" [size]="18" />
+          <input #searchInput type="search" [formControl]="search" maxlength="120" placeholder="Tìm theo tên sản phẩm…" aria-label="Tìm sản phẩm" />
+        </label>
+        <label class="sort">
+          <span>Sắp xếp</span>
+          <select [value]="sort()" (change)="setSort($any($event.target).value)">
+            @for (s of sorts; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      @if (minPrice() > 0) {
+        <div class="notice">
+          <label>
+            <input type="checkbox" [checked]="onlyEligible()" (change)="toggleEligible($any($event.target).checked)" />
+            Chỉ hiện sản phẩm có giá từ {{ minPrice() | vnd }} trở lên
+          </label>
+          <small>Sản phẩm đổi phải có giá ngang bằng hoặc cao hơn giá bạn đã trả; phần chênh lệch bạn thanh toán thêm.</small>
+        </div>
+      }
+      @if (categories().length) {
+        <div class="chips" role="group" aria-label="Danh mục">
+          @for (c of categories(); track c.id) {
+            <button type="button" [class.active]="category() === c.id" (click)="selectCategory(c.id)">{{ c.name }}</button>
+          }
+        </div>
+      }
+
+      <div class="body">
+        @let r = result();
+        @if (r === 'idle') {
+          <div class="idle">
+            <app-icon name="lucide:search" [size]="40" />
+            <strong>Bạn muốn đổi sang sản phẩm nào?</strong>
+            <p>Nhập tên sản phẩm hoặc chọn một danh mục ở trên để xem sản phẩm phù hợp.</p>
+          </div>
+        } @else if (r === undefined) {
+          <ul class="grid" aria-busy="true">
+            @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) { <li class="skeleton"></li> }
+          </ul>
+        } @else if (r === null) {
+          <p class="state" role="alert">Không tải được sản phẩm. Vui lòng thử lại.</p>
+        } @else if (!r.items.length) {
+          <p class="state">Không tìm thấy sản phẩm phù hợp. Hãy thử từ khóa hoặc danh mục khác@if (minPrice() > 0 && onlyEligible()) {, hoặc bỏ lọc theo giá}.</p>
+        } @else {
+          <ul class="grid">
+            @for (p of r.items; track p.id) {
+              <li>
+                <button type="button" class="card" (click)="openProduct(p.slug)">
+                  <span class="media">
+                    <img [src]="p.thumbnail" [alt]="p.name" loading="lazy" />
+                    @if (p.stockStatus === 'LOW_STOCK') { <span class="low">Sắp hết hàng</span> }
+                  </span>
+                  <span class="info">
+                    <span class="name">{{ p.name }}</span>
+                    <span class="price">Từ {{ p.priceFrom | vnd }}</span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (result(); as r) {
+       @if (r !== 'idle') {
+        <footer class="foot">
+          <span>{{ r.meta.total }} sản phẩm</span>
+          @if (r.meta.totalPages > 1) {
+            <nav class="pager" aria-label="Phân trang">
+              <button type="button" [disabled]="r.meta.page <= 1" (click)="page.set(r.meta.page - 1)">Trang trước</button>
+              <span>{{ r.meta.page }} / {{ r.meta.totalPages }}</span>
+              <button type="button" [disabled]="r.meta.page >= r.meta.totalPages" (click)="page.set(r.meta.page + 1)">Trang sau</button>
+            </nav>
+          }
+        </footer>
+       }
+      }
+    } @else {
+      <div class="body">
+        @let d = detail();
+        @if (d === undefined) {
+          <p class="state" role="status">Đang tải biến thể…</p>
+        } @else if (d === null) {
+          <p class="state" role="alert">Không tải được sản phẩm. <button type="button" class="link" (click)="back()">Chọn sản phẩm khác</button></p>
+        } @else {
+          <div class="selected">
+            <img [src]="d.thumbnail" [alt]="d.name" />
+            <div><strong>{{ d.name }}</strong><small>{{ d.variants.length }} lựa chọn</small></div>
+          </div>
+          <fieldset class="variants">
+            <legend class="sr-only">Màu sắc / chất liệu</legend>
+            @for (v of d.variants; track v.id) {
+              <label class="variant" [class.out]="v.stockStatus === 'OUT_OF_STOCK' || tooCheap(v)">
+                <input type="radio" name="variant" [value]="v.id" [checked]="variantId() === v.id" [disabled]="v.stockStatus === 'OUT_OF_STOCK' || tooCheap(v)" (change)="variantId.set(v.id)" />
+                <span>{{ v.color }} · {{ v.material }}</span>
+                <small>
+                  @if (tooCheap(v)) { Thấp hơn giá đã trả } @else if (v.stockStatus === 'OUT_OF_STOCK') { Hết hàng } @else if (v.stockStatus === 'LOW_STOCK') { Sắp hết }
+                </small>
+                <b>{{ v.price.final | vnd }}</b>
+              </label>
+            }
+          </fieldset>
+        }
+      </div>
+      <footer class="foot foot--end">
+        <button type="button" class="ghost" (click)="back()">Quay lại</button>
+        <button type="button" class="confirm" [disabled]="!chosenVariant()" (click)="confirm()">Chọn sản phẩm này</button>
+      </footer>
+    }
+  </div>
+</div>

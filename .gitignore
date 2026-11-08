@@ -45,5 +45,8 @@ Thumbs.db
 
 # Dự án
 .env
+firebase-service-account.json
+*-firebase-adminsdk-*.json
 /uploads/*
 !/uploads/.gitkeep
+/private-uploads/

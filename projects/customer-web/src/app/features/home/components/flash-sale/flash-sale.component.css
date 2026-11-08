@@ -32,31 +32,6 @@
   text-decoration: underline;
 }
 
-.countdown {
-  display: flex;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.countdown li {
-  display: grid;
-  place-items: center;
-  min-width: 40px;
-  padding: 4px 6px;
-  border: 1px solid color-mix(in srgb, var(--color-white) 60%, transparent);
-  border-radius: 4px;
-  line-height: 1.1;
-}
-.countdown strong {
-  font-size: var(--font-size-h5);
-  font-weight: var(--font-weight-bold);
-}
-.countdown small {
-  font-size: var(--font-size-xs);
-  opacity: 0.8;
-}
-
 @media (max-width: 640px) {
   .flash__head {
     flex-wrap: wrap;

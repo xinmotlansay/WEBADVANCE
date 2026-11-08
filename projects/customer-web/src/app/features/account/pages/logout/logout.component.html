@@ -1,0 +1,12 @@
+<section class="account-screen logout-screen">
+  <div class="screen-heading"><h1>Đăng xuất</h1></div>
+  <div class="logout-card">
+    <span class="logout-icon">⇥</span>
+    <h2>Bạn có chắc muốn đăng xuất?</h2>
+    <p>Bạn sẽ cần đăng nhập lại để xem thông tin tài khoản và đơn hàng.</p>
+    <div class="logout-actions">
+      <a class="outline-button" routerLink="/account/profile">Ở lại tài khoản</a>
+      <button class="primary-button" type="button" (click)="auth.logout()">Đăng xuất</button>
+    </div>
+  </div>
+</section>

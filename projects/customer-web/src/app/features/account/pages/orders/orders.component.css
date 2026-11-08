@@ -1,0 +1,111 @@
+:host { display: block; }
+
+.filter-tabs { display: flex; gap: 6px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--gray-light); }
+.filter-tabs button { flex: none; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: #7b8185; font-size: 13px; cursor: pointer; }
+.filter-tabs button:hover { color: var(--navy); }
+.filter-tabs button.active { border-bottom-color: var(--navy); color: var(--navy); font-weight: 600; }
+
+.order-card { margin-bottom: 20px; overflow: hidden; border: 1px solid var(--gray-light); border-radius: 6px; background: #fff; }
+.order-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; background: #f5f6f7; }
+.order-meta { display: grid; gap: 3px; }
+.order-meta strong { font-size: 14px; font-weight: 600; }
+.order-meta span { color: #6b6b6b; font-size: 12px; }
+.order-status { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 4px 10px; border-radius: 999px; background: #e8edf2; color: var(--navy); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.order-status[data-tone='active'] { background: #e3effc; color: #1f5fa8; }
+.order-status[data-tone='done'] { background: #e4f4ea; color: #15803d; }
+.order-status[data-tone='failed'] { background: #fdeaea; color: #c62828; }
+
+.order-products { margin: 0; padding: 0; list-style: none; }
+.order-products li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; }
+.order-products li + li { border-top: 1px solid var(--line); }
+.thumb { display: block; width: 64px; height: 64px; overflow: hidden; border-radius: 6px; background: #f2f2f2; }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.product-info { display: grid; gap: 3px; min-width: 0; }
+.product-info strong { font-size: 14px; font-weight: 500; }
+.product-info span { color: #555; font-size: 12px; }
+.product-info .qty { color: #8a8a8a; }
+.product-side { display: grid; justify-items: end; gap: 6px; }
+.price { font-size: 14px; font-weight: 600; }
+u { text-underline-offset: 2px; }
+.review-link { color: var(--navy); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+
+
+
+.order-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--gray-light); }
+.payment-text { margin: 0; color: #6b6b6b; font-size: 12px; }
+.order-actions { display: flex; gap: 10px; margin-left: auto; }
+.cancel-button, .tracking-button { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border: 1px solid; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer; }
+.cancel-button { border-color: #e53935; color: #e53935; }
+.cancel-button:hover { background: #fff5f5; }
+.tracking-button { border-color: var(--navy); color: var(--navy); }
+.tracking-button:hover { background: #f3f6f9; }
+
+
+.empty-state app-icon { color: #b3b3b3; }
+
+/* Pop-up huỷ đơn, cùng kiểu với pop-up ở trang thông tin */
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .4); animation: modal-fade .15s ease; }
+.cancel-modal { display: grid; gap: 10px; width: min(440px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; padding: 24px; border-radius: 8px; background: #fff; box-shadow: 0 12px 40px rgb(0 0 0 / .25); font-size: 13px; animation: modal-pop .2s ease; }
+.cancel-modal h3 { margin: 0; font-size: 15px; font-weight: 700; text-align: center; text-transform: uppercase; }
+.modal-hint { margin: 0 0 2px; color: #6b6b6b; text-align: center; }
+.cancel-modal label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cancel-modal input[type='radio'] { accent-color: var(--navy); }
+.refund-fields { display: grid; gap: 8px; margin-top: 8px; }
+.refund-fields input { height: 38px; padding: 0 12px; border: 1px solid var(--gray); border-radius: 6px; font-size: 13px; }
+.refund-fields input:focus { border-color: var(--navy); outline: 0; }
+.modal-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.modal-buttons > button { min-height: 38px; border-radius: 6px; font-size: 13px; text-transform: uppercase; }
+@keyframes modal-fade { from { opacity: 0; } }
+@keyframes modal-pop { from { opacity: 0; transform: translateY(-12px) scale(.98); } }
+
+@media (max-width: 620px) {
+  .order-products li { grid-template-columns: 52px minmax(0, 1fr); }
+  .thumb { width: 52px; height: 52px; }
+  .product-side { grid-column: 2; justify-items: start; grid-auto-flow: column; gap: 14px; }
+    .order-actions { flex-basis: 100%; justify-content: flex-end; }
+  .order-body { flex-wrap: wrap; }
+  .order-total { justify-items: start; }
+}
+
+.order-body { display: flex; align-items: center; gap: 14px; padding: 14px 18px; }
+.thumbs { display: flex; gap: 8px; }
+.order-body .thumb { width: 52px; height: 52px; }
+.order-items-text { display: grid; flex: 1; gap: 2px; min-width: 0; margin: 0; font-size: 14px; }
+.order-items-text strong { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.order-items-text span { color: #8a8a8a; font-size: 12px; }
+.order-total { display: grid; justify-items: end; gap: 2px; margin: 0; color: #6b6b6b; font-size: 12px; }
+.order-total strong { color: var(--navy); font-size: 15px; font-weight: 600; }
+
+/* Pop-up chi tiết đơn */
+.detail-modal { position: relative; width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; padding: 24px; border-radius: 8px; background: #fff; box-shadow: 0 12px 40px rgb(0 0 0 / .25); font-size: 13px; animation: modal-pop .2s ease; }
+.modal-close { position: absolute; top: 10px; right: 14px; padding: 0; border: 0; background: none; color: #b3b3b3; font-size: 26px; line-height: 1; cursor: pointer; }
+.detail-head h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+.detail-head p { display: flex; align-items: center; gap: 8px; margin: 0; color: #6b6b6b; font-size: 12px; }
+.detail-modal h4 { margin: 20px 0 8px; padding-top: 16px; border-top: 1px solid var(--gray-light); font-size: 13px; font-weight: 700; text-transform: uppercase; }
+.detail-head + h4 { margin-top: 16px; }
+.fee-list { display: grid; gap: 6px; margin: 0; }
+.fee-list > div { display: flex; justify-content: space-between; gap: 16px; }
+.fee-list dt { color: #6b6b6b; }
+.fee-list dd { margin: 0; }
+.fee-list .discount dd { color: #15803d; }
+.fee-list .grand { margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--gray-light); font-size: 15px; font-weight: 600; }
+.fee-list .grand dt { color: inherit; }
+.fee-list .grand dd { color: var(--navy); }
+.detail-modal .payment-text { margin: 8px 0 0; }
+.steps { margin: 0 0 0 6px; padding: 0; list-style: none; }
+.steps li { position: relative; display: flex; align-items: flex-start; gap: 12px; padding-bottom: 16px; color: #a3a3a3; }
+.steps li.done { color: #000; }
+.steps li:not(:last-child)::after { position: absolute; top: 24px; bottom: 2px; left: 9px; width: 1.5px; background: currentColor; content: ''; }
+.steps li div { display: grid; gap: 4px; padding-top: 1px; }
+.steps li span { font-size: 13px; font-weight: 500; }
+.steps small { color: #8a8a8a; font-size: 11px; }
+.detail-button { display: inline-flex; align-items: center; min-height: 34px; padding: 0 16px; border: 1px solid var(--navy); border-radius: 6px; background: var(--navy); color: #fff; font-size: 13px; cursor: pointer; }
+.detail-button:hover { background: color-mix(in srgb, var(--navy) 85%, black); }
+.tracking-panel { padding: 18px 18px 6px; border-top: 1px solid var(--gray-light); background: #fafafa; }
+.tracking-panel > strong { display: block; margin-bottom: 14px; color: var(--navy); font-size: 14px; font-weight: 600; }
+.order-footer .order-actions { margin-left: auto; }
+
+.refund-note { margin: 8px 16px 12px; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45; background: #fff6e5; color: #8a5a00; }
+.refund-note[data-tone='active'] { background: #e8f1fb; color: #1d4f8a; }
+.refund-note[data-tone='done'] { background: #e9f6ee; color: #1f6b3d; }
+.detail-modal .refund-note { margin: 8px 0 0; }

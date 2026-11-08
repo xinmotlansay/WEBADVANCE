@@ -1,27 +1,47 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
+  computed,
   effect,
   inject,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { CatalogApiService, type Category } from 'shared';
-import { catchError, of } from 'rxjs';
-import { SearchUiService } from '../../core/search/search-ui.service';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { CatalogApiService, type AnnouncementBar, type Category, type ProductListItem } from 'shared';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { catchError, debounceTime, distinctUntilChanged, filter, map, of, switchMap } from 'rxjs';
+import { AuthService } from '../../services/auth/auth.service';
+import { CartStore } from '../../services/cart/cart.store';
+import { ProductSearchService } from '../../services/search/product-search.service';
+import { SearchUiService } from '../../services/search/search-ui.service';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
+import { LinkDirective } from '../../shared/ui/link/link.directive';
+import { GiftVoucherStripComponent } from '../gift-voucher-strip/gift-voucher-strip.component';
+import { VndPipe } from '../../shared/pipes/vnd.pipe';
 
 /** Cuộn quá ngưỡng này (px) thì header đổi sang nền trắng. */
 const SCROLL_THRESHOLD = 24;
+/** Thời gian mỗi thông báo hiển thị trước khi sang thông báo kế tiếp. */
+const ANNOUNCEMENT_INTERVAL_MS = 5000;
 
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, IconComponent],
+  imports: [
+    RouterLink,
+    IconComponent,
+    ReactiveFormsModule,
+    VndPipe,
+    GiftVoucherStripComponent,
+    LinkDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
+    '[class.solid]': '!isHome() || solid()',
     '[class.scrolled]': 'scrolled()',
     '[class.menu-open]': 'menuOpen()',
     '[class.search-open]': 'search.open()',
@@ -32,12 +52,73 @@ const SCROLL_THRESHOLD = 24;
 })
 export class HeaderComponent {
   private readonly api = inject(CatalogApiService);
+  private readonly router = inject(Router);
+  protected readonly auth = inject(AuthService);
+
+  /** Nhiều thông báo cùng đang chạy thì hiện lần lượt, mỗi thông báo vài giây. */
+  private readonly announcements = toSignal(
+    this.api.getAnnouncements().pipe(catchError(() => of<AnnouncementBar[]>([]))),
+    { initialValue: [] as AnnouncementBar[] },
+  );
+  private readonly announcementIndex = signal(0);
+  private announcementsPaused = false;
+  protected readonly announcement = computed(() => {
+    const list = this.announcements();
+    return list.length ? list[this.announcementIndex() % list.length]! : null;
+  });
+
+  protected pauseAnnouncements(paused: boolean): void {
+    this.announcementsPaused = paused;
+  }
+
+  /** Nền trắng chữ đen ngay từ đầu, cho trang không có ảnh lớn đầu trang (giỏ hàng). */
+  readonly solid = input(false);
 
   protected readonly search = inject(SearchUiService);
+  protected readonly searchData = inject(ProductSearchService);
+  protected readonly searchControl = new FormControl('', { nonNullable: true });
+  protected readonly suggestions = toSignal(
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap((q) =>
+        q.trim()
+          ? this.searchData.suggestions(q.trim()).pipe(catchError(() => of<string[]>([])))
+          : of<string[]>([]),
+      ),
+    ),
+    { initialValue: [] as string[] },
+  );
+  /** Sản phẩm khớp từ khóa, hiện dưới danh sách gợi ý. */
+  protected readonly productResults = toSignal(
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap((q) =>
+        q.trim()
+          ? this.api.getProducts({ q: q.trim(), limit: 6 }).pipe(
+              map((r) => ({ items: r.items, total: r.meta.total })),
+              catchError(() => of({ items: [] as ProductListItem[], total: 0 })),
+            )
+          : of({ items: [] as ProductListItem[], total: 0 }),
+      ),
+    ),
+    { initialValue: { items: [] as ProductListItem[], total: 0 } },
+  );
+  protected readonly cart = inject(CartStore);
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   protected readonly menuOpen = signal(false);
   protected readonly scrolled = signal(false);
+
+  /** Chỉ trang chủ có header trong suốt đè lên banner; các trang khác header luôn nền trắng. */
+  protected readonly isHome = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects.split(/[?#]/)[0] === '/'),
+    ),
+    { initialValue: this.router.url.split(/[?#]/)[0] === '/' },
+  );
 
   private readonly categories = toSignal(
     this.api.getCategories().pipe(catchError(() => of<Category[]>([]))),
@@ -49,6 +130,14 @@ export class HeaderComponent {
   protected readonly rooms = () => this.categories().filter((c) => c.type === 'ROOM');
 
   constructor() {
+    this.cart.ensureLoaded();
+
+    // Chuyển sang thông báo kế tiếp mỗi 5 giây (tạm dừng khi rê chuột vào để khách kịp đọc).
+    const rotation = setInterval(() => {
+      if (!this.announcementsPaused && this.announcements().length > 1) this.announcementIndex.update((i) => i + 1);
+    }, ANNOUNCEMENT_INTERVAL_MS);
+    inject(DestroyRef).onDestroy(() => clearInterval(rotation));
+
     // Có yêu cầu mở tìm kiếm (từ header hoặc nút nổi ở chân trang): thu menu, đưa con trỏ vào ô.
     effect(() => {
       if (this.search.focusRequest() === 0) return;
@@ -61,9 +150,32 @@ export class HeaderComponent {
     if (!form.contains(event.relatedTarget as Node | null)) this.search.closeSearch();
   }
 
+  protected submitSearch(value = this.searchControl.value): void {
+    const q = value.trim();
+    this.searchData.remember(q);
+    this.searchControl.setValue(q);
+    this.closeSearch();
+    void this.router.navigate(['/search'], { queryParams: { q: q || null } });
+  }
+
   protected closeSearch(): void {
     this.search.closeSearch();
     this.searchInput()?.nativeElement.blur();
+  }
+
+  /** Có chữ thì xóa chữ và giữ ô nhập; ô trống thì đóng ô tìm kiếm. */
+  protected clearOrClose(): void {
+    if (!this.searchControl.value) {
+      this.closeSearch();
+      return;
+    }
+    this.searchControl.setValue('');
+    this.searchInput()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  protected openImageSearch(): void {
+    this.closeSearch();
+    this.search.openImageSearch();
   }
 
   protected onScroll(): void {

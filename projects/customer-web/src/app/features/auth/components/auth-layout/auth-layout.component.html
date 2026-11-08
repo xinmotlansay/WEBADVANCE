@@ -1,0 +1,13 @@
+<div class="auth-layout">
+  <nav class="breadcrumb" aria-label="Điều hướng">
+    <a routerLink="/">Trang chủ</a>
+    @for (crumb of breadcrumbs; track $index) {
+      <span class="breadcrumb-separator" aria-hidden="true">›</span>
+      <span [attr.aria-current]="$last ? 'page' : null">{{ crumb }}</span>
+    }
+  </nav>
+
+  <main class="auth-main">
+    <ng-content />
+  </main>
+</div>

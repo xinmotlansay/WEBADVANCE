@@ -35,7 +35,7 @@ Quy tắc đuôi file Angular: `.component.ts`, `.service.ts`, `.guard.ts`, `.in
 
 - Component **standalone**, mỗi feature một thư mục có `*.routes.ts` riêng và nạp **lazy**.
 - Component chỉ lo hiển thị. Gọi API và xử lý nghiệp vụ nằm trong service.
-- Gọi API chỉ qua service trong `projects/shared` hoặc `core`, không gọi `HttpClient` trực tiếp trong component.
+- Gọi API chỉ qua service trong `projects/shared` hoặc `app/services/<miền>/` của từng app (đuôi `.service.ts`, riêng store dùng `.store.ts`), không gọi `HttpClient` trực tiếp trong component.
 - Token gắn bằng HTTP interceptor, lỗi API xử lý chung bằng interceptor theo `error.code`.
 - Phân quyền route bằng guard. Ẩn menu theo vai trò ở admin-web, nhưng quyền thật do backend kiểm.
 - Dùng `ChangeDetectionStrategy.OnPush` và Signals cho trạng thái cục bộ.

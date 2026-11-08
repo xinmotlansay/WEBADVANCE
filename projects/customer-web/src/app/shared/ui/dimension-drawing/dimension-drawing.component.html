@@ -1,0 +1,19 @@
+@let s = shape();
+<svg viewBox="0 0 250 140" role="img" [attr.aria-label]="label() + ': ' + length() + ' × ' + width() + ' × ' + height() + ' ' + unit()">
+  <g class="solid">
+    <rect [attr.x]="s.x" [attr.y]="s.y" [attr.width]="s.front.w" [attr.height]="s.front.h" />
+    <path [attr.d]="'M' + s.x + ' ' + s.y + ' l' + s.off.x + ' ' + s.off.y + ' h' + s.front.w + ' l' + (-s.off.x) + ' ' + (-s.off.y)" />
+    <path [attr.d]="'M' + (s.x + s.front.w) + ' ' + s.y + ' l' + s.off.x + ' ' + s.off.y + ' v' + s.front.h + ' l' + (-s.off.x) + ' ' + (-s.off.y)" />
+  </g>
+  <g class="dim">
+    <path [attr.d]="'M' + s.x + ' ' + (s.y + s.front.h + 14) + ' h' + s.front.w" />
+    <path [attr.d]="'M' + s.x + ' ' + (s.y + s.front.h + 10) + ' v8 M' + (s.x + s.front.w) + ' ' + (s.y + s.front.h + 10) + ' v8'" />
+    <path [attr.d]="'M' + (s.x - 14) + ' ' + s.y + ' v' + s.front.h" />
+    <path [attr.d]="'M' + (s.x - 18) + ' ' + s.y + ' h8 M' + (s.x - 18) + ' ' + (s.y + s.front.h) + ' h8'" />
+  </g>
+  <g class="text">
+    <text [attr.x]="s.x + s.front.w / 2" [attr.y]="s.y + s.front.h + 30" text-anchor="middle">{{ length() }} {{ unit() }}</text>
+    <text [attr.x]="s.x - 22" [attr.y]="s.y + s.front.h / 2" text-anchor="middle" [attr.transform]="'rotate(-90 ' + (s.x - 22) + ' ' + (s.y + s.front.h / 2) + ')'">{{ height() }} {{ unit() }}</text>
+    <text [attr.x]="s.x + s.front.w + s.off.x + 6" [attr.y]="s.y + s.off.y / 2 - 2">{{ width() }} {{ unit() }}</text>
+  </g>
+</svg>

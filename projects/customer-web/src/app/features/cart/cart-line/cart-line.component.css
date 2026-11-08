@@ -1,0 +1,236 @@
+:host {
+  display: block;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-gray-light);
+  transition: opacity 0.2s ease;
+}
+:host(.saving) {
+  opacity: 0.6;
+}
+:host(.inactive) .thumb,
+:host(.inactive) .name,
+:host(.inactive) .price {
+  opacity: 0.5;
+}
+
+/* Ô chọn | ảnh | thông tin | số lượng và tạm tính. */
+.line {
+  display: grid;
+  grid-template-columns: auto 120px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+:host(.no-select) .line {
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+}
+
+.select {
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-black);
+}
+.select:disabled {
+  cursor: not-allowed;
+}
+
+.thumb {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.name {
+  flex: 1;
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+}
+.name:hover {
+  color: var(--color-primary);
+}
+.remove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+}
+.remove:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+.remove:disabled {
+  cursor: not-allowed;
+}
+
+.attrs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  font-size: var(--font-size-h5);
+}
+.attrs div {
+  display: flex;
+  gap: 6px;
+}
+.attrs dt {
+  font-weight: var(--font-weight-semibold);
+}
+.attrs dd {
+  margin: 0;
+}
+
+.install {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--font-size-h5);
+}
+.install > span {
+  white-space: nowrap;
+}
+.install input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-black);
+}
+.muted {
+  color: var(--color-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-decoration: underline;
+}
+.link:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+.link:disabled {
+  cursor: not-allowed;
+}
+.msg .link {
+  margin-left: 6px;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.msg {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+.msg--error {
+  color: var(--color-accent);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  align-self: stretch;
+  gap: 16px;
+}
+
+.price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+.price__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+.price__total {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-bold);
+}
+.price__old {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  text-decoration: line-through;
+}
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.link:focus-visible,
+.remove:focus-visible,
+.thumb:focus-visible,
+.name:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Màn hình hẹp: cột số lượng và giá xuống dưới thông tin. */
+@media (max-width: 1280px) {
+  .line {
+    grid-template-columns: auto 96px minmax(0, 1fr);
+  }
+  :host(.no-select) .line {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  .side {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .price {
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .line {
+    grid-template-columns: auto 72px minmax(0, 1fr);
+    gap: 12px;
+  }
+  :host(.no-select) .line {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .select {
+    width: 18px;
+    height: 18px;
+  }
+}

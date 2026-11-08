@@ -1,0 +1,54 @@
+<div class="support-intro">
+  <h1>Đổi trả &amp; Bảo hành</h1>
+  <section class="policy-list" aria-label="Chính sách đổi trả và bảo hành">
+    <details>
+      <summary>Chính sách bảo hành<span class="chevron" aria-hidden="true"></span></summary>
+      <div class="policy-copy">
+        <p>
+          Thời gian bảo hành được áp dụng tùy theo từng loại sản phẩm và được ghi rõ tại trang chi
+          tiết sản phẩm. Chính sách bảo hành áp dụng đối với các lỗi kỹ thuật, kết cấu hoặc phụ kiện
+          do nhà sản xuất. Các trường hợp hư hỏng do sử dụng sai cách, va đập, tự ý sửa chữa hoặc
+          hao mòn tự nhiên sẽ không thuộc phạm vi bảo hành.
+        </p>
+        <p>Khách hàng vui lòng cung cấp thông tin đơn hàng hoặc hóa đơn khi yêu cầu bảo hành.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Chính sách đổi trả<span class="chevron" aria-hidden="true"></span></summary>
+      <div class="policy-copy">
+        <p>
+          Bạn có thể gửi yêu cầu đổi trả trong {{ config()?.policy?.returnDays ?? 7 }} ngày kể từ
+          khi nhận hàng. Sản phẩm cần được kiểm tra tình trạng, phụ kiện, bao bì, tem nhãn và hóa
+          đơn. Hàng đã lắp đặt vẫn có thể được xem xét theo điều kiện từng sản phẩm.
+        </p>
+        <p>
+          Với sản phẩm lỗi, giao sai hoặc hư hỏng do vận chuyển, vui lòng chuẩn bị ảnh và video mở
+          hàng. Tiền hoàn được chuyển về tài khoản ngân hàng sau khi kiểm tra hàng đạt điều kiện,
+          trong {{ config()?.policy?.refundDaysMin ?? 7 }}–{{
+            config()?.policy?.refundDaysMax ?? 10
+          }}
+          ngày làm việc.
+        </p>
+      </div>
+    </details>
+  </section>
+  <section class="how-to" aria-label="Hướng dẫn gửi yêu cầu">
+    <h2>Gửi yêu cầu trong 3 bước</h2>
+    <ol>
+      <li><strong>Chọn loại yêu cầu</strong><span>Bảo hành cho sản phẩm lỗi, đổi trả cho đơn đã nhận.</span></li>
+      <li><strong>Tìm sản phẩm đã mua</strong><span>Nhập mã đơn hoặc tên sản phẩm; chỉ sản phẩm còn thời hạn mới chọn được.</span></li>
+      <li><strong>Nhập thông tin và gửi</strong><span>Mô tả tình trạng, thêm ảnh hoặc video, rồi theo dõi tiến trình ở mục Yêu cầu của tôi.</span></li>
+    </ol>
+  </section>
+  <div class="service-grid">
+    <button type="button" class="service-card" [class.open]="activePanel() === 'warranty'" [attr.aria-expanded]="activePanel() === 'warranty'" (click)="viewSelected.emit('warranty')">
+      <strong>Yêu cầu bảo hành</strong
+      ><span>Gửi thông tin sản phẩm gặp lỗi <span aria-hidden="true">→</span></span>
+    </button>
+    <button type="button" class="service-card" [class.open]="activePanel() === 'return'" [attr.aria-expanded]="activePanel() === 'return'" (click)="viewSelected.emit('return')">
+      <strong>Yêu cầu đổi trả</strong
+      ><span>Đổi hoặc trả sản phẩm đã nhận <span aria-hidden="true">→</span></span>
+    </button>
+  </div>
+  <ng-content />
+</div>

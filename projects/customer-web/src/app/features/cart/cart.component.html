@@ -1,0 +1,170 @@
+<section class="page">
+  <div class="container">
+    <h1 class="title">Giỏ hàng</h1>
+
+    @if (store.cart(); as cart) {
+      @if (cart.items.length) {
+        <div class="layout">
+          <div class="list">
+            <p class="subtitle">Mặt hàng ({{ items().length }})</p>
+
+            <div class="toolbar">
+              <label class="toolbar__all">
+                <input
+                  #allBox
+                  type="checkbox"
+                  [checked]="allSelected()"
+                  [disabled]="busy()"
+                  (change)="toggleAll(allBox)"
+                />
+                <!-- Dòng hết hàng/ngừng bán/vượt tồn không chọn được nên chỉ đếm số đang chọn. -->
+                Chọn tất cả ({{ selected().length }})
+              </label>
+              <button
+                type="button"
+                class="toolbar__remove"
+                [disabled]="!selected().length || busy()"
+                (click)="removeSelected()"
+              >
+                Xóa đã chọn
+              </button>
+            </div>
+
+            @for (item of cart.items; track item.id) {
+              <app-cart-line [item]="item" />
+            }
+          </div>
+
+          <aside class="side" aria-label="Thông tin đơn hàng">
+            <h2 class="side__title">Thông tin đơn hàng</h2>
+
+            <div class="summary">
+              <h3 class="summary__title">Tổng sản phẩm ({{ selected().length }})</h3>
+
+              @if (summary(); as s) {
+                <dl class="rows">
+                  <div>
+                    <dt>Tạm tính ({{ selected().length }} mặt hàng)</dt>
+                    <dd>{{ s.subtotal - s.promotionDiscount | vnd: 'VNĐ' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Phí vận chuyển</dt>
+                    <dd>
+                      @if (s.shippingFee) {
+                        {{ s.shippingFee | vnd: 'VNĐ' }}
+                      } @else if (selected().length) {
+                        Miễn phí giao hàng
+                      } @else {
+                        —
+                      }
+                    </dd>
+                  </div>
+                  @if (s.installationFee) {
+                    <div>
+                      <dt>Phí lắp đặt</dt>
+                      <dd>{{ s.installationFee | vnd: 'VNĐ' }}</dd>
+                    </div>
+                  }
+                </dl>
+
+                <form class="voucher" (submit)="applyVoucher($event, codeBox)">
+                  <input
+                    #codeBox
+                    type="text"
+                    class="voucher__input"
+                    placeholder="Nhập mã giảm giá"
+                    aria-label="Mã giảm giá"
+                    autocomplete="off"
+                    [disabled]="voucherBusy()"
+                  />
+                  <button type="submit" class="voucher__apply" [disabled]="voucherBusy()">
+                    Áp dụng
+                  </button>
+                </form>
+                @if (voucherNote(); as note) {
+                  <p class="voucher__note" role="alert">{{ note }}</p>
+                }
+                @if (cart.appliedVoucher; as v) {
+                  <div class="voucher__applied" [class.voucher__applied--invalid]="!v.valid">
+                    <div class="voucher__info">
+                      <strong>{{ v.code ?? 'Mã giảm giá' }}</strong>
+                      @if (!v.valid) {
+                        <span>{{ v.message }}</span>
+                      }
+                    </div>
+                    @if (v.valid) {
+                      <span class="voucher__discount">−{{ v.discount | vnd: 'VNĐ' }}</span>
+                    }
+                    <button
+                      type="button"
+                      class="voucher__remove"
+                      [disabled]="voucherBusy()"
+                      (click)="removeVoucher()"
+                    >
+                      Gỡ
+                    </button>
+                  </div>
+                }
+
+                <div class="total">
+                  <span class="total__label">Tổng tiền</span>
+                  <div class="total__value">
+                    <strong>{{ s.totalAmount | vnd: 'VNĐ' }}</strong>
+                    <span>(Đã bao gồm VAT)</span>
+                  </div>
+                </div>
+                @if (depositNote(); as note) {
+                  <p class="hint hint--deposit">{{ note }}</p>
+                }
+              }
+
+              <button
+                type="button"
+                class="checkout"
+                [disabled]="!selected().length || busy()"
+                (click)="checkout()"
+              >
+                THANH TOÁN
+              </button>
+              <a class="continue" routerLink="/">Tiếp tục mua sắm</a>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Điện thoại: thanh tổng tiền dính đáy màn hình. -->
+        <div class="bottom-bar">
+          <div>
+            <span class="bottom-bar__label">Tổng tiền</span>
+            <strong>{{ summary()?.totalAmount | vnd: 'VNĐ' }}</strong>
+          </div>
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="!selected().length || busy()"
+            (click)="checkout()"
+          >
+            Thanh toán ({{ selected().length }})
+          </button>
+        </div>
+      } @else {
+        <div class="empty">
+          <h2>Giỏ hàng của bạn đang trống</h2>
+          <p>Khám phá các sản phẩm nội thất và thêm vào giỏ để đặt hàng.</p>
+          <a class="btn btn--primary" routerLink="/">Tiếp tục mua sắm</a>
+        </div>
+      }
+    } @else if (store.status() === 'error') {
+      <div class="empty">
+        <h2>Không tải được giỏ hàng</h2>
+        <p>Vui lòng kiểm tra kết nối và thử lại.</p>
+        <button type="button" class="btn btn--outline" (click)="store.load()">Thử lại</button>
+      </div>
+    } @else {
+      <div class="list" aria-busy="true">
+        @for (n of [1, 2, 3]; track n) {
+          <div class="skeleton"></div>
+        }
+      </div>
+    }
+  </div>
+</section>

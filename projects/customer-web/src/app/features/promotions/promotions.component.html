@@ -1,0 +1,19 @@
+<nav class="crumbs" aria-label="Đường dẫn">
+  <ol class="container">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+    <li aria-current="page">Khuyến mãi</li>
+  </ol>
+</nav>
+
+@if (flashSale(); as sale) {
+  <section class="hero" [attr.aria-label]="sale.promotion.name">
+    <h1 class="hero__name">{{ sale.promotion.name }}</h1>
+    @if (sale.promotion.description) {
+      <p class="hero__desc">{{ sale.promotion.description }}</p>
+    }
+    <app-countdown size="large" [endDate]="sale.promotion.endDate" />
+  </section>
+}
+
+<app-product-list class="list" [embedded]="true" heading="Khuyến mãi" [onlyPromotion]="true" />

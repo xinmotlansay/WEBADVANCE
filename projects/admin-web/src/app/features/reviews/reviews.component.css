@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+app-detail-popup {
+  top: 0;
+}
+
+.cell-text {
+  display: grid;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.cell-text > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stars {
+  color: var(--cv-navy);
+  letter-spacing: 1px;
+}
+
+.snippet {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.top-reason {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* Popup chi tiết */
+.info {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cv-border);
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.info p {
+  margin: 0;
+}
+
+.comment {
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gallery img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--cv-radius);
+  object-fit: cover;
+}
+
+.reasons {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.reasons li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--cv-line-soft);
+}
+
+.decided {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--cv-warn-border);
+  border-radius: var(--cv-radius);
+  background: var(--cv-warn-bg);
+  color: var(--cv-warn-text);
+  font-size: 12px;
+}
+
+.hero-sub {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.rules {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.grow {
+  flex: 1 1 auto;
+}

@@ -1,0 +1,155 @@
+<main class="cv-main">
+  <a class="cv-back" routerLink="/marketing/collection"><span aria-hidden="true">←</span> Collection</a>
+  <header class="cv-page-head">
+    <h1>{{ loaded ? 'Sửa ' + loaded.name : 'Thêm collection' }}</h1>
+    @if (loaded) {
+      <span class="cv-badge" [class]="STATUS_BADGE[loaded.status]">{{ STATUS_LABEL[loaded.status] }}</span>
+    }
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else {
+    <form class="form cv-card" (ngSubmit)="save()">
+      <div class="cols">
+        <div class="cv-field">
+          <label for="c-name">Tên (2–120 ký tự)</label>
+          <input id="c-name" name="name" class="cv-input" maxlength="120" [(ngModel)]="name" required />
+        </div>
+        <div class="cv-field">
+          <label for="c-slug">Đường dẫn (slug)</label>
+          <input
+            id="c-slug"
+            name="slug"
+            class="cv-input"
+            maxlength="160"
+            [(ngModel)]="slug"
+            [attr.aria-invalid]="slugError() ? true : null"
+            aria-describedby="c-slug-hint"
+          />
+          @if (slugError()) {
+            <span class="cv-field-error" role="alert">{{ slugError() }}</span>
+          }
+          <span class="cv-hint" id="c-slug-hint">
+            Chữ thường không dấu, số và dấu "-". Bỏ trống để tự sinh từ tên.
+            @if (slugChanged()) {
+              <strong>Collection đang hiển thị: đổi slug làm link cũ (banner, bài viết) không mở được.</strong>
+            }
+          </span>
+        </div>
+      </div>
+
+      <div class="cv-field">
+        <label for="c-slogan">Slogan (tối đa 120 ký tự)</label>
+        <input id="c-slogan" name="slogan" class="cv-input" maxlength="120" [(ngModel)]="slogan" />
+      </div>
+      <div class="cv-field">
+        <label for="c-short">Mô tả ngắn (hiện ở trang chủ)</label>
+        <textarea id="c-short" name="short" class="cv-input" rows="2" maxlength="255" [(ngModel)]="shortDescription"></textarea>
+        <span class="cv-hint">{{ shortDescription.length }}/255</span>
+      </div>
+      <div class="cv-field">
+        <label for="c-desc">Giới thiệu chi tiết (trang collection)</label>
+        <textarea id="c-desc" name="desc" class="cv-input" rows="6" maxlength="5000" [(ngModel)]="description"></textarea>
+        <span class="cv-hint">{{ description.length }}/5.000</span>
+      </div>
+
+      <app-product-picker
+        label="Sản phẩm thuộc collection"
+        inputId="c-products"
+        hint="Thứ tự chọn là thứ tự hiển thị. Sản phẩm gắn trên ảnh (hotspot) được tự thêm vào danh sách."
+        [(ids)]="productIds"
+        (idsChange)="productsChanged($event)"
+      />
+      @if (loaded?.inactiveProductIds?.length) {
+        <p class="cv-alert cv-alert--warn">
+          Có {{ loaded!.inactiveProductIds.length }} sản phẩm đã ngừng bán. Khách sẽ không thấy chúng; nên bỏ khỏi danh sách.
+        </p>
+      }
+
+      <fieldset class="imgs">
+          <legend>Ảnh chính</legend>
+          <p class="cv-hint">
+            1 ảnh, khung 16:7. Hiện ở slider trang chủ và làm ảnh bìa trang collection; điểm sản phẩm của trang chủ lấy từ ảnh này. Ảnh chính không xuất hiện lại trong ảnh phụ.
+          </p>
+          @if (mainIndex() >= 0) {
+            <ng-container *ngTemplateOutlet="card; context: { i: mainIndex(), main: true }" />
+          } @else {
+            <label class="drop" [class.drop--off]="uploading()">
+              <input class="file" type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event, 'main')" />
+              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh chính' }}</strong>
+            </label>
+          }
+        </fieldset>
+
+        <fieldset class="imgs">
+          <legend>Ảnh phụ ({{ subIndexes().length }}/{{ MAX_SUB }})</legend>
+          <p class="cv-hint">
+            Tối đa {{ MAX_SUB }} ảnh, khung 2:3, hiện ở lưới bên dưới trang collection. JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.
+          </p>
+          @for (i of subIndexes(); track i; let first = $first, last = $last) {
+            <ng-container *ngTemplateOutlet="card; context: { i: i, main: false, first: first, last: last }" />
+          }
+          @if (subIndexes().length < MAX_SUB) {
+            <label class="drop" [class.drop--off]="uploading()">
+              <input class="file" type="file" multiple accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event, 'sub')" />
+              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh phụ' }}</strong>
+            </label>
+          }
+        </fieldset>
+
+        <ng-template #card let-i="i" let-main="main" let-first="first" let-last="last">
+          @let img = images()[i]!;
+          <div class="img cv-card" [class.img--main]="main">
+            <div class="img__row">
+              <img class="img__thumb" [src]="img.url" alt="" />
+              <div class="img__fields">
+                <div class="cv-field">
+                  <label [for]="'it-' + i">Tiêu đề ảnh</label>
+                  <input class="cv-input" [id]="'it-' + i" maxlength="120" [value]="img.title" (input)="patchImage(i, { title: $any($event.target).value })" />
+                </div>
+                <div class="cv-field">
+                  <label [for]="'id-' + i">Mô tả ảnh</label>
+                  <input class="cv-input" [id]="'id-' + i" maxlength="500" [value]="img.description" (input)="patchImage(i, { description: $any($event.target).value })" />
+                </div>
+              </div>
+            </div>
+            <div class="img__btns">
+              <button type="button" class="cv-btn" [class.cv-btn--primary]="main" [attr.aria-expanded]="editing() === i" (click)="editing.set(editing() === i ? null : i)">
+                {{ editing() === i ? 'Đóng đặt điểm' : 'Đặt điểm sản phẩm (' + img.hotspots.length + ')' }}
+              </button>
+              @if (!main) {
+                <button type="button" class="cv-btn" (click)="setThumbnail(i)">Đặt làm ảnh chính</button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh lên trước" [disabled]="first" (click)="moveSub(i, -1)">↑</button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh ra sau" [disabled]="last" (click)="moveSub(i, 1)">↓</button>
+              }
+              <button type="button" class="cv-btn cv-btn--danger" (click)="removeImage(i)">Xóa ảnh</button>
+            </div>
+            @if (editing() === i) {
+              <app-hotspot-editor
+                [inputId]="'hs-' + i"
+                [image]="img"
+                [cropRatio]="main ? 16 / 7 : 2 / 3"
+                (imageChange)="patchImage(i, { hotspots: $event.hotspots })"
+                [products]="productOptions()"
+              />
+            }
+          </div>
+        </ng-template>
+
+      @if (!loaded) {
+        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Cần ít nhất 1 ảnh và 1 sản phẩm, rồi bấm "Hiển thị" ở danh sách để khách thấy.</p>
+      }
+
+      <div class="cv-actions-bar">
+        @if (error()) {
+          <p class="cv-alert" role="alert">{{ error() }}</p>
+        }
+        <a class="cv-btn" routerLink="/marketing/collection">Hủy</a>
+        <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Đang lưu…' : 'Lưu' }}
+        </button>
+      </div>
+    </form>
+  }
+</main>

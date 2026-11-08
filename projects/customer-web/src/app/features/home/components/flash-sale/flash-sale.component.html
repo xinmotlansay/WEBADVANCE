@@ -6,18 +6,8 @@
         <span>FLASH SALE</span>
       </h2>
 
-      <ol class="countdown" aria-label="Thời gian còn lại">
-        @for (unit of countdown(); track unit.label) {
-          <li>
-            <strong>{{ unit.value }}</strong>
-            <small>{{ unit.label }}</small>
-          </li>
-        }
-      </ol>
-
-      <a class="flash__more" routerLink="/products" [queryParams]="{ hasPromotion: true }"
-        >Xem thêm</a
-      >
+      <app-countdown [endDate]="flashSale().promotion.endDate" />
+      <a class="flash__more" routerLink="/promotions">Xem thêm</a>
     </header>
 
     <app-scroll-carousel

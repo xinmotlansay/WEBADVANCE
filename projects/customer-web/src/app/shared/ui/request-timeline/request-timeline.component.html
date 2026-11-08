@@ -1,0 +1,14 @@
+<ol class="steps" aria-label="Tiến trình yêu cầu">
+  @for (entry of entries(); track $index) {
+    <li [class.fail]="entry.status === 'REJECTED' || entry.status === 'CANCELLED'">
+      <app-account-icon [name]="icon(entry.status)" [size]="18" />
+      <div>
+        <span>{{ labels[entry.status] || entry.status }}</span>
+        <small>{{ entry.at | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</small>
+        @if (entry.note) {
+          <small>{{ entry.note }}</small>
+        }
+      </div>
+    </li>
+  }
+</ol>

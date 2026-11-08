@@ -1,0 +1,374 @@
+:host {
+  display: contents;
+}
+
+/* Cột nổi bên trái: logo, tài khoản, menu cùng bề rộng và cùng mở rộng khi hover hoặc focus */
+.rail {
+  position: fixed;
+  top: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 30;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: width 0.2s ease;
+}
+
+.rail:hover,
+.rail:has(:focus-visible),
+.rail.touch-open,
+.rail.drawer-open {
+  width: 248px;
+}
+
+/* Kiểu chung của ba ô: nền kính mờ, viền mảnh, bo tròn */
+.tile,
+.sb {
+  background: var(--cv-sidebar);
+  border: 1px solid color-mix(in srgb, var(--cv-navy) 10%, transparent);
+  /* Bo tròn hẳn hai đầu (viên thuốc) theo yêu cầu thiết kế thanh nổi; trái quy tắc "tối đa 10px" ở admin-ui-rule mục 4 */
+  border-radius: 28px;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Mở rộng: nền trong hơn, làm mờ nhẹ nội dung phía sau để vẫn thấy được (kính mờ) và nổi lên bằng bóng navy */
+.rail:hover :is(.tile, .sb),
+.rail:has(:focus-visible) :is(.tile, .sb),
+.rail.touch-open :is(.tile, .sb),
+.rail.drawer-open :is(.tile, .sb) {
+  background: color-mix(in srgb, var(--cv-sidebar) 50%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 10px 0 28px color-mix(in srgb, var(--cv-navy) 14%, transparent);
+}
+
+.tx {
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.rail:hover .tx,
+.rail:has(:focus-visible) .tx,
+.rail.touch-open .tx,
+.rail.drawer-open .tx {
+  opacity: 1;
+}
+
+/* Ô tài khoản: hình tròn 56×56 khi thu nhỏ, thành viên thuốc khi mở rộng */
+.tile {
+  flex: 0 0 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.account {
+  gap: 12px;
+  padding: 0 7px;
+}
+
+/* Avatar tròn (theo yêu cầu, khác quy tắc "không avatar tròn" ở admin-ui-rule mục 1) */
+.avatar {
+  flex: 0 0 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-text {
+  min-width: 0;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cv-navy);
+}
+
+.role {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--cv-text-nav);
+}
+
+/* Ô menu: danh sách cuộn được, nút đăng xuất luôn ghim ở đáy */
+.sb {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  overflow: hidden;
+}
+
+.items {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* Vẫn cuộn được khi nhiều mục nhưng không hiện thanh cuộn chiếm chỗ của icon */
+  scrollbar-width: none;
+  /* Mục bị cắt ở mép dưới mờ dần thay vì cụt ngang sát đường kẻ (mặt nạ chỉ dùng độ trong suốt) */
+  -webkit-mask-image: linear-gradient(to bottom, var(--cv-surface) calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to bottom, var(--cv-surface) calc(100% - 24px), transparent);
+}
+
+.items::-webkit-scrollbar {
+  display: none;
+}
+
+.ni {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 42px;
+  padding: 0 11px;
+  border: 0;
+  /* Viên thuốc: thu nhỏ là hình tròn, mở rộng là thanh bo tròn hai đầu */
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cv-text-nav);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ni svg {
+  flex: 0 0 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ni:hover {
+  background: color-mix(in srgb, var(--cv-surface) 70%, transparent);
+}
+
+.ni.on {
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font-weight: 600;
+}
+
+.ni.on:hover {
+  background: var(--cv-navy-hover);
+}
+
+/* Đường kẻ mờ tách phần menu với đáy thanh */
+.divider {
+  flex: 0 0 auto;
+  margin: 2px 12px 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--cv-navy) 14%, transparent);
+}
+
+/* Đáy thanh menu, ghim cứng, không có nền riêng: chữ navy trên nền kính của thanh.
+   Thu nhỏ: hình tròn chỉ có chữ C của CaraVeso. Mở rộng: CaraVeso, "Trang quản trị" và nút đăng xuất ở bên phải. */
+.foot {
+  flex: 0 0 auto;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 1px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: var(--cv-navy);
+  transition: height 0.2s ease;
+}
+
+/* Mở rộng: pill cao hơn để chữ CaraVeso và dòng "Trang quản trị" có chỗ thở */
+.rail:hover .foot,
+.rail:has(:focus-visible) .foot,
+.rail.touch-open .foot,
+.rail.drawer-open .foot {
+  height: 54px;
+}
+
+/* Chữ C đứng yên một chỗ (giữa vòng tròn); phần còn lại hiện ra bên phải khi mở rộng */
+.foot-brand {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 14px;
+  overflow: hidden;
+  transition: padding-left 0.2s ease;
+}
+
+.rail:hover .foot-brand,
+.rail:has(:focus-visible) .foot-brand,
+.rail.touch-open .foot-brand,
+.rail.drawer-open .foot-brand {
+  padding-left: 22px;
+}
+
+.foot-logo {
+  font-family: var(--cv-font-logo);
+  font-size: 24px;
+  line-height: 1.1;
+  white-space: nowrap;
+  /* Font Italiana có nét rất mảnh, làm dày nhẹ để chữ C không bị mất nét ở cỡ nhỏ */
+  -webkit-text-stroke: 0.4px currentColor;
+}
+
+.foot-label {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  /* Đủ cao để dấu thanh của chữ hoa tiếng Việt (Ị, Ả) không bị cắt */
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* Chữ vàng chanh chỉ đọc được trên nền navy, nên trên nền sáng dùng màu menu */
+  color: var(--cv-text-nav);
+  transition:
+    max-height 0.2s ease,
+    opacity 0.15s;
+}
+
+.rail:hover .foot-label,
+.rail:has(:focus-visible) .foot-label,
+.rail.touch-open .foot-label,
+.rail.drawer-open .foot-label {
+  max-height: 16px;
+  opacity: 1;
+}
+
+/* Nút đăng xuất chỉ chiếm chỗ khi mở rộng */
+.foot-logout {
+  flex: 0 0 auto;
+  width: 0;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+  transition:
+    width 0.2s ease,
+    opacity 0.15s;
+}
+
+.rail:hover .foot-logout,
+.rail:has(:focus-visible) .foot-logout,
+.rail.touch-open .foot-logout,
+.rail.drawer-open .foot-logout {
+  width: 44px;
+  margin-right: 4px;
+  opacity: 1;
+}
+
+.foot-logout:hover {
+  background: color-mix(in srgb, var(--cv-surface) 70%, transparent);
+}
+
+.foot-logout svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Nút mở ngăn kéo: chỉ hiện ở màn hẹp */
+.menu-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 25;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface);
+  color: var(--cv-navy);
+  cursor: pointer;
+}
+
+.menu-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: color-mix(in srgb, var(--cv-navy) 40%, transparent);
+}
+
+@media (max-width: 767px) {
+  .menu-btn {
+    display: flex;
+  }
+
+  /* Ngăn kéo: cả cột (logo, tài khoản, menu) trượt ra từ bên trái */
+  .rail {
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: 248px;
+    transform: translateX(calc(-100% - 16px));
+    transition: transform 0.2s ease;
+  }
+
+  .rail.drawer-open {
+    transform: none;
+  }
+
+  .rail .tx,
+  .rail .foot-label,
+  .rail .foot-logout {
+    opacity: 1;
+  }
+
+  .rail .foot-label {
+    max-height: 16px;
+  }
+
+  .rail .foot-logout {
+    width: 40px;
+  }
+}

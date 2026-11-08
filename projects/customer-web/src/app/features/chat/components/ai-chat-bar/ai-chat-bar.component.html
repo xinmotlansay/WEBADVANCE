@@ -1,0 +1,195 @@
+<section
+  class="assistant"
+  [class.assistant--expanded]="ui.aiOpen()"
+  aria-label="Trợ lý AI CaraVeso"
+>
+  @if (ui.aiOpen()) {
+    <form class="composer" [class.composer--active]="showPanel()" (submit)="onSubmit($event)">
+      <textarea
+        #input
+        rows="1"
+        maxlength="2000"
+        placeholder="Nhập mô tả đơn giản về sản phẩm (VD: bàn ăn 4 ghế, phù hợp với phòng 50m2,...)"
+        [value]="draft()"
+        [readOnly]="loading()"
+        (input)="onInput($event)"
+        (keydown)="onKeydown($event)"
+        aria-label="Mô tả sản phẩm cần tư vấn"
+      ></textarea>
+
+      <button
+        class="composer__toggle"
+        type="button"
+        (click)="togglePanel()"
+        [attr.aria-expanded]="showPanel()"
+        [attr.aria-label]="showPanel() ? 'Thu gọn hộp hội thoại' : 'Mở hộp hội thoại'"
+      >
+        <app-icon name="mdi:chat-processing" [size]="18" />
+        <span>{{ showPanel() ? 'Thu gọn' : 'Hội thoại' }}</span>
+        <app-icon [name]="showPanel() ? 'lucide:chevron-down' : 'lucide:chevron-up'" [size]="14" />
+      </button>
+
+      <button class="composer__send" type="submit" [disabled]="!canSend()" aria-label="Gửi câu hỏi">
+        @if (loading()) {
+          <span class="composer__spinner"></span>
+        } @else {
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              d="M3.5 11.6 20 4l-6.6 16.2-2.5-6.4-7.4-2.2Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+            />
+          </svg>
+        }
+      </button>
+    </form>
+
+    @if (showPanel()) {
+      <section class="panel" role="dialog" aria-label="Kết quả tư vấn của trợ lý AI">
+        <header class="panel__header">
+          <span class="panel__mark" aria-hidden="true">AI</span>
+
+          <div class="panel__title">
+            <strong>Trợ lý AI CaraVeso</strong>
+            <span>Trợ Lý AI tư vấn nội thất</span>
+          </div>
+
+          <div class="panel__actions">
+            <button
+              class="panel__icon"
+              type="button"
+              (click)="toggleHistory()"
+              [class.panel__icon--active]="historyOpen()"
+              aria-label="Lịch sử phiên chat"
+              title="Lịch sử phiên chat"
+              [attr.aria-expanded]="historyOpen()"
+            >
+              <app-icon name="lucide:history" [size]="17" />
+            </button>
+
+            <button class="panel__icon" type="button" (click)="close()" aria-label="Đóng trợ lý AI">
+              <app-icon name="lucide:x" [size]="17" />
+            </button>
+          </div>
+        </header>
+
+        <div class="panel__body" #scroll>
+          @for (message of messages(); track message.id) {
+            @if (message.role === 'assistant') {
+              <div class="row">
+                <span class="row__avatar" aria-hidden="true">AI</span>
+                <div class="row__content">
+                  <div class="bubble">{{ message.content }}</div>
+
+                  @if (message.products?.length) {
+                    <div class="products">
+                      @for (product of expanded().has(message.id) ? message.products : message.products!.slice(0, INITIAL_PRODUCTS); track product.id) {
+                        <app-ai-product-card [product]="product" (opened)="close()" />
+                      }
+                    </div>
+                    <div class="products-more">
+                      @if (message.products!.length > INITIAL_PRODUCTS && !expanded().has(message.id)) {
+                        <button type="button" (click)="expand(message.id)">Xem thêm {{ message.products!.length - INITIAL_PRODUCTS }} sản phẩm</button>
+                      }
+                      @if (questionBefore(message.id); as q) {
+                        <a routerLink="/products" [queryParams]="{ q }" (click)="close()">Xem tất cả sản phẩm phù hợp</a>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="row row--mine">
+                <div class="bubble bubble--mine">{{ message.content }}</div>
+              </div>
+            }
+          }
+
+          @if (loading()) {
+            <div class="row">
+              <span class="row__avatar" aria-hidden="true">AI</span>
+              <div class="bubble typing" aria-label="Trợ lý đang trả lời">
+                <i></i><i></i><i></i>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (error()) {
+          <div class="panel__error" role="alert">
+            <span class="panel__error-text">{{ error() }}</span>
+
+            @if (canRetry()) {
+              <button class="panel__retry" type="button" (click)="retry()">
+                <app-icon name="lucide:refresh-cw" [size]="13" />
+                <span>Thử lại</span>
+              </button>
+            }
+          </div>
+        }
+
+        @if (!loading() && suggestions().length > 0) {
+          <div class="suggestions" aria-label="Câu hỏi gợi ý">
+            @for (prompt of suggestions(); track prompt) {
+              <button type="button" (click)="sendSuggestion(prompt)">{{ prompt }}</button>
+            }
+          </div>
+        }
+
+        @if (historyOpen()) {
+          <div class="history" role="dialog" aria-label="Lịch sử phiên chat">
+            <header class="history__head">
+              <strong>Lịch sử trò chuyện</strong>
+
+              <button class="history__new" type="button" (click)="startNewSession()">
+                <app-icon name="lucide:plus" [size]="14" />
+                <span>Cuộc trò chuyện mới</span>
+              </button>
+            </header>
+
+            @if (sessions().length === 0) {
+              <p class="history__empty">
+                Chưa có phiên chat nào. Hội thoại chỉ lưu tạm trên trình duyệt này.
+              </p>
+            } @else {
+              <ul class="history__list">
+                @for (session of sessions(); track session.id) {
+                  <li>
+                    <div
+                      class="history__item"
+                      [class.history__item--active]="session.id === activeSessionId()"
+                    >
+                      <button
+                        class="history__open"
+                        type="button"
+                        (click)="selectSession(session.id)"
+                      >
+                        <span class="history__title">{{ session.title }}</span>
+                        <span class="history__meta">
+                          {{ session.messages.length }} tin nhắn ·
+                          {{ relativeTime(session.updatedAt) }}
+                        </span>
+                      </button>
+
+                      <button
+                        class="history__delete"
+                        type="button"
+                        (click)="removeSession(session.id, $event)"
+                        aria-label="Xoá phiên chat"
+                        title="Xoá phiên chat"
+                      >
+                        <app-icon name="lucide:trash-2" [size]="15" />
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+</section>

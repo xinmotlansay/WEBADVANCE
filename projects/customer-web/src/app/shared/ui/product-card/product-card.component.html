@@ -1,14 +1,20 @@
 <article class="card" role="listitem">
   <a class="media" [routerLink]="link()" [attr.aria-label]="product().name">
     <img [src]="product().thumbnail" [alt]="product().name" loading="lazy" />
-    @if (compact() && discountPercent() > 0) {
+    @if (discountPercent() > 0) {
       <span class="tag">-{{ discountPercent() }}%</span>
     }
   </a>
   @if (!compact()) {
-    <!-- TODO(FR-22): thêm/xóa yêu thích khi có chức năng đăng nhập -->
-    <button type="button" class="wish" aria-label="Thêm vào yêu thích">
-      <app-icon name="lucide:heart" [size]="18" />
+    <button
+      type="button"
+      class="wish"
+      [class.wish--on]="wished()"
+      [attr.aria-pressed]="wished()"
+      [attr.aria-label]="wished() ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+      (click)="toggleWish()"
+    >
+      <app-icon [name]="wished() ? 'lucide:heart-filled' : 'lucide:heart'" [size]="18" />
     </button>
   }
 
@@ -23,10 +29,17 @@
     <p class="price" [class.price--sale]="compact()">{{ product().priceFrom | vnd }}</p>
   </div>
 
-  <!-- TODO(FR-28, FR-32): Mua ngay và thêm giỏ khi có giỏ hàng -->
   <div class="actions">
-    <button type="button" class="buy">MUA NGAY</button>
-    <button type="button" class="cart" aria-label="Thêm vào giỏ hàng">
+    <button type="button" class="buy" [disabled]="soldOut()" (click)="openPicker('buy')">
+      {{ soldOut() ? 'HẾT HÀNG' : 'MUA NGAY' }}
+    </button>
+    <button
+      type="button"
+      class="cart"
+      aria-label="Thêm vào giỏ hàng"
+      [disabled]="soldOut()"
+      (click)="openPicker('add')"
+    >
       <app-icon name="lucide:shopping-cart" [size]="18" />
     </button>
   </div>

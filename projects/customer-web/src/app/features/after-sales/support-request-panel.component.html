@@ -1,0 +1,106 @@
+<section class="request-panel" [attr.aria-label]="kind() === 'warranty' ? 'Yêu cầu bảo hành' : 'Yêu cầu đổi trả'">
+  <header class="panel-head">
+    <h2>{{ kind() === 'warranty' ? 'Yêu cầu bảo hành' : 'Yêu cầu đổi trả' }}</h2>
+    <button type="button" class="panel-close" aria-label="Thu gọn" (click)="closed.emit()">Thu gọn ↑</button>
+  </header>
+
+  @if (!loggedIn()) {
+    <div class="panel-state">
+      <p>Đăng nhập để tìm sản phẩm đã mua và gửi yêu cầu.</p>
+      <a class="panel-login" routerLink="/auth/login" [queryParams]="{ returnUrl: '/support?panel=' + kind() }">Đăng nhập</a>
+    </div>
+  } @else {
+    <form #searchForm class="panel-search" data-scroll-target="search" (submit)="$event.preventDefault(); search(orderInput.value, nameInput.value)">
+      <label class="lbl lbl-order" for="sr-order">Mã đơn hàng</label>
+      <label class="lbl lbl-name" for="sr-name">Tên sản phẩm</label>
+      <input #orderInput id="sr-order" class="in-order" type="search" maxlength="100" placeholder="Nhập mã đơn hàng" [value]="orderQuery()" />
+      <span class="or">Hoặc</span>
+      <input #nameInput id="sr-name" class="in-name" type="search" maxlength="200" placeholder="Nhập tên sản phẩm" [value]="nameQuery()" />
+      <button type="submit" class="search-btn">Tìm kiếm</button>
+    </form>
+
+    @if (pickedCard() || pickedItem()) {
+      <div class="step-head step-target">
+        <button type="button" class="link" (click)="backToSearch()">← Chọn sản phẩm khác</button>
+      </div>
+      @if (kind() === 'warranty') {
+        @defer {
+          <app-warranty-form
+            [embedded]="true"
+            [presetCardId]="pickedCard()!.id"
+            (requestCreated)="requestCreated.emit({ kind: 'warranty', id: $event })"
+          />
+        } @placeholder {
+          <p class="panel-state" role="status">Đang mở form bảo hành…</p>
+        }
+      } @else {
+        @defer {
+          <app-return-form
+            [embedded]="true"
+            [presetOrderId]="pickedItem()!.orderId"
+            [presetItemId]="pickedItem()!.itemId"
+            (requestCreated)="requestCreated.emit({ kind: 'return', id: $event })"
+          />
+        } @placeholder {
+          <p class="panel-state" role="status">Đang mở form đổi trả…</p>
+        }
+      }
+    } @else if (kind() === 'warranty') {
+      @let list = cards();
+      @if (list === undefined) {
+        <p class="panel-state" role="status">Đang tải sản phẩm của bạn…</p>
+      } @else if (list === null) {
+        <p class="panel-state" role="alert">Chưa tải được sản phẩm bảo hành. Vui lòng tải lại trang.</p>
+      } @else {
+        <p class="list-title">{{ hasQuery() ? 'Kết quả tìm kiếm' : 'Sản phẩm đã mua gần đây' }}</p>
+        <ul class="result-list">
+          @for (card of warrantyResults(); track card.id) {
+            <li class="result-row" [class.disabled]="card.status !== 'VALID'">
+              <div>
+                <strong>{{ card.productName }}</strong>
+                <small>Đơn {{ card.orderCode }} · Hạn bảo hành {{ card.expiresAt | date: 'dd/MM/yyyy' : '+0700' }}</small>
+              </div>
+              @if (card.status === 'VALID') {
+                <button type="button" (click)="pickCard(card.id)">Chọn · còn {{ card.remainingDays }} ngày</button>
+              } @else {
+                <span class="note">{{ card.status === 'EXPIRED' ? 'Đã hết hạn bảo hành' : 'Phiếu không còn hiệu lực' }}</span>
+              }
+            </li>
+          } @empty {
+            <li class="panel-state">
+              {{ hasQuery() ? 'Không tìm thấy sản phẩm phù hợp. Hãy kiểm tra mã đơn hoặc thử tên khác.' : 'Bạn chưa có sản phẩm được cấp phiếu bảo hành.' }}
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      @let rows = returnResults();
+      @if (rows === undefined) {
+        <p class="panel-state" role="status">Đang tải đơn hàng đã giao…</p>
+      } @else if (rows === null) {
+        <p class="panel-state" role="alert">Chưa tải được đơn hàng. Vui lòng tải lại trang.</p>
+      } @else {
+        <p class="list-title">{{ hasQuery() ? 'Kết quả tìm kiếm' : 'Sản phẩm đã mua gần đây' }}</p>
+        <ul class="result-list">
+          @for (row of rows; track row.orderId + row.itemId) {
+            <li class="result-row" [class.disabled]="!row.canReturn">
+              <div>
+                <strong>{{ row.name }}</strong>
+                <small>Đơn {{ row.orderCode }} · Hạn đổi trả {{ row.deadline | date: 'dd/MM/yyyy' : '+0700' }}</small>
+              </div>
+              @if (row.canReturn) {
+                <button type="button" (click)="pickItem(row)">Chọn</button>
+              } @else {
+                <span class="note">Hết hạn hoặc không đủ điều kiện</span>
+              }
+            </li>
+          } @empty {
+            <li class="panel-state">
+              {{ hasQuery() ? 'Không tìm thấy sản phẩm phù hợp. Hãy kiểm tra mã đơn hoặc thử tên khác.' : 'Bạn chưa có đơn hàng đã giao.' }}
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

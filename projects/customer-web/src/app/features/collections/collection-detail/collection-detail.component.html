@@ -1,0 +1,51 @@
+@let detail = collection();
+
+@if (detail) {
+  <nav class="crumbs" aria-label="Đường dẫn">
+    <ol class="container">
+      <li><a routerLink="/">Trang chủ</a></li>
+      <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+      <li aria-current="page">{{ detail.name }} Collection</li>
+    </ol>
+  </nav>
+
+  <section class="hero">
+    @if (detail.images[0]; as cover) {
+      <img class="hero__img" [src]="cover.url" [alt]="detail.name" />
+    }
+    <div class="hero__text">
+      <h1>{{ detail.name }}</h1>
+      @if (detail.shortDescription) {
+        <p>{{ detail.shortDescription }}</p>
+      }
+    </div>
+  </section>
+
+  <section class="container intro">
+    <h2>{{ detail.slogan }}</h2>
+    @if (detail.description) {
+      <p>{{ detail.description }}</p>
+    }
+  </section>
+
+  @if (detail.images.length > 1) {
+    <ul class="container gallery">
+      @for (image of detail.images.slice(1); track image.id) {
+        <li class="tile">
+          <app-hotspot-image [image]="image" ratio="2 / 3" [(active)]="activeHotspot" />
+        </li>
+      }
+    </ul>
+  }
+
+  <app-product-list
+    class="list"
+    [embedded]="true"
+    [heading]="'Các sản phẩm thuộc ' + detail.name + ' Collection'"
+    [collection]="detail.slug"
+  />
+} @else if (detail === null) {
+  <p class="state">Không tải được bộ sưu tập. Vui lòng thử lại.</p>
+} @else {
+  <p class="state">Đang tải...</p>
+}

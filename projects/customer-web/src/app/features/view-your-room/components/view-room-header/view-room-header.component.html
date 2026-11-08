@@ -1,0 +1,19 @@
+<header class="vr-header">
+  <button type="button" class="vr-header__back" aria-label="Quay lại" (click)="back()">
+    <app-icon name="lucide:chevron-left" [size]="24" />
+  </button>
+
+  <a class="vr-header__logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
+
+  <nav class="vr-header__tools" aria-label="Tiện ích">
+    <a class="vr-header__icon" routerLink="/wishlist" aria-label="Yêu thích">
+      <app-icon name="lucide:heart" [size]="22" />
+    </a>
+    <a class="vr-header__icon" routerLink="/account" aria-label="Tài khoản">
+      <app-icon name="lucide:user" [size]="22" />
+    </a>
+    <a class="vr-header__icon" routerLink="/cart" aria-label="Giỏ hàng">
+      <app-icon name="lucide:shopping-cart" [size]="22" />
+    </a>
+  </nav>
+</header>

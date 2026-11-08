@@ -34,6 +34,7 @@ Collection: `users` (trước đây: `NGUOIDUNG`). Dùng chung cho khách hàng 
 | 8 | profile.fullName | String | Y | Họ tên |
 | 9 | profile.dateOfBirth | Date | | Default: null. Ngày sinh |
 | 10 | profile.birthDateEditCount | Number | | Default: 0. Số lần đã nhập ngày sinh, tối đa 2 (tính cả lần đầu) |
+| 10a | profile.gender | String | | Default: null. Giới tính: `MALE`, `FEMALE`, `OTHER` (bổ sung cho trang Tài khoản của tôi) |
 | 11 | avatar | String | | Default: "". Đường dẫn ảnh đại diện |
 | 12 | termsAccepted | Boolean | | Đã đồng ý điều khoản khi đăng ký. Bắt buộc là true với khách hàng. Tài khoản Admin do Admin cấp cao tạo nên không áp dụng |
 | 13 | termsAcceptedAt | Date | | Thời điểm đồng ý điều khoản |
@@ -107,6 +108,7 @@ Collection: `walkway_profiles` (mới). Lưu kích thước lối đi trong nhà
 | 1 | _id | ObjectId | Y | Mã định danh của hồ sơ lối đi, do MongoDB tự sinh |
 | 2 | userId | ObjectId (ref: users) | Y | Index. Khách hàng sở hữu |
 | 3 | name | String | Y | Tên hồ sơ, ví dụ "Nhà chung cư" |
+| 3a | address | String | | Địa chỉ căn nhà của hồ sơ (bổ sung, hiển thị ở trang Hồ sơ nhà) |
 | 4 | isDefault | Boolean | | Default: false. Hồ sơ mặc định, mỗi khách tối đa một |
 | 5 | passages | Array\<Object\> | | Danh sách lối đi |
 | 6 | passages[].type | String | Y | `DOOR` (cửa), `ELEVATOR` (thang máy), `STAIRS` (cầu thang), `HALLWAY` (hành lang) |
@@ -135,7 +137,7 @@ Collection: `categories` (trước đây: `DANHMUC`).
 | 2 | parentId | ObjectId (ref: categories) | | Default: null. Danh mục cha |
 | 3 | name | String | Y | Trimmed. Tên danh mục |
 | 4 | slug | String | Y | Unique. Đường dẫn thân thiện |
-| 5 | type | String | Y | `PRODUCT_CATEGORY` (loại sản phẩm), `ROOM` (phòng), `STYLE` (phong cách) |
+| 5 | type | String | Y | `PRODUCT_CATEGORY` (loại sản phẩm), `ROOM` (phòng) |
 | 6 | description | String | | Default: "". Mô tả |
 | 7 | image | String | | Default: "". Ảnh đại diện |
 | 8 | status | String | Y | Default: `VISIBLE`. `VISIBLE` (hiển thị), `HIDDEN` (ẩn) |
@@ -157,7 +159,7 @@ Collection: `products` (trước đây: `SANPHAM`, kèm các bảng `SANPHAM_DAN
 | 6 | description | String | | Mô tả chi tiết |
 | 7 | searchKeywords | String | | Từ khóa, từ đồng nghĩa hỗ trợ tìm kiếm thủ công và AI |
 | 8 | tags | Array\<String\> | | Nhãn tùy chỉnh do Product Admin nhập (PA-04). Khác nhãn Mới / Bán chạy là nhãn hệ thống |
-| 9 | categoryIds | Array\<ObjectId\> (ref: categories) | | Loại sản phẩm, phòng, phong cách. Thay cho bảng nối |
+| 9 | categoryIds | Array\<ObjectId\> (ref: categories) | | Loại sản phẩm và phòng. Thay cho bảng nối |
 | 10 | seo.title | String | | Tiêu đề SEO |
 | 11 | seo.description | String | | Mô tả SEO |
 | 12 | manualBadges.isNew | String | | Default: null. Admin bật/tắt nhãn Mới: `ON` (ép hiện), `OFF` (ép ẩn), null (theo quy tắc tự động 30 ngày) |
@@ -181,6 +183,7 @@ Collection: `products` (trước đây: `SANPHAM`, kèm các bảng `SANPHAM_DAN
 | 30 | media[].url | String | Y | Đường dẫn file |
 | 31 | media[].format | String | | JPG, PNG, MP4, GLB... |
 | 32 | media[].displayOrder | Number | Y | Thứ tự hiển thị |
+| 33 | media[].purpose | String | | `MAIN` (ảnh đại diện), `VARIANT`, `LIFESTYLE` (phối cảnh), `DIMENSION` (kích thước), `PART` (bộ phận), `MODEL` (model 3D) |
 
 ### Thực thể 8: Biến thể sản phẩm (ProductVariant)
 
@@ -218,8 +221,8 @@ Collection: `product_variants` (trước đây: `BIENTHESANPHAM`, kèm `KICH_THU
 | 26 | salePrice | Number | Y | Giá bán hiện tại |
 | 27 | stockQuantity | Number | Y | Min: 0. Số lượng tồn kho, cập nhật bằng `$inc` có điều kiện để không bán vượt |
 | 28 | lowStockThreshold | Number | Y | Ngưỡng cảnh báo sắp hết hàng |
-| 29 | installationService | String | | Default: `NONE`. `NONE` (không có), `OPTIONAL` (tùy chọn), `REQUIRED` (bắt buộc) |
-| 30 | installationFee | Number | | Phí lắp đặt cố định, bắt buộc khi `installationService` khác `NONE` |
+| 29 | installationService | String | | Default: `NONE`. `NONE` (không có), `OPTIONAL` (tùy chọn), `REQUIRED` (bắt buộc). Khác `NONE` chỉ khi `shippingTier` là 3 hoặc 4 (backend kiểm tra) |
+| 30 | installationFee | Number | | Phí lắp đặt cố định cho một sản phẩm (đơn hàng tính phí × số lượng), bắt buộc khi `installationService` khác `NONE` |
 | 31 | status | String | Y | Default: `ACTIVE`. `ACTIVE` (đang bán), `DISCONTINUED` (ngừng kinh doanh). Tình trạng Còn hàng / Sắp hết / Hết hàng suy ra từ `stockQuantity` và `lowStockThreshold`, không lưu |
 
 ### Thực thể 9: Lịch sử kho (StockHistory)
@@ -273,7 +276,7 @@ Collection: `carts` (trước đây: `GIOHANG`, kèm `CHITIETGIOHANG` đã gộp
 | 6 | items[].variantId | ObjectId (ref: product_variants) | Y | Biến thể sản phẩm |
 | 7 | items[].quantity | Number | Y | Min: 1. Số lượng |
 | 8 | items[].isSelected | Boolean | Y | Default: true. Được chọn để thanh toán |
-| 9 | items[].priceAtAdd | Number | Y | Giá lúc thêm vào giỏ, so với giá hiện tại để báo đổi giá |
+| 9 | items[].priceAtAdd | Number | Y | Giá một sản phẩm sau khuyến mãi lúc thêm vào giỏ (hoặc lúc đổi số lượng/biến thể), so với giá hiện tại để báo đổi giá |
 | 10 | items[].hasInstallation | Boolean | | Default: false. Khách chọn dịch vụ lắp đặt |
 | 11 | items[].note | String | | Max 500. Ghi chú tùy chọn |
 
@@ -396,7 +399,7 @@ Collection: `orders` (trước đây: `DONHANG`, kèm `CHI_TIET_DON_HANG`, `LICH
 | # | Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ràng buộc / Mô tả |
 |---|---|---|---|---|
 | 1 | _id | ObjectId | Y | Mã định danh của đơn hàng, do MongoDB tự sinh |
-| 2 | orderCode | String | Y | Unique. Mã đơn dễ đọc để khách và Admin tra cứu |
+| 2 | orderCode | String | Y | Unique. Mã đơn dễ đọc để khách và Admin tra cứu: `CV` + ngày (giờ VN, `YYMMDD`) + số thứ tự 4 chữ số trong ngày, lấy từ collection phụ `counters` (`_id: "order:YYMMDD"`, `seq`) |
 | 3 | userId | ObjectId (ref: users) | Y | Khách hàng đặt đơn |
 | 4 | voucherId | ObjectId (ref: vouchers) | | Voucher áp dụng (nếu có) |
 | 5 | shippingAddress.recipientName | String | Y | Bản sao tên người nhận lúc đặt |
@@ -453,6 +456,14 @@ Collection: `orders` (trước đây: `DONHANG`, kèm `CHI_TIET_DON_HANG`, `LICH
 | 56 | cancellation.cancelledBy | String | | `CUSTOMER`, `ADMIN`, `SYSTEM` (hết hạn thanh toán) |
 | 57 | cancellation.cancelledByUserId | ObjectId (ref: users) | | Người hủy (khách hoặc Admin) |
 | 58 | cancellation.cancelledAt | Date | | Thời điểm hủy |
+| 59 | source | String | Y | `CART` (đặt từ giỏ), `BUY_NOW` (mua nhanh). Đơn `CART` bị hủy khi đang `PENDING_PAYMENT` thì trả các dòng lại vào giỏ |
+| 60 | invoiceInfo.type | String | Y | Default: `NONE`. `NONE` (không lấy hóa đơn), `PERSONAL` (cá nhân), `COMPANY` (công ty) |
+| 61 | invoiceInfo.buyerName | String | | Họ tên người mua (cá nhân) hoặc tên công ty. Bắt buộc khi `type` khác `NONE` |
+| 62 | invoiceInfo.taxCode | String | | Mã số thuế. Bắt buộc với `COMPANY` (10 số hoặc `10 số-3 số`); tùy chọn với `PERSONAL` (MST cá nhân hoặc CCCD) |
+| 63 | invoiceInfo.address | String | | Địa chỉ ghi trên hóa đơn. Bắt buộc khi `type` khác `NONE` |
+| 64 | invoiceInfo.sendEmail | Boolean | | Default: false. Khách chọn nhận hóa đơn qua email (chỉ khi `type` khác `NONE`) |
+| 65 | invoiceInfo.email | String | | Email nhận hóa đơn, bắt buộc khi `sendEmail = true` |
+| 66 | idempotencyKey | String | Y | Header `Idempotency-Key` của `POST /orders`. Unique theo (`userId`, `idempotencyKey`): gửi lại cùng key trả lại đơn cũ (NF-08) |
 
 ### Thực thể 18: Giao dịch thanh toán (PaymentTransaction)
 
@@ -518,6 +529,8 @@ Collection: `invoices` (trước đây: `HOADON`). Chỉ có hóa đơn điện 
 | 4 | issuedAt | Date | Y | Ngày phát hành |
 | 5 | totalAmount | Number | Y | Tổng tiền hóa đơn |
 | 6 | fileUrl | String | | Đường dẫn file hóa đơn điện tử |
+| 7 | emailedTo | String | | Email đã gửi hóa đơn (bản sao `orders.invoiceInfo.email` khi `sendEmail = true`) |
+| 8 | emailSentAt | Date | | Thời điểm gửi email thành công. Null nếu không gửi hoặc gửi lỗi |
 
 ---
 
@@ -702,6 +715,7 @@ Collection: `product_collections` (trước đây: `COLLECTION`, kèm `HINH_ANH_
 | 21 | images[].hotspots[].x | Number | Y | Tọa độ ngang theo tỷ lệ ảnh (0–1) |
 | 22 | images[].hotspots[].y | Number | Y | Tọa độ dọc theo tỷ lệ ảnh (0–1) |
 | 23 | images[].hotspots[].displayOrder | Number | | Thứ tự ưu tiên khi có nhiều hotspot |
+| 24 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 28: Nguồn cảm hứng (Inspiration)
 
@@ -717,6 +731,8 @@ Collection: `inspirations` (trước đây: `NGUON_CAM_HUNG`, kèm `SANPHAM_NGUO
 | 4 | products | Array\<Object\> | | Sản phẩm xuất hiện trong ảnh, hiển thị ở popup |
 | 5 | products[].productId | ObjectId (ref: products) | Y | Sản phẩm |
 | 6 | products[].displayOrder | Number | Y | Thứ tự trong danh sách popup |
+| 7 | displayOrder | Number | | Default: 0. Thứ tự trong lưới khách (trang Nguồn cảm hứng, gallery trang chủ) |
+| 8 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 29: Banner (Banner)
 
@@ -809,7 +825,7 @@ Collection: `system_configs` (trước đây: `CAU_HINH_HE_THONG`). Dạng khóa
 | 3 | description | String | | Mô tả ý nghĩa |
 | 4 | updatedBy | ObjectId (ref: users) | Y | Admin cập nhật gần nhất |
 
-**Các khóa cấu hình cần có:** số ngày đổi/trả (7), thời hạn đánh giá (90 ngày), hạn thanh toán QR (15 phút), ngưỡng đặt cọc (20.000.000đ), tỷ lệ cọc (30%), số ngày trễ được bù (2), giá trị voucher bù (100.000đ), hạn voucher bù (30 ngày), thời gian hoàn tiền (3–7 ngày làm việc), số giờ coi đơn chờ xác nhận là quá hạn (cho Dashboard AD-02), số ngày nhãn Mới (30), ngưỡng nhãn Bán chạy (top 10%, tối thiểu 5 sản phẩm đã bán), bảng phí 4 cấp vận chuyển, khung giờ giao, số lần đổi lịch (2), số lần giao lại (2), ngưỡng cảnh báo tồn kho mặc định, số lần đăng nhập sai (3), thời gian khóa (1 phút), hạn OTP (5 phút), số lần nhập sai OTP (5), giới hạn gửi lại OTP (60 giây, 5 lần mỗi giờ), thời gian hết phiên Admin (30 phút), thông tin cửa hàng (gồm giờ làm việc), thông tin hóa đơn, mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho), bật/tắt COD và QR, tài khoản ngân hàng nhận tiền.
+**Các khóa cấu hình cần có:** số ngày đổi/trả (7, khóa `policy.returnDays`), thời hạn đánh giá (90 ngày, khóa `policy.reviewDays`), hạn thanh toán QR (15 phút), ngưỡng đặt cọc (20.000.000đ), tỷ lệ cọc (30%), số ngày trễ được bù (2), giá trị voucher bù (100.000đ), hạn voucher bù (30 ngày), thời gian hoàn tiền (3–7 ngày làm việc), số giờ coi đơn chờ xác nhận là quá hạn (cho Dashboard AD-02), số ngày nhãn Mới (30), ngưỡng nhãn Bán chạy (top 10%, tối thiểu 5 sản phẩm đã bán), bảng phí 4 cấp vận chuyển, số ngày chuẩn bị giao theo cấp (cấp 1–2: 3, cấp 3–4: 5 ngày làm việc), khung giờ giao, số lần đổi lịch (2), số lần giao lại (2), ngưỡng cảnh báo tồn kho mặc định, số lần đăng nhập sai (3), thời gian khóa (1 phút), hạn OTP (5 phút), số lần nhập sai OTP (5), giới hạn gửi lại OTP (60 giây, 5 lần mỗi giờ), thời gian hết phiên Admin (30 phút), thông tin cửa hàng (gồm giờ làm việc), thông tin hóa đơn (gồm thuế suất VAT), mẫu email (OTP, đặt mật khẩu Admin, tóm tắt tồn kho, gửi hóa đơn), bật/tắt COD và QR, tài khoản ngân hàng nhận tiền.
 
 ### Thực thể 34: Showroom (Showroom)
 
@@ -838,6 +854,20 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 ---
 
 ## Phụ lục – Bảng đối chiếu tên
+
+### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
+
+- `system_configs`: tên khóa đã dùng trong code (danh sách đầy đủ ở `server/src/modules/super-admin/system-config.registry.ts`): `store`, `policy.returnDays`, `policy.reviewDays`, `policy.lateCompensationDays`, `policy.lateCompensationValue`, `policy.lateCompensationValidDays`, `policy.refundDaysMin`, `policy.refundDaysMax`, `policy.overdueConfirmationHours`, `payment`, `payment.bankAccount`, `shipping`, `shipping.maxRedelivery`, `inventory.lowStockThreshold`, `security.*` (`maxLoginAttempts`, `loginLockMinutes`, `otpExpireMinutes`, `otpMaxAttempts`, `otpResendSeconds`, `otpMaxSendsPerHour`, `adminSessionMinutes`), `labels.newDays`, `labels.bestSellerTopPercent`, `labels.bestSellerMinSold`, `email.templates`, `invoice` (thêm `sellerName`, `sellerTaxCode`, `sellerAddress`, `symbol`). Giá trị object lưu đầy đủ field; module đọc vẫn trộn với mặc định nếu thiếu.
+- `audit_logs`: model chặn `update*`/`delete*`. Index `{ performedAt: -1 }`, `{ userId: 1, performedAt: -1 }`, `{ targetType: 1, targetId: 1, performedAt: -1 }`. `action` dạng `ĐỐI_TƯỢNG_HÀNH_ĐỘNG`: `ADMIN_CREATE`, `ADMIN_UPDATE`, `ADMIN_ROLE_CHANGE`, `ADMIN_DEACTIVATE`, `ADMIN_ACTIVATE`, `ADMIN_INVITE_RESEND`, `CONFIG_UPDATE`; `targetType`: `ADMIN`, `SYSTEM_CONFIG`. Module khác ghi nhật ký qua `recordAudit(req, {...})` ở `super-admin/audit-log.service.ts` (tự che mật khẩu, số tài khoản).
+- `otps` với `purpose = ADMIN_SET_PASSWORD`: `codeHash` là SHA-256 của token trong liên kết, `expiresAt` 48 giờ, `isVerified = true` sau khi dùng.
+
+### Bổ sung triển khai 2026-10-23
+
+- `auth_sessions`: `_id` UUID, `userId` ObjectId, `tokenHash` SHA-256 của refresh token ngẫu nhiên, `expiresAt` Date (TTL index). Cookie không chứa mật khẩu, DB không lưu token gốc. Phiên khách tối đa 30 ngày; logout xóa phiên.
+- `warranty_requests` và `return_requests`: thêm `contact: { name, phone, address }`, `timeline: [{ status, at, note? }]`. Đổi trả thêm `CANCELLED` và `refundAccount: { bankName, accountNumber, accountHolder }` dùng lúc xử lý hoàn tiền; response che số tài khoản.
+- `orders.afterSalesVersion`: Number mặc định 0, chỉ dùng khóa ghi khi tính số lượng đổi/trả trong transaction; không sửa giá hoặc tồn kho.
+- `uploaded_files`: `_id` tên file UUID có đuôi đã kiểm tra, `userId`, `purpose`, `url`, `mime`, `size`, `createdAt`. Minh chứng liên kết bằng URL đã kiểm tra chủ sở hữu/purpose, không nhận URL tùy ý.
+- `product_image_embeddings`: `productId`, `mediaUrl`, `embedding: number[]`, `model`, `updatedAt`. Cần tự cấu hình Atlas Vector Search index có filter `model`, số chiều khớp provider; tác vụ index chưa triển khai.
 
 | Thực thể | Collection mới | Bảng SQL cũ |
 |---|---|---|

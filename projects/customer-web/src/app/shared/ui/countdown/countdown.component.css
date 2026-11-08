@@ -1,0 +1,54 @@
+:host {
+  display: block;
+}
+
+.countdown {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.countdown li {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 60%, transparent);
+  border-radius: 4px;
+  line-height: 1.1;
+}
+.countdown strong {
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-bold);
+}
+.countdown small {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+}
+
+:host(.countdown--large) .countdown {
+  gap: 20px;
+}
+:host(.countdown--large) .countdown li {
+  min-width: 80px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
+  gap: 4px;
+}
+:host(.countdown--large) .countdown strong {
+  font-size: var(--font-size-h1);
+}
+
+@media (max-width: 640px) {
+  :host(.countdown--large) .countdown {
+    gap: 10px;
+  }
+  :host(.countdown--large) .countdown li {
+    min-width: 60px;
+  }
+  :host(.countdown--large) .countdown strong {
+    font-size: var(--font-size-h2);
+  }
+}

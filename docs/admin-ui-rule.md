@@ -126,6 +126,8 @@ Thẻ thường phẳng: chỉ viền, không bóng. Không đặt thẻ trong t
 
 Dùng thẳng thẻ HTML đúng ngữ nghĩa (`button`, `a`, `input`, `label`, `table`). Không dùng `div` có `onClick` thay cho nút.
 
+**Tên class không được trùng giữa các bộ CSS.** Giao diện Admin cấp cao (`admin-ui.css`) và Order Admin (`layout.css`, `components.css`, `order-screens.css`) cùng được nạp toàn cục, bộ nạp sau đè lên bộ nạp trước. Trước khi thêm class `cv-*` mới, tìm xem tên đó đã có chưa (`grep -rn "\.cv-tên" projects/admin-web/src`). Từng gây lỗi bố cục: `.cv-page` (flex-wrap của Admin cấp cao làm vỡ màn Order Admin, đệm 32px của Order Admin làm hẹp trang Tổng quan) và `.cv-kpi` (một ô so với cả dải 5 cột). Muốn đặt lại thì viết selector cụ thể hơn trong `order-screens.css`, không sửa đè lên class dùng chung.
+
 ### Nút
 
 | Loại | Kiểu | Khi nào dùng |
@@ -151,6 +153,8 @@ Bo 4px, `padding: 2px 8px`, chữ 12px/600, `white-space: nowrap`. Màu theo b�
 - Hàng cao 56px, tiêu đề cao 44px (chữ --cv-muted, 500). Chỉ kẻ ngang 1px #EEF3F8, không sọc zebra.
 - Cột đầu là checkbox 16px (`accent-color` navy). Cột định danh (mã đơn, tên sản phẩm, tên chương trình) là `<button>` gạch chân mảnh, bấm để mở popup chi tiết.
 - Số và tiền căn phải, tabular-nums. Chữ căn trái. Không xuống dòng trong ô (`white-space: nowrap`), cả bảng nằm trong khung `overflow-x: auto` với `min-width` 700–780px.
+- **Bấm vào bất kỳ ô nào của hàng đều mở popup chi tiết**, không chỉ mã đơn. Gắn `class="cv-table__row--clickable"` và `(click)` mở chi tiết lên thẻ `<tr>` (con trỏ thành bàn tay). Nút mã đơn vẫn là `<button>` thật, không cần handler riêng: click nổi lên hàng, nên bàn phím (Tab, Enter) vẫn dùng được. Ô chứa checkbox và mọi nút/liên kết có hành động riêng phải chặn nổi bọt (`(click)="$event.stopPropagation()"`) để không mở popup nhầm. Khi đóng popup, trả focus về nút mã đơn của hàng đó.
+- **Chấm đỏ báo việc cần xử lý**: hàng đang chờ chính Admin làm bước tiếp theo thì thêm `cv-table__link--alert` vào nút mã (chấm 8px màu `--cv-down` ở góc trên bên trái chữ đầu tiên) và một `<span class="cv-sr-only">Cần xử lý. </span>` trong nút cho trình đọc màn hình. Chỉ đánh dấu bước thuộc về Admin; hàng đang chờ khách, đơn vị vận chuyển hay ngân hàng thì không có chấm. Mỗi màn định nghĩa "cần xử lý" bằng một hàm `needsAction`. Nếu bảng không phân trang phía server, đưa hàng cần xử lý lên trên.
 - Hàng đang chọn: nền --cv-row-selected. Ô khách hàng có ô viết tắt 30×30px, bo 6px, nền #E3EDF7.
 - Bảng thật phải có phân trang (mặc định 20 dòng/trang) và sắp xếp theo cột; bản mock chỉ hiện 6–9 dòng.
 
@@ -259,6 +263,9 @@ Mỗi tài khoản Admin chỉ có **một** vai trò và menu chỉ liệt kê 
 - [ ] Sidebar thu nhỏ 72px, mở rộng khi hover và focus, không đẩy nội dung.
 - [ ] Menu chỉ gồm mục thuộc quyền của vai trò; kiểm tra thử với cả 4 vai trò.
 - [ ] Bảng có checkbox, popup chi tiết, thanh hàng loạt, phân trang, đủ 4 trạng thái (tải, trống, không có kết quả, lỗi).
+- [ ] Bấm vào bất kỳ ô nào của hàng bảng đều mở chi tiết; checkbox và nút trong hàng không mở nhầm popup.
+- [ ] Hàng chờ Admin xử lý có chấm đỏ ở mã (đúng nghĩa "việc của Admin", không đánh dấu việc đang chờ bên khác).
+- [ ] Class `cv-*` mới không trùng tên class có sẵn ở bộ CSS khác.
 - [ ] Tiền, ngày, phần trăm định dạng kiểu Việt Nam; số căn phải, tabular-nums.
 - [ ] Trạng thái đơn dùng đúng tên 9 trạng thái; badge đúng màu mục 2.
 - [ ] Thao tác nguy hiểm có xác nhận, và ghi lý do nếu nghiệp vụ yêu cầu.

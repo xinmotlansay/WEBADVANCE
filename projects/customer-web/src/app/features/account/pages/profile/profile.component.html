@@ -1,0 +1,108 @@
+<section class="account-screen profile-screen">
+  <h1 class="screen-heading">Hồ sơ của tôi</h1>
+  <h2 class="section-heading">Thông tin của tôi</h2>
+
+  @if (notice(); as notice) { <p class="form-notice" [class.error]="notice.error" role="status">{{ notice.text }}</p> }
+  @if (loadError()) { <p class="api-error" role="alert">{{ loadError() }}</p> }
+
+  @if (profile(); as profile) {
+    <form class="profile-form" (ngSubmit)="saveProfile()">
+      <fieldset class="name-field">
+        <legend>Họ và tên</legend>
+        <input [(ngModel)]="name" name="name" required maxlength="120" autocomplete="name" aria-label="Họ và tên" />
+      </fieldset>
+
+      <div class="field-row">
+        <label class="field-label" for="birthday">Ngày sinh: <span class="help" tabindex="0" [attr.data-tip]="birthdayHint()"><app-account-icon name="help" [size]="16" /></span></label>
+        <div class="input-box birthday-box" [class.locked]="birthdayLocked()">
+          <input id="birthday" type="date" [(ngModel)]="birthday" name="birthday" [max]="maxBirthday" [disabled]="birthdayLocked()" />
+        </div>
+        <label class="field-label gender-label" for="gender">Giới tính:</label>
+        <div class="input-box gender-box">
+          <select id="gender" [(ngModel)]="gender" name="gender">
+            <option value="">Chưa chọn</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="primary-button large-button" type="submit" [disabled]="savingProfile()">{{ savingProfile() ? 'Đang lưu...' : 'Lưu thông tin cá nhân' }}</button>
+    </form>
+
+    <section class="profile-section">
+      <h2>Thông tin liên hệ</h2>
+      <p class="email-row"><strong>Email:</strong> <span>{{ profile.email || 'Chưa cập nhật' }}</span>
+        <button class="link-button" type="button" (click)="startContactEdit('EMAIL')">{{ profile.email ? 'Đổi email' : 'Thêm email' }}</button></p>
+      <p class="email-row"><strong>Số điện thoại:</strong> <span>{{ profile.phoneNumber || 'Chưa cập nhật' }}</span>
+        <button class="link-button" type="button" (click)="startContactEdit('PHONE')">{{ profile.phoneNumber ? 'Đổi số điện thoại' : 'Thêm số điện thoại' }}</button></p>
+      @if (contactEdit(); as edit) {
+        <div class="modal-backdrop" (click)="cancelContactEdit()">
+        <form class="stacked-form modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="edit.otpId ? confirmContact() : sendContactOtp()">
+          <h3>{{ edit.channel === 'EMAIL' ? (profile.email ? 'Đổi email' : 'Thêm email') : (profile.phoneNumber ? 'Đổi số điện thoại' : 'Thêm số điện thoại') }}</h3>
+          <label>{{ edit.channel === 'EMAIL' ? 'Email mới' : 'Số điện thoại mới' }}
+            <input [(ngModel)]="edit.target" name="contactTarget" [readOnly]="!!edit.otpId" [type]="edit.channel === 'EMAIL' ? 'email' : 'tel'" required />
+          </label>
+          @if (edit.otpId) {
+            <label>Mã xác nhận (6 chữ số)<input [(ngModel)]="edit.code" name="contactCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required /></label>
+          }
+          <div class="form-actions">
+            <button class="link-button" type="button" (click)="cancelContactEdit()">Hủy</button>
+            <button class="primary-button" type="submit" [disabled]="otpBusy()">{{ otpBusy() ? 'Đang xử lý...' : edit.otpId ? 'Xác nhận' : 'Gửi mã xác nhận' }}</button>
+          </div>
+        </form>
+        </div>
+      }
+    </section>
+
+    <section class="profile-section">
+      <h2>Mật khẩu</h2>
+      <button class="outline-button large-button" type="button" (click)="passwordFormOpen.set(true)">Đổi mật khẩu</button>
+      @if (passwordFormOpen()) {
+        <div class="modal-backdrop" (click)="closePasswordForm()">
+        <form class="stacked-form modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="changePassword()">
+          <h3>Đổi mật khẩu</h3>
+          @if (profile.hasPassword) {
+            <label>Mật khẩu hiện tại<input type="password" [(ngModel)]="currentPassword" name="currentPassword" autocomplete="current-password" required /></label>
+          }
+          <label>Mật khẩu mới<input type="password" [(ngModel)]="newPassword" name="newPassword" autocomplete="new-password" required minlength="8" /></label>
+          <label>Nhập lại mật khẩu mới<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" required /></label>
+          <small>Tối thiểu 8 ký tự, gồm chữ, số và ký tự đặc biệt.</small>
+          <div class="form-actions">
+            <button class="link-button" type="button" (click)="closePasswordForm()">Hủy</button>
+            <button class="primary-button" type="submit" [disabled]="savingPassword()">{{ savingPassword() ? 'Đang lưu...' : 'Lưu mật khẩu mới' }}</button>
+          </div>
+        </form>
+        </div>
+      }
+    </section>
+
+    <section class="profile-section">
+      <h2>Xoá tài khoản</h2>
+      <p class="delete-explanation">Xóa tài khoản của bạn sẽ đồng nghĩa với việc xóa vĩnh viễn tất cả thông tin cá nhân và lịch sử đặt hàng của bạn. Xin lưu ý, hành động này sẽ không thể thay đổi.<br />Nếu có bất kì thắc mắc nào, vui lòng liên hệ với chúng tôi trước khi bạn tiếp tục thao tác.</p>
+      <button class="outline-button large-button" type="button" (click)="deleteConfirmationOpen.set(true)">Xoá tài khoản</button>
+      @if (deleteConfirmationOpen()) {
+        <div class="modal-backdrop" (click)="cancelDelete()">
+          <form class="stacked-form modal delete-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="deleteAccount()">
+            <button class="modal-close" type="button" aria-label="Đóng" (click)="cancelDelete()">&times;</button>
+            <h3>Xác nhận xoá tài khoản</h3>
+            <p class="modal-text">Vì mục đích bảo mật, để tiếp tục thao tác xoá tài khoản, vui lòng {{ profile.hasPassword ? 'nhập mật khẩu của bạn' : 'nhập mã xác nhận được gửi đến bạn' }} để xác nhận. Sau khi được xác nhận, tài khoản của bạn và tất cả dữ liệu liên quan sẽ bị <strong>xoá vĩnh viễn.</strong></p>
+            @if (profile.hasPassword) {
+              <input type="password" [(ngModel)]="deletePassword" name="deletePassword" placeholder="Mật khẩu" autocomplete="current-password" aria-label="Mật khẩu" required />
+            } @else {
+              <button class="outline-button" type="button" [disabled]="otpBusy()" (click)="sendDeleteOtp()">{{ deleteOtpId() ? 'Gửi lại mã xác nhận' : 'Gửi mã xác nhận' }}</button>
+              @if (deleteOtpId()) {
+                <input [(ngModel)]="deleteCode" name="deleteCode" placeholder="Mã xác nhận (6 chữ số)" aria-label="Mã xác nhận" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required />
+              }
+            }
+            <div class="modal-buttons">
+              <button class="outline-button" type="button" (click)="cancelDelete()">Hủy</button>
+              <button class="danger-button" type="submit" [disabled]="deletingAccount() || (!profile.hasPassword && !deleteOtpId())">{{ deletingAccount() ? 'Đang xoá...' : 'Xác nhận xoá' }}</button>
+            </div>
+          </form>
+        </div>
+      }
+    </section>
+  }
+</section>

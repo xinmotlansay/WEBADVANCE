@@ -1,0 +1,7 @@
+:host {
+  display: block;
+  padding-top: var(--header-offset);
+}
+.support-page {
+  padding-top: var(--space-lg);
+}

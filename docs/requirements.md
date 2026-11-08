@@ -28,8 +28,9 @@ Tài liệu gồm hai phần: **Phần A – User Functional Requirements** và 
 | Hoàn tiền | Xử lý trong 3–7 ngày làm việc |
 | Phiên đăng nhập Admin | Hết hạn sau 30 phút không thao tác |
 | Khuyến mãi | Mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi tại cùng một thời điểm (không tính voucher) |
-| Thông báo cho khách | Không có thông báo hay email giao dịch gửi cho khách (chỉ gửi OTP). Khách theo dõi trạng thái trực tiếp trên giao diện. Thông báo trong ứng dụng chỉ dành cho Admin |
-| Hóa đơn | Chỉ hóa đơn điện tử, hệ thống tự phát hành sau khi đơn giao thành công; không xuất hóa đơn thủ công |
+| Thông báo cho khách | Không có thông báo hay email giao dịch gửi cho khách (chỉ gửi OTP). Ngoại lệ duy nhất: email hóa đơn điện tử khi khách tick chọn nhận qua email lúc đặt hàng (FR-45). Khách theo dõi trạng thái trực tiếp trên giao diện. Thông báo trong ứng dụng chỉ dành cho Admin |
+| Hóa đơn | Chỉ hóa đơn điện tử, hệ thống tự phát hành sau khi đơn giao thành công cho mọi đơn; không xuất hóa đơn thủ công. Thông tin người mua (không lấy hóa đơn, cá nhân, công ty) do khách chọn lúc đặt hàng (FR-45) |
+| Ngày giao dự kiến | Ngày tạo đơn + số ngày chuẩn bị theo cấp vận chuyển cao nhất trong đơn: cấp 1–2 là 3 ngày, cấp 3–4 là 5 ngày, chỉ tính ngày làm việc Thứ 2–Thứ 7 |
 | Mã SKU | Định dạng `AAA.PPP.VV`, ví dụ 100.001.01. AAA là dãy cấp phát (3 chữ số, Product Admin chọn khi tạo sản phẩm), PPP là số thứ tự sản phẩm trong dãy (001–999, hệ thống tự cấp), VV là số thứ tự biến thể của sản phẩm (01–99, hệ thống tự cấp). Mã không đổi sau khi tạo |
 
 ### 1.2. Cấp độ vận chuyển
@@ -43,7 +44,9 @@ Mỗi biến thể sản phẩm được Product Admin gán một cấp độ. P
 | 3 - Lớn (cồng kềnh) | Cạnh dài nhất ≤ 200 cm và ≤ 80 kg, hoặc sản phẩm nhiều kiện | 250.000đ | Đội xe CaraVeso |
 | 4 - Rất lớn (cồng kềnh) | Cạnh dài nhất > 200 cm hoặc > 80 kg | 450.000đ | Đội xe CaraVeso |
 
-Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến thể do Product Admin nhập, tách biệt với phí vận chuyển.
+Đơn có ít nhất một dòng cấp 3–4 thì cả đơn do đội xe CaraVeso giao (một đơn một lần giao).
+
+Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến thể do Product Admin nhập, tách biệt với phí vận chuyển, tính theo số lượng (phí × số lượng). Chỉ biến thể cấp 3–4 được có dịch vụ lắp đặt, vì đội xe CaraVeso lắp trong cùng chuyến giao.
 
 ### 1.3. Trạng thái đơn hàng
 
@@ -115,8 +118,8 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 
 | Mã | Tên chức năng | Mô tả |
 | :---: | :---- | :---- |
-| FR-28 | Tùy chọn sản phẩm trước khi thêm vào giỏ | Chọn số lượng, màu sắc, chất liệu, kích thước (biến thể) |
-| FR-29 | Xem giỏ hàng | Xem lại sản phẩm, chỉnh số lượng và tùy chọn biến thể, chọn những sản phẩm muốn thanh toán, xem phí vận chuyển và phí lắp đặt tạm tính. Giỏ hàng không giữ hàng: sản phẩm hết hàng hoặc đổi giá khi đang nằm trong giỏ thì hệ thống hiển thị thay đổi và khách vẫn chỉnh sửa hoặc xóa bình thường |
+| FR-28 | Tùy chọn sản phẩm trước khi thêm vào giỏ | Chọn số lượng, màu sắc, chất liệu, kích thước (biến thể). Không thêm được biến thể hết hàng; số lượng trong giỏ (cộng dồn) không được vượt tồn kho hiện tại |
+| FR-29 | Xem giỏ hàng | Xem lại sản phẩm, chỉnh số lượng và tùy chọn biến thể, chọn những sản phẩm muốn thanh toán, xem phí vận chuyển và phí lắp đặt tạm tính. Tăng số lượng không được vượt tồn kho. Giỏ hàng không giữ hàng: sản phẩm hết hàng, tồn kho giảm dưới số lượng trong giỏ hoặc đổi giá khi đang nằm trong giỏ thì hệ thống hiển thị thay đổi, không cho chọn dòng đó để thanh toán đến khi sửa, và khách vẫn chỉnh sửa hoặc xóa bình thường. Đơn tạo từ giỏ bị hủy khi đang chờ thanh toán thì sản phẩm được trả lại giỏ |
 | FR-30 | Áp dụng voucher tại giỏ hàng | Nhập mã hoặc chọn voucher từ ví để xem tổng giá trị đơn trước khi thanh toán. Mỗi đơn dùng tối đa 1 voucher; voucher cộng được với khuyến mãi tùy cờ của voucher. Điều kiện: giá trị đơn tối thiểu (tính sau khuyến mãi), phạm vi sản phẩm hoặc danh mục, nhóm khách (khách mới, sinh nhật trong tháng, voucher tặng riêng), hạn dùng và số lượt. Khi không áp dụng được, hiển thị lý do |
 
 ## Mua hàng
@@ -127,8 +130,9 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 | FR-32 | Mua nhanh | Chọn sản phẩm (và biến thể) rồi đi thẳng tới trang thanh toán mà không qua giỏ; vẫn chỉnh được biến thể, số lượng, voucher tại trang đó. Không ảnh hưởng giỏ hàng hiện có |
 | FR-33 | Chọn thông tin giao hàng | Chọn địa chỉ có sẵn hoặc thêm địa chỉ mới (nếu chưa có hoặc muốn đổi) |
 | FR-34 | Tùy chỉnh đơn tại trang thanh toán | Chỉnh số lượng, biến thể (màu, chất liệu, kích thước), dịch vụ lắp đặt và voucher ngay tại trang thanh toán, không phải quay lại trang trước. Mọi thay đổi tính lại tổng tiền, phí vận chuyển, phí lắp đặt và tiền cọc. Chỉnh ở giỏ và ở thanh toán dùng chung một dữ liệu; với Mua nhanh thì chỉnh trên đơn tạm |
-| FR-35 | Dịch vụ lắp đặt | Một số sản phẩm đặc thù có dịch vụ lắp đặt (bắt buộc hoặc tùy chọn, do Product Admin quy định), do đội vận tải của CaraVeso thực hiện. Phí lắp đặt cố định theo sản phẩm, hiển thị rõ trước khi đặt |
-| FR-36 | Ghi chú, ngày giao dự kiến và hẹn lịch giao | Ghi chú của đơn chỉ dùng để phục vụ giao hàng. Hệ thống hiển thị ngày giao dự kiến. Khách có thể hẹn lịch giao: chọn ngày và khung giờ (sáng 8–12, chiều 13–17); đổi lịch tối đa 2 lần, trước giờ giao ít nhất 24 giờ. Ngày hẹn tối đa 7 ngày sau ngày dự kiến. Mốc tính bù trễ là ngày dự kiến gốc, hoặc ngày hẹn cuối cùng nếu khách đã hẹn |
+| FR-35 | Dịch vụ lắp đặt | Một số sản phẩm đặc thù có dịch vụ lắp đặt (bắt buộc hoặc tùy chọn, do Product Admin quy định), do đội vận tải của CaraVeso thực hiện cùng ngày giao, chỉ áp dụng cho sản phẩm cấp vận chuyển 3–4. Phí lắp đặt cố định theo sản phẩm, tính theo số lượng, hiển thị rõ trước khi đặt; voucher không giảm phí lắp đặt. Hủy trước khi giao được hoàn phí lắp đặt; trả hàng do đổi ý sau khi đã lắp không hoàn phí lắp đặt |
+| FR-36 | Ghi chú, ngày giao dự kiến và hẹn lịch giao | Ghi chú của đơn chỉ dùng để phục vụ giao hàng. Hệ thống hiển thị ngày giao dự kiến (mục 1.1). Đơn có sản phẩm cấp 3–4 (đội xe CaraVeso giao) thì khách có thể hẹn lịch giao: chọn ngày và khung giờ (sáng 8–12, chiều 13–17), không chọn Chủ nhật; đổi lịch tối đa 2 lần, trước giờ giao ít nhất 24 giờ. Ngày hẹn tối đa 7 ngày sau ngày dự kiến. Mốc tính bù trễ là ngày dự kiến gốc, hoặc ngày hẹn cuối cùng nếu khách đã hẹn |
+| FR-45 | Yêu cầu xuất hóa đơn VAT | Tại trang thanh toán, khách chọn: Không cần xuất hóa đơn VAT (mặc định), Cá nhân (họ tên, mã số thuế cá nhân hoặc CCCD tùy chọn, địa chỉ) hoặc Công ty (tên công ty, mã số thuế, địa chỉ). Với Cá nhân và Công ty, khách tick chọn có hoặc không nhận hóa đơn qua email (mặc định không, tick thì bắt buộc nhập email). Hóa đơn điện tử vẫn tự phát hành khi giao thành công; khách xem và tải ở FR-10. Giá hiển thị đã bao gồm VAT |
 
 ## Thanh toán và hủy đơn
 
@@ -309,3 +313,5 @@ Ký hiệu: **Có** = toàn quyền, **Xem** = chỉ xem, **—** = không truy 
 | Mục 1.1, FR-10 | Chỉ hóa đơn điện tử, hệ thống tự phát hành sau khi giao thành công, khách xem và tải | Chốt phạm vi: không xuất hóa đơn thủ công |
 | Mục 1.1, PA-04, FR-15 | Mã SKU dạng `AAA.PPP.VV` (dãy cấp phát, số thứ tự sản phẩm, số thứ tự biến thể), hệ thống tự sinh; tìm SKU có hoặc không có dấu chấm | Thống nhất cách đánh mã sản phẩm và biến thể |
 | NF-12 (Phần A) | Bỏ yêu cầu SEO (NF-12), không dùng SSR. Mã NF-12 để trống, các mã khác giữ nguyên | Chốt phạm vi đồ án |
+| Mục 1.1, mục 1.2, FR-28, FR-29, FR-35, FR-36 | Chặn vượt tồn kho ngay ở giỏ; trả sản phẩm về giỏ khi đơn từ giỏ bị hủy lúc chờ thanh toán; lắp đặt chỉ cho hàng cấp 3–4, tính theo số lượng, không bị voucher giảm; hẹn lịch chỉ cho đơn có hàng cấp 3–4; quy tắc tính ngày giao dự kiến | Chốt khi đặc tả giỏ hàng và thanh toán (`cart-checkout-spec.md`) |
+| Mục 1.1, FR-45 (mới) | Thêm yêu cầu xuất hóa đơn VAT (không lấy, cá nhân, công ty) và tùy chọn nhận hóa đơn qua email, là ngoại lệ của luật không gửi email giao dịch | Khách doanh nghiệp cần hóa đơn đúng thông tin; người bán vẫn phải lập hóa đơn cho mọi giao dịch |

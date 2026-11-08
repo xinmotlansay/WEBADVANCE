@@ -1,0 +1,138 @@
+<app-compact-header />
+
+<section class="page">
+  <div class="container">
+    @if (order(); as o) {
+      <div class="card">
+        <h1 class="title">Thanh toán đơn {{ o.orderCode }}</h1>
+
+        @if (closed()) {
+          <div class="closed" role="alert">
+            <h2>
+              {{ o.expired ? 'Đơn đã hết hạn thanh toán và tự hủy' : 'Đơn hàng đã được hủy' }}
+            </h2>
+            <p>
+              @if (o.source === 'CART') {
+                Sản phẩm đã được trả lại giỏ hàng.
+              } @else {
+                Bạn có thể chọn lại sản phẩm để đặt hàng.
+              }
+            </p>
+            <button type="button" class="btn btn--primary" (click)="back()">
+              {{ o.source === 'CART' ? 'Quay lại giỏ hàng' : 'Về trang chủ' }}
+            </button>
+          </div>
+        } @else if (o.payment.qr) {
+          @let qr = o.payment.qr;
+          <p class="timer" [class.timer--warn]="warning()">
+            Thời gian còn lại <strong aria-live="off">{{ clock() }}</strong>
+          </p>
+
+          <div class="pay">
+            <img class="qr" [src]="qr.imageUrl" alt="Mã QR chuyển khoản" width="280" height="280" />
+            <dl class="info">
+              <div>
+                <dt>Ngân hàng</dt>
+                <dd>{{ qr.bankName }}</dd>
+              </div>
+              <div>
+                <dt>Số tài khoản</dt>
+                <dd>
+                  {{ qr.accountNumber }}
+                  <button
+                    type="button"
+                    class="copy"
+                    (click)="copy(qr.accountNumber, 'số tài khoản')"
+                  >
+                    Sao chép
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt>Chủ tài khoản</dt>
+                <dd>{{ qr.accountHolder }}</dd>
+              </div>
+              <div>
+                <dt>Số tiền</dt>
+                <dd>
+                  <strong>{{ o.payment.amountDue | vnd }}</strong>
+                  <button
+                    type="button"
+                    class="copy"
+                    (click)="copy(o.payment.amountDue.toString(), 'số tiền')"
+                  >
+                    Sao chép
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt>Nội dung</dt>
+                <dd>
+                  <strong>{{ qr.transferContent }}</strong>
+                  <button type="button" class="copy" (click)="copy(qr.transferContent, 'nội dung')">
+                    Sao chép
+                  </button>
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          @if (o.payment.collectionType === 'DEPOSIT') {
+            <p class="muted">
+              Đây là tiền cọc. Phần còn lại {{ o.totalAmount - o.payment.amountDue | vnd }} thanh
+              toán khi nhận hàng.
+            </p>
+          }
+          <p class="warn">Chuyển đúng số tiền và nội dung để đơn được xác nhận tự động.</p>
+          <p class="waiting" aria-live="polite"><span class="dot"></span> Đang chờ thanh toán...</p>
+
+          <div class="actions">
+            <button type="button" class="btn" (click)="openCancel()">Hủy đơn</button>
+            @if (config()?.store?.hotline; as hotline) {
+              <span class="muted">
+                Đã chuyển khoản nhưng chưa được xác nhận? Gọi
+                <a [href]="'tel:' + hotline">{{ hotline }}</a> kèm mã đơn.
+              </span>
+            }
+          </div>
+        }
+      </div>
+    } @else if (loadError()) {
+      <div class="card closed">
+        <h2>Không tải được đơn hàng</h2>
+        <p>{{ loadError() }}</p>
+      </div>
+    } @else {
+      <div class="card skeleton" aria-busy="true"></div>
+    }
+  </div>
+</section>
+
+<dialog #cancelDialog class="dialog" aria-labelledby="cancel-title">
+  <h2 id="cancel-title">Hủy đơn hàng?</h2>
+  <p class="muted">Chọn lý do hủy. Đơn chưa thanh toán nên không phát sinh hoàn tiền.</p>
+  <div class="reasons" role="radiogroup">
+    @for (r of reasons; track r[0]) {
+      <label>
+        <input
+          type="radio"
+          name="reason"
+          [checked]="reason() === r[0]"
+          (change)="reason.set(r[0])"
+        />
+        {{ r[1] }}
+      </label>
+    }
+  </div>
+  <div class="dialog__actions">
+    <button type="button" class="btn" (click)="closeCancel()">Giữ đơn</button>
+    <button
+      type="button"
+      class="btn btn--primary"
+      [disabled]="cancelling()"
+      (click)="confirmCancel()"
+    >
+      Hủy đơn
+    </button>
+  </div>
+</dialog>

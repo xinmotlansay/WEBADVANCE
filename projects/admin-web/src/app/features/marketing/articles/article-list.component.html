@@ -1,0 +1,125 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Bài viết &amp; thông báo</h1>
+    <a class="cv-btn cv-btn--primary" routerLink="tao-moi">Thêm bài viết</a>
+  </header>
+
+  <div class="filters">
+    <div class="cv-field">
+      <label for="f-type">Loại</label>
+      <select id="f-type" class="cv-input" [(ngModel)]="type" (ngModelChange)="reload()">
+        <option value="">Tất cả</option>
+        @for (t of TYPES; track t[0]) {
+          <option [value]="t[0]">{{ t[1] }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="f-status">Trạng thái</label>
+      <select id="f-status" class="cv-input" [(ngModel)]="status" (ngModelChange)="reload()">
+        <option value="">Tất cả</option>
+        @for (s of STATUSES; track s[0]) {
+          <option [value]="s[0]">{{ s[1] }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="f-cat">Chuyên mục</label>
+      <select id="f-cat" class="cv-input" [(ngModel)]="category" (ngModelChange)="reload()">
+        <option value="">Tất cả</option>
+        @for (c of CATEGORIES; track c) {
+          <option [value]="c">{{ c }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="f-q">Tìm theo tiêu đề</label>
+      <input id="f-q" class="cv-input" type="search" [(ngModel)]="search" (keyup.enter)="reload()" (blur)="reload()" />
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="cv-alert" role="alert">{{ error() }}</p>
+  }
+
+  @switch (load().state) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        @for (i of [1, 2, 3]; track i) {
+          <span class="cv-skeleton sk"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>{{ $any(load()).message }}</span>
+        <button type="button" class="cv-btn" (click)="reload(page)">Thử lại</button>
+      </div>
+    }
+    @default {
+      @let d = $any(load()).data;
+      @if (d.items.length === 0) {
+        <div class="cv-empty">
+          @if (hasFilter()) {
+            <p>Không tìm thấy bài viết phù hợp.</p>
+            <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
+          } @else {
+            <strong>Chưa có bài viết nào</strong>
+            <p>Bấm "Thêm bài viết" ở góc trên để viết tin tức hoặc thông báo đầu tiên.</p>
+          }
+        </div>
+      } @else {
+        <div class="cv-table-wrap">
+          <table class="cv-table">
+            <thead>
+              <tr>
+                <th scope="col">Ảnh bìa</th>
+                <th scope="col">Mã / Tiêu đề</th>
+                <th scope="col">Loại</th>
+                <th scope="col">Chuyên mục</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Ngày đăng</th>
+                <th scope="col" class="num">Lượt xem</th>
+                <th scope="col">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of d.items; track a.id) {
+                <tr>
+                  <td>
+                    @if (a.coverUrl) {
+                      <img class="thumb" [src]="a.coverUrl" alt="" />
+                    }
+                  </td>
+                  <td>
+                    <strong>{{ a.title }}</strong>
+                    <div class="cv-muted">{{ a.code }}@if (a.pinned) { · Ghim }</div>
+                  </td>
+                  <td>{{ TYPE_LABEL[a.type] }}</td>
+                  <td>{{ a.category ?? '—' }}</td>
+                  <td><span class="cv-badge" [class]="STATUS_BADGE[a.status]">{{ STATUS_LABEL[a.status] }}</span></td>
+                  <td>{{ dateTime(a.publishAt) }}</td>
+                  <td class="num">{{ a.viewCount }}</td>
+                  <td class="actions">
+                    <a class="cv-btn" [routerLink]="[a.id, 'sua']">Sửa</a>
+                    @if (a.status !== 'DRAFT') {
+                      <button type="button" class="cv-btn" (click)="toggleHidden(a)">
+                        {{ a.status === 'HIDDEN' ? 'Hiển thị lại' : 'Ẩn' }}
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <nav class="cv-pager" aria-label="Phân trang">
+          <span class="cv-muted">{{ d.total }} bài</span>
+          <button type="button" class="cv-btn" [disabled]="page <= 1" (click)="reload(page - 1)">Trước</button>
+          <span>Trang {{ page }} / {{ pages(d) }}</span>
+          <button type="button" class="cv-btn" [disabled]="page >= pages(d)" (click)="reload(page + 1)">Sau</button>
+        </nav>
+      }
+    }
+  }
+</main>

@@ -1,0 +1,215 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Banner</h1>
+    <a class="cv-btn cv-btn--primary" routerLink="tao-moi" [queryParams]="{ vi_tri: position() }">Thêm banner</a>
+  </header>
+
+  @if (POSITIONS.length > 1) {
+    <div class="cv-tabs" role="tablist" aria-label="Vị trí banner">
+      @for (p of POSITIONS; track p) {
+        <button type="button" role="tab" [attr.aria-selected]="position() === p" (click)="setPosition(p)">
+          {{ POSITION_LABEL[p] }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="filters">
+    <div class="cv-field">
+      <label for="f-status">Trạng thái</label>
+      <select id="f-status" class="cv-input" [ngModel]="status()" (ngModelChange)="status.set($event); reload()">
+        <option value="">Tất cả</option>
+        @for (s of STATUSES; track s[0]) {
+          <option [value]="s[0]">{{ s[1] }}</option>
+        }
+      </select>
+    </div>
+    <div class="cv-field">
+      <label for="f-q">Tìm theo tiêu đề</label>
+      <input id="f-q" class="cv-input" type="search" [(ngModel)]="search" (keyup.enter)="reload()" (blur)="reload()" />
+    </div>
+    <p class="cv-muted hint-size">Kích thước khuyến nghị: {{ RECOMMENDED[position()] }} px</p>
+  </div>
+
+  @if (message()) {
+    <p class="cv-card notice" role="status">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="cv-alert" role="alert">{{ error() }}</p>
+  }
+
+  @switch (load().state) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        <div class="grid">
+          @for (i of [1, 2, 3]; track i) {
+            <span class="cv-skeleton sk"></span>
+          }
+        </div>
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>{{ $any(load()).message }}</span>
+        <button type="button" class="cv-btn" (click)="reload()">Thử lại</button>
+      </div>
+    }
+    @default {
+      @if (rows().length === 0) {
+        <div class="cv-empty">
+          @if (hasFilter()) {
+            <p>Không tìm thấy banner phù hợp.</p>
+            <button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button>
+          } @else {
+            <strong>Chưa có banner nào ở vị trí này</strong>
+            <p>Bấm "Thêm banner" ở góc trên, vị trí đang chọn sẽ được điền sẵn.</p>
+          }
+        </div>
+      } @else {
+        <ul class="grid" aria-label="Danh sách banner">
+          @for (r of rows(); track r.id; let i = $index) {
+            <li
+              class="bn"
+              [class.dragging]="dragId() === r.id"
+              [class.selected]="selected().has(r.id)"
+              [attr.draggable]="canReorder()"
+              (dragstart)="dragId.set(r.id)"
+              (dragover)="$event.preventDefault()"
+              (drop)="drop(r.id)"
+              (dragend)="dragId.set('')"
+            >
+              <div class="bn__media">
+                @if (broken().has(r.id)) {
+                  <span class="bn__broken">Ảnh lỗi</span>
+                } @else {
+                  <img [src]="r.imageUrl" [alt]="r.title" (error)="markBroken(r.id)" loading="lazy" />
+                }
+                <label class="bn__check">
+                  <input type="checkbox" [checked]="selected().has(r.id)" (change)="toggle(r.id)" [attr.aria-label]="'Chọn banner ' + r.code" />
+                </label>
+                <span class="bn__order cv-num" title="Thứ tự hiển thị">#{{ r.displayOrder }}</span>
+                <span class="bn__status cv-badge" [class]="'bn__status cv-badge ' + STATUS_BADGE[r.status]">{{ STATUS_LABEL[r.status] }}</span>
+                @if (r.mobileImageUrl) {
+                  <img class="bn__mob" [src]="r.mobileImageUrl" alt="Bản mobile" loading="lazy" />
+                }
+              </div>
+
+              <div class="bn__body">
+                <h2 class="bn__title" [title]="r.title">{{ r.title }}</h2>
+                <p class="bn__code">{{ r.code }}</p>
+                <dl class="bn__meta">
+                  <div>
+                    <dt>Hiển thị</dt>
+                    <dd>{{ dateTime(r.startDate) }} → {{ r.endDate ? dateTime(r.endDate) : 'không giới hạn' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Liên kết</dt>
+                    <dd class="bn__link" [title]="r.linkUrl || ''">
+                      {{ r.linkUrl || '—' }}
+                      @if (r.flags.includes('BROKEN_LINK')) {
+                        <span class="cv-badge cv-badge--danger">Liên kết lỗi</span>
+                      }
+                    </dd>
+                  </div>
+                </dl>
+                <div class="bn__stats">
+                  <span><b class="cv-num">{{ r.impressions.toLocaleString('vi-VN') }}</b> lượt hiển thị</span>
+                  <span><b class="cv-num">{{ pct(r.ctr) }}</b> CTR</span>
+                </div>
+              </div>
+
+              <div class="bn__foot">
+                @if (canReorder()) {
+                  <div class="bn__move">
+                    <button type="button" class="cv-btn cv-btn--icon cv-btn--ghost" [attr.aria-label]="'Đưa ' + r.code + ' lên trước'" title="Lên trước" [disabled]="i === 0" (click)="move(i, i - 1)">◀</button>
+                    <button type="button" class="cv-btn cv-btn--icon cv-btn--ghost" [attr.aria-label]="'Đưa ' + r.code + ' ra sau'" title="Ra sau" [disabled]="i === rows().length - 1" (click)="move(i, i + 1)">▶</button>
+                  </div>
+                }
+                <button type="button" class="cv-btn" (click)="open('preview', [r], $event)">Xem trước</button>
+                <a class="cv-btn cv-btn--primary" [routerLink]="[r.id, 'sua']">Sửa</a>
+                <details class="menu">
+                  <summary class="cv-btn cv-btn--icon" [attr.aria-label]="'Thao tác khác cho ' + r.code" title="Thao tác khác">⋯</summary>
+                  <div class="menu__list" role="menu" (click)="closeMenus()">
+                    @if (r.status === 'VISIBLE' || r.status === 'SCHEDULED') {
+                      <button type="button" role="menuitem" (click)="toggleHidden(r)">Tạm ẩn</button>
+                    }
+                    @if (r.status === 'HIDDEN') {
+                      <button type="button" role="menuitem" (click)="toggleHidden(r)">Hiển thị lại</button>
+                    }
+                    @if (POSITIONS.length > 1) {
+                      <button type="button" role="menuitem" (click)="open('duplicate', [r], $event)">Nhân bản</button>
+                    }
+                    <button type="button" role="menuitem" class="danger" (click)="open('delete', [r], $event)">Xóa</button>
+                  </div>
+                </details>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (canReorder()) {
+          <p class="cv-hint">Kéo một thẻ thả lên thẻ khác hoặc dùng nút ◀ ▶ để đổi thứ tự. Thứ tự lưu ngay.</p>
+        }
+      }
+    }
+  }
+</main>
+
+@if (selected().size > 0) {
+  <div class="cv-bulk-bar" role="toolbar" aria-label="Thao tác hàng loạt">
+    <button type="button" class="cv-btn cv-btn--icon cv-btn--ghost" aria-label="Bỏ chọn" (click)="selected.set(emptySet)">✕</button>
+    <span class="cv-bulk-bar__count">Đã chọn: {{ selected().size }}</span>
+    <button type="button" class="cv-btn cv-btn--accent" (click)="hideSelected()">Tạm ẩn</button>
+    <button type="button" class="cv-btn" (click)="open('delete', selectedRows(), $event)">Xóa</button>
+  </div>
+}
+
+<dialog #dialog class="cv-dialog wide" aria-labelledby="bn-title">
+  <div class="dlg">
+    @switch (dialogMode()) {
+      @case ('delete') {
+        <h2 id="bn-title">Xóa {{ dialogRows().length }} banner</h2>
+        <p>Thao tác này không thể hoàn tác. Số liệu hiệu quả đã ghi nhận vẫn được giữ trong thống kê. Banner đang hiển thị phải tạm ẩn trước.</p>
+        @if (dialogRows().length > 20) {
+          <p class="cv-alert" role="alert">Chỉ có thể thao tác tối đa 20 banner mỗi lần.</p>
+        }
+      }
+      @case ('duplicate') {
+        <h2 id="bn-title">Nhân bản sang vị trí khác</h2>
+        <div class="cv-field">
+          <label for="dup-pos">Vị trí mới</label>
+          <select id="dup-pos" class="cv-input" [(ngModel)]="dupTarget">
+            @for (p of POSITIONS; track p) {
+              @if (p !== position()) {
+                <option [value]="p">{{ POSITION_LABEL[p] }}</option>
+              }
+            }
+          </select>
+          <span class="cv-hint">Tạo bản nháp; kiểm tra kích thước ảnh và các trường riêng của vị trí mới trước khi đăng.</span>
+        </div>
+      }
+      @case ('preview') {
+        <h2 id="bn-title">Xem trước {{ dialogRows()[0]?.code }}</h2>
+        <div class="cv-segmented" role="group" aria-label="Thiết bị">
+          <button type="button" [attr.aria-pressed]="!previewMobile()" (click)="previewMobile.set(false)">Desktop</button>
+          <button type="button" [attr.aria-pressed]="previewMobile()" (click)="previewMobile.set(true)">Mobile</button>
+        </div>
+        @if (dialogRows()[0]; as b) {
+          <div class="frame" [class.frame--mobile]="previewMobile()">
+            <img [src]="previewMobile() ? (b.mobileImageUrl || b.imageUrl) : b.imageUrl" [alt]="b.title" />
+          </div>
+        }
+      }
+    }
+    @if (dialogError()) {
+      <p class="cv-alert" role="alert">{{ dialogError() }}</p>
+    }
+    <div class="foot">
+      <button type="button" class="cv-btn" (click)="close()">{{ dialogMode() === 'preview' ? 'Đóng' : 'Hủy' }}</button>
+      @if (dialogMode() !== 'preview') {
+        <button type="button" class="cv-btn" [class.cv-btn--danger]="dialogMode() === 'delete'" [class.cv-btn--primary]="dialogMode() === 'duplicate'" (click)="confirm()">
+          {{ dialogMode() === 'delete' ? 'Xóa banner' : 'Nhân bản' }}
+        </button>
+      }
+    </div>
+  </div>
+</dialog>

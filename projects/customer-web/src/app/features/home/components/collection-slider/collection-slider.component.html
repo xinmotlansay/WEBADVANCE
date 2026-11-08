@@ -3,17 +3,20 @@
 
   @if (current(); as collection) {
     <div class="stage">
-      <a class="stage__link" [routerLink]="['/collections', collection.slug]">
+      <div class="stage__link">
         @for (item of collections(); track item.id; let i = $index) {
-          <img
+          <div
+            class="slide"
             [class.active]="i === index()"
-            [src]="item.thumbnail"
-            [alt]="item.name"
-            loading="lazy"
             [attr.aria-hidden]="i !== index()"
-          />
+            [attr.inert]="i === index() ? null : ''"
+          >
+            @if (slideImage(item); as image) {
+              <app-hotspot-image [image]="image" [ratio]="ratio()" [(active)]="activeHotspot" />
+            }
+          </div>
         }
-      </a>
+      </div>
 
       @if (collections().length > 1) {
         <button
@@ -31,8 +34,11 @@
     </div>
 
     <div class="caption">
-      <h3>{{ collection.name }}</h3>
-      <p>{{ collection.slogan }}</p>
+      <div class="caption__text">
+        <h3>{{ collection.name }}</h3>
+        <p>{{ collection.slogan }}</p>
+      </div>
+      <a class="explore" [routerLink]="['/collections', collection.slug]">Khám phá thêm</a>
     </div>
   }
 </section>

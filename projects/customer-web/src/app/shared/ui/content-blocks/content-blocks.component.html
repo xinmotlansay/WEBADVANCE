@@ -1,0 +1,27 @@
+@for (block of blocks(); track $index) {
+  @switch (block.type) {
+    @case ('COLLECTIONS') {
+      <app-image-tiles [title]="block.title || 'Collection'" [items]="tiles(block.items)" />
+    }
+
+    @case ('PROMOTION') {
+      <section class="cb cb-promo">
+        <h2 class="cb__title">{{ block.title || 'Ưu đãi đang diễn ra' }}</h2>
+        @if (block.text) {
+          <p>{{ block.text }}</p>
+        }
+        <ul class="cb-promo__list">
+          @for (item of block.items; track item.id) {
+            <li class="cb-promo__item">
+              <span class="cb-promo__name">{{ item.name }}</span>
+              @if (item.endDate) {
+                <app-countdown [endDate]="item.endDate" />
+              }
+            </li>
+          }
+        </ul>
+        <a class="cb__cta" [cvLink]="block.ctaUrl || '/promotions'">{{ block.ctaLabel || 'Xem ưu đãi' }}</a>
+      </section>
+    }
+  }
+}

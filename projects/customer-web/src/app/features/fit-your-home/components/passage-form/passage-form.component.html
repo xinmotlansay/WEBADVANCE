@@ -1,0 +1,144 @@
+<form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset class="types field--full">
+    <legend>Loại điểm lối đi</legend>
+    <div class="types__grid" role="radiogroup" aria-label="Loại điểm lối đi">
+      @for (option of typeOptions; track option[0]) {
+        <button
+          type="button"
+          role="radio"
+          class="type"
+          [class.type--active]="type() === option[0]"
+          [attr.aria-checked]="type() === option[0]"
+          (click)="chooseType(option[0])"
+        >
+          <app-icon [name]="typeIcons[option[0]]" [size]="22" />
+          <span>{{ option[1] }}</span>
+        </button>
+      }
+    </div>
+  </fieldset>
+
+  <div class="guide field--full">
+    <svg class="guide__svg" viewBox="0 0 120 100" aria-hidden="true">
+      <rect class="guide__shape" x="36" y="6" width="58" height="72" rx="2" />
+      <path class="guide__dim" d="M36 88h58M36 84v8M94 84v8" />
+      <path class="guide__dim" d="M24 6v72M20 6h8M20 78h8" />
+      <text x="65" y="99" text-anchor="middle">rộng</text>
+      <text x="12" y="42" text-anchor="middle" transform="rotate(-90 12 42)">cao</text>
+    </svg>
+    <p class="guide__text">{{ hint() }}</p>
+  </div>
+
+  <div class="presets field--full">
+    <span class="presets__label">Số phổ biến</span>
+    @for (preset of presets(); track preset.label) {
+      <button type="button" class="preset" (click)="applyPreset(preset)">{{ preset.label }}</button>
+    }
+  </div>
+
+  <label class="field">
+    <span>{{ openingLabels()[0] }}</span>
+    <span class="input">
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="width"
+        [attr.aria-invalid]="invalid('width')"
+      />
+      <span class="input__unit" aria-hidden="true">cm</span>
+    </span>
+    @if (invalid('width')) {
+      <small class="error">Nhập từ 20 đến 1000 cm</small>
+    }
+  </label>
+  <label class="field">
+    <span>{{ openingLabels()[1] }}</span>
+    <span class="input">
+      <input
+        type="number"
+        inputmode="numeric"
+        formControlName="height"
+        [attr.aria-invalid]="invalid('height')"
+      />
+      <span class="input__unit" aria-hidden="true">cm</span>
+    </span>
+    @if (invalid('height')) {
+      <small class="error">Nhập từ 20 đến 1000 cm</small>
+    }
+  </label>
+
+  @if (isElevator()) {
+    <label class="field">
+      <span>Cabin rộng</span>
+      <span class="input">
+        <input
+          type="number"
+          inputmode="numeric"
+          formControlName="cabinWidth"
+          [attr.aria-invalid]="invalid('cabinWidth')"
+        />
+        <span class="input__unit" aria-hidden="true">cm</span>
+      </span>
+      @if (invalid('cabinWidth')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Cabin sâu</span>
+      <span class="input">
+        <input
+          type="number"
+          inputmode="numeric"
+          formControlName="cabinLength"
+          [attr.aria-invalid]="invalid('cabinLength')"
+        />
+        <span class="input__unit" aria-hidden="true">cm</span>
+      </span>
+      @if (invalid('cabinLength')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Cabin cao</span>
+      <span class="input">
+        <input
+          type="number"
+          inputmode="numeric"
+          formControlName="cabinHeight"
+          [attr.aria-invalid]="invalid('cabinHeight')"
+        />
+        <span class="input__unit" aria-hidden="true">cm</span>
+      </span>
+      @if (invalid('cabinHeight')) {
+        <small class="error">Nhập từ 20 đến 1000 cm</small>
+      }
+    </label>
+    <label class="field">
+      <span>Tải trọng (không bắt buộc)</span>
+      <span class="input">
+        <input
+          type="number"
+          inputmode="numeric"
+          formControlName="loadCapacityKg"
+          [attr.aria-invalid]="invalid('loadCapacityKg')"
+        />
+        <span class="input__unit" aria-hidden="true">kg</span>
+      </span>
+      @if (invalid('loadCapacityKg')) {
+        <small class="error">Nhập từ 1 đến 10000 kg</small>
+      }
+    </label>
+  }
+
+  <label class="field field--full">
+    <span>Tên điểm (không bắt buộc)</span>
+    <input type="text" formControlName="label" placeholder="Ví dụ: Cửa căn hộ" maxlength="50" />
+  </label>
+
+  <div class="actions">
+    <button type="submit" class="btn btn--primary">
+      {{ passage() ? 'Lưu điểm' : 'Thêm điểm' }}
+    </button>
+    <button type="button" class="btn" (click)="cancel.emit()">Huỷ</button>
+  </div>
+</form>

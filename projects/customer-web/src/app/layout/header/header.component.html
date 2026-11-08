@@ -1,10 +1,31 @@
 <div class="topbar">
   <div class="container topbar__inner">
+    <!-- Thanh thông báo do Marketing soạn; tắt / hết hạn / lỗi thì để trống, topbar vẫn giữ các link. -->
     <p class="topbar__promo">
-      Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso
+      @if (announcement(); as bar) {
+        @for (item of [bar]; track item.id) {
+          <span class="topbar__item" (mouseenter)="pauseAnnouncements(true)" (mouseleave)="pauseAnnouncements(false)">
+            @if (item.linkUrl) {
+              <a [cvLink]="item.linkUrl">{{ item.text }}</a>
+            } @else {
+              {{ item.text }}
+            }
+          </span>
+        }
+      }
     </p>
-    <!-- TODO(FR-02): hiển thị tên khách khi có đăng nhập -->
-    <a class="topbar__account" routerLink="/login">Đăng nhập</a>
+    <a class="topbar__support" routerLink="/support">Đổi trả &amp; Bảo hành</a>
+    <div class="topbar__account">
+      @if (auth.user(); as user) {
+        <a routerLink="/account">{{ user.fullName }}</a>
+        <span aria-hidden="true">/</span>
+        <button type="button" class="topbar__logout" (click)="auth.logout()">Đăng xuất</button>
+      } @else {
+        <a routerLink="/auth/login">Đăng nhập</a>
+        <span aria-hidden="true">/</span>
+        <a routerLink="/auth/register">Đăng ký</a>
+      }
+    </div>
   </div>
 </div>
 
@@ -22,10 +43,11 @@
 
     <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Danh mục chính">
       <div class="nav__item nav__item--dropdown">
-        <button type="button" class="nav__link">
+        <a class="nav__link" routerLink="/products" (click)="closeMenu()">
           Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
-        </button>
+        </a>
         <ul class="dropdown">
+          <li><a routerLink="/products" (click)="closeMenu()">Tất cả sản phẩm</a></li>
           @for (category of productCategories(); track category.id) {
             <li>
               <a
@@ -61,6 +83,9 @@
       <a class="nav__link nav__link--sale" routerLink="/promotions" (click)="closeMenu()">
         Khuyến mãi
       </a>
+      <a class="nav__link nav__link--support" routerLink="/support" (click)="closeMenu()"
+        >Đổi trả &amp; Bảo hành</a
+      >
     </nav>
 
     <a class="logo" routerLink="/" aria-label="CaraVeso - Trang chủ">CaraVeso</a>
@@ -71,30 +96,68 @@
         #searchForm
         class="search"
         role="search"
-        (submit)="$event.preventDefault()"
+        (submit)="$event.preventDefault(); submitSearch()"
         (focusout)="onSearchFocusOut($event, searchForm)"
         (keydown.escape)="closeSearch()"
       >
         <app-icon name="lucide:search" [size]="20" />
         <input
           #searchInput
+          [formControl]="searchControl"
+          maxlength="120"
           type="search"
           placeholder="Nhập sản phẩm, chất liệu, phong cách,..."
           aria-label="Tìm kiếm"
           (focus)="search.openSearch()"
         />
         @if (search.open()) {
+          <div class="search__suggestions" aria-label="Gợi ý tìm kiếm">
+            @if (!searchControl.value && searchData.history().length) {
+              <p>
+                Tìm kiếm gần đây
+                <button type="button" (click)="searchData.clear()">Xóa lịch sử</button>
+              </p>
+            }
+            @for (item of searchControl.value ? suggestions() : searchData.history(); track item) {
+              <button type="button" (click)="submitSearch(item)">{{ item }}</button>
+            }
+            @if (searchControl.value && productResults().items.length) {
+              <div class="search__items">
+                <p class="search__items-head">
+                  Sản phẩm ({{ productResults().total }} kết quả)
+                  <button type="button" (click)="submitSearch()">Xem tất cả</button>
+                </p>
+                <div class="search__items-grid">
+                  @for (product of productResults().items; track product.id) {
+                    <a [routerLink]="['/products', product.slug]" (click)="closeSearch()">
+                      <img [src]="product.thumbnail" [alt]="product.name" loading="lazy" />
+                      <span>
+                        <strong>{{ product.name }}</strong>
+                        <small>{{ product.priceFrom | vnd }}</small>
+                      </span>
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+        <button
+          type="button"
+          class="search__action"
+          aria-label="Tìm bằng hình ảnh"
+          (click)="openImageSearch()"
+        >
+          <app-icon name="lucide:camera" [size]="20" />
+        </button>
+        @if (search.open()) {
           <button
             type="button"
             class="search__action"
-            aria-label="Đóng tìm kiếm"
-            (click)="closeSearch()"
+            [attr.aria-label]="searchControl.value ? 'Xóa từ khóa' : 'Đóng tìm kiếm'"
+            (click)="clearOrClose()"
           >
             <app-icon name="lucide:x" [size]="20" />
-          </button>
-        } @else {
-          <button type="button" class="search__action" aria-label="Tìm bằng hình ảnh">
-            <app-icon name="lucide:camera" [size]="20" />
           </button>
         }
       </form>
@@ -106,10 +169,15 @@
         <a class="icon-btn" routerLink="/account" aria-label="Tài khoản">
           <app-icon name="lucide:user" [size]="22" />
         </a>
-        <a class="icon-btn" routerLink="/cart" aria-label="Giỏ hàng">
+        <a class="icon-btn cart-link" routerLink="/cart" [attr.aria-label]="cart.label()">
           <app-icon name="lucide:shopping-cart" [size]="22" />
+          @if (cart.count() > 0) {
+            <span class="cart-badge" aria-hidden="true">{{ cart.badge() }}</span>
+          }
         </a>
       </div>
     </div>
   </div>
 </header>
+
+<app-gift-voucher-strip />

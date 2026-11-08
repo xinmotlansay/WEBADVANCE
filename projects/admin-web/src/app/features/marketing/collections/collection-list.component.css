@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 56px;
+  margin-bottom: 8px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.filters .cv-field {
+  margin-bottom: 0;
+}
+.thumb {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--cv-radius);
+}
+.row-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.row {
+  cursor: pointer;
+}
+.row:hover {
+  background: var(--cv-surface-alt);
+}
+.row--off .thumb {
+  opacity: 0.5;
+}
+.row--drag {
+  opacity: 0.4;
+}
+.row--over {
+  outline: 2px solid var(--cv-navy);
+  outline-offset: -2px;
+}
+.row__link {
+  color: inherit;
+  text-decoration: none;
+}
+.row__link:hover {
+  text-decoration: underline;
+}
+.grip {
+  color: var(--cv-muted, #888);
+  letter-spacing: -2px;
+  cursor: grab;
+  user-select: none;
+}

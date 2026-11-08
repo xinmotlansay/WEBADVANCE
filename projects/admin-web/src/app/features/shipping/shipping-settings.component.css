@@ -1,0 +1,64 @@
+:host {
+  display: contents;
+}
+
+.settings {
+  width: 680px;
+}
+
+.settings form {
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.head p {
+  margin: 4px 0 0;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item + .item {
+  padding-top: 16px;
+  border-top: 1px solid var(--cv-border);
+}
+
+.item h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cv-border);
+}
+
+.foot .cv-hint,
+.foot .ok {
+  margin-right: auto;
+}
+
+.ok {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cv-up);
+}
+
+.cv-skeleton.tall {
+  height: 120px;
+}

@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.solid {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.solid rect {
+  fill: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+.dim {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 1;
+}
+.text {
+  fill: var(--color-black);
+  font-size: 11px;
+}

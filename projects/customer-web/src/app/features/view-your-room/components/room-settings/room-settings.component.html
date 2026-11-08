@@ -1,0 +1,130 @@
+<section class="settings" aria-labelledby="settings-title">
+  <h2 id="settings-title" class="settings__title">Tuỳ chỉnh phòng</h2>
+
+  <p class="settings__label" id="room-type-label">Loại phòng</p>
+  <select
+    class="select"
+    aria-labelledby="room-type-label"
+    [value]="roomTypeId() ?? ''"
+    (change)="setRoomType($event)"
+  >
+    @for (type of roomTypes(); track type.id) {
+      <option [value]="type.id" [selected]="type.id === roomTypeId()">{{ type.name }}</option>
+    }
+  </select>
+
+  <p class="settings__label">Kích thước</p>
+  <div class="presets">
+    @for (preset of presets(); track preset.label) {
+      <button
+        type="button"
+        class="preset"
+        [class.preset--active]="selectedPreset() === preset.label"
+        [attr.aria-pressed]="selectedPreset() === preset.label"
+        (click)="selectPreset(preset)"
+      >
+        <span>{{ preset.label }}</span>
+        <span class="preset__detail"
+          >{{ formatMeters(preset.length) }}m x {{ formatMeters(preset.width) }}m</span
+        >
+      </button>
+    }
+    <button
+      type="button"
+      class="preset"
+      [class.preset--active]="selectedPreset() === custom"
+      [attr.aria-pressed]="selectedPreset() === custom"
+      (click)="selectCustom()"
+    >
+      <span>Tuỳ chỉnh</span>
+      <span class="preset__detail">Nhập theo ý</span>
+    </button>
+  </div>
+
+  <div class="sliders">
+    <label class="slider">
+      <span class="slider__head">
+        <span>Chiều dài</span>
+        <span class="slider__value">{{ room().length }} cm</span>
+      </span>
+      <input
+        type="range"
+        [min]="limits.length.min"
+        [max]="limits.length.max"
+        [step]="limits.length.step"
+        [value]="room().length"
+        [style.--fill]="rangeFill('length')"
+        (input)="updateDimension('length', $event)"
+      />
+    </label>
+
+    <label class="slider">
+      <span class="slider__head">
+        <span>Chiều rộng</span>
+        <span class="slider__value">{{ room().width }} cm</span>
+      </span>
+      <input
+        type="range"
+        [min]="limits.width.min"
+        [max]="limits.width.max"
+        [step]="limits.width.step"
+        [value]="room().width"
+        [style.--fill]="rangeFill('width')"
+        (input)="updateDimension('width', $event)"
+      />
+    </label>
+
+    <label class="slider">
+      <span class="slider__head">
+        <span>Chiều cao</span>
+        <span class="slider__value">{{ room().height }} cm</span>
+      </span>
+      <input
+        type="range"
+        [min]="limits.height.min"
+        [max]="limits.height.max"
+        [step]="limits.height.step"
+        [value]="room().height"
+        [style.--fill]="rangeFill('height')"
+        (input)="updateDimension('height', $event)"
+      />
+    </label>
+  </div>
+
+  <p class="settings__label">Màu tường</p>
+  <div class="swatches" role="radiogroup" aria-label="Màu tường">
+    @for (swatch of swatches; track swatch.value) {
+      <button
+        type="button"
+        role="radio"
+        class="swatch"
+        [class.swatch--active]="room().wallColor === swatch.value"
+        [attr.aria-checked]="room().wallColor === swatch.value"
+        [attr.aria-label]="swatch.label"
+        [title]="swatch.label"
+        [style.background]="swatch.hex"
+        (click)="setWallColor(swatch.value)"
+      ></button>
+    }
+    <label class="swatch swatch--custom" [class.swatch--active]="isCustomWall()" title="Màu khác">
+      <input
+        type="color"
+        aria-label="Chọn màu tường khác"
+        [value]="wallHex(room().wallColor)"
+        (input)="setCustomWallColor($event)"
+      />
+    </label>
+  </div>
+
+  <p class="settings__label" id="floor-label">Chất liệu sàn</p>
+  <select
+    class="select"
+    aria-labelledby="floor-label"
+    [value]="room().floorType"
+    (change)="setFloor($event)"
+  >
+    @for (option of floorOptions; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
+    }
+  </select>
+</section>

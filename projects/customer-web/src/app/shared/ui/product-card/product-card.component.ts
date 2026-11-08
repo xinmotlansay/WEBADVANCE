@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ProductListItem } from 'shared';
+import { VariantPickerService } from '../../../services/cart/variant-picker.service';
+import { CollectionWishlistService } from '../../../services/cart/collection-wishlist.service';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
 
@@ -14,7 +16,7 @@ import { IconComponent } from '../icons/icon.component';
 })
 export class ProductCardComponent {
   readonly product = input.required<ProductListItem>();
-  /** Dạng gọn dùng trong khối Flash Sale: nền trắng, có nhãn phần trăm giảm. */
+  /** Dạng gọn dùng trong khối Flash Sale: nền trắng, giá sale màu nhấn. */
   readonly compact = input(false);
 
   protected readonly discountPercent = computed(() => {
@@ -24,4 +26,20 @@ export class ProductCardComponent {
   });
 
   protected readonly link = computed(() => ['/products', this.product().slug]);
+
+  /** Mọi biến thể đều hết hàng: khóa nút (BR-C03). */
+  protected readonly soldOut = computed(() => this.product().stockStatus === 'OUT_OF_STOCK');
+
+  private readonly picker = inject(VariantPickerService);
+  private readonly wishlist = inject(CollectionWishlistService);
+
+  protected readonly wished = computed(() => this.wishlist.ids().includes(this.product().id));
+
+  protected toggleWish(): void {
+    this.wishlist.toggle(this.product().id);
+  }
+
+  protected openPicker(mode: 'add' | 'buy'): void {
+    this.picker.open({ mode, slug: this.product().slug });
+  }
 }

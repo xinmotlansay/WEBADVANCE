@@ -1,0 +1,53 @@
+<div class="evidence-field">
+  <span class="field-label">{{ label() }} (tối đa {{ max() }} tệp) <b class="req">*</b></span>
+  <div
+    class="dropzone"
+    [class.over]="over()"
+    [class.disabled]="busy() || urls().length >= max()"
+    (dragover)="$event.preventDefault(); over.set(true)"
+    (dragleave)="over.set(false)"
+    (drop)="$event.preventDefault(); over.set(false); pick($event.dataTransfer?.files)"
+  >
+    <svg class="drop-icon" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="m3 17 5-5 4 4" />
+      <path d="M19 3v6M16 6h6" />
+    </svg>
+    <div class="drop-text">
+      <strong>Kéo thả hình ảnh hoặc video vào đây</strong>
+      <small>Định dạng: JPG, PNG, WebP, MP4, MOV (ảnh tối đa 5 MB, video tối đa 50 MB/tệp)</small>
+    </div>
+    <label class="pick-btn" [class.disabled]="busy() || urls().length >= max()">
+      Chọn tệp
+      <input
+        #files
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+        [disabled]="busy() || urls().length >= max()"
+        (change)="pick(files.files); files.value = ''"
+      />
+    </label>
+  </div>
+  @if (busy()) {
+    <p class="note" role="status">Đang tải minh chứng…</p>
+  }
+  @if (error()) {
+    <p class="note err" role="alert">{{ error() }}</p>
+  }
+  @if (urls().length) {
+    <ul class="previews">
+      @for (url of urls(); track url) {
+        <li>
+          @if (isVideo(url)) {
+            <video [src]="url" preload="metadata"></video>
+          } @else {
+            <img [src]="url" alt="Ảnh minh chứng đã tải lên" loading="lazy" />
+          }
+          <button type="button" class="remove" aria-label="Bỏ minh chứng" (click)="remove(url)">×</button>
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -1,0 +1,183 @@
+/* Phần nền cho các màn Order Admin trong khung admin hiện tại (lấy từ base.css và layout.css của nhánh Order Admin, chỉ những gì màn hình cần) */
+
+/* Host của màn hình là hàng ngang: cột chính (.cv-page) và cột tổng quan (.cv-rail) */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+/* Reset nhẹ, độ ưu tiên bằng 0 để không đè style của component */
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(button) {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(table) {
+  border-collapse: collapse;
+  width: 100%;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(img) {
+  max-width: 100%;
+  display: block;
+}
+
+/* Chữ nền: base.css của Order Admin đặt cỡ chữ, giãn dòng và reset heading ở body; ở đây áp cho phạm vi màn đơn hàng */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) {
+  font-size: var(--cv-text-body);
+  line-height: 1.5;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h1) {
+  font-size: var(--cv-text-page);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(h2) {
+  font-size: var(--cv-text-card);
+  font-weight: 600;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+:where(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+/* .cv-page của Admin cấp cao (admin-ui.css) là flex-wrap + min-height 100vh; ở màn Order Admin nó là
+   khối dọc bình thường, nên đặt lại để hai bên không đè nhau. */
+:is(app-dashboard-screen, app-orders-screen, app-payments-screen, app-shipping-screen, app-delivery-failed-screen, app-returns-screen, app-warranty-screen, app-chat-screen, app-customers-screen, app-order-report-screen) .cv-page {
+  display: block;
+  min-height: 0;
+  background: transparent;
+}
+
+/* Tiêu đề trang không xuống dòng và không bị cắt; nếu thiếu chỗ thì thanh tìm kiếm và chuông xuống hàng */
+.cv-page-header {
+  flex-wrap: wrap;
+  row-gap: var(--cv-space-3);
+}
+.cv-page-header__title {
+  flex: 1 1 auto;
+  min-width: max-content;
+}
+.cv-page-header__title h1 {
+  white-space: nowrap;
+}
+.cv-page-header__sub {
+  margin-top: var(--cv-space-2);
+  line-height: 1.5;
+}
+
+/* Popup chi tiết: nội dung được chiếu vào qua <div popupBody|popupFooter> nên gap/flex phải đặt trên div đó */
+.cv-popup__body {
+  line-height: 1.55;
+}
+.cv-popup__footer > [popupFooter] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--cv-space-3);
+}
+.cv-popup__footer > [popupFooter] .cv-btn {
+  flex: 1 1 auto;
+}
+.cv-popup__footer {
+  padding: var(--cv-space-4) var(--cv-space-5);
+}
+.cv-kv {
+  gap: 10px var(--cv-space-4);
+  line-height: 1.5;
+}
+
+/* Tiện ích dùng chung */
+.cv-muted {
+  color: var(--cv-muted);
+}
+
+.cv-small {
+  font-size: var(--cv-text-small);
+}
+
+.cv-label {
+  font-size: var(--cv-text-label);
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--cv-navy);
+}
+
+.cv-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-right {
+  text-align: right;
+}
+
+.cv-nowrap {
+  white-space: nowrap;
+}
+
+.cv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-4);
+}
+
+.cv-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-2);
+}
+
+.cv-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-space-3);
+}
+
+.cv-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-space-4);
+}
+
+
+/* Hàng chỉ số 3 ô (Tổng quan đơn hàng: đơn mới, chờ xác nhận, đang giao) */
+@media (min-width: 768px) {
+  .cv-kpi--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ===== Khớp lại với giao diện Admin cấp cao (admin-ui.css) =====
+   layout.css và components.css nạp sau nên đè lên các class trùng tên. Ở đây đặt lại cho đúng ý của từng bên. */
+
+/* .cv-page của Admin cấp cao đã có .cv-main lo phần đệm; layout.css thêm đệm lần nữa nên nội dung bị thu hẹp. */
+.cv-page:has(> .cv-main) {
+  flex: 0 1 auto;
+  padding: 0;
+}
+
+/* .cv-kpi của Admin cấp cao là một ô trong dải .cv-kpis; components.css định nghĩa .cv-kpi là cả dải 5 cột của Order Admin. */
+.cv-kpis > .cv-kpi {
+  display: block;
+  grid-template-columns: none;
+  overflow: visible;
+  border: 0;
+  border-left: 1px solid var(--cv-border);
+  border-radius: 0;
+}
+
+.cv-kpis > .cv-kpi:first-child {
+  border-left: 0;
+}

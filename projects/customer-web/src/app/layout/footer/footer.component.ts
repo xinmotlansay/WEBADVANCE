@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { CatalogApiService, type PublicConfig } from 'shared';
@@ -28,6 +28,21 @@ export class FooterComponent {
     { initialValue: null },
   );
 
+  /** Chỉ hiện biểu tượng mạng xã hội đã được cấu hình; chưa cấu hình gì thì dùng trang chủ của từng mạng như trước. */
+  protected readonly socialLinks = computed(() => {
+    const social = this.store()?.social;
+    const networks = [
+      { key: 'youtube', label: 'YouTube', icon: 'simple-icons:youtube', fallback: 'https://www.youtube.com' },
+      { key: 'tiktok', label: 'TikTok', icon: 'simple-icons:tiktok', fallback: 'https://www.tiktok.com' },
+      { key: 'instagram', label: 'Instagram', icon: 'simple-icons:instagram', fallback: 'https://www.instagram.com' },
+      { key: 'facebook', label: 'Facebook', icon: 'simple-icons:facebook', fallback: 'https://www.facebook.com' },
+    ] as const;
+    const configured = social && networks.some((n) => social[n.key]);
+    return networks
+      .map((n) => ({ label: n.label, icon: n.icon, url: configured ? social[n.key] : n.fallback }))
+      .filter((n) => n.url);
+  });
+
   protected readonly year = new Date().getFullYear();
 
   protected readonly infoLinks: FooterLink[] = [
@@ -43,7 +58,9 @@ export class FooterComponent {
   ];
 
   protected readonly brandLinks: FooterLink[] = [
+    { label: 'Đổi trả & Bảo hành', path: '/support' },
     { label: 'Về chúng tôi', path: '/about' },
+    { label: 'Tin tức', path: '/news' },
     { label: 'Liên hệ', path: '/contact' },
     { label: 'Hệ thống showroom', path: '/showrooms' },
     { label: 'Blog & Cảm hứng sống', path: '/blog' },

@@ -1,0 +1,26 @@
+<nav class="page-crumbs" aria-label="Đường dẫn">
+  <ol class="container">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><app-icon name="lucide:chevron-right" [size]="14" /></li>
+    <li aria-current="page">Thông tin</li>
+  </ol>
+</nav>
+<section class="account-layout account-area">
+  <div class="account-body">
+    <aside class="account-sidebar" aria-label="Quản lý tài khoản">
+      <nav>
+        @for (item of navigation; track item.path) {
+          <a [routerLink]="item.link ?? ['/account', item.path]" routerLinkActive="active">
+            <span>{{ item.label }}</span>
+            @if (item.path === 'reviews' && pendingReviewCount() > 0) {
+              <small class="nav-badge" [attr.aria-label]="pendingReviewCount() + ' sản phẩm chờ đánh giá'">{{ pendingReviewCount() }}</small>
+            }
+          </a>
+        }
+      </nav>
+    </aside>
+    <section class="account-content">
+      <router-outlet />
+    </section>
+  </div>
+</section>

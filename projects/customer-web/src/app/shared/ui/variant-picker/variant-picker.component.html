@@ -1,0 +1,143 @@
+<div class="backdrop" (click)="close()">
+  <div
+    class="panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="picker-title"
+    (click)="$event.stopPropagation()"
+  >
+    <button #closeButton type="button" class="close" aria-label="Đóng" (click)="close()">
+      <app-icon name="lucide:x" [size]="28" />
+    </button>
+
+    @if (product(); as p) {
+      <div class="media">
+        <img [src]="image()" [alt]="p.name" />
+      </div>
+
+      <div class="info">
+        <h2 id="picker-title" class="name">{{ p.name }}</h2>
+
+        @if (selected(); as v) {
+          <div class="price">
+            <span class="price__final">{{ v.price.final | vnd }}</span>
+            @if (v.price.original > v.price.final) {
+              <span class="price__old">{{ v.price.original | vnd }}</span>
+            }
+          </div>
+          <p class="stock" [class.stock--out]="v.stockStatus === 'OUT_OF_STOCK'">
+            {{ stockLabel[v.stockStatus] }}
+          </p>
+        }
+
+        @for (group of groups(); track group.key) {
+          <fieldset class="group">
+            <legend>
+              {{ group.label }}: <strong>{{ valueOf(group.key) }}</strong>
+            </legend>
+            <div class="chips">
+              @for (value of group.values; track value) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.chip--active]="valueOf(group.key) === value"
+                  [class.chip--dim]="!isCombinable(group.key, value)"
+                  [attr.aria-pressed]="valueOf(group.key) === value"
+                  (click)="choose(group.key, value)"
+                >
+                  {{ value }}
+                </button>
+              }
+            </div>
+          </fieldset>
+        }
+
+        <div class="row">
+          <span class="row__label">Số lượng</span>
+          <app-quantity-stepper
+            [value]="quantity()"
+            [max]="maxQuantity()"
+            [disabled]="outOfStock()"
+            (changed)="setQuantity($event)"
+          />
+        </div>
+
+        @if (selected(); as v) {
+          @if (v.installation.service !== 'NONE') {
+            <label class="install">
+              <input
+                type="checkbox"
+                [checked]="hasInstallation()"
+                [disabled]="v.installation.service === 'REQUIRED'"
+                (change)="toggleInstallation($any($event.target).checked)"
+              />
+              <span>
+                Lắp đặt tại nhà <strong>+{{ v.installation.fee | vnd }}</strong> / sản phẩm
+                @if (v.installation.service === 'REQUIRED') {
+                  <em>(bắt buộc)</em>
+                }
+              </span>
+            </label>
+          }
+          @if (unitShippingFee() !== null) {
+            <p class="note">
+              Phí vận chuyển dự kiến: {{ unitShippingFee() | vnd }} / sản phẩm
+              @if (v.shippingTier && v.shippingTier >= 3) {
+                (hàng cồng kềnh, đội xe CaraVeso giao)
+              }
+            </p>
+          }
+        }
+
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+
+        <div class="actions">
+          @switch (request().mode) {
+            @case ('update') {
+              <button
+                type="button"
+                class="btn btn--primary"
+                [disabled]="!selected() || outOfStock() || busy()"
+                (click)="updateItem()"
+              >
+                Cập nhật
+              </button>
+            }
+            @default {
+              <button
+                type="button"
+                class="btn"
+                [class.btn--primary]="request().mode === 'add'"
+                [class.btn--outline]="request().mode !== 'add'"
+                [disabled]="!selected() || outOfStock() || busy()"
+                (click)="addToCart()"
+              >
+                Thêm vào giỏ
+              </button>
+              <button
+                type="button"
+                class="btn"
+                [class.btn--primary]="request().mode === 'buy'"
+                [class.btn--outline]="request().mode !== 'buy'"
+                [disabled]="!selected() || outOfStock() || busy()"
+                (click)="buyNow()"
+              >
+                Mua ngay
+              </button>
+            }
+          }
+        </div>
+      </div>
+    } @else if (product() === null) {
+      <p class="empty">Không tải được sản phẩm. Vui lòng thử lại.</p>
+    } @else {
+      <div class="media skeleton" aria-busy="true"></div>
+      <div class="info">
+        <div class="skeleton skeleton--line"></div>
+        <div class="skeleton skeleton--line short"></div>
+      </div>
+    }
+  </div>
+</div>

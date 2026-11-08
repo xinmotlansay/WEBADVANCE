@@ -1,0 +1,227 @@
+<section class="warranty" [class.feature-page]="!embedded()" [class.container]="!embedded()">
+  <div class="form-panel">
+    @if (!embedded()) {
+      <p class="eyebrow">CARAVESO / ĐỔI TRẢ</p>
+      <a routerLink="/policies/returns">Xem chính sách và điều kiện</a>
+    }
+    <header class="intro" [class.compact]="embedded()">
+      <h2>Điền thông tin đổi trả</h2>
+      <p>Vui lòng điền đầy đủ thông tin để chúng tôi tiếp nhận và xử lý yêu cầu đổi trả của bạn</p>
+    </header>
+    @if (orders() === undefined) {
+      <div class="state" role="status">Đang tải đơn hàng…</div>
+    } @else if (orders() === null) {
+      <div class="state" role="alert">
+        Không tải được đơn. <button (click)="reload.next(0)">Thử lại</button>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <h3>1. Thông tin sản phẩm</h3>
+        @if (!presetOrderId()) {
+        <label class="field"
+          ><span>Đơn đã giao <b class="req">*</b></span><select formControlName="orderId">
+            <option value="">Chọn đơn hàng</option>
+            @for (order of orders(); track order.id) {
+              <option [value]="order.id">{{ order.orderCode }}</option>
+            }
+          </select></label
+        >
+        @if (orderMeta().totalPages > 1) {
+          <nav class="pagination" aria-label="Phân trang đơn hàng">
+            <button
+              type="button"
+              [disabled]="orderPage() <= 1"
+              (click)="orderPage.set(orderPage() - 1); reload.next(0)"
+            >
+              Đơn trước</button
+            ><span>Trang {{ orderPage() }}</span
+            ><button
+              type="button"
+              [disabled]="orderPage() >= orderMeta().totalPages"
+              (click)="orderPage.set(orderPage() + 1); reload.next(0)"
+            >
+              Đơn tiếp
+            </button>
+          </nav>
+        }
+        }
+        @if (orderLoading()) {
+          <p role="status">Đang kiểm tra điều kiện đổi trả…</p>
+        }
+        @if (orderError()) {
+          <p class="error" role="alert">{{ orderError() }}</p>
+          <button type="button" (click)="retryOrder.next(0)">Thử lại</button>
+        }
+        @if (order(); as selected) {
+          @if (selectedItem(); as item) {
+            <article class="product-card">
+              <div class="thumb">
+                @if (item.thumbnail) {
+                  <img [src]="item.thumbnail" [alt]="item.name" />
+                }
+              </div>
+              <div class="product-info">
+                <h4>{{ item.name }}</h4>
+                @if (item.variantLabel) {
+                  <p><b>Phân loại:</b> {{ item.variantLabel }}</p>
+                }
+                <p><b>Mã đơn hàng:</b> {{ selected.orderCode }}</p>
+              </div>
+              <div class="product-side">
+                <span class="badge" [class.off]="!item.actions.canReturn">
+                  {{ item.actions.canReturn ? 'Còn hạn đổi trả' : 'Hết hạn đổi trả' }}
+                </span>
+                <p><b>Hạn đổi trả:</b> {{ selected.returnDeadline | date: 'dd/MM/yyyy' : '+0700' }}</p>
+              </div>
+            </article>
+          } @else {
+            <p class="hint">Hạn đổi trả: {{ selected.returnDeadline | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</p>
+          }
+          @if (!presetItemId()) {
+          <label class="field"
+            ><span>Sản phẩm đủ điều kiện <b class="req">*</b></span><select formControlName="orderItemId">
+              <option value="">Chọn sản phẩm</option>
+              @for (item of selected.items; track item.id) {
+                <option [value]="item.id" [disabled]="!item.actions.canReturn">
+                  {{ item.name }} · còn được đổi trả {{ item.returnableQuantity }}
+                </option>
+              }
+            </select></label
+          >
+          }
+          @if (!hasEligibleItems()) {
+            <p class="error">Đơn đã hết hạn hoặc không còn sản phẩm đủ điều kiện.</p>
+          }
+        }
+        <h3>2. Nội dung yêu cầu</h3>
+        <div class="grid">
+        <label class="field"
+          ><span>Số lượng <b class="req">*</b></span><input
+            type="number"
+            min="1"
+            step="1"
+            [max]="maxQuantity()"
+            formControlName="quantity"
+        /></label>
+        <label class="field"
+          ><span>Hình thức <b class="req">*</b></span><select formControlName="type">
+            <option value="RETURN">Trả hàng / hoàn tiền</option>
+            <option value="EXCHANGE">Đổi sản phẩm</option>
+          </select></label
+        >
+        <label class="field full"
+          ><span>Lý do <b class="req">*</b></span><select formControlName="reason">
+            <option value="DEFECTIVE">Lỗi sản phẩm</option>
+            <option value="WRONG_ITEM">Giao sai sản phẩm</option>
+            <option value="DAMAGED_IN_TRANSIT">Hư hại khi vận chuyển</option>
+            <option value="CHANGED_MIND">Thay đổi nhu cầu</option>
+            <option value="OTHER">Lý do khác</option>
+          </select></label
+        >
+        </div>
+        <label class="field">
+          <span>Mô tả chi tiết <b class="req">*</b></span>
+          <span class="area">
+            <textarea
+              formControlName="description"
+              maxlength="500"
+              rows="6"
+              placeholder="Vui lòng mô tả đầy đủ lý do bạn muốn đổi trả"
+            ></textarea>
+            <small class="count">{{ form.controls.description.value.length }}/500</small>
+          </span>
+        </label>
+        <app-evidence-upload
+          purpose="RETURN_EVIDENCE"
+          [max]="5"
+          [(urls)]="evidence"
+          (busyChange)="uploading.set($event)"
+        />
+        <p class="hint">Lỗi sản phẩm, giao sai hoặc hư hại khi vận chuyển cần video mở hàng.</p>
+        @if (form.controls.type.value === 'RETURN') {
+          <h3>3. Hoàn tiền</h3>
+          @if (needsRefundAccount()) {
+            <p class="sub">Đơn thanh toán khi nhận hàng (COD): tiền hoàn được chuyển về tài khoản ngân hàng bên dưới trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra.</p>
+            <div formGroupName="refundAccount" class="grid">
+              <label class="field"><span>Ngân hàng <b class="req">*</b></span><input formControlName="bankName" /></label
+              ><label class="field"
+                ><span>Số tài khoản <b class="req">*</b></span><input
+                  formControlName="accountNumber"
+                  inputmode="numeric"
+                  autocomplete="off" /></label
+              ><label class="field full"><span>Chủ tài khoản <b class="req">*</b></span><input formControlName="accountHolder" /></label>
+            </div>
+          } @else if (refundToSourceBank()) {
+            <p class="sub">Đơn đã thanh toán chuyển khoản: tiền hoàn được chuyển về chính tài khoản ngân hàng bạn đã dùng để thanh toán, theo quy định của ngân hàng, trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra. Bạn không cần nhập thêm tài khoản.</p>
+          } @else {
+            <p class="sub">Chọn đơn hàng để xem hình thức hoàn tiền.</p>
+          }
+        } @else {
+          <h3>3. Sản phẩm thay thế</h3>
+          <p class="sub">
+            Chỉ nên chọn sản phẩm có giá ngang hoặc cao hơn giá thực trả
+            @if (selectedItem()?.unitPrice; as paid) { ({{ paid | vnd }}); }
+            phần chênh lệch (nếu có) bạn thanh toán thêm. Máy chủ kiểm tra lại giá và số lượng.
+          </p>
+          @if (replacement(); as pick) {
+            <div class="pick-selected">
+              <div class="pick-thumb"><img [src]="pick.product.thumbnail" [alt]="pick.product.name" /></div>
+              <div class="pick-body">
+                <strong>{{ pick.product.name }}</strong>
+                <small>{{ pick.variant.color }} · {{ pick.variant.material }} · {{ pick.variant.price.final | vnd }}</small>
+              </div>
+              <button type="button" class="pick-change" (click)="pickerOpen.set(true)">Đổi sản phẩm khác</button>
+            </div>
+          } @else {
+            <button type="button" class="pick-empty" (click)="pickerOpen.set(true)">
+              <span>+</span> Chọn sản phẩm thay thế <b class="req">*</b>
+            </button>
+            @if (form.controls.replacementVariantId.touched && form.controls.replacementVariantId.invalid) {
+              <p class="error">Vui lòng chọn sản phẩm thay thế.</p>
+            }
+          }
+          @if (pickerOpen()) {
+            <app-product-picker [minPrice]="selectedItem()?.unitPrice ?? 0" (picked)="onPicked($event)" (closed)="pickerOpen.set(false)" />
+          }
+        }
+        <h3>4. Thông tin liên hệ / lấy hàng</h3>
+        <div formGroupName="contact" class="grid">
+          <label class="field">
+            <span>Họ và Tên <b class="req">*</b></span>
+            <input formControlName="name" autocomplete="name" placeholder="Nhập họ tên đầy đủ" />
+          </label>
+          <label class="field">
+            <span>Số điện thoại <b class="req">*</b></span>
+            <input type="tel" formControlName="phone" autocomplete="tel" placeholder="Nhập số điện thoại" />
+          </label>
+          <label class="field full">
+            <span>Địa chỉ lấy hàng <b class="req">*</b></span>
+            <input
+              formControlName="address"
+              autocomplete="street-address"
+              placeholder="Nhập địa chỉ (số nhà, đường, phường/ xã, quận/ huyện, tỉnh/ thành phố)"
+            />
+          </label>
+        </div>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+        <div class="actions">
+          <button class="primary" [disabled]="loading() || uploading() || orderLoading()">
+            {{ loading() ? 'Đang gửi…' : 'Gửi yêu cầu đổi trả' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>

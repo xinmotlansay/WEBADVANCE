@@ -34,14 +34,34 @@
   --color-accent: #e11d2e;
   --color-muted: #6b6b6b;
   --color-surface: #f2f2f2;
+  --color-success: #15803d;
+  --color-warning: #b45309;
   --font-size-sm: 13px;
   --font-size-xs: 12px;
   --font-size-display: clamp(36px, 4vw, 56px);
   --font-size-display-sm: clamp(28px, 2.8vw, 40px);
 
+  /* Trạng thái Fit your home (đã chốt với nhóm). "Không vừa" dùng màu nhấn. */
+  --color-status-pass: #80ff59;
+  --color-status-caution: #ffde23;
+  --color-status-fail: var(--color-accent);
+
   /* Lề trang thu nhỏ theo màn hình, tối đa bằng lề của style guide. */
   --page-gutter: clamp(16px, 5.5vw, var(--layout-margin));
   --page-max: 1440px;
+
+  /* Chiều cao header cố định (thanh trên cùng 34px + thanh chính 81px), trang con chừa chỗ này. */
+  --header-offset: 115px;
+  --space-xs: 6px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --control-height: 44px;
+  --radius: 6px;
+  --color-brand-surface: color-mix(in srgb, var(--color-primary) 4%, var(--color-white));
+  --radius-panel: var(--space-md);
 }
 
 *,
@@ -129,3 +149,141 @@ ul {
   margin-inline: auto;
   padding-inline: var(--page-gutter);
 }
+
+/* Nút dùng chung: chính (nền màu brand) và viền (như nút trên thẻ sản phẩm). */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--color-black);
+  border-radius: 3px;
+  background: var(--color-white);
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.btn--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+.btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 85%, var(--color-black));
+}
+.btn--outline:hover:not(:disabled) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  border-color: var(--color-gray-light);
+  background: var(--color-gray-light);
+  color: var(--color-muted);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Số dòng trong giỏ trên icon giỏ hàng (header và header rút gọn). */
+.cart-link {
+  position: relative;
+}
+.cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 18px;
+  text-align: center;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--color-primary);
+}
+
+/* Ẩn khỏi màn hình nhưng trình đọc màn hình vẫn đọc được. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.feature-page { padding-top: var(--header-offset); padding-bottom: var(--space-2xl); min-height: 70vh; }
+.feature-page h1, .feature-page h2 { margin-bottom: var(--space-lg); }
+.eyebrow { color: var(--color-muted); font-size: var(--font-size-sm); margin-bottom: var(--space-md); }
+.product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gutter); margin-block: var(--space-lg); }
+.feature-page button, .feature-page .button { min-height: var(--control-height); padding: var(--space-sm) var(--space-md); background: var(--color-white); border: 1px solid var(--color-gray); border-radius: var(--radius); }
+.feature-page .primary { color: var(--color-white); background: var(--color-primary); border-color: var(--color-primary); }
+.feature-page a.button { display: inline-flex; align-items: center; justify-content: center; margin-block: var(--space-xs); }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.state { padding: var(--space-2xl) var(--space-lg); background: var(--color-surface); margin-block: var(--space-lg); text-align: center; }
+.pagination, .toolbar { display: flex; gap: var(--space-md); align-items: center; justify-content: space-between; flex-wrap: wrap; margin-block: var(--space-lg); }
+.feature-page input, .feature-page select, .feature-page textarea { font: inherit; color: var(--color-black); background: var(--color-white); border: 1px solid var(--color-gray); border-radius: var(--radius); padding: var(--space-sm); min-height: var(--control-height); max-width: 100%; }
+.feature-page label { display: grid; gap: var(--space-xs); margin-bottom: var(--space-md); }
+.feature-page .error { color: var(--color-accent); margin-block: var(--space-sm); }
+.feature-page .muted { color: var(--color-muted); }
+.form-panel { max-width: 680px; margin: auto; display: grid; gap: var(--space-md); }
+.panel { padding: var(--space-lg); border: 1px solid var(--color-gray-light); margin-block: var(--space-md); }
+@media (min-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Thanh đường dẫn dùng chung (giống trang chi tiết sản phẩm). */
+.page-crumbs { background: var(--color-surface); color: var(--color-muted); }
+.page-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding-block: 5px; list-style: none; }
+.page-crumbs li { display: flex; align-items: center; font-size: var(--font-size-sm); }
+.page-crumbs a:hover { text-decoration: underline; }
+.page-crumbs [aria-current='page'] { color: var(--color-primary); font-weight: var(--font-weight-semibold); }
+
+/* ---- Trang tài khoản (theo thiết kế Figma): các lớp dùng chung của các trang con ---- */
+.account-area .account-screen { min-width: 0; color: #000; font-size: 14px; }
+/* Tiêu đề trang tài khoản: mọi trang cùng cỡ chữ, căn giữa, nội dung cùng bề rộng. */
+.account-area .account-screen:not(.wishlist-screen) { max-width: 900px; margin-right: auto; margin-left: auto; }
+.account-area .screen-heading { display: block; margin: 0 0 28px; text-align: center; }
+.account-area .screen-heading, .account-area .screen-heading h1 { color: var(--navy); font-size: 22px; font-weight: 600; line-height: 1.3; }
+.account-area .screen-heading h1 { margin: 0; }
+.account-area .collapse-control { display: grid; width: 24px; height: 24px; min-height: 0; place-items: center; padding: 0; border: 0; background: none; color: #000; cursor: pointer; }
+.account-area .screen-intro { margin: 0 0 16px; color: #727a7d; font-size: 13px; line-height: 1.6; }
+.account-area .form-notice { margin: 0 0 16px; padding: 10px 14px; border: 1px solid #d6e4dc; border-radius: 4px; background: #f4faf6; color: #2f6b45; font-size: 14px; }
+.account-area .form-notice.error, .account-area .api-error { border: 1px solid #ead1cd; border-radius: 4px; background: #fff8f7; color: #a23a32; }
+.account-area .api-error { padding: 10px 14px; font-size: 14px; }
+.account-area .primary-button, .account-area .outline-button, .account-area .danger-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; border: 1px solid var(--navy); border-radius: 2px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.account-area .primary-button:hover:not(:disabled) { background: var(--navy-dark); }
+.account-area .outline-button { background: #fff; color: var(--navy); }
+.account-area .outline-button:hover:not(:disabled) { background: #f3f6f9; }
+.account-area .danger-button { border-color: #d32f2f; background: #d32f2f; }
+.account-area .primary-button:disabled, .account-area .outline-button:disabled, .account-area .danger-button:disabled { border-color: #d8dcde; background: #f1f2f2; color: #969da0; cursor: not-allowed; }
+.account-area .link-button { min-height: 0; padding: 0; border: 0; background: none; color: var(--navy); font-size: 14px; cursor: pointer; }
+.account-area .default-badge { padding: 4px 8px; background: #eff4f7; color: var(--navy); font-size: 12px; white-space: nowrap; }
+.account-area .empty-state { display: grid; justify-items: center; padding: 44px 15px; color: #687174; text-align: center; }
+.account-area .empty-state > span { color: #9ba5a9; font-size: 30px; }
+.account-area .empty-state h2 { margin: 12px 0 5px; color: #343b3e; font-size: 16px; }
+.account-area .empty-state p { margin: 0 0 16px; font-size: 14px; }
+.account-area input, .account-area select, .account-area textarea { accent-color: var(--navy); }
+@media (max-width: 560px) {
+  .account-area .screen-heading, .account-area .screen-heading h1 { font-size: 20px; }
+  .account-area .screen-heading { margin-bottom: 12px; }
+}
+
+/* Banner danh mục do Marketing đặt (FR-011), dùng trong product-list. */
+.category-banner { display: block; margin-bottom: var(--space-lg); overflow: hidden; border-radius: var(--radius); }
+/* Tỉ lệ theo quy định upload của admin: 1200×300 desktop, 750×400 mobile. */
+.category-banner img { display: block; width: 100%; aspect-ratio: 4 / 1; object-fit: cover; }
+@media (max-width: 767px) { .category-banner img { aspect-ratio: 15 / 8; } }
