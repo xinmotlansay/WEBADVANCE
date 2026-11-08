@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npx ng build customer-web && npx ng build admin-web --base-href /admin/ && rm -rf dist/customer-web/browser/admin && cp -R dist/admin-web/browser dist/customer-web/browser/admin",
+  "outputDirectory": "dist/customer-web/browser",
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://webadvance-vwwp.onrender.com/api/$1" },
+    { "source": "/uploads/(.*)", "destination": "https://webadvance-vwwp.onrender.com/uploads/$1" },
+    { "source": "/socket.io/(.*)", "destination": "https://webadvance-vwwp.onrender.com/socket.io/$1" },
+    { "source": "/admin/(.*)", "destination": "/admin/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
