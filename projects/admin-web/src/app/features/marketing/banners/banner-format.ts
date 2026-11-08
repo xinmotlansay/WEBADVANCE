@@ -1,6 +1,7 @@
 import type { BannerPosition, BannerStatus } from '../../../services/marketing/banner.service';
 
-export const POSITION_ORDER: BannerPosition[] = ['HOME_SLIDER', 'HOME_MIDDLE', 'CATEGORY', 'POPUP'];
+/** Hiện chỉ dùng Slider trang chủ; thêm vị trí khác vào đây để bật lại tab và ô chọn vị trí. */
+export const POSITION_ORDER: BannerPosition[] = ['HOME_SLIDER'];
 
 /** Tên vị trí cố định phía client: tab hiện đúng tiếng Việt ngay cả khi danh sách đang tải. */
 export const POSITION_LABEL: Record<BannerPosition, string> = {

@@ -35,6 +35,7 @@ const toRow = (i: Doc, inactive: Set<string>) => {
     productCount: productIds.length,
     inactiveProductIds: productIds.filter((id) => inactive.has(id)),
     status: i.status,
+    scheduledAt: i.status === 'VISIBLE' && i.publishAt && i.publishAt > new Date() ? i.publishAt : null,
     displayOrder: i.displayOrder ?? 0,
     flags: productIds.some((id) => inactive.has(id)) ? ['INACTIVE_PRODUCT' as const] : [],
     version: i.version ?? 0,
@@ -99,10 +100,13 @@ export async function updateInspiration(actorId: string, id: string, input: Upda
   return getInspiration(id);
 }
 
-export async function setInspirationHidden(actorId: string, id: string, hidden: boolean) {
+export async function setInspirationHidden(actorId: string, id: string, hidden: boolean, publishAt?: Date | null) {
   const i = await load(id);
   if (!hidden) checkInspirationPublishable(i.products.length);
-  await InspirationModel.updateOne({ _id: i._id }, { $set: { status: hidden ? 'HIDDEN' : 'VISIBLE' }, $inc: { version: 1 } });
+  await InspirationModel.updateOne(
+    { _id: i._id },
+    { $set: { status: hidden ? 'HIDDEN' : 'VISIBLE', publishAt: hidden ? null : (publishAt ?? new Date()) }, $inc: { version: 1 } },
+  );
   logAdminAction(actorId, hidden ? 'INSPIRATION_HIDDEN' : 'INSPIRATION_SHOWN', id, {});
   return getInspiration(id);
 }

@@ -1,7 +1,7 @@
 import { Schema, model, type Types } from 'mongoose';
 
 export type ContentKey = 'HOME' | 'ANNOUNCEMENT_BAR';
-export type HomeBlockType = 'BRAND_INTRO' | 'FEATURED_PRODUCTS' | 'COLLECTIONS' | 'PROMOTION' | 'LATEST_ARTICLES';
+export type HomeBlockType = 'COLLECTIONS' | 'PROMOTION';
 
 export interface HomeBlock {
   type: HomeBlockType;
@@ -13,9 +13,9 @@ export interface HomeBlock {
   ctaLabel: string;
   ctaUrl: string;
   productIds: string[];
-  /** Dữ liệu cũ của khối Bộ sưu tập (trước khi chọn theo collection); vẫn hiển thị nếu chưa có `collectionIds`. */
+  /** Dữ liệu cũ của khối Collection (trước khi chọn theo collection); vẫn hiển thị nếu chưa có `collectionIds`. */
   categoryIds: string[];
-  /** Khối Bộ sưu tập: collection theo thứ tự đã chọn. Bản ghi cũ có thể thiếu. */
+  /** Khối Collection: collection theo thứ tự đã chọn. Bản ghi cũ có thể thiếu. */
   collectionIds: string[];
   promotionIds: string[];
 }

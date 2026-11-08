@@ -17,7 +17,7 @@ export interface SavedLayout {
   name: string;
   roomCategoryId: string | null;
   room: RoomConfig;
-  items: { productId: string; x: number; z: number; rotationY: number }[];
+  items: { productId: string; x: number; z: number; y?: number; rotationY: number }[];
   updatedAt: string;
 }
 
@@ -73,6 +73,7 @@ export class ViewRoomApiService {
         productId: item.productId,
         x: item.x,
         z: item.z,
+        y: item.y ?? 0,
         rotationY: item.rotationY,
       })),
     };

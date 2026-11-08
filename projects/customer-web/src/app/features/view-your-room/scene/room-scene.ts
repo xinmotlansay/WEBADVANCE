@@ -13,7 +13,7 @@ import {
 export type ViewMode = '3d' | 'top';
 
 export interface RoomSceneCallbacks {
-  onItemChange(uid: string, patch: { x: number; z: number; rotationY?: number }): void;
+  onItemChange(uid: string, patch: { x: number; z: number; y?: number; rotationY?: number }): void;
   onSelect(uid: string | null): void;
   onZoomChange(percent: number): void;
 }
@@ -36,6 +36,8 @@ interface PreparedModel {
   /** Nửa kích thước mặt đáy khi chưa xoay. */
   hx: number;
   hz: number;
+  /** Chiều cao model sau khi co giãn (m), dùng cho đồ treo tường. */
+  hy: number;
 }
 
 interface SceneItem extends PreparedModel {
@@ -49,6 +51,22 @@ interface DragState {
   offsetZ: number;
   startX: number;
   startZ: number;
+  startY: number;
+  startRotation: number;
+  /** Đồ treo tường: chênh lệch giữa tâm đồ và điểm chạm trên tường lúc bắt đầu kéo. */
+  alongOffset: number;
+  upOffset: number;
+}
+
+/** Hai bức tường dựng sẵn trong phòng: tường sau (z âm) và tường trái (x âm). */
+type Wall = 'BACK' | 'LEFT';
+
+interface WallPoint {
+  wall: Wall;
+  /** Vị trí dọc theo tường (x với tường sau, z với tường trái), mét. */
+  along: number;
+  /** Độ cao điểm chạm, mét. */
+  up: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -136,6 +154,7 @@ export class RoomScene {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private readonly wallHitPoint = new THREE.Vector3();
   private readonly floorHit = new THREE.Vector3();
   private readonly prepared = new Map<string, Promise<PreparedModel>>();
   private readonly objects = new Map<string, SceneItem>();
@@ -312,16 +331,25 @@ export class RoomScene {
     return items.map((item) => {
       const obj = this.objects.get(item.uid);
       if (!obj) return item;
+      if (item.placement === 'WALL') {
+        const wall: Wall = item.rotationY === 90 ? 'LEFT' : 'BACK';
+        const along = wall === 'BACK' ? item.x : item.z;
+        const placed = this.placeOnWall(wall, along, item.y ?? 0, obj);
+        return { ...item, ...placed };
+      }
       const { ex, ez } = extents(obj.hx, obj.hz, item.rotationY);
       const placed = this.place(item.x, item.z, ex, ez);
       return { ...item, x: placed.x, z: placed.z };
     });
   }
 
-  /** Tìm vị trí trống gần tâm phòng cho sản phẩm mới. */
-  async findFreeSpot(item: PlacedItem): Promise<{ x: number; z: number } | null> {
+  /** Tìm vị trí trống gần tâm phòng (đồ để sàn) hoặc giữa tường (đồ treo tường) cho sản phẩm mới. */
+  async findFreeSpot(
+    item: PlacedItem,
+  ): Promise<{ x: number; z: number; y: number; rotationY: number } | null> {
     const model = await this.prepare(item);
     if (!this.room) return null;
+    if (item.placement === 'WALL') return this.findWallSpot(model);
     const length = this.room.length * CM;
     const width = this.room.width * CM;
     let best: { x: number; z: number } | null = null;
@@ -336,7 +364,53 @@ export class RoomScene {
         }
       }
     }
-    return best;
+    return best && { ...best, y: 0, rotationY: 0 };
+  }
+
+  /** Tường sau trước, rồi tường trái; tâm tranh ở độ cao mắt nhìn (1,5 m) nếu tường đủ cao. */
+  private findWallSpot(model: PreparedModel): { x: number; z: number; y: number; rotationY: number } | null {
+    const room = this.room;
+    if (!room) return null;
+    const height = room.height * CM;
+    if (model.hy > height) return null;
+    const y = clamp(1.5 - model.hy / 2, 0, height - model.hy);
+    for (const wall of ['BACK', 'LEFT'] as const) {
+      const span = ((wall === 'BACK' ? room.length : room.width) * CM) / 2 - model.hx;
+      if (span < 0) continue;
+      for (let offset = 0; offset <= span + 1e-6; offset += GRID_STEP) {
+        for (const along of offset === 0 ? [0] : [offset, -offset]) {
+          const pos = this.wallPosition(wall, along, model);
+          if (this.collides('', pos.x, pos.z, pos.rotationY, model.hx, model.hz, 'WALL', y, model.hy)) continue;
+          return { ...pos, y };
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Toạ độ tâm đồ treo tường khi áp sát tường, mặt trước hướng vào phòng. */
+  private wallPosition(
+    wall: Wall,
+    along: number,
+    model: { hx: number; hz: number },
+  ): { x: number; z: number; rotationY: number } {
+    const room = this.room!;
+    const half = ((wall === 'BACK' ? room.length : room.width) * CM) / 2 - model.hx;
+    const clamped = half < 0 ? 0 : clamp(along, -half, half);
+    return wall === 'BACK'
+      ? { x: clamped, z: -(room.width * CM) / 2 + model.hz, rotationY: 0 }
+      : { x: -(room.length * CM) / 2 + model.hz, z: clamped, rotationY: 90 };
+  }
+
+  private placeOnWall(
+    wall: Wall,
+    along: number,
+    y: number,
+    model: { hx: number; hz: number; hy: number },
+  ): { x: number; z: number; y: number; rotationY: number } {
+    const height = (this.room?.height ?? 270) * CM;
+    const pos = this.wallPosition(wall, along, model);
+    return { ...pos, y: clamp(y, 0, Math.max(0, height - model.hy)) };
   }
 
   select(uid: string | null): void {
@@ -350,6 +424,8 @@ export class RoomScene {
     const obj = uid ? this.objects.get(uid) : undefined;
     if (!uid || !obj) return false;
 
+    if (obj.item.placement === 'WALL') return this.switchWall(uid, obj);
+
     const rotationY = (obj.item.rotationY + 90) % 360;
     const { ex, ez } = extents(obj.hx, obj.hz, rotationY);
     const placed = this.place(obj.root.position.x, obj.root.position.z, ex, ez);
@@ -358,6 +434,17 @@ export class RoomScene {
     obj.item = { ...obj.item, rotationY, x: placed.x, z: placed.z };
     this.applyTransform(obj);
     this.callbacks.onItemChange(uid, { x: placed.x, z: placed.z, rotationY });
+    return true;
+  }
+
+  /** Đồ treo tường: "xoay" nghĩa là chuyển sang bức tường còn lại, giữ nguyên độ cao. */
+  private switchWall(uid: string, obj: SceneItem): boolean {
+    const to: Wall = obj.item.rotationY === 90 ? 'BACK' : 'LEFT';
+    const pos = this.placeOnWall(to, 0, obj.item.y ?? 0, obj);
+    if (this.collides(uid, pos.x, pos.z, pos.rotationY, obj.hx, obj.hz, 'WALL', pos.y, obj.hy)) return false;
+    obj.item = { ...obj.item, ...pos };
+    this.applyTransform(obj);
+    this.callbacks.onItemChange(uid, pos);
     return true;
   }
 
@@ -438,13 +525,13 @@ export class RoomScene {
     const root = model.template.clone(true);
     root.userData['uid'] = item.uid;
     this.itemsGroup.add(root);
-    const obj: SceneItem = { root, hx: model.hx, hz: model.hz, template: model.template, item };
+    const obj: SceneItem = { root, hx: model.hx, hz: model.hz, hy: model.hy, template: model.template, item };
     this.objects.set(item.uid, obj);
     this.applyTransform(obj);
   }
 
   private applyTransform(obj: SceneItem): void {
-    obj.root.position.set(obj.item.x, 0, obj.item.z);
+    obj.root.position.set(obj.item.x, obj.item.placement === 'WALL' ? (obj.item.y ?? 0) : 0, obj.item.z);
     obj.root.rotation.y = obj.item.rotationY * DEG;
   }
 
@@ -519,7 +606,7 @@ export class RoomScene {
       }
     });
     const final = new THREE.Box3().setFromObject(container).getSize(new THREE.Vector3());
-    return { template: container, hx: final.x / 2, hz: final.z / 2 };
+    return { template: container, hx: final.x / 2, hz: final.z / 2, hy: final.y };
   }
 
   /** Khối hộp thay thế khi model lỗi hoặc chưa có model 3D. */
@@ -535,7 +622,7 @@ export class RoomScene {
     mesh.castShadow = true;
     const container = new THREE.Group();
     container.add(mesh);
-    return { template: container, hx: length / 2, hz: width / 2 };
+    return { template: container, hx: length / 2, hz: width / 2, hy: height };
   }
 
   /** Kẹp vị trí trong phòng và dính vào tường khi đủ gần. */
@@ -568,10 +655,20 @@ export class RoomScene {
     rotationY: number,
     hx: number,
     hz: number,
+    placement: 'FLOOR' | 'WALL' = 'FLOOR',
+    y = 0,
+    hy = 0,
   ): boolean {
     const mine = extents(hx, hz, rotationY);
     for (const [otherUid, other] of this.objects) {
       if (otherUid === uid) continue;
+      // Đồ treo tường chỉ vướng đồ treo tường khác (và phải trùng cả độ cao); không vướng đồ để sàn.
+      const otherWall = other.item.placement === 'WALL';
+      if (otherWall !== (placement === 'WALL')) continue;
+      if (otherWall) {
+        const oy = other.item.y ?? 0;
+        if (!(y < oy + other.hy + ITEM_GAP && oy < y + hy + ITEM_GAP)) continue;
+      }
       const theirs = extents(other.hx, other.hz, other.root.rotation.y / DEG);
       const overlapX = Math.abs(x - other.root.position.x) < mine.ex + theirs.ex + ITEM_GAP;
       const overlapZ = Math.abs(z - other.root.position.z) < mine.ez + theirs.ez + ITEM_GAP;
@@ -605,6 +702,25 @@ export class RoomScene {
     return hit ? { x: hit.x, z: hit.z } : null;
   }
 
+  /** Điểm chạm của tia chuột lên một bức tường (trong phạm vi tường), hoặc null nếu trượt. */
+  private wallPoint(event: PointerEvent, wall: Wall, bounded = true): WallPoint | null {
+    const room = this.room;
+    if (!room) return null;
+    this.setPointer(event);
+    const length = room.length * CM;
+    const width = room.width * CM;
+    const plane =
+      wall === 'BACK'
+        ? new THREE.Plane(new THREE.Vector3(0, 0, 1), width / 2)
+        : new THREE.Plane(new THREE.Vector3(1, 0, 0), length / 2);
+    const hit = this.raycaster.ray.intersectPlane(plane, this.wallHitPoint);
+    if (!hit) return null;
+    const along = wall === 'BACK' ? hit.x : hit.z;
+    const span = (wall === 'BACK' ? length : width) / 2;
+    if (bounded && (Math.abs(along) > span || hit.y < 0 || hit.y > room.height * CM)) return null;
+    return { wall, along, up: hit.y };
+  }
+
   private readonly onPointerDown = (event: PointerEvent): void => {
     const uid = this.pick(event);
     if (uid !== this.selectedUid) {
@@ -612,26 +728,40 @@ export class RoomScene {
       this.callbacks.onSelect(uid);
     }
     const obj = uid ? this.objects.get(uid) : undefined;
-    const point = this.floorPoint(event);
-    if (!uid || !obj || !point) return;
+    if (!uid || !obj) return;
+    const isWall = obj.item.placement === 'WALL';
+    const wall: Wall = obj.item.rotationY === 90 ? 'LEFT' : 'BACK';
+    const wallPoint = isWall ? this.wallPoint(event, wall, false) : null;
+    const point = isWall ? null : this.floorPoint(event);
+    if (!(isWall ? wallPoint : point)) return;
 
     // Chặn OrbitControls xoay camera khi đang kéo sản phẩm.
     this.controls.enabled = false;
     this.renderer.domElement.setPointerCapture(event.pointerId);
+    const pos = obj.root.position;
     this.drag = {
       uid,
-      offsetX: obj.root.position.x - point.x,
-      offsetZ: obj.root.position.z - point.z,
-      startX: obj.root.position.x,
-      startZ: obj.root.position.z,
+      offsetX: point ? pos.x - point.x : 0,
+      offsetZ: point ? pos.z - point.z : 0,
+      startX: pos.x,
+      startZ: pos.z,
+      startY: pos.y,
+      startRotation: obj.item.rotationY,
+      alongOffset: wallPoint ? (wall === 'BACK' ? pos.x : pos.z) - wallPoint.along : 0,
+      upOffset: wallPoint ? pos.y + obj.hy / 2 - wallPoint.up : 0,
     };
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.drag) return;
-    const point = this.floorPoint(event);
     const obj = this.objects.get(this.drag.uid);
-    if (!point || !obj) return;
+    if (!obj) return;
+    if (obj.item.placement === 'WALL') {
+      this.dragOnWall(event, obj);
+      return;
+    }
+    const point = this.floorPoint(event);
+    if (!point) return;
 
     const { ex, ez } = extents(obj.hx, obj.hz, obj.item.rotationY);
     const placed = this.place(point.x + this.drag.offsetX, point.z + this.drag.offsetZ, ex, ez);
@@ -641,9 +771,37 @@ export class RoomScene {
     obj.root.position.set(placed.x, 0, placed.z);
   };
 
+  /** Kéo đồ treo tường: ở lại tường hiện tại nếu tia chuột còn chạm tường đó, không thì sang tường kia. */
+  private dragOnWall(event: PointerEvent, obj: SceneItem): void {
+    const drag = this.drag;
+    if (!drag) return;
+    const current: Wall = obj.item.rotationY === 90 ? 'LEFT' : 'BACK';
+    const other: Wall = current === 'BACK' ? 'LEFT' : 'BACK';
+    let hit = this.wallPoint(event, current);
+    let along: number;
+    let up: number;
+    let wall = current;
+    if (hit) {
+      along = hit.along + drag.alongOffset;
+      up = hit.up + drag.upOffset;
+    } else {
+      hit = this.wallPoint(event, other);
+      if (!hit) return;
+      wall = other;
+      along = hit.along;
+      up = hit.up;
+    }
+    const pos = this.placeOnWall(wall, along, up - obj.hy / 2, obj);
+    // Nếu vị trí mới đè lên đồ treo tường khác thì giữ nguyên vị trí cũ.
+    if (this.collides(drag.uid, pos.x, pos.z, pos.rotationY, obj.hx, obj.hz, 'WALL', pos.y, obj.hy)) return;
+    obj.root.position.set(pos.x, pos.y, pos.z);
+    obj.root.rotation.y = pos.rotationY * DEG;
+    obj.item = { ...obj.item, ...pos };
+  }
+
   private readonly onPointerUp = (event: PointerEvent): void => {
     if (!this.drag) return;
-    const { uid, startX, startZ } = this.drag;
+    const { uid, startX, startZ, startY, startRotation } = this.drag;
     this.drag = null;
     this.controls.enabled = true;
     this.renderer.domElement.releasePointerCapture(event.pointerId);
@@ -652,6 +810,17 @@ export class RoomScene {
     if (!obj) return;
     const x = obj.root.position.x;
     const z = obj.root.position.z;
+    if (obj.item.placement === 'WALL') {
+      const y = obj.root.position.y;
+      const rotationY = obj.item.rotationY;
+      const moved =
+        Math.abs(x - startX) > 1e-4 ||
+        Math.abs(z - startZ) > 1e-4 ||
+        Math.abs(y - startY) > 1e-4 ||
+        rotationY !== startRotation;
+      if (moved) this.callbacks.onItemChange(uid, { x, z, y, rotationY });
+      return;
+    }
     obj.item = { ...obj.item, x, z };
     if (Math.abs(x - startX) > 1e-4 || Math.abs(z - startZ) > 1e-4) {
       this.callbacks.onItemChange(uid, { x, z });

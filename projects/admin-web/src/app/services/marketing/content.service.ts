@@ -3,36 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import type { ApiResponse } from 'shared';
 import { map, Observable } from 'rxjs';
 
-export type ContentKey = 'HOME' | 'ANNOUNCEMENT_BAR' | 'LANDING';
-
 const BASE = '/api/v1/admin/marketing/content';
 
-export type BlockType = 'BRAND_INTRO' | 'FEATURED_PRODUCTS' | 'COLLECTIONS' | 'PROMOTION' | 'LATEST_ARTICLES';
 export type SaveAction = 'DRAFT' | 'PUBLISH' | 'SCHEDULE';
 
-export const BLOCK_LABEL: Record<BlockType, string> = {
-  BRAND_INTRO: 'Giới thiệu thương hiệu',
-  FEATURED_PRODUCTS: 'Sản phẩm nổi bật',
-  COLLECTIONS: 'Bộ sưu tập',
-  PROMOTION: 'Khuyến mãi',
-  LATEST_ARTICLES: 'Bài viết mới',
-};
-
-export interface HomeBlock {
-  type: BlockType;
-  enabled: boolean;
-  title: string;
-  text: string;
-  imageUrl: string;
-  imageAlt: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  productIds: string[];
-  /** Dữ liệu cũ của khối Bộ sưu tập; khối mới dùng `collectionIds`. */
-  categoryIds: string[];
-  collectionIds: string[];
-  promotionIds: string[];
-}
 export interface BarData {
   enabled: boolean;
   text: string;
@@ -72,14 +46,7 @@ export interface VersionRow {
   action: 'PUBLISH' | 'SCHEDULE';
 }
 
-export interface LandingRow {
-  slug: string;
-  name: string;
-  status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'HIDDEN';
-  updatedAt: string | null;
-}
-
-/** `path` = `HOME`, `ANNOUNCEMENT_BAR` hoặc `landing-pages/<slug>`. */
+/** `path` = `ANNOUNCEMENT_BAR`. */
 @Injectable({ providedIn: 'root' })
 export class ContentApi {
   private readonly http = inject(HttpClient);
@@ -100,18 +67,6 @@ export class ContentApi {
     return this.http
       .post<ApiResponse<ContentArea<T>>>(`${BASE}/${path}/versions/${id}/restore`, { version })
       .pipe(map((r) => r.data));
-  }
-
-  landingList(): Observable<LandingRow[]> {
-    return this.http.get<ApiResponse<LandingRow[]>>(`${BASE}/landing-pages`).pipe(map((r) => r.data));
-  }
-
-  landingCreate(name: string, slug: string): Observable<ContentArea<unknown>> {
-    return this.http.post<ApiResponse<ContentArea<unknown>>>(`${BASE}/landing-pages`, { name, slug }).pipe(map((r) => r.data));
-  }
-
-  landingHide(slug: string, hidden: boolean): Observable<unknown> {
-    return this.http.post(`${BASE}/landing-pages/${slug}/${hidden ? 'hide' : 'show'}`, {});
   }
 
   uploadImage(file: File): Observable<{ url: string }> {

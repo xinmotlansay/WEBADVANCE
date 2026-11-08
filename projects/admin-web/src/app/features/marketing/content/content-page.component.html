@@ -1,20 +1,16 @@
 <main class="cv-main">
-  <header class="cv-page-head">
-    <h1>{{ slug ? 'Landing page: ' + (lpName || slug) : 'Nội dung trang chủ' }}</h1>
-    @if (slug) {
-      <a class="cv-btn" routerLink="/marketing/noi-dung">Quay lại danh sách</a>
-    }
-  </header>
-
-  @if (!slug) {
-    <div class="cv-tabs" role="tablist" aria-label="Khu vực nội dung">
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'HOME'" (click)="setTab('HOME')">Trang chủ</button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'ANNOUNCEMENT_BAR'" (click)="setTab('ANNOUNCEMENT_BAR')">
-        Thanh thông báo
-      </button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'LANDING'" (click)="setTab('LANDING')">Landing page</button>
+  <header class="ed-top">
+    <div class="ed-title">
+      <h1>Thanh thông báo</h1>
+      @if (!loading() && !loadError()) {
+        <span class="cv-badge" [class]="'cv-badge ' + status().cls">{{ status().label }}</span>
+      }
     </div>
-  }
+    <div class="ed-actions">
+      <button type="button" class="cv-btn" [disabled]="saving() || loading()" (click)="save('DRAFT')">Lưu nháp</button>
+      <button type="button" class="cv-btn cv-btn--primary" [disabled]="saving() || loading()" (click)="togglePublish()">Đăng…</button>
+    </div>
+  </header>
 
   @if (loading()) {
     <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
@@ -30,171 +26,20 @@
     @if (scheduledAt(); as at) {
       <p class="cv-card notice" role="status">Có bản đã hẹn đăng lúc {{ at | date: 'dd/MM/yyyy HH:mm' }}.</p>
     }
-
-    @if (tab() === 'LANDING' && !slug) {
-      <section class="cv-card block">
-        <h2>Tạo landing page</h2>
-        <div class="cols">
-          <div class="cv-field">
-            <label for="n-name">Tên (5–100 ký tự)</label>
-            <input id="n-name" class="cv-input" maxlength="100" name="n-name" [(ngModel)]="newName" />
-          </div>
-          <div class="cv-field">
-            <label for="n-slug">Đường dẫn /lp/… (3–80 ký tự)</label>
-            <input id="n-slug" class="cv-input" maxlength="80" placeholder="black-friday-2026" name="n-slug" [(ngModel)]="newSlug" />
-          </div>
-        </div>
-        <button type="button" class="cv-btn cv-btn--primary" (click)="createLanding()">Tạo từ mẫu có sẵn</button>
-        <span class="cv-hint">Mẫu gồm 5 khối như trang chủ, đều đang tắt.</span>
-      </section>
-      @if (error()) {
-        <p class="cv-alert" role="alert">{{ error() }}</p>
-      }
-      @if (landings().length === 0) {
-        <div class="cv-empty"><strong>Chưa có landing page nào</strong><p>Tạo landing page bằng ô phía trên.</p></div>
-      } @else {
-        <div class="cv-table-wrap">
-          <table class="cv-table">
-            <thead>
-              <tr><th scope="col">Tên</th><th scope="col">Đường dẫn</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr>
-            </thead>
-            <tbody>
-              @for (l of landings(); track l.slug) {
-                <tr>
-                  <td>{{ l.name }}</td>
-                  <td>/lp/{{ l.slug }}</td>
-                  <td>{{ STATUS[l.status] }}</td>
-                  <td class="row-actions">
-                    <a class="cv-btn" [routerLink]="['lp', l.slug]">Sửa</a>
-                    <button type="button" class="cv-btn" (click)="toggleLanding(l)">{{ l.status === 'HIDDEN' ? 'Hiển thị lại' : 'Ẩn' }}</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    } @else {
-    @if (slug) {
-      <section class="cv-card block">
-        <div class="cv-field">
-          <label for="lp-name">Tên landing page (5–100 ký tự)</label>
-          <input id="lp-name" class="cv-input" maxlength="100" name="lp-name" [(ngModel)]="lpName" />
-        </div>
-        <div class="cols">
-          <div class="cv-field">
-            <label for="lp-seo">SEO title (tối đa 60 ký tự)</label>
-            <input id="lp-seo" class="cv-input" maxlength="60" name="lp-seo" [(ngModel)]="lpSeoTitle" />
-          </div>
-          <div class="cv-field">
-            <label for="lp-meta">Meta description (tối đa 160 ký tự)</label>
-            <input id="lp-meta" class="cv-input" maxlength="160" name="lp-meta" [(ngModel)]="lpMeta" />
-          </div>
-        </div>
-      </section>
+    @if (message()) {
+      <p class="cv-card notice" role="status">{{ message() }}</p>
     }
-    @if (editsBlocks) {
-      @for (b of blocks(); track b.type; let i = $index) {
-        <section class="cv-card block" [attr.aria-labelledby]="'bt-' + i">
-          <header class="block-head">
-            <h2 [id]="'bt-' + i">
-              {{ LABEL[b.type] }}
-              @if (!b.enabled) {
-                <span class="block-off">· đang ẩn, bật "Hiển thị" để chỉnh nội dung</span>
-              }
-            </h2>
-            <label class="inline">
-              <input type="checkbox" [name]="'on' + i" [(ngModel)]="b.enabled" />
-              Hiển thị
-            </label>
-            <span class="move">
-              <button type="button" class="cv-btn" [disabled]="i === 0" (click)="move(i, -1)" [attr.aria-label]="'Đưa ' + LABEL[b.type] + ' lên'">▲</button>
-              <button type="button" class="cv-btn" [disabled]="i === blocks().length - 1" (click)="move(i, 1)" [attr.aria-label]="'Đưa ' + LABEL[b.type] + ' xuống'">▼</button>
-            </span>
-          </header>
+    @if (error() && !publishOpen()) {
+      <p class="cv-alert" role="alert">{{ error() }}</p>
+    }
 
-          @if (b.enabled) {
-            <div class="cv-field">
-              <label [for]="'t' + i">Tiêu đề khối (2–80 ký tự)</label>
-              <input [id]="'t' + i" class="cv-input" maxlength="80" [name]="'t' + i" [(ngModel)]="b.title" />
-            </div>
-
-            @switch (b.type) {
-              @case ('BRAND_INTRO') {
-                <div class="cv-field">
-                  <label [for]="'x' + i">Nội dung (tối đa 2.000 ký tự)</label>
-                  <textarea [id]="'x' + i" class="cv-input" rows="4" maxlength="2000" [name]="'x' + i" [(ngModel)]="b.text"></textarea>
-                </div>
-                <div class="cols">
-                  <div class="cv-field">
-                    <label [for]="'im' + i">Ảnh (JPG, PNG, WEBP, tối đa 2 MB)</label>
-                    <input [id]="'im' + i" type="file" accept="image/jpeg,image/png,image/webp" (change)="pickImage(b, $event)" />
-                    @if (b.imageUrl) {
-                      <img class="pic" [src]="b.imageUrl" [alt]="b.imageAlt" />
-                    }
-                  </div>
-                  <div class="cv-field">
-                    <label [for]="'al' + i">Văn bản thay thế (5–100 ký tự)</label>
-                    <input [id]="'al' + i" class="cv-input" maxlength="100" [name]="'al' + i" [(ngModel)]="b.imageAlt" />
-                  </div>
-                </div>
-                <div class="cols">
-                  <div class="cv-field">
-                    <label [for]="'cl' + i">Nút (nhãn)</label>
-                    <input [id]="'cl' + i" class="cv-input" maxlength="30" [name]="'cl' + i" [(ngModel)]="b.ctaLabel" />
-                  </div>
-                  <div class="cv-field">
-                    <label [for]="'cu' + i">Liên kết nút</label>
-                    <input [id]="'cu' + i" class="cv-input" maxlength="500" placeholder="/products hoặc https://…" [name]="'cu' + i" [(ngModel)]="b.ctaUrl" />
-                  </div>
-                </div>
-              }
-              @case ('FEATURED_PRODUCTS') {
-                <app-product-picker label="Sản phẩm nổi bật (4–12 sản phẩm đang kinh doanh)" [inputId]="'fp' + i" [(ids)]="b.productIds" />
-              }
-              @case ('COLLECTIONS') {
-                <fieldset class="checks">
-                  <legend>Collection (thứ tự chọn là thứ tự hiển thị; collection đang ẩn sẽ không hiện cho khách)</legend>
-                  @if (b.categoryIds.length && !b.collectionIds.length) {
-                    <p class="cv-alert cv-alert--warn">Khối này đang dùng danh mục (dữ liệu cũ). Chọn collection để thay; khi đăng lại cần ít nhất 1 collection.</p>
-                  }
-                  @for (c of collections(); track c.id) {
-                    <label class="inline">
-                      <input type="checkbox" [checked]="b.collectionIds.includes(c.id)" (change)="toggleId(b.collectionIds, c.id)" />
-                      {{ c.name }}
-                      @if (c.status === 'HIDDEN') {
-                        <span class="cv-muted">(đang ẩn)</span>
-                      }
-                      <strong>{{ rank(b.collectionIds, c.id) }}</strong>
-                    </label>
-                  } @empty {
-                    <p class="cv-muted">Chưa có collection nào. Tạo ở mục Collection.</p>
-                  }
-                </fieldset>
-              }
-              @case ('PROMOTION') {
-                <fieldset class="checks">
-                  <legend>Chương trình khuyến mãi (chỉ chương trình đang diễn ra mới hiện)</legend>
-                  @for (p of promotions(); track p.id) {
-                    <label class="inline">
-                      <input type="checkbox" [checked]="b.promotionIds.includes(p.id)" (change)="toggleId(b.promotionIds, p.id)" />
-                      {{ p.code }} · {{ p.name }}
-                    </label>
-                  }
-                </fieldset>
-              }
-              @case ('LATEST_ARTICLES') {
-                <p class="cv-muted">Tự lấy 4 bài viết đã đăng mới nhất.</p>
-              }
-            }
-          }
-        </section>
-      }
-    } @else {
+    <div class="ed-grid">
+    <div class="ed-form">
       <section class="cv-card block">
-        <label class="inline">
-          <input type="checkbox" name="bar-on" [(ngModel)]="bar.enabled" />
-          Hiển thị thanh thông báo
+        <label class="ed-switch">
+          <input type="checkbox" role="switch" name="bar-on" [(ngModel)]="bar.enabled" />
+          <span class="ed-switch-track" aria-hidden="true"></span>
+          <span class="ed-switch-label">{{ bar.enabled ? 'Đang bật thanh thông báo' : 'Thanh thông báo đang tắt' }}</span>
         </label>
         <div class="cv-field">
           <label for="bar-text">Nội dung (5–120 ký tự)</label>
@@ -216,28 +61,19 @@
           </div>
         </div>
       </section>
-    }
 
-    @if (error()) {
-      <p class="cv-alert" role="alert">{{ error() }}</p>
-    }
-    @if (message()) {
-      <p class="cv-card notice" role="status">{{ message() }}</p>
-    }
-
-    <div class="bar">
-      <div class="cv-field when">
-        <label for="at">Giờ đăng (cho "Lên lịch", sau hiện tại ít nhất 5 phút)</label>
-        <input id="at" class="cv-input" type="datetime-local" name="at" [(ngModel)]="publishAt" />
-      </div>
-      <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('DRAFT')">Lưu nháp</button>
-      <button type="button" class="cv-btn" [disabled]="saving()" (click)="save('SCHEDULE')">Lên lịch đăng</button>
-      <button type="button" class="cv-btn cv-btn--primary" [disabled]="saving()" (click)="save('PUBLISH')">
-        {{ saving() ? 'Đang lưu…' : 'Đăng ngay' }}
-      </button>
     </div>
-
-    <section class="cv-card block history" aria-labelledby="hist">
+    <aside class="ed-side" aria-label="Xem trước và lịch sử">
+      <section class="cv-card ed-preview" aria-labelledby="pv">
+        <h2 id="pv" class="cv-section-label">Xem trước</h2>
+        <div class="ed-frame" aria-hidden="true">
+          <div class="ed-frame-top ed-frame-top--bar" [class.ed-frame-top--off]="!bar.enabled">
+            <span>{{ bar.text || 'Nội dung thanh thông báo' }}</span>
+          </div>
+          <p class="ed-frame-empty">{{ bar.enabled ? 'Thanh nằm trên cùng mọi trang của khách.' : 'Đang tắt: khách không thấy thanh này.' }}</p>
+        </div>
+      </section>
+    <section class="cv-card history" aria-labelledby="hist">
       <h2 id="hist">Lịch sử phiên bản (10 bản gần nhất)</h2>
       @if (versions().length === 0) {
         <p class="cv-muted">Chưa có phiên bản nào. Mỗi lần đăng hoặc lên lịch sẽ lưu một phiên bản.</p>
@@ -252,6 +88,16 @@
         </ul>
       }
     </section>
-    }
+    </aside>
+    </div>
   }
+@if (publishOpen()) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Thanh thông báo', name: bar.text || 'Thanh thông báo', note: bar.linkUrl ? 'Liên kết: ' + bar.linkUrl : '' }"
+    [busy]="saving()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="closePublish()"
+  />
+}
 </main>

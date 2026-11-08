@@ -67,60 +67,78 @@
         </p>
       }
 
-      @if (loaded) {
-        <fieldset class="imgs">
-          <legend>Ảnh không gian ({{ images().length }}/{{ MAX_IMAGES }})</legend>
+      <fieldset class="imgs">
+          <legend>Ảnh chính</legend>
           <p class="cv-hint">
-            JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px. "Ảnh đại diện" hiện ở slider trang chủ.
+            1 ảnh, khung 16:7. Hiện ở slider trang chủ và làm ảnh bìa trang collection; điểm sản phẩm của trang chủ lấy từ ảnh này. Ảnh chính không xuất hiện lại trong ảnh phụ.
           </p>
-          @for (img of images(); track $index; let i = $index, first = $first, last = $last) {
-            <div class="img cv-card">
-              <div class="img__row">
-                <img class="img__thumb" [src]="img.url" alt="" />
-                <div class="img__fields">
-                  <div class="cv-field">
-                    <label [for]="'it-' + i">Tiêu đề ảnh</label>
-                    <input class="cv-input" [id]="'it-' + i" maxlength="120" [value]="img.title" (input)="patchImage(i, { title: $any($event.target).value })" />
-                  </div>
-                  <div class="cv-field">
-                    <label [for]="'id-' + i">Mô tả ảnh</label>
-                    <input class="cv-input" [id]="'id-' + i" maxlength="500" [value]="img.description" (input)="patchImage(i, { description: $any($event.target).value })" />
-                  </div>
-                  <label class="thumb-pick">
-                    <input type="radio" name="thumbnail" [checked]="img.isThumbnail" (change)="setThumbnail(i)" />
-                    Ảnh đại diện
-                  </label>
-                </div>
-              </div>
-              <div class="img__btns">
-                <button type="button" class="cv-btn" [attr.aria-expanded]="editing() === i" (click)="editing.set(editing() === i ? null : i)">
-                  {{ editing() === i ? 'Đóng đặt điểm' : 'Đặt điểm sản phẩm (' + img.hotspots.length + ')' }}
-                </button>
-                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh lên trước" [disabled]="first" (click)="moveImage(i, -1)">↑</button>
-                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh ra sau" [disabled]="last" (click)="moveImage(i, 1)">↓</button>
-                <button type="button" class="cv-btn cv-btn--danger" (click)="removeImage(i)">Xóa ảnh</button>
-              </div>
-              @if (editing() === i) {
-                <app-hotspot-editor
-                  [inputId]="'hs-' + i"
-                  [image]="img"
-                  (imageChange)="patchImage(i, { hotspots: $event.hotspots })"
-                  [products]="productOptions()"
-                />
-              }
-            </div>
-          }
-          @if (images().length < MAX_IMAGES) {
+          @if (mainIndex() >= 0) {
+            <ng-container *ngTemplateOutlet="card; context: { i: mainIndex(), main: true }" />
+          } @else {
             <label class="drop" [class.drop--off]="uploading()">
-              <input class="file" type="file" multiple accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event)" />
-              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh' }}</strong>
+              <input class="file" type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event, 'main')" />
+              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh chính' }}</strong>
             </label>
           }
         </fieldset>
-      }
+
+        <fieldset class="imgs">
+          <legend>Ảnh phụ ({{ subIndexes().length }}/{{ MAX_SUB }})</legend>
+          <p class="cv-hint">
+            Tối đa {{ MAX_SUB }} ảnh, khung 2:3, hiện ở lưới bên dưới trang collection. JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.
+          </p>
+          @for (i of subIndexes(); track i; let first = $first, last = $last) {
+            <ng-container *ngTemplateOutlet="card; context: { i: i, main: false, first: first, last: last }" />
+          }
+          @if (subIndexes().length < MAX_SUB) {
+            <label class="drop" [class.drop--off]="uploading()">
+              <input class="file" type="file" multiple accept="image/jpeg,image/png,image/webp" [disabled]="uploading()" (change)="upload($event, 'sub')" />
+              <strong>{{ uploading() ? 'Đang tải ảnh…' : '+ Thêm ảnh phụ' }}</strong>
+            </label>
+          }
+        </fieldset>
+
+        <ng-template #card let-i="i" let-main="main" let-first="first" let-last="last">
+          @let img = images()[i]!;
+          <div class="img cv-card" [class.img--main]="main">
+            <div class="img__row">
+              <img class="img__thumb" [src]="img.url" alt="" />
+              <div class="img__fields">
+                <div class="cv-field">
+                  <label [for]="'it-' + i">Tiêu đề ảnh</label>
+                  <input class="cv-input" [id]="'it-' + i" maxlength="120" [value]="img.title" (input)="patchImage(i, { title: $any($event.target).value })" />
+                </div>
+                <div class="cv-field">
+                  <label [for]="'id-' + i">Mô tả ảnh</label>
+                  <input class="cv-input" [id]="'id-' + i" maxlength="500" [value]="img.description" (input)="patchImage(i, { description: $any($event.target).value })" />
+                </div>
+              </div>
+            </div>
+            <div class="img__btns">
+              <button type="button" class="cv-btn" [class.cv-btn--primary]="main" [attr.aria-expanded]="editing() === i" (click)="editing.set(editing() === i ? null : i)">
+                {{ editing() === i ? 'Đóng đặt điểm' : 'Đặt điểm sản phẩm (' + img.hotspots.length + ')' }}
+              </button>
+              @if (!main) {
+                <button type="button" class="cv-btn" (click)="setThumbnail(i)">Đặt làm ảnh chính</button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh lên trước" [disabled]="first" (click)="moveSub(i, -1)">↑</button>
+                <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa ảnh ra sau" [disabled]="last" (click)="moveSub(i, 1)">↓</button>
+              }
+              <button type="button" class="cv-btn cv-btn--danger" (click)="removeImage(i)">Xóa ảnh</button>
+            </div>
+            @if (editing() === i) {
+              <app-hotspot-editor
+                [inputId]="'hs-' + i"
+                [image]="img"
+                [cropRatio]="main ? 16 / 7 : 2 / 3"
+                (imageChange)="patchImage(i, { hotspots: $event.hotspots })"
+                [products]="productOptions()"
+              />
+            }
+          </div>
+        </ng-template>
 
       @if (!loaded) {
-        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Lưu xong bạn thêm ảnh ở màn tiếp theo, rồi bấm "Hiển thị" ở danh sách.</p>
+        <p class="cv-muted">Collection mới được lưu ở trạng thái Ẩn. Cần ít nhất 1 ảnh và 1 sản phẩm, rồi bấm "Hiển thị" ở danh sách để khách thấy.</p>
       }
 
       <div class="cv-actions-bar">

@@ -7,7 +7,7 @@ import type { Banner, BannerPosition } from '../models/banner.model';
 import type { Category, CategoryType } from '../models/category.model';
 import type { Job, JobListQuery, JobListResult } from '../models/career.model';
 import type { CollectionDetail, CollectionSummary } from '../models/collection.model';
-import type { AnnouncementBar, ContentBlock, LandingPage } from '../models/content.model';
+import type { AnnouncementBar, ContentBlock } from '../models/content.model';
 import type { InspirationDetail, InspirationSummary } from '../models/inspiration.model';
 import type {
   ProductDetail,
@@ -40,23 +40,10 @@ export class CatalogApiService {
   }
 
   /** Thanh thông báo đầu trang; `null` khi tắt hoặc ngoài thời gian hiển thị. */
-  getAnnouncementBar(): Observable<AnnouncementBar | null> {
+  /** Các thông báo đang hiển thị, theo thứ tự admin sắp xếp. */
+  getAnnouncements(): Observable<AnnouncementBar[]> {
     return this.http
-      .get<ApiResponse<AnnouncementBar | null>>(`${API_BASE}/content/announcement-bar`)
-      .pipe(map((r) => r.data));
-  }
-
-  /** Các khối nội dung trang chủ do Marketing soạn (đã bỏ khối tắt / rỗng). */
-  getHomeContent(): Observable<ContentBlock[]> {
-    return this.http
-      .get<ApiResponse<{ blocks: ContentBlock[] }>>(`${API_BASE}/content/home`)
-      .pipe(map((r) => r.data.blocks));
-  }
-
-  /** Landing page; 404 khi ẩn, chưa đăng hoặc không tồn tại. */
-  getLandingPage(slug: string): Observable<LandingPage> {
-    return this.http
-      .get<ApiResponse<LandingPage>>(`${API_BASE}/content/lp/${encodeURIComponent(slug)}`)
+      .get<ApiResponse<AnnouncementBar[]>>(`${API_BASE}/content/announcements`)
       .pipe(map((r) => r.data));
   }
 

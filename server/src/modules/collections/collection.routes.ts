@@ -6,12 +6,14 @@ import { ProductModel } from '../products/product.model.js';
 import { buildListItems } from '../products/product.service.js';
 import { CollectionModel } from './collection.model.js';
 
+const liveNow = () => ({ status: 'VISIBLE' as const, $or: [{ publishAt: null }, { publishAt: { $lte: new Date() } }] });
+
 export const collectionRoutes = Router();
 
 collectionRoutes.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const collections = await CollectionModel.find({ status: 'VISIBLE' })
+    const collections = await CollectionModel.find(liveNow())
       .sort({ displayOrder: 1 })
       .lean();
 
@@ -60,7 +62,7 @@ collectionRoutes.get(
   asyncHandler(async (req, res) => {
     const collection = await CollectionModel.findOne({
       slug: String(req.params['slug']),
-      status: 'VISIBLE',
+      ...liveNow(),
     }).lean();
     if (!collection) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy bộ sưu tập');
 
@@ -83,7 +85,10 @@ collectionRoutes.get(
       .filter((item) => rank.has(item.id))
       .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
 
-    const images = [...collection.images].sort((a, b) => a.displayOrder - b.displayOrder);
+    // Ảnh chính (ảnh đại diện) đứng đầu: làm ảnh bìa; các ảnh sau là ảnh phụ.
+    const images = [...collection.images].sort(
+      (a, b) => Number(b.isThumbnail) - Number(a.isThumbnail) || a.displayOrder - b.displayOrder,
+    );
 
     sendData(res, {
       id: collection._id.toString(),

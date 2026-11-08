@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
+  computed,
   effect,
   inject,
   input,
@@ -10,7 +12,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { CatalogApiService, type Category, type ProductListItem } from 'shared';
+import { CatalogApiService, type AnnouncementBar, type Category, type ProductListItem } from 'shared';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { catchError, debounceTime, distinctUntilChanged, filter, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../../services/auth/auth.service';
@@ -24,6 +26,8 @@ import { VndPipe } from '../../shared/pipes/vnd.pipe';
 
 /** Cuộn quá ngưỡng này (px) thì header đổi sang nền trắng. */
 const SCROLL_THRESHOLD = 24;
+/** Thời gian mỗi thông báo hiển thị trước khi sang thông báo kế tiếp. */
+const ANNOUNCEMENT_INTERVAL_MS = 5000;
 
 @Component({
   selector: 'app-header',
@@ -51,10 +55,21 @@ export class HeaderComponent {
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
 
-  protected readonly announcement = toSignal(
-    this.api.getAnnouncementBar().pipe(catchError(() => of(null))),
-    { initialValue: null },
+  /** Nhiều thông báo cùng đang chạy thì hiện lần lượt, mỗi thông báo vài giây. */
+  private readonly announcements = toSignal(
+    this.api.getAnnouncements().pipe(catchError(() => of<AnnouncementBar[]>([]))),
+    { initialValue: [] as AnnouncementBar[] },
   );
+  private readonly announcementIndex = signal(0);
+  private announcementsPaused = false;
+  protected readonly announcement = computed(() => {
+    const list = this.announcements();
+    return list.length ? list[this.announcementIndex() % list.length]! : null;
+  });
+
+  protected pauseAnnouncements(paused: boolean): void {
+    this.announcementsPaused = paused;
+  }
 
   /** Nền trắng chữ đen ngay từ đầu, cho trang không có ảnh lớn đầu trang (giỏ hàng). */
   readonly solid = input(false);
@@ -116,6 +131,12 @@ export class HeaderComponent {
 
   constructor() {
     this.cart.ensureLoaded();
+
+    // Chuyển sang thông báo kế tiếp mỗi 5 giây (tạm dừng khi rê chuột vào để khách kịp đọc).
+    const rotation = setInterval(() => {
+      if (!this.announcementsPaused && this.announcements().length > 1) this.announcementIndex.update((i) => i + 1);
+    }, ANNOUNCEMENT_INTERVAL_MS);
+    inject(DestroyRef).onDestroy(() => clearInterval(rotation));
 
     // Có yêu cầu mở tìm kiếm (từ header hoặc nút nổi ở chân trang): thu menu, đưa con trỏ vào ô.
     effect(() => {

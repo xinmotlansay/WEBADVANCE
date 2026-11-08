@@ -34,6 +34,7 @@ export const layoutSchema = z.object({
         productId: objectId,
         x: z.number().finite(),
         z: z.number().finite(),
+        y: z.number().finite().min(0).max(5).default(0),
         rotationY: z.number().finite().min(0).max(360),
       }),
     )

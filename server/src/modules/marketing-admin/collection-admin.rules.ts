@@ -5,7 +5,8 @@ import { AppError } from '../../utils/app-error.js';
 /** Quy tắc MA-07 (Collection). Hàm thuần để test không cần DB. */
 
 export const MAX_PRODUCTS = 100;
-export const MAX_IMAGES = 10;
+/** 1 ảnh chính + 3 ảnh phụ. */
+export const MAX_IMAGES = 4;
 export const MAX_HOTSPOTS = 8;
 export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 export const MIN_IMAGE_SIDE = 800;

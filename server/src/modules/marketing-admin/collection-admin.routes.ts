@@ -24,6 +24,7 @@ import {
   uploadAdminImage,
   type ListQuery,
 } from './collection-admin.service.js';
+import { checkPublishAt, publishAtBodySchema } from './schedule.service.js';
 
 /** `/api/v1/admin/marketing/collections`: quyền đã kiểm ở router cha. */
 export const collectionAdminRoutes = Router();
@@ -90,5 +91,9 @@ collectionAdminRoutes.post(
 );
 collectionAdminRoutes.post(
   '/:id/show',
-  asyncHandler(async (req, res) => sendData(res, await setHidden(actor(res), id(req.params), false))),
+  validateBody(publishAtBodySchema),
+  asyncHandler(async (req, res) => {
+    const { publishAt } = res.locals['body'] as { publishAt?: string };
+    sendData(res, await setHidden(actor(res), id(req.params), false, checkPublishAt(publishAt)));
+  }),
 );

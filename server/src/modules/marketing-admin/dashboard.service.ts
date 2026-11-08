@@ -13,7 +13,6 @@ import {
   type Summary,
 } from './dashboard.rules.js';
 import { bannerStatus, promotionStatus, voucherStatus } from './effective-status.js';
-import { homeWarnings } from './content-admin.service.js';
 import { analyze } from './promotion-admin.service.js';
 import { warnFlags } from './voucher-admin.rules.js';
 
@@ -146,7 +145,6 @@ export async function getDashboard(q: DashboardQuery, now = new Date()) {
     }
   }
 
-  attention.push(...(await homeWarnings()));
 
   // Voucher chiến dịch ML (ASSIGNED) không có trong `vouchers` nhưng vẫn có thể lọt Top 5.
   const assigned = await VoucherModel.find(

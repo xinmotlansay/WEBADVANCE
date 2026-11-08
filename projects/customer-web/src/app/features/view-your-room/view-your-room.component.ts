@@ -198,8 +198,10 @@ export class ViewYourRoomComponent implements AfterViewInit {
       priceFrom: detail.priceFrom,
       model3DUrl: detail.model3DUrl,
       dimensions: detail.dimensions,
+      placement: detail.placement ?? 'FLOOR',
       x: 0,
       z: 0,
+      y: 0,
       rotationY: 0,
     };
     const spot = await this.scene.findFreeSpot(draft);
@@ -208,7 +210,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
       return;
     }
 
-    const placed: PlacedItem = { ...draft, x: spot.x, z: spot.z };
+    const placed: PlacedItem = { ...draft, x: spot.x, z: spot.z, y: spot.y, rotationY: spot.rotationY };
     this.record();
     this.items.update((list) => [...list, placed]);
     this.selectedUid.set(placed.uid);
@@ -504,7 +506,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
     }
   }
 
-  private updateItem(uid: string, patch: Partial<Pick<PlacedItem, 'x' | 'z' | 'rotationY'>>): void {
+  private updateItem(uid: string, patch: Partial<Pick<PlacedItem, 'x' | 'z' | 'y' | 'rotationY'>>): void {
     this.record();
     this.items.update((list) =>
       list.map((item) => (item.uid === uid ? { ...item, ...patch } : item)),

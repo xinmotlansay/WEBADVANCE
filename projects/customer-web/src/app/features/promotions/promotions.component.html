@@ -8,17 +8,10 @@
 
 @if (flashSale(); as sale) {
   <section class="hero" [attr.aria-label]="sale.promotion.name">
-    <h1 class="hero__title">
-      <span class="hero__flash"><app-icon name="lucide:zap" [size]="40" /> FLASH SALE</span>
-      HÔM NAY
-    </h1>
-    <p class="hero__sub">
-      @if (maxDiscount() > 0) {
-        Ưu đãi lên tới {{ maxDiscount() }}% cho các sản phẩm nội thất cao cấp - Nhanh tay kẻo lỡ
-      } @else {
-        {{ sale.promotion.name }} - Nhanh tay kẻo lỡ
-      }
-    </p>
+    <h1 class="hero__name">{{ sale.promotion.name }}</h1>
+    @if (sale.promotion.description) {
+      <p class="hero__desc">{{ sale.promotion.description }}</p>
+    }
     <app-countdown size="large" [endDate]="sale.promotion.endDate" />
   </section>
 }

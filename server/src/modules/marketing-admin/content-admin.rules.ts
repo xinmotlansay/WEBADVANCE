@@ -5,16 +5,11 @@ import { isValidLink } from './banner-admin.rules.js';
 
 /** Quy tắc FR-MKT_AD-015 (trang chủ, thanh thông báo). Hàm thuần để test không cần DB. */
 
-export const BLOCK_TYPES: HomeBlockType[] = ['BRAND_INTRO', 'FEATURED_PRODUCTS', 'COLLECTIONS', 'PROMOTION', 'LATEST_ARTICLES'];
+export const BLOCK_TYPES: HomeBlockType[] = ['COLLECTIONS', 'PROMOTION'];
 export const BLOCK_LABEL: Record<HomeBlockType, string> = {
-  BRAND_INTRO: 'Giới thiệu thương hiệu',
-  FEATURED_PRODUCTS: 'Sản phẩm nổi bật',
-  COLLECTIONS: 'Bộ sưu tập',
+  COLLECTIONS: 'Collection',
   PROMOTION: 'Khuyến mãi',
-  LATEST_ARTICLES: 'Bài viết mới',
 };
-export const MIN_FEATURED = 4;
-export const MAX_FEATURED = 12;
 export const SCHEDULE_LEAD_MS = 5 * 60_000;
 
 const err = (code: string, message: string, status = 400) => new AppError(code, status, message);
@@ -33,7 +28,12 @@ const blockSchema = z.object({
   collectionIds: z.array(z.string()).max(20).default([]),
   promotionIds: z.array(z.string()).max(20).default([]),
 });
-export const homeSchema = z.object({ blocks: z.array(blockSchema).max(BLOCK_TYPES.length) });
+/** Bản lưu cũ có thể còn khối không còn trên trang chủ (giới thiệu, nổi bật, bài viết): bỏ qua. */
+const dropLegacy = (raw: unknown) =>
+  raw && typeof raw === 'object' && Array.isArray((raw as { blocks?: unknown }).blocks)
+    ? { ...raw, blocks: (raw as { blocks: { type?: unknown }[] }).blocks.filter((b) => BLOCK_TYPES.includes(b?.type as HomeBlockType)) }
+    : raw;
+export const homeSchema = z.preprocess(dropLegacy, z.object({ blocks: z.array(blockSchema).max(BLOCK_TYPES.length) }));
 export const barSchema = z.object({
   enabled: z.boolean().default(false),
   text: z.string().trim().max(120).default(''),
@@ -59,10 +59,10 @@ export const defaultData = (key: ContentKey): ContentData =>
     ? { blocks: BLOCK_TYPES.map(emptyBlock) }
     : { enabled: false, text: '', linkUrl: '', startAt: '', endAt: '' };
 
-/** Đảm bảo đủ 5 khối, mỗi loại đúng một lần; khối thiếu thêm vào cuối ở trạng thái tắt. */
+/** Đảm bảo đủ các khối của trang chủ, mỗi loại đúng một lần; khối thiếu thêm vào cuối ở trạng thái tắt. */
 export function normalizeHome(d: HomeData): HomeData {
   const seen = new Set<HomeBlockType>();
-  const blocks = d.blocks.filter((b) => !seen.has(b.type) && seen.add(b.type));
+  const blocks = d.blocks.filter((b) => BLOCK_TYPES.includes(b.type) && !seen.has(b.type) && seen.add(b.type));
   return { blocks: [...blocks, ...BLOCK_TYPES.filter((t) => !seen.has(t)).map(emptyBlock)] };
 }
 
@@ -101,8 +101,8 @@ export function cleanText(key: ContentKey, d: ContentData): { data: ContentData;
   return { data, warning: changed ? 'Một số mã HTML không được phép đã bị loại bỏ khỏi nội dung.' : null };
 }
 
-/** Kiểm tra khi Đăng ngay / Lên lịch. `activeProducts` = số sản phẩm Đang kinh doanh trong khối nổi bật. */
-export function checkPublishable(key: ContentKey, d: ContentData, activeProducts = 0): void {
+/** Kiểm tra khi Đăng ngay / Lên lịch. */
+export function checkPublishable(key: ContentKey, d: ContentData): void {
   if (key === 'ANNOUNCEMENT_BAR') {
     const b = d as BarData;
     if (!b.enabled) return;
@@ -119,15 +119,12 @@ export function checkPublishable(key: ContentKey, d: ContentData, activeProducts
     range(`Tiêu đề khối ${label}`, b.title, 2, 80);
     if (b.imageUrl) range('Văn bản thay thế của ảnh', b.imageAlt, 5, 100);
     if (b.ctaUrl && !isValidLink(b.ctaUrl)) throw err('E-MKT-015-01', `Liên kết nút của khối ${label} phải bắt đầu bằng "/" hoặc "https://".`);
-    if (b.type === 'FEATURED_PRODUCTS' && (b.productIds.length > MAX_FEATURED || activeProducts < MIN_FEATURED)) {
-      throw err('E-MKT-015-03', 'Khối Sản phẩm nổi bật cần từ 4 đến 12 sản phẩm đang kinh doanh.');
-    }
-    if (b.type === 'COLLECTIONS' && !b.collectionIds?.length) throw err('E-MKT-015-01', 'Khối Bộ sưu tập cần chọn ít nhất 1 collection.');
+    if (b.type === 'COLLECTIONS' && !b.collectionIds?.length) throw err('E-MKT-015-01', 'Khối Collection cần chọn ít nhất 1 collection.');
     if (b.type === 'PROMOTION' && !b.promotionIds.length) throw err('E-MKT-015-01', 'Khối Khuyến mãi cần chọn ít nhất 1 chương trình.');
   }
 }
 
-/** Tile của khối Bộ sưu tập: ảnh đại diện (không chọn → ảnh đầu theo thứ tự), link trang collection. */
+/** Tile của khối Collection: ảnh đại diện (không chọn → ảnh đầu theo thứ tự), link trang collection. */
 export function collectionTile(c: { _id: unknown; name: string; slug: string; images: { url: string; isThumbnail: boolean; displayOrder: number }[] }) {
   const images = [...c.images].sort((a, b) => a.displayOrder - b.displayOrder);
   const thumb = images.find((i) => i.isThumbnail) ?? images[0];
@@ -148,9 +145,6 @@ export const barVisible = (b: BarData | null, now = new Date()): boolean =>
   !!b.text &&
   (!b.startAt || new Date(b.startAt) <= now) &&
   (!b.endAt || new Date(b.endAt) > now);
-
-/** Khối nổi bật chỉ hiện khi còn đủ sản phẩm đang kinh doanh. */
-export const featuredVisible = (activeCount: number): boolean => activeCount >= MIN_FEATURED;
 
 // ---- Landing page và lịch sử phiên bản (M13) ----
 

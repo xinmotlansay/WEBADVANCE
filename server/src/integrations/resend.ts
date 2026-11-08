@@ -192,3 +192,43 @@ export async function sendAdminInviteEmail(
     throw new AppError('EMAIL_SEND_FAILED', 502, 'Không gửi được email đặt mật khẩu, vui lòng thử lại sau');
   }
 }
+
+/** Email tặng mã giảm giá khách mới sau khi hoàn thiện hồ sơ. Dev chưa có Resend thì ghi log. */
+export async function sendWelcomeVoucherEmail(
+  to: string,
+  fullName: string,
+  code: string,
+  confirmUrl: string,
+): Promise<boolean> {
+  if (!config.resendApiKey) {
+    logger.warn({ to, voucher: code, confirmUrl }, 'Email mã khách mới (dev, chưa cấu hình Resend)');
+    return true;
+  }
+  const response = await getClient().emails.send({
+    from: config.otpEmailFrom,
+    to,
+    subject: `Quà chào mừng từ CaraVeso: mã ${code} giảm 10%`,
+    html: `
+      <div style="margin:0;padding:32px 16px;background:#f5f3ef;font-family:Arial,Helvetica,sans-serif">
+        <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
+          <h2 style="margin:0 0 16px;color:#0e2a47;font-size:22px">CaraVeso</h2>
+          <p style="margin:0 0 8px;color:#374151;font-size:15px">Xin chào ${escapeHtml(fullName)},</p>
+          <p style="margin:0 0 20px;color:#374151;font-size:15px">
+            Cảm ơn bạn đã hoàn thiện hồ sơ. Bấm nút dưới đây để nhận mã ưu đãi <strong>giảm 10%</strong>
+            cho đơn hàng đầu tiên (mã ${escapeHtml(code)}) vào Ví voucher của bạn.
+          </p>
+          <p style="margin:0 0 20px;text-align:center">
+            <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;border-radius:6px;background:#0b3056;color:#ffffff;text-decoration:none;font-weight:600">Xác nhận và nhận voucher</a>
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:13px">Liên kết có hiệu lực 30 ngày. Hãy đăng nhập đúng tài khoản đã nhận email này.</p>
+        </div>
+      </div>
+    `,
+  });
+  if (response.error) {
+    logger.error({ err: response.error, to }, 'Resend từ chối gửi email mã khách mới');
+    return false;
+  }
+  logger.info({ to, emailId: response.data?.id }, 'Đã gửi email mã khách mới');
+  return true;
+}

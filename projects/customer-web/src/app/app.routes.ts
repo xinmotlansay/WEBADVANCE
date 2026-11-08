@@ -20,6 +20,21 @@ export const routes: Routes = [
     loadChildren: () => import('./features/home/home.routes').then((m) => m.HOME_ROUTES),
   },
   {
+    path: 'welcome-offer',
+    data: { layout: 'solid' },
+    title: 'Ưu đãi 10% cho khách hàng mới | CaraVeso',
+    loadComponent: () =>
+      import('./features/welcome-offer/welcome-offer.component').then((m) => m.WelcomeOfferComponent),
+  },
+  {
+    path: 'welcome-offer/confirm',
+    data: { layout: 'solid' },
+    canActivate: [authGuard],
+    title: 'Xác nhận ưu đãi khách mới | CaraVeso',
+    loadComponent: () =>
+      import('./features/welcome-offer/welcome-offer-confirm.component').then((m) => m.WelcomeOfferConfirmComponent),
+  },
+  {
     path: 'promotions',
     loadChildren: () =>
       import('./features/promotions/promotions.routes').then((m) => m.PROMOTIONS_ROUTES),
@@ -80,12 +95,6 @@ export const routes: Routes = [
     path: 'news',
     data: { layout: 'solid' },
     loadChildren: () => import('./features/news/news.routes').then((m) => m.NEWS_ROUTES),
-  },
-  {
-    // Landing page do Marketing soạn.
-    path: 'lp/:slug',
-    data: { layout: 'solid' },
-    loadComponent: () => import('./features/landing/landing.component').then((m) => m.LandingComponent),
   },
   // Các trang chưa làm (sản phẩm, tìm kiếm...) tạm đưa về trang chủ.
   { path: '**', redirectTo: '' },

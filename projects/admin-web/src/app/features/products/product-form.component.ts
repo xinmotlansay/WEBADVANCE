@@ -94,6 +94,7 @@ export class ProductFormComponent implements OnInit {
     seoTitle: ['', Validators.maxLength(70)],
     seoDescription: ['', Validators.maxLength(170)],
     model3d: [''],
+    placement: this.fb.control<'FLOOR' | 'WALL'>('FLOOR'),
     badgeNew: this.fb.control<'' | 'ON' | 'OFF'>(''),
     badgeBest: this.fb.control<'' | 'ON' | 'OFF'>(''),
     images: this.fb.control<string[]>([]),
@@ -435,6 +436,7 @@ export class ProductFormComponent implements OnInit {
       searchKeywords: product.searchKeywords,
       warrantyMonths: product.warrantyMonths,
       warrantyTerms: product.warrantyTerms,
+      placement: product.placement ?? 'FLOOR',
       seoTitle: product.seo.title,
       seoDescription: product.seo.description,
       model3d: product.media.find((m) => m.type === 'MODEL_3D')?.url ?? '',
@@ -459,6 +461,7 @@ export class ProductFormComponent implements OnInit {
       seo: { title: v.seoTitle.trim(), description: v.seoDescription.trim() },
       warrantyMonths: num(v.warrantyMonths),
       warrantyTerms: v.warrantyTerms.trim(),
+      placement: v.placement,
       parts: v.parts.map((p) => ({
         ...(p['id'] ? { id: p['id'] } : {}),
         name: String(p['name']).trim(),

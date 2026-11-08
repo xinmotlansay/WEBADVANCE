@@ -24,6 +24,7 @@ import {
   updateInspiration,
   type InspirationListQuery,
 } from './inspiration-admin.service.js';
+import { checkPublishAt, publishAtBodySchema } from './schedule.service.js';
 
 /** `/api/v1/admin/marketing/inspirations`: quyền đã kiểm ở router cha. */
 export const inspirationAdminRoutes = Router();
@@ -90,5 +91,9 @@ inspirationAdminRoutes.post(
 );
 inspirationAdminRoutes.post(
   '/:id/show',
-  asyncHandler(async (req, res) => sendData(res, await setInspirationHidden(actor(res), id(req.params), false))),
+  validateBody(publishAtBodySchema),
+  asyncHandler(async (req, res) => {
+    const { publishAt } = res.locals['body'] as { publishAt?: string };
+    sendData(res, await setInspirationHidden(actor(res), id(req.params), false, checkPublishAt(publishAt)));
+  }),
 );

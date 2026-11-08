@@ -1,0 +1,121 @@
+<section class="cv-card cal" aria-labelledby="cal-title">
+  <header class="cal-head">
+    <div>
+      <h2 id="cal-title">Bài đăng trong tháng</h2>
+      <p class="cv-muted">
+        <strong>{{ counts().published }}</strong> đã đăng · <strong>{{ counts().scheduled }}</strong> đã lên lịch
+        ({{ title() }})
+      </p>
+    </div>
+    <div class="cal-tools">
+      <div class="cal-nav">
+        <button type="button" class="cv-btn cv-btn--icon" aria-label="Tháng trước" (click)="shift(-1)">‹</button>
+        <strong class="cal-month">{{ title() }}</strong>
+        <button type="button" class="cv-btn cv-btn--icon" aria-label="Tháng sau" (click)="shift(1)">›</button>
+        <button type="button" class="cv-btn" (click)="today()">Hôm nay</button>
+      </div>
+      <div class="cv-segmented" role="group" aria-label="Kiểu xem">
+        <button type="button" [attr.aria-pressed]="view() === 'month'" (click)="view.set('month')">Tháng</button>
+        <button type="button" [attr.aria-pressed]="view() === 'list'" (click)="view.set('list')">Danh sách</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="cv-segmented" role="group" aria-label="Lọc theo trạng thái">
+    <button type="button" [attr.aria-pressed]="stateFilter() === 'ALL'" (click)="stateFilter.set('ALL')">Tất cả</button>
+    <button type="button" [attr.aria-pressed]="stateFilter() === 'PUBLISHED'" (click)="stateFilter.set('PUBLISHED')">Đã đăng</button>
+    <button type="button" [attr.aria-pressed]="stateFilter() === 'SCHEDULED'" (click)="stateFilter.set('SCHEDULED')">Đã lên lịch</button>
+  </div>
+
+  <div class="cal-filters" role="group" aria-label="Lọc theo loại">
+    @for (t of TYPES; track t) {
+      <button type="button" class="cal-filter" [class]="'cal-filter t-' + t" [class.cal-filter--off]="hidden().has(t)" [attr.aria-pressed]="!hidden().has(t)" (click)="toggleType(t)">
+        <span class="dot" aria-hidden="true"></span>{{ TYPE_LABEL[t] }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="cv-alert" role="alert">{{ error() }}</p>
+  }
+
+  <div class="cal-body" [attr.aria-busy]="loading()">
+    @if (view() === 'month') {
+      <div class="grid" role="grid" [attr.aria-label]="title()">
+        @for (d of WEEKDAYS; track d) {
+          <div class="dow" role="columnheader">{{ d }}</div>
+        }
+        @for (c of rows(); track c.key) {
+          <div class="day" role="gridcell" [class.day--out]="!c.inMonth" [class.day--today]="c.today">
+            <span class="num">{{ c.date.getDate() }}</span>
+            @for (e of c.events.slice(0, MAX_CHIPS); track e.key) {
+              <button type="button" [class]="'chip t-' + e.type" [class.chip--done]="e.state === 'PUBLISHED'" [class.chip--sel]="selected()?.key === e.key" (click)="select(e)">
+                @if (e.state === 'PUBLISHED') { <span aria-label="Đã đăng">✓</span> }<b>{{ e.at | date: 'HH:mm' }}</b> {{ e.title }}
+              </button>
+            }
+            @if (c.events.length > MAX_CHIPS) {
+              <span class="more">+{{ c.events.length - MAX_CHIPS }} mục nữa</span>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      @for (g of grouped(); track g.label) {
+        <h3 class="day-title">{{ g.label | date: 'EEEE, dd/MM/yyyy' }}</h3>
+        <ul class="list">
+          @for (e of g.events; track e.key) {
+            <li>
+              <button type="button" [class]="'row t-' + e.type" [class.row--sel]="selected()?.key === e.key" (click)="select(e)">
+                <span class="time">{{ e.at | date: 'HH:mm' }}</span>
+                @if (e.thumbnail) {
+                  <img [src]="e.thumbnail" alt="" />
+                }
+                <span class="info"><strong>{{ e.title }}</strong><small>{{ TYPE_LABEL[e.type] }}</small></span>
+                <span class="cv-badge" [class]="e.state === 'SCHEDULED' ? 'cv-badge cv-badge--info' : 'cv-badge cv-badge--success'">{{ e.state === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã đăng' }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @empty {
+        @if (!loading()) {
+          <div class="cv-empty"><strong>Chưa có bài đăng nào</strong><p>Bài đã đăng và bài đã lên lịch trong tháng sẽ hiện ở đây.</p></div>
+        }
+      }
+    }
+  </div>
+
+  @if (selected(); as e) {
+    <aside class="detail" aria-label="Chi tiết mục đã chọn">
+      @if (e.thumbnail) {
+        <img [src]="e.thumbnail" alt="" />
+      }
+      <div class="detail-info">
+        <span class="kind">{{ TYPE_LABEL[e.type] }}</span>
+        <strong>{{ e.title }}</strong>
+        <small>
+          {{ e.state === 'SCHEDULED' ? 'Sẽ đăng lúc' : 'Đã đăng lúc' }} {{ e.at | date: 'HH:mm dd/MM/yyyy' }}
+          @if (e.endAt) { · kết thúc {{ e.endAt | date: 'dd/MM/yyyy HH:mm' }} }
+        </small>
+      </div>
+      <div class="detail-actions">
+        <a class="cv-btn" [routerLink]="e.editPath">Mở để sửa</a>
+        @if (e.state === 'SCHEDULED') {
+          <button type="button" class="cv-btn" [disabled]="busy()" (click)="openReschedule(e)">Đổi giờ</button>
+          <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy()" (click)="cancel(e)">Hủy lịch</button>
+        }
+        <button type="button" class="cv-btn cv-btn--icon" aria-label="Đóng" (click)="selected.set(null)">✕</button>
+      </div>
+    </aside>
+  }
+</section>
+
+@if (rescheduling(); as e) {
+  <app-publish-dialog
+    [subject]="{ kind: TYPE_LABEL[e.type], name: e.title, thumbnail: e.thumbnail }"
+    [rescheduleOnly]="true"
+    [busy]="busy()"
+    [serverError]="dialogError()"
+    (confirmed)="confirmReschedule($event)"
+    (cancelled)="rescheduling.set(null)"
+  />
+}

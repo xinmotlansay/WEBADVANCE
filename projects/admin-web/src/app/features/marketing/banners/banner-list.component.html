@@ -4,13 +4,15 @@
     <a class="cv-btn cv-btn--primary" routerLink="tao-moi" [queryParams]="{ vi_tri: position() }">Thêm banner</a>
   </header>
 
-  <div class="cv-tabs" role="tablist" aria-label="Vị trí banner">
-    @for (p of POSITIONS; track p) {
-      <button type="button" role="tab" [attr.aria-selected]="position() === p" (click)="setPosition(p)">
-        {{ POSITION_LABEL[p] }}
-      </button>
-    }
-  </div>
+  @if (POSITIONS.length > 1) {
+    <div class="cv-tabs" role="tablist" aria-label="Vị trí banner">
+      @for (p of POSITIONS; track p) {
+        <button type="button" role="tab" [attr.aria-selected]="position() === p" (click)="setPosition(p)">
+          {{ POSITION_LABEL[p] }}
+        </button>
+      }
+    </div>
+  }
 
   <div class="filters">
     <div class="cv-field">
@@ -134,7 +136,9 @@
                     @if (r.status === 'HIDDEN') {
                       <button type="button" role="menuitem" (click)="toggleHidden(r)">Hiển thị lại</button>
                     }
-                    <button type="button" role="menuitem" (click)="open('duplicate', [r], $event)">Nhân bản</button>
+                    @if (POSITIONS.length > 1) {
+                      <button type="button" role="menuitem" (click)="open('duplicate', [r], $event)">Nhân bản</button>
+                    }
                     <button type="button" role="menuitem" class="danger" (click)="open('delete', [r], $event)">Xóa</button>
                   </div>
                 </details>

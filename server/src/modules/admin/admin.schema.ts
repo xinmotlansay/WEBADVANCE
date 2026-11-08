@@ -146,6 +146,7 @@ export const productInputSchema = z.object({
     .default({ title: '', description: '' }),
   warrantyMonths: z.number().int().min(0).max(120),
   warrantyTerms: z.string().trim().max(5_000).default(''),
+  placement: z.enum(['FLOOR', 'WALL']).default('FLOOR'),
   parts: z
     .array(
       z.object({

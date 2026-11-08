@@ -29,8 +29,8 @@
   gap: 12px;
 }
 .img__thumb {
-  width: 160px;
-  height: 110px;
+  width: 100px;
+  aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--cv-radius);
 }
@@ -72,4 +72,15 @@
   inset: 0;
   opacity: 0;
   cursor: inherit;
+}
+.img--main {
+  border-color: var(--cv-navy);
+}
+.img__main {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.img--main .img__thumb {
+  width: 280px;
+  aspect-ratio: 16 / 7;
 }

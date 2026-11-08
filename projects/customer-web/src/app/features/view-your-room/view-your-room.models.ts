@@ -4,6 +4,7 @@ export type WallPreset = 'SKY' | 'WHITE' | 'BLUSH' | 'PINK';
 /** Màu tường: mã preset trong `WALL_SWATCHES` hoặc mã hex do người dùng tự chọn. */
 export type WallColor = WallPreset | `#${string}`;
 export type FloorType = 'WOOD' | 'TILE';
+export type Placement = 'FLOOR' | 'WALL';
 
 /** Kích thước phòng tính bằng cm, khớp `ROOM_LIMITS` ở server. */
 export const ROOM_LIMITS = {
@@ -35,9 +36,13 @@ export interface PlacedItem {
   priceFrom: number;
   model3DUrl: string | null;
   dimensions: Dimensions | null;
+  /** `WALL` = treo tường (tranh, đồng hồ...): chỉ dính vào tường và có độ cao `y`. */
+  placement?: Placement;
   /** Tâm đáy sản phẩm trên mặt sàn, tính bằng mét, gốc tọa độ ở tâm phòng. */
   x: number;
   z: number;
+  /** Đồ treo tường: độ cao mép dưới so với sàn (m). Đồ để sàn bỏ qua. */
+  y?: number;
   rotationY: number;
 }
 
@@ -51,6 +56,7 @@ export interface ProductDetail extends ProductListItem {
   has3DModel: boolean;
   model3DUrl: string | null;
   dimensions: Dimensions | null;
+  placement?: Placement;
 }
 
 export interface MissingGroup {

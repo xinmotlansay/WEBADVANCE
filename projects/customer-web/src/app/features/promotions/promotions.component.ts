@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { CatalogApiService, type FlashSale } from 'shared';
@@ -21,16 +21,4 @@ export class PromotionsComponent {
     this.api.getFlashSale().pipe(catchError(() => of<FlashSale | null>(null))),
     { initialValue: null },
   );
-
-  /** Mức giảm cao nhất trong các sản phẩm của chương trình, dùng cho dòng mô tả. */
-  protected readonly maxDiscount = computed(() => {
-    const items = this.flashSale()?.products ?? [];
-    return items.reduce(
-      (max, { priceFrom, originalPriceFrom }) =>
-        originalPriceFrom > priceFrom
-          ? Math.max(max, Math.round((1 - priceFrom / originalPriceFrom) * 100))
-          : max,
-      0,
-    );
-  });
 }

@@ -7,12 +7,14 @@ import { ProductModel } from '../products/product.model.js';
 import { buildListItems } from '../products/product.service.js';
 import { InspirationModel } from './inspiration.model.js';
 
+const liveNow = () => ({ status: 'VISIBLE' as const, $or: [{ publishAt: null }, { publishAt: { $lte: new Date() } }] });
+
 export const inspirationRoutes = Router();
 
 inspirationRoutes.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const inspirations = await InspirationModel.find({ status: 'VISIBLE' }).sort({ displayOrder: 1, _id: 1 }).lean();
+    const inspirations = await InspirationModel.find(liveNow()).sort({ displayOrder: 1, _id: 1 }).lean();
     sendData(
       res,
       inspirations.map((i) => ({ id: i._id.toString(), imageUrl: i.imageUrl })),
@@ -26,7 +28,7 @@ inspirationRoutes.get(
   asyncHandler(async (req, res) => {
     const inspiration = await InspirationModel.findOne({
       _id: toObjectId(String(req.params['id'])),
-      status: 'VISIBLE',
+      ...liveNow(),
     }).lean();
     if (!inspiration) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy nguồn cảm hứng');
 

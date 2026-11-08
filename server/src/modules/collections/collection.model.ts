@@ -26,6 +26,8 @@ export interface CollectionDoc {
   description?: string;
   displayOrder: number;
   status: 'VISIBLE' | 'HIDDEN';
+  /** Hẹn giờ hiển thị: có hiệu lực khi đến giờ (tính lúc đọc, không cần job). Trống = hiển thị ngay. */
+  publishAt?: Date | null;
   products: { productId: Types.ObjectId; displayOrder?: number }[];
   images: CollectionImage[];
   /** Khóa lạc quan cho màn sửa ở admin. */
@@ -57,6 +59,7 @@ const collectionSchema = new Schema<CollectionDoc>(
     description: String,
     displayOrder: { type: Number, default: 0 },
     status: { type: String, required: true, enum: ['VISIBLE', 'HIDDEN'], default: 'VISIBLE' },
+    publishAt: { type: Date, default: null },
     products: [
       {
         _id: false,

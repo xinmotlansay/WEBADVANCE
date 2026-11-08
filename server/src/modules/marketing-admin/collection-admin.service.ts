@@ -22,7 +22,7 @@ import {
   type UpdateCollectionInput,
 } from './collection-admin.rules.js';
 
-const conflict = () => new AppError('E-COM-05', 409, 'Bộ sưu tập vừa được người khác cập nhật. Vui lòng tải lại.');
+const conflict = () => new AppError('E-COM-05', 409, 'Collection vừa được người khác cập nhật. Vui lòng tải lại.');
 const notFound = () => new AppError('NOT_FOUND', 404, 'Không tìm thấy bộ sưu tập');
 const slugTaken = () => new AppError('E-MKT-020-01', 409, 'Đường dẫn bộ sưu tập đã tồn tại hoặc không hợp lệ.');
 
@@ -63,6 +63,8 @@ const toRow = (c: Doc, inactive: Set<string>) => ({
   imageCount: c.images.length,
   productCount: c.products.length,
   status: c.status,
+  /** Có giờ hẹn trong tương lai thì chưa hiển thị cho khách. */
+  scheduledAt: c.status === 'VISIBLE' && c.publishAt && c.publishAt > new Date() ? c.publishAt : null,
   displayOrder: c.displayOrder,
   flags: productIdsOf(c).some((id) => inactive.has(id)) ? ['INACTIVE_PRODUCT' as const] : [],
   version: c.version ?? 0,
@@ -189,10 +191,14 @@ export async function updateCollection(actorId: string, id: string, input: Updat
   return getCollection(id);
 }
 
-export async function setHidden(actorId: string, id: string, hidden: boolean) {
+export async function setHidden(actorId: string, id: string, hidden: boolean, publishAt?: Date | null) {
   const c = await load(id);
   if (!hidden) checkPublishable({ images: c.images.length, products: c.products.length });
-  await CollectionModel.updateOne({ _id: c._id }, { $set: { status: hidden ? 'HIDDEN' : 'VISIBLE' }, $inc: { version: 1 } });
+  // Ẩn hoặc đăng ngay thì xóa giờ hẹn; hẹn giờ thì lưu giờ.
+  await CollectionModel.updateOne(
+    { _id: c._id },
+    { $set: { status: hidden ? 'HIDDEN' : 'VISIBLE', publishAt: hidden ? null : (publishAt ?? new Date()) }, $inc: { version: 1 } },
+  );
   logAdminAction(actorId, hidden ? 'COLLECTION_HIDDEN' : 'COLLECTION_SHOWN', id, { slug: c.slug });
   return getCollection(id);
 }

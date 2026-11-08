@@ -23,7 +23,7 @@ import { PromotionApi, type ProductOption } from '../../../services/marketing/pr
         [id]="inputId()"
         type="search"
         autocomplete="off"
-        placeholder="Nhập tên sản phẩm để tìm"
+        placeholder="Tìm theo tên hoặc mã sản phẩm…"
         [disabled]="disabled()"
         [ngModel]="term()"
         (ngModelChange)="search($event)"
@@ -36,21 +36,25 @@ import { PromotionApi, type ProductOption } from '../../../services/marketing/pr
       <ul class="results" role="listbox" [attr.aria-label]="'Kết quả tìm ' + label()">
         @for (p of results(); track p.id) {
           <li>
-            <button type="button" class="cv-btn" [disabled]="ids().includes(p.id)" (click)="add(p)">
-              {{ ids().includes(p.id) ? 'Đã chọn' : 'Thêm' }}
+            <button type="button" class="result" role="option" [attr.aria-selected]="ids().includes(p.id)" [disabled]="ids().includes(p.id)" (click)="add(p)">
+              <span class="result__name">{{ p.name }}</span>
+              <span class="result__tag" [class.result__tag--on]="ids().includes(p.id)">
+                {{ ids().includes(p.id) ? '✓ Đã chọn' : '+ Thêm' }}
+              </span>
             </button>
-            <span>{{ p.name }}</span>
           </li>
         }
       </ul>
     } @else if (term().trim().length >= 2 && searched()) {
-      <p class="cv-muted">Không tìm thấy sản phẩm đang kinh doanh phù hợp.</p>
+      <p class="empty">Không tìm thấy sản phẩm đang kinh doanh phù hợp.</p>
     }
     @if (ids().length > 0) {
-      <ul class="chips" [attr.aria-label]="'Đã chọn: ' + label()">
-        @for (id of ids(); track id) {
+      <p class="count">Đã chọn {{ ids().length }} sản phẩm</p>
+      <ol class="chips" [attr.aria-label]="'Đã chọn: ' + label()">
+        @for (id of ids(); track id; let i = $index) {
           <li class="chip">
-            {{ names().get(id) ?? id }}
+            <span class="chip__no" aria-hidden="true">{{ i + 1 }}</span>
+            <span class="chip__name">{{ names().get(id) ?? id }}</span>
             <button
               type="button"
               [attr.aria-label]="'Bỏ ' + (names().get(id) ?? id)"
@@ -61,45 +65,122 @@ import { PromotionApi, type ProductOption } from '../../../services/marketing/pr
             </button>
           </li>
         }
-      </ul>
+      </ol>
     }
   `,
   styles: `
-    .results,
+    .results {
+      display: grid;
+      margin: -4px 0 12px;
+      padding: 0;
+      list-style: none;
+      border: 1px solid var(--cv-border-strong);
+      border-radius: var(--cv-radius-lg);
+      background: var(--cv-surface, #fff);
+      box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
+      overflow: hidden;
+    }
+    .result {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 0;
+      border-bottom: 1px solid var(--cv-border);
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .results li:last-child .result {
+      border-bottom: 0;
+    }
+    .result:hover:not(:disabled),
+    .result:focus-visible {
+      background: var(--cv-surface-alt);
+    }
+    .result:disabled {
+      cursor: default;
+      opacity: 0.65;
+    }
+    .result__tag {
+      flex: none;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--cv-surface-alt);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--cv-navy);
+    }
+    .result__tag--on {
+      color: var(--cv-muted);
+    }
+    .empty {
+      margin: -4px 0 12px;
+      padding: 12px 14px;
+      border: 1px dashed var(--cv-border-strong);
+      border-radius: var(--cv-radius-lg);
+      font-size: 13px;
+      color: var(--cv-muted);
+    }
+    .count {
+      margin: 4px 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
     .chips {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      flex-wrap: wrap;
+      gap: 8px;
       margin: 0 0 12px;
       padding: 0;
       list-style: none;
-      font-size: 13px;
-    }
-    .results li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .chips {
-      flex-direction: row;
-      flex-wrap: wrap;
     }
     .chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 4px 4px 10px;
+      gap: 8px;
+      max-width: 100%;
+      padding: 4px 4px 4px 6px;
       border: 1px solid var(--cv-border-strong);
-      border-radius: var(--cv-radius);
+      border-radius: 999px;
       background: var(--cv-surface-alt);
+      font-size: 13px;
+    }
+    .chip__no {
+      display: grid;
+      place-items: center;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--cv-navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip__name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .chip button {
-      min-width: 28px;
-      min-height: 28px;
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
       border: 0;
+      border-radius: 50%;
       background: none;
-      color: inherit;
+      color: var(--cv-muted);
       cursor: pointer;
+    }
+    .chip button:hover:not(:disabled) {
+      background: var(--cv-border);
+      color: inherit;
     }
   `,
 })

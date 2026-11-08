@@ -191,6 +191,8 @@ export interface ProductDetail {
   seo: { title: string; description: string };
   warrantyMonths: number;
   warrantyTerms: string;
+  /** `WALL` = treo tường: View your Room chỉ cho đặt dính tường. */
+  placement: 'FLOOR' | 'WALL';
   parts: ProductPart[];
   manualBadges: ManualBadges;
   isAutoBestSeller: boolean;
@@ -234,6 +236,8 @@ export interface ProductInput {
   seo: { title: string; description: string };
   warrantyMonths: number;
   warrantyTerms: string;
+  /** `WALL` = treo tường: View your Room chỉ cho đặt dính tường. */
+  placement: 'FLOOR' | 'WALL';
   parts: ProductPart[];
   manualBadges: ManualBadges;
   media: { url: string; type: 'IMAGE' | 'MODEL_3D' }[];

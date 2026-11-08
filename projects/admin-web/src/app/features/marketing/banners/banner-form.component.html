@@ -7,13 +7,18 @@
   @if (loading()) {
     <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
   } @else {
-    <form class="form cv-card" (ngSubmit)="save(true)">
+    <form class="form cv-card" (ngSubmit)="primary()">
       @if (lockedExpired) {
         <p class="cv-card cv-card--warn">Banner đã hết hạn chỉ được gia hạn: nhập thời gian kết thúc mới sau thời điểm hiện tại.</p>
       }
 
       <section class="sec" aria-labelledby="s-pos">
         <h2 id="s-pos">Vị trí</h2>
+        @if (POSITIONS.length === 1) {
+          <p class="cv-muted">
+            {{ POSITION_LABEL[position] }}. Kích thước ảnh khuyến nghị: {{ RECOMMENDED[position] }} px.
+          </p>
+        } @else {
         <div class="cv-field">
           <label for="b-pos">Vị trí hiển thị</label>
           <select id="b-pos" name="position" class="cv-input" [(ngModel)]="position" [disabled]="editing">
@@ -25,6 +30,7 @@
             {{ editing ? 'Không đổi được vị trí; muốn chuyển hãy dùng Nhân bản sang vị trí khác.' : 'Kích thước ảnh khuyến nghị: ' + RECOMMENDED[position] + ' px.' }}
           </span>
         </div>
+        }
       </section>
 
       <section class="sec" aria-labelledby="s-img">
@@ -116,9 +122,10 @@
         <h2 id="s-time">Lịch hiển thị</h2>
         <div class="cols">
           <div class="cv-field">
-            <label for="b-start">Bắt đầu</label>
-            <input id="b-start" name="start" type="datetime-local" class="cv-input" [(ngModel)]="startDate" [disabled]="lockedExpired || startNow" />
-            <label class="inline"><input type="checkbox" name="startNow" [(ngModel)]="startNow" [disabled]="lockedExpired || editing" /> Ngay khi đăng</label>
+            <label>Bắt đầu</label>
+            <p class="cv-muted">
+              @if (editing && !startNow) { {{ startDate.replace('T', ' ') }}. } @else { Chọn khi bấm Đăng: đăng ngay hoặc lên lịch. }
+            </p>
           </div>
           <div class="cv-field">
             <label for="b-end">Kết thúc</label>
@@ -164,11 +171,20 @@
           <button type="button" class="cv-btn" [disabled]="saving()" (click)="save(false)">Lưu nháp</button>
         }
         <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving()">
-          {{ saving() ? 'Đang lưu…' : lockedExpired ? 'Gia hạn' : editing ? 'Lưu và đăng' : 'Đăng' }}
+          {{ saving() ? 'Đang lưu…' : lockedExpired ? 'Gia hạn' : savesDirectly ? 'Lưu thay đổi' : 'Đăng…' }}
         </button>
       </div>
     </form>
   }
+@if (publishOpen()) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Banner · ' + POSITION_LABEL[position], name: title || 'Banner chưa đặt tên', thumbnail: imageUrl }"
+    [busy]="saving()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="publishOpen.set(false)"
+  />
+}
 </main>
 
 <dialog #preview class="cv-dialog wide" aria-labelledby="pv-title">

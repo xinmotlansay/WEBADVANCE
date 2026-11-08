@@ -208,6 +208,7 @@ export async function getProduct(productId: Types.ObjectId) {
     seo: { title: product.seo?.title ?? '', description: product.seo?.description ?? '' },
     warrantyMonths: product.warrantyMonths,
     warrantyTerms: product.warrantyTerms ?? '',
+    placement: product.placement ?? 'FLOOR',
     manualBadges: {
       isNew: product.manualBadges?.isNew ?? null,
       isBestSeller: product.manualBadges?.isBestSeller ?? null,
@@ -397,6 +398,7 @@ function productFields(input: ProductInput) {
     seo: input.seo,
     warrantyMonths: input.warrantyMonths,
     warrantyTerms: input.warrantyTerms,
+    placement: input.placement,
     media: input.media.map((m, index) => ({
       variantId: null,
       type: m.type,

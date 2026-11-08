@@ -97,7 +97,7 @@ export interface LayoutDto {
   name: string;
   roomCategoryId: string | null;
   room: ViewRoomLayoutDoc['room'];
-  items: { productId: string; x: number; z: number; rotationY: number }[];
+  items: { productId: string; x: number; z: number; y: number; rotationY: number }[];
   updatedAt: Date;
 }
 
@@ -111,6 +111,7 @@ function toLayoutDto(doc: ViewRoomLayoutDoc): LayoutDto {
       productId: item.productId.toString(),
       x: item.x,
       z: item.z,
+      y: item.y ?? 0,
       rotationY: item.rotationY,
     })),
     updatedAt: doc.updatedAt,
@@ -147,6 +148,7 @@ function layoutFields(input: LayoutInput) {
       productId: new Types.ObjectId(item.productId),
       x: item.x,
       z: item.z,
+      y: item.y ?? 0,
       rotationY: item.rotationY,
     })),
   };
@@ -189,8 +191,10 @@ export interface LayoutDetailItem {
   priceFrom: number;
   model3DUrl: string | null;
   dimensions: { length: number; width: number; height: number; unit: string } | null;
+  placement: 'FLOOR' | 'WALL';
   x: number;
   z: number;
+  y: number;
   rotationY: number;
 }
 
@@ -235,8 +239,10 @@ export async function getLayoutDetail(userId: string, id: string): Promise<Layou
       priceFrom: detail.priceFrom,
       model3DUrl: detail.model3DUrl,
       dimensions: detail.dimensions,
+      placement: detail.placement,
       x: item.x,
       z: item.z,
+      y: item.y ?? 0,
       rotationY: item.rotationY,
     });
   }

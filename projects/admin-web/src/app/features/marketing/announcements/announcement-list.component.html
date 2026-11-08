@@ -1,0 +1,131 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Thanh thông báo</h1>
+    <a class="cv-btn cv-btn--primary" routerLink="tao-moi">Tạo thông báo</a>
+  </header>
+
+  <section class="cv-card pv" aria-label="Xem trước trên website">
+    <h2 class="cv-section-label">Đang hiển thị trên website</h2>
+    <div class="pv-bar">
+      @if (current(); as c) {
+        @if (active().length > 1) {
+          <button type="button" class="pv-nav" aria-label="Thông báo trước" (click)="prev()">‹</button>
+        }
+        <span class="pv-text">{{ c.text }}</span>
+        @if (active().length > 1) {
+          <button type="button" class="pv-nav" aria-label="Thông báo sau" (click)="next()">›</button>
+        }
+      } @else {
+        <span class="pv-empty">Chưa có thông báo nào đang chạy. Thanh thông báo trên website đang trống.</span>
+      }
+    </div>
+    @if (active().length > 1) {
+      <p class="cv-muted">{{ active().length }} thông báo đang chạy sẽ hiện lần lượt trên website, mỗi thông báo 5 giây, theo thứ tự trong danh sách bên dưới.</p>
+    }
+  </section>
+
+  <div class="cv-tabs" role="tablist" aria-label="Trạng thái thông báo">
+    @for (t of TABS; track t) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === t" (click)="setTab(t)">
+        {{ t === 'ALL' ? 'Tất cả' : LABEL[t] }}
+        <span class="cv-muted">{{ data()?.counts?.[t] ?? 0 }}</span>
+      </button>
+    }
+  </div>
+
+  @if (message()) {
+    <p class="cv-card notice" role="status">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="cv-alert" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading() && !data()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else if (loadError()) {
+    <div class="cv-alert" role="alert">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="cv-empty">
+      <strong>Chưa có thông báo nào</strong>
+      <p>Tạo thông báo để hiện trên thanh đầu trang của website.</p>
+    </div>
+  } @else {
+    <div class="cv-table-wrap">
+      <table class="cv-table">
+        <thead>
+          <tr>
+            <th scope="col">Thứ tự</th>
+            <th scope="col">Thông báo</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Thời gian hiển thị</th>
+            <th scope="col">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.id; let i = $index) {
+            <tr [class.row--off]="r.status === 'HIDDEN' || r.status === 'ENDED'">
+              <td>
+                <div class="row-btns">
+                  <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa lên" [disabled]="i === 0 || tab() !== 'ALL' || busy()" (click)="move(i, -1)">↑</button>
+                  <button type="button" class="cv-btn cv-btn--icon" aria-label="Đưa xuống" [disabled]="i === rows().length - 1 || tab() !== 'ALL' || busy()" (click)="move(i, 1)">↓</button>
+                </div>
+              </td>
+              <td>
+                <a class="row__link" [routerLink]="[r.id, 'sua']"><strong>{{ r.text }}</strong></a>
+                @if (r.linkUrl) {
+                  <div class="cv-muted">→ {{ r.linkUrl }}</div>
+                }
+              </td>
+              <td><span class="cv-badge" [class]="'cv-badge ' + BADGE[r.status]">{{ LABEL[r.status] }}</span></td>
+              <td>
+                @if (r.status === 'DRAFT') {
+                  <span class="cv-muted">Chưa đăng</span>
+                } @else {
+                  {{ r.publishAt | date: 'dd/MM/yyyy HH:mm' }}
+                  <span class="cv-muted">→ {{ r.endAt ? (r.endAt | date: 'dd/MM/yyyy HH:mm') : 'không giới hạn' }}</span>
+                }
+              </td>
+              <td>
+                <div class="row-btns">
+                  @switch (r.status) {
+                    @case ('DRAFT') {
+                      <button type="button" class="cv-btn cv-btn--primary" [disabled]="busy()" (click)="openPublish(r, false)">Đăng…</button>
+                    }
+                    @case ('SCHEDULED') {
+                      <button type="button" class="cv-btn" [disabled]="busy()" (click)="openPublish(r, true)">Đổi giờ</button>
+                      <button type="button" class="cv-btn" [disabled]="busy()" (click)="cancelSchedule(r)">Hủy lịch</button>
+                    }
+                    @case ('ACTIVE') {
+                      <button type="button" class="cv-btn" [disabled]="busy()" (click)="toggleHidden(r)">Ẩn</button>
+                    }
+                    @case ('HIDDEN') {
+                      <button type="button" class="cv-btn" [disabled]="busy()" (click)="toggleHidden(r)">Hiện lại</button>
+                    }
+                  }
+                  <a class="cv-btn" [routerLink]="[r.id, 'sua']">Sửa</a>
+                  @if (r.status !== 'ACTIVE') {
+                    <button type="button" class="cv-btn cv-btn--danger" [disabled]="busy()" (click)="remove(r)">Xóa</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</main>
+
+@if (publishing(); as target) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Thanh thông báo', name: target.row.text, note: target.row.linkUrl ? 'Liên kết: ' + target.row.linkUrl : '' }"
+    [rescheduleOnly]="target.reschedule"
+    [busy]="busy()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="publishing.set(null)"
+  />
+}

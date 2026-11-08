@@ -32,12 +32,10 @@ import {
         <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
       } @else {
         <form class="cv-card" (submit)="$event.preventDefault(); save()">
-          <div class="cv-field">
+          <div class="layout">
+          <div class="cv-field slot">
             <span class="label" id="i-img-label">Ảnh không gian</span>
-            @if (imageUrl()) {
-              <img class="img" [src]="imageUrl()" alt="Ảnh cảm hứng đang chọn" />
-            }
-            <label class="drop" [class.drop--off]="uploading()">
+            <label class="frame" [class.frame--empty]="!imageUrl()" [class.frame--off]="uploading()">
               <input
                 class="file"
                 type="file"
@@ -47,11 +45,15 @@ import {
                 [disabled]="uploading()"
                 (change)="upload($event)"
               />
-              <strong>{{ uploading() ? 'Đang tải ảnh…' : imageUrl() ? 'Đổi ảnh' : '+ Chọn ảnh' }}</strong>
+              @if (imageUrl()) {
+                <img [src]="imageUrl()" alt="Ảnh cảm hứng đang chọn" />
+              }
+              <span class="frame__cta">{{ uploading() ? 'Đang tải ảnh…' : imageUrl() ? 'Đổi ảnh' : '+ Chọn ảnh' }}</span>
             </label>
-            <span class="cv-hint" id="i-img-hint">JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.</span>
+            <span class="cv-hint" id="i-img-hint">Ảnh dọc tỉ lệ 2:3 · JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.</span>
           </div>
 
+          <div class="main">
           <app-product-picker
             label="Sản phẩm xuất hiện trong ảnh"
             inputId="i-products"
@@ -68,22 +70,31 @@ import {
           @if (imageUrl() && productIds().length) {
             <section class="preview" aria-labelledby="i-preview">
               <h2 id="i-preview">Xem trước popup</h2>
-              <div class="preview__box">
-                <img [src]="imageUrl()" alt="" />
-                <ol>
-                  @for (id of productIds(); track id) {
-                    @let p = names().get(id);
-                    <li [class.off]="loaded?.inactiveProductIds?.includes(id)">
-                      <span>{{ p?.name ?? id }}</span>
-                      @if (p) {
-                        <span class="cv-muted">từ {{ money(p.priceFrom) }}</span>
+              <div class="preview__backdrop" aria-hidden="true">
+                <div class="preview__panel">
+                  <img class="preview__photo" [src]="imageUrl()" alt="" />
+                  <div class="preview__info">
+                    <h3>MUA SẮM THEO NGUỒN CẢM HỨNG</h3>
+                    <ul class="preview__products">
+                      @for (id of productIds(); track id) {
+                        @let p = names().get(id);
+                        <li [class.off]="loaded?.inactiveProductIds?.includes(id)">
+                          <span class="preview__thumb"></span>
+                          <span class="preview__name">{{ p?.name ?? id }}</span>
+                          @if (p) {
+                            <span class="preview__price">{{ money(p.priceFrom) }}</span>
+                          }
+                        </li>
                       }
-                    </li>
-                  }
-                </ol>
+                    </ul>
+                  </div>
+                </div>
               </div>
+              <p class="cv-hint">Mô phỏng popup khách thấy khi bấm vào ảnh; ô xám là chỗ ảnh sản phẩm.</p>
             </section>
           }
+          </div>
+          </div>
 
           @if (!loaded) {
             <p class="cv-muted">Ảnh mới được lưu ở trạng thái Ẩn. Bấm "Hiển thị" ở danh sách khi đã sẵn sàng.</p>
@@ -106,34 +117,55 @@ import {
     :host { display: block; }
     .sk { display: block; height: 240px; }
     .label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
-    .img { display: block; max-width: 100%; max-height: 320px; margin-bottom: 8px; border-radius: var(--cv-radius); }
-    .drop {
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .main { display: grid; gap: 16px; min-width: 0; }
+    .frame {
       position: relative;
-      display: grid;
-      place-items: center;
-      min-height: 56px;
-      border: 1.5px dashed var(--cv-border-strong);
+      display: block;
+      aspect-ratio: 2 / 3;
+      overflow: hidden;
       border-radius: var(--cv-radius-lg);
       background: var(--cv-surface-alt);
       cursor: pointer;
     }
-    .drop:has(.file:focus-visible) { outline: 2px solid var(--cv-navy); outline-offset: 2px; }
-    .drop--off { opacity: 0.6; cursor: not-allowed; }
-    .file { position: absolute; inset: 0; opacity: 0; cursor: inherit; }
-    .preview h2 { margin: 16px 0 8px; font-size: 15px; }
-    .preview__box {
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid var(--cv-border);
-      border-radius: var(--cv-radius-lg);
+    .frame--empty { display: grid; place-items: center; border: 1.5px dashed var(--cv-border-strong); }
+    .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .frame__cta { font-weight: 600; font-size: 14px; }
+    .frame:not(.frame--empty) .frame__cta {
+      position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 8px; border-radius: var(--cv-radius);
+      background: rgb(0 0 0 / 0.65); color: #fff; text-align: center; opacity: 0; transition: opacity 0.2s;
     }
-    .preview__box img { width: 100%; object-fit: cover; border-radius: var(--cv-radius); }
-    .preview__box ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; align-content: start; font-size: 13px; }
-    .preview__box li span { display: block; }
-    .preview__box li.off { text-decoration: line-through; opacity: 0.6; }
-    @media (max-width: 640px) { .preview__box { grid-template-columns: 1fr; } }
+    .frame:hover .frame__cta, .frame:has(.file:focus-visible) .frame__cta { opacity: 1; }
+    @media (hover: none) { .frame:not(.frame--empty) .frame__cta { opacity: 1; } }
+    .frame:has(.file:focus-visible) { outline: 2px solid var(--cv-navy); outline-offset: 2px; }
+    .frame--off { opacity: 0.6; cursor: not-allowed; }
+    .file { position: absolute; inset: 0; opacity: 0; cursor: inherit; }
+    .preview h2 { margin: 0 0 8px; font-size: 15px; }
+    .preview__backdrop { display: grid; place-items: center; padding: 20px; border-radius: var(--cv-radius-lg); background: rgb(0 0 0 / 0.55); }
+    .preview__panel {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      width: 100%;
+      max-width: 560px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+    }
+    .preview__photo { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: #eee; }
+    .preview__info h3 { margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; }
+    .preview__products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .preview__thumb { display: block; aspect-ratio: 1 / 1; background: #e9e9e9; }
+    .preview__name { display: block; margin-top: 6px; font-size: 11px; line-height: 1.3; }
+    .preview__price { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; }
+    .preview__products li.off { text-decoration: line-through; opacity: 0.5; }
+    @media (max-width: 720px) {
+      .layout { grid-template-columns: 1fr; }
+      .slot { max-width: 220px; }
+      .preview__products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -191,6 +223,13 @@ export class InspirationFormComponent {
   /** Dùng cho `canDeactivate` của route. */
   canLeave(): boolean {
     return !this.dirty() || confirm('Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi?');
+  }
+
+  @HostListener('window:keydown.control.s', ['$event'])
+  @HostListener('window:keydown.meta.s', ['$event'])
+  protected saveShortcut(e: Event): void {
+    e.preventDefault();
+    if (!this.saving() && !this.uploading()) void this.save();
   }
 
   @HostListener('window:beforeunload', ['$event'])

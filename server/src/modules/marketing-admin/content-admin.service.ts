@@ -5,8 +5,7 @@ import { Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile } from '../../utils/file-upload.js';
 import { CollectionModel } from '../collections/collection.model.js';
-import { ContentAreaModel, type AreaKey, type ContentData, type ContentKey, type ContentVersion } from '../content/content.model.js';
-import { ProductModel } from '../products/product.model.js';
+import { ContentAreaModel, type AreaKey, type ContentData, type ContentKey, type ContentVersion, type HomeData } from '../content/content.model.js';
 import { logAdminAction } from './admin-log.js';
 import {
   applyRestore,
@@ -16,8 +15,8 @@ import {
   cleanText,
   defaultData,
   effectivePublished,
-  featuredVisible,
   isValidLpSlug,
+  normalizeHome,
   kindOf,
   lpKey,
   parseData,
@@ -29,15 +28,6 @@ const conflict = () => new AppError('E-COM-05', 409, 'Nội dung vừa được 
 const notFound = () => new AppError('NOT_FOUND', 404, 'Không tìm thấy nội dung');
 const isLp = (key: AreaKey) => key.startsWith('LP:');
 
-/** Số sản phẩm Đang kinh doanh trong danh sách id (dùng cho khối nổi bật). */
-export async function countActiveProducts(ids: string[]): Promise<number> {
-  const valid = ids.filter((i) => Types.ObjectId.isValid(i));
-  return valid.length ? ProductModel.countDocuments({ _id: { $in: valid }, status: 'ACTIVE' }) : 0;
-}
-
-const featuredIds = (d: ContentData | null): string[] =>
-  d && 'blocks' in d ? (d.blocks.find((b) => b.type === 'FEATURED_PRODUCTS' && b.enabled)?.productIds ?? []) : [];
-
 const collectionIdsOf = (d: ContentData | null): string[] =>
   d && 'blocks' in d ? (d.blocks.find((b) => b.type === 'COLLECTIONS' && b.enabled)?.collectionIds ?? []) : [];
 
@@ -48,15 +38,16 @@ async function countMissingCollections(ids: string[]): Promise<number> {
   return ids.length - (await CollectionModel.countDocuments({ _id: { $in: valid }, status: 'VISIBLE' }));
 }
 
+const normalize = (key: AreaKey, d: ContentData): ContentData => (kindOf(key) === 'HOME' ? normalizeHome(d as HomeData) : d);
+
 export async function getContent(key: AreaKey, now = new Date()) {
   const doc = await ContentAreaModel.findOne({ key }).lean();
   if (isLp(key) && !doc) throw notFound();
   const published = effectivePublished(doc, now);
-  const activeFeatured = await countActiveProducts(featuredIds(published));
   const missingCollections = await countMissingCollections(collectionIdsOf(published));
   return {
     key,
-    draft: doc?.draft ?? published ?? defaultData(kindOf(key)),
+    draft: normalize(key, doc?.draft ?? published ?? defaultData(kindOf(key))),
     published,
     scheduledAt: doc?.scheduled && new Date(doc.scheduled.publishAt) > now ? doc.scheduled.publishAt : null,
     version: doc?.version ?? 0,
@@ -66,11 +57,8 @@ export async function getContent(key: AreaKey, now = new Date()) {
     metaDescription: doc?.metaDescription ?? '',
     hidden: doc?.hidden ?? false,
     warnings: [
-      ...(featuredIds(published).length && !featuredVisible(activeFeatured)
-        ? ['Khối Sản phẩm nổi bật đang tự ẩn vì còn dưới 4 sản phẩm đang kinh doanh.']
-        : []),
       ...(missingCollections
-        ? [`Khối Bộ sưu tập có ${missingCollections} collection đã ẩn hoặc bị xóa; khách sẽ không thấy chúng.`]
+        ? [`Khối Collection có ${missingCollections} collection đã ẩn hoặc bị xóa; khách sẽ không thấy chúng.`]
         : []),
     ],
   };
@@ -89,7 +77,7 @@ export async function saveContent(actorId: string, key: AreaKey, input: SaveInpu
 
   let publishAt: Date | undefined;
   if (input.action !== 'DRAFT') {
-    checkPublishable(kindOf(key), data, await countActiveProducts(featuredIds(data)));
+    checkPublishable(kindOf(key), data);
     if (isLp(key)) checkLandingName(meta.name ?? existing?.name);
     if (input.action === 'SCHEDULE') publishAt = checkSchedule(input.publishAt, now);
   }
@@ -187,14 +175,6 @@ export async function uploadContentImage(bytes: Uint8Array): Promise<{ url: stri
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
   return { url: `/uploads/content/${name}` };
-}
-
-/** Cảnh báo cho Dashboard (AC4): khối nổi bật đang đăng nhưng không đủ 4 sản phẩm hiển thị. */
-export async function homeWarnings(now = new Date()): Promise<{ kind: string; text: string; link: string }[]> {
-  const doc = await ContentAreaModel.findOne({ key: 'HOME' }).lean();
-  const ids = featuredIds(effectivePublished(doc, now));
-  if (!ids.length || featuredVisible(await countActiveProducts(ids))) return [];
-  return [{ kind: 'HOME_FEATURED_LOW', text: 'Khối Sản phẩm nổi bật trên trang chủ đã tự ẩn: còn dưới 4 sản phẩm đang kinh doanh', link: 'noi-dung' }];
 }
 
 export type { ContentKey };

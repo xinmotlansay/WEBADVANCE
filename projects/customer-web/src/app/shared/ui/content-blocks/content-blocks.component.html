@@ -1,44 +1,7 @@
 @for (block of blocks(); track $index) {
   @switch (block.type) {
-    @case ('BRAND_INTRO') {
-      <section class="cb cb-intro">
-        @if (block.imageUrl) {
-          <img class="cb-intro__img" [src]="block.imageUrl" [alt]="block.imageAlt" loading="lazy" />
-        }
-        <div class="cb-intro__body">
-          @if (block.title) {
-            <h2 class="cb__title">{{ block.title }}</h2>
-          }
-          @if (block.text) {
-            <p class="cb-intro__text">{{ block.text }}</p>
-          }
-          @if (block.ctaUrl) {
-            <a class="cb__cta" [cvLink]="block.ctaUrl">{{ block.ctaLabel || 'Khám phá' }}</a>
-          }
-        </div>
-      </section>
-    }
-
-    @case ('FEATURED_PRODUCTS') {
-      <section class="cb">
-        <h2 class="cb__title">{{ block.title || 'Sản phẩm nổi bật' }}</h2>
-        <ul class="cb-grid">
-          @for (item of block.items; track item.id) {
-            <li>
-              <a class="cb-card" [routerLink]="['/products', item.slug]">
-                <span class="cb-card__media">
-                  <img [src]="item.imageUrl" [alt]="item.name" loading="lazy" />
-                </span>
-                <span class="cb-card__name">{{ item.name }}</span>
-              </a>
-            </li>
-          }
-        </ul>
-      </section>
-    }
-
     @case ('COLLECTIONS') {
-      <app-image-tiles [title]="block.title || 'Bộ sưu tập'" [items]="tiles(block.items)" />
+      <app-image-tiles [title]="block.title || 'Collection'" [items]="tiles(block.items)" />
     }
 
     @case ('PROMOTION') {
@@ -58,32 +21,6 @@
           }
         </ul>
         <a class="cb__cta" [cvLink]="block.ctaUrl || '/promotions'">{{ block.ctaLabel || 'Xem ưu đãi' }}</a>
-      </section>
-    }
-
-    @case ('LATEST_ARTICLES') {
-      <section class="cb">
-        <div class="cb__head">
-          <h2 class="cb__title">{{ block.title || 'Bài viết mới' }}</h2>
-          <a routerLink="/news">Xem tất cả</a>
-        </div>
-        <ul class="cb-grid">
-          @for (item of block.items; track item.slug) {
-            <li>
-              <a class="cb-card" [routerLink]="['/news', item.slug]">
-                @if (item.coverUrl) {
-                  <span class="cb-card__media">
-                    <img [src]="item.coverUrl" [alt]="item.title" loading="lazy" />
-                  </span>
-                }
-                <span class="cb-card__name">{{ item.title }}</span>
-                @if (item.summary) {
-                  <span class="cb-card__summary">{{ item.summary }}</span>
-                }
-              </a>
-            </li>
-          }
-        </ul>
       </section>
     }
   }

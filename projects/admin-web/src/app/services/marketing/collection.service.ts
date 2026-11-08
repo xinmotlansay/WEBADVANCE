@@ -21,6 +21,8 @@ export interface CollectionRow {
   imageCount: number;
   productCount: number;
   status: CollectionStatus;
+  /** Có giờ hẹn trong tương lai: chưa hiển thị cho khách. */
+  scheduledAt: string | null;
   displayOrder: number;
   flags: 'INACTIVE_PRODUCT'[];
   version: number;
@@ -83,9 +85,9 @@ export class CollectionApi {
     return this.http.patch<ApiResponse<CollectionDetail>>(`${BASE}/${id}`, body).pipe(map((r) => r.data));
   }
 
-  setHidden(id: string, hidden: boolean): Observable<CollectionDetail> {
+  setHidden(id: string, hidden: boolean, publishAt?: Date): Observable<CollectionDetail> {
     return this.http
-      .post<ApiResponse<CollectionDetail>>(`${BASE}/${id}/${hidden ? 'hide' : 'show'}`, {})
+      .post<ApiResponse<CollectionDetail>>(`${BASE}/${id}/${hidden ? 'hide' : 'show'}`, publishAt ? { publishAt: publishAt.toISOString() } : {})
       .pipe(map((r) => r.data));
   }
 

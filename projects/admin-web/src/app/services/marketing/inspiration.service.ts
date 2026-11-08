@@ -16,6 +16,7 @@ export interface InspirationRow {
   productCount: number;
   inactiveProductIds: string[];
   status: CollectionStatus;
+  scheduledAt: string | null;
   displayOrder: number;
   flags: 'INACTIVE_PRODUCT'[];
   version: number;
@@ -48,9 +49,9 @@ export class InspirationApi {
     return this.http.patch<ApiResponse<InspirationRow>>(`${BASE}/${id}`, body).pipe(map((r) => r.data));
   }
 
-  setHidden(id: string, hidden: boolean): Observable<InspirationRow> {
+  setHidden(id: string, hidden: boolean, publishAt?: Date): Observable<InspirationRow> {
     return this.http
-      .post<ApiResponse<InspirationRow>>(`${BASE}/${id}/${hidden ? 'hide' : 'show'}`, {})
+      .post<ApiResponse<InspirationRow>>(`${BASE}/${id}/${hidden ? 'hide' : 'show'}`, publishAt ? { publishAt: publishAt.toISOString() } : {})
       .pipe(map((r) => r.data));
   }
 

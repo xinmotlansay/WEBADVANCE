@@ -12,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { VoucherApi, type CategoryOption } from '../../../services/marketing/voucher.service';
 import { BannerApi, type BannerBody, type BannerPosition, type BannerRow } from '../../../services/marketing/banner.service';
+import { PublishDialogComponent, type PublishChoice } from '../shared/publish-dialog.component';
 import { FREQUENCY_LABEL, POSITION_LABEL, POSITION_ORDER, RECOMMENDED } from './banner-format';
 
 const toLocal = (iso: string): string => {
@@ -23,7 +24,7 @@ const toLocal = (iso: string): string => {
 /** FR-MKT_AD-012/013: tạo và sửa banner. Vị trí chỉ chọn lúc tạo. */
 @Component({
   selector: 'app-banner-form',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, PublishDialogComponent],
   templateUrl: './banner-form.component.html',
   styleUrl: './banner-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -139,6 +140,29 @@ export class BannerFormComponent {
 
   protected closePreview(): void {
     this.dialog()?.nativeElement.close();
+  }
+
+  protected readonly publishOpen = signal(false);
+
+  /** Banner đang hiển thị thì chỉ lưu thay đổi, không đổi lịch; còn lại mở hộp thoại đăng cho đúng banner này. */
+  protected get savesDirectly(): boolean {
+    return this.lockedExpired || this.loaded?.status === 'VISIBLE';
+  }
+
+  protected primary(): void {
+    if (this.savesDirectly) return void this.save(true);
+    this.error.set('');
+    if (!this.imageUrl || this.title.trim().length === 0) {
+      this.error.set('Vui lòng tải ảnh desktop và nhập tiêu đề banner.');
+      return;
+    }
+    this.publishOpen.set(true);
+  }
+
+  protected async confirmPublish(choice: PublishChoice): Promise<void> {
+    this.startNow = !choice.publishAt;
+    if (choice.publishAt) this.startDate = toLocal(choice.publishAt.toISOString());
+    await this.save(true);
   }
 
   protected async save(publish: boolean): Promise<void> {

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import type { ContentBlock, ContentBlockItem } from 'shared';
 import { ImageTilesComponent, type TileItem } from '../../../features/home/components/image-tiles/image-tiles.component';
 import { CountdownComponent } from '../countdown/countdown.component';
@@ -11,7 +10,7 @@ import { LinkDirective } from '../link/link.directive';
  */
 @Component({
   selector: 'app-content-blocks',
-  imports: [RouterLink, ImageTilesComponent, CountdownComponent, LinkDirective],
+  imports: [ImageTilesComponent, CountdownComponent, LinkDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './content-blocks.component.html',
   styleUrl: './content-blocks.component.css',

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -15,12 +16,13 @@ import {
 } from '../../../services/marketing/collection.service';
 import { HotspotEditorComponent } from './hotspot-editor.component';
 
-export const MAX_IMAGES = 10;
+export const MAX_IMAGES = 4;
+export const MAX_SUB = MAX_IMAGES - 1;
 
 /** MA-07: tạo và sửa collection: thông tin, sản phẩm; khi sửa thêm ảnh + hotspot. */
 @Component({
   selector: 'app-collection-form',
-  imports: [FormsModule, RouterLink, ProductPickerComponent, HotspotEditorComponent],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, ProductPickerComponent, HotspotEditorComponent],
   templateUrl: './collection-form.component.html',
   styleUrl: './collection-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +36,11 @@ export class CollectionFormComponent {
   protected readonly STATUS_LABEL = STATUS_LABEL;
   protected readonly STATUS_BADGE = STATUS_BADGE;
   protected readonly MAX_IMAGES = MAX_IMAGES;
+  protected readonly MAX_SUB = MAX_SUB;
+  /** Vị trí ảnh chính trong danh sách ảnh (-1 nếu chưa có). */
+  protected readonly mainIndex = computed(() => this.images().findIndex((i) => i.isThumbnail));
+  /** Vị trí các ảnh phụ (mọi ảnh còn lại), giữ thứ tự hiển thị. */
+  protected readonly subIndexes = computed(() => this.images().flatMap((img, n) => (img.isThumbnail ? [] : [n])));
 
   protected name = '';
   protected slug = '';
@@ -92,8 +99,7 @@ export class CollectionFormComponent {
       shortDescription: this.shortDescription.trim(),
       description: this.description.trim(),
       productIds: this.productIds,
-      // Màn tạo mới chưa có ảnh; không gửi = server giữ nguyên.
-      ...(this.loaded ? { images: this.images() } : {}),
+      images: this.images(),
     };
   }
 
@@ -127,21 +133,20 @@ export class CollectionFormComponent {
     this.productOptions.set(ids.map((id) => ({ id, name: this.names.get(id) ?? id })));
   }
 
-  protected async upload(event: Event): Promise<void> {
+  protected async upload(event: Event, role: 'main' | 'sub'): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = [...(input.files ?? [])];
     input.value = '';
     this.error.set('');
-    const room = Math.max(MAX_IMAGES - this.images().length, 0);
-    if (files.length > room) this.error.set(`Tối đa ${MAX_IMAGES} ảnh; chỉ tải ${room} ảnh đầu.`);
+    const room = role === 'main' ? 1 : Math.max(MAX_SUB - this.subIndexes().length, 0);
+    if (files.length > room) this.error.set(`Chỉ thêm được ${room} ảnh nữa; tải ${room} ảnh đầu.`);
     this.uploading.set(true);
     try {
       for (const file of files.slice(0, room)) {
         const { url } = await firstValueFrom(this.api.uploadImage(file));
-        this.images.update((list) => [
-          ...list,
-          { url, title: '', description: '', isThumbnail: list.length === 0, hotspots: [] },
-        ]);
+        const image = { url, title: '', description: '', isThumbnail: role === 'main', hotspots: [] };
+        // Ảnh chính luôn đứng đầu danh sách.
+        this.images.update((list) => (role === 'main' ? [image, ...list] : [...list, image]));
       }
     } catch (e) {
       this.error.set(parseApiError(e).message || 'Tải ảnh không thành công. Vui lòng thử lại.');
@@ -159,10 +164,14 @@ export class CollectionFormComponent {
     this.images.update((list) => list.map((img, n) => ({ ...img, isThumbnail: n === i })));
   }
 
-  protected moveImage(i: number, delta: -1 | 1): void {
+  /** Đổi chỗ ảnh phụ với ảnh phụ liền trước/sau nó. */
+  protected moveSub(i: number, delta: -1 | 1): void {
+    const subs = this.subIndexes();
+    const j = subs[subs.indexOf(i) + delta];
+    if (j === undefined) return;
     this.images.update((list) => {
       const next = [...list];
-      [next[i], next[i + delta]] = [next[i + delta]!, next[i]!];
+      [next[i], next[j]] = [next[j]!, next[i]!];
       return next;
     });
     this.editing.set(null);
@@ -171,12 +180,7 @@ export class CollectionFormComponent {
   protected removeImage(i: number): void {
     const img = this.images()[i]!;
     if (img.hotspots.length && !confirm(`Xóa ảnh này cùng ${img.hotspots.length} điểm sản phẩm?`)) return;
-    this.images.update((list) => {
-      const next = list.filter((_, n) => n !== i);
-      // Giữ đúng một ảnh đại diện.
-      if (img.isThumbnail && next[0]) next[0] = { ...next[0], isThumbnail: true };
-      return next;
-    });
+    this.images.update((list) => list.filter((_, n) => n !== i));
     this.editing.set(null);
   }
 
@@ -192,6 +196,10 @@ export class CollectionFormComponent {
   protected async save(): Promise<void> {
     this.error.set('');
     this.slugError.set('');
+    if (this.images().length && this.mainIndex() < 0) {
+      this.error.set('Cần có ảnh chính: thêm ảnh chính hoặc chọn "Đặt làm ảnh chính" cho một ảnh phụ.');
+      return;
+    }
     const empty = this.emptyHotspot();
     if (empty) {
       this.error.set(empty);
@@ -205,9 +213,8 @@ export class CollectionFormComponent {
         await firstValueFrom(this.api.update(this.loaded.id, { ...body, version: this.loaded.version }));
         await this.router.navigate(['/marketing/collection']);
       } else {
-        // Tạo xong chuyển sang màn sửa để thêm ảnh ngay.
-        const c = await firstValueFrom(this.api.create(body));
-        await this.router.navigate(['/marketing/collection', c.id, 'sua']);
+        await firstValueFrom(this.api.create(body));
+        await this.router.navigate(['/marketing/collection']);
       }
     } catch (e) {
       this.saved = false;

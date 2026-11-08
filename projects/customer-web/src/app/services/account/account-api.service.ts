@@ -38,6 +38,36 @@ export interface AccountAddress {
 
 export type AddressInput = Omit<AccountAddress, 'id' | 'district'> & { district?: string };
 
+/** Ưu đãi 10% khách mới (mã NEW11). */
+export interface WelcomeOfferStatus {
+  eligible: boolean;
+  claimed: boolean;
+  email: string | null;
+  phoneNumber: string | null;
+  fullName: string;
+  gender: Gender | null;
+  dateOfBirth: string | null;
+}
+
+export interface WelcomeOfferClaim {
+  fullName: string;
+  gender: Gender;
+  dateOfBirth: string;
+  email?: string;
+  phoneNumber?: string;
+  addressLine: string;
+  ward: string;
+  district?: string;
+  province: string;
+}
+
+export interface WelcomeOfferResult {
+  code: string;
+  expiresAt: string;
+  sentTo: string;
+  emailSent: boolean;
+}
+
 /** `GET /orders` – phần tử danh sách (API Design 3.0). */
 export interface OrderSummary {
   id: string;
@@ -193,6 +223,16 @@ export class AccountApiService {
   }
   changeContact(body: { channel: 'EMAIL' | 'PHONE'; target: string; otpId: string }): Observable<AccountProfile> {
     return this.send('put', '/users/me/contact', body);
+  }
+
+  welcomeOffer(): Observable<WelcomeOfferStatus> {
+    return this.get('/users/me/welcome-offer');
+  }
+  claimWelcomeOffer(body: WelcomeOfferClaim): Observable<WelcomeOfferResult> {
+    return this.send('post', '/users/me/welcome-offer/claim', body);
+  }
+  confirmWelcomeOffer(token: string): Observable<WelcomeOfferResult> {
+    return this.send('post', '/users/me/welcome-offer/confirm', { token });
   }
 
   addresses(): Observable<AccountAddress[]> {

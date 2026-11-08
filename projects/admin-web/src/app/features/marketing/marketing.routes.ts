@@ -83,15 +83,26 @@ export const MARKETING_ROUTES: Routes = [
     ],
   },
   {
-    path: 'noi-dung',
+    path: 'lich-dang',
+    loadComponent: () => import('./dashboard/schedule-page.component').then((m) => m.SchedulePageComponent),
+  },
+  {
+    path: 'thanh-thong-bao',
     children: [
       {
         path: '',
-        loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+        loadComponent: () =>
+          import('./announcements/announcement-list.component').then((m) => m.AnnouncementListComponent),
       },
       {
-        path: 'lp/:slug',
-        loadComponent: () => import('./content/content-page.component').then((m) => m.ContentPageComponent),
+        path: 'tao-moi',
+        loadComponent: () =>
+          import('./announcements/announcement-form.component').then((m) => m.AnnouncementFormComponent),
+      },
+      {
+        path: ':id/sua',
+        loadComponent: () =>
+          import('./announcements/announcement-form.component').then((m) => m.AnnouncementFormComponent),
       },
     ],
   },

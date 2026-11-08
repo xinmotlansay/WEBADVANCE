@@ -1,12 +1,5 @@
 <app-hero-banner [banners]="banners()" />
 
-@if (homeContent().length) {
-  <!-- Khối nội dung do Marketing soạn (FR-015); lỗi / trống thì các khối cố định bên dưới vẫn hiện. -->
-  <div class="container">
-    <app-content-blocks [blocks]="homeContent()" />
-  </div>
-}
-
 <div class="container home">
   @if (newProducts().length) {
     <app-product-section

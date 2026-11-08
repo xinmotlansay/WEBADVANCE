@@ -1,18 +1,19 @@
 /** Nội dung marketing phía khách (`/content/*`), khớp `resolveBlocks()` của server. */
 
 export interface AnnouncementBar {
+  id: string;
   text: string;
   linkUrl: string | null;
 }
 
-export type ContentBlockType = 'BRAND_INTRO' | 'FEATURED_PRODUCTS' | 'COLLECTIONS' | 'PROMOTION' | 'LATEST_ARTICLES';
+export type ContentBlockType = 'COLLECTIONS' | 'PROMOTION';
 
 export interface ContentBlockItem {
   id?: string;
   name?: string;
   slug?: string;
   imageUrl?: string;
-  /** Khối Bộ sưu tập chọn theo collection: `/collections/<slug>`. */
+  /** Khối Collection chọn theo collection: `/collections/<slug>`. */
   link?: string;
   /** Khối khuyến mãi. */
   endDate?: string;
@@ -34,9 +35,3 @@ export interface ContentBlock {
   items: ContentBlockItem[];
 }
 
-export interface LandingPage {
-  name: string;
-  seoTitle: string;
-  metaDescription: string;
-  blocks: ContentBlock[];
-}
