@@ -7,6 +7,7 @@ import {
   type VoucherCheckResult,
 } from 'shared';
 import { firstValueFrom, type Observable } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * Giỏ hàng dùng chung cho header (badge), popup chọn biến thể và trang giỏ.
@@ -15,6 +16,7 @@ import { firstValueFrom, type Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class CartStore {
   private readonly api = inject(CartApiService);
+  private readonly auth = inject(AuthService);
 
   readonly cart = signal<Cart | null>(null);
   readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -36,9 +38,12 @@ export class CartStore {
     });
   }
 
-  /** Tải lần đầu nếu chưa có dữ liệu (header gọi khi khởi động). */
+  /**
+   * Tải lần đầu nếu chưa có dữ liệu (header gọi khi khởi động).
+   * Khách chưa đăng nhập không gọi API giỏ: server trả 401 và interceptor sẽ chuyển sang trang đăng nhập.
+   */
   ensureLoaded(): void {
-    if (this.status() === 'idle') this.load();
+    if (this.status() === 'idle' && this.auth.isAuthenticated()) this.load();
   }
 
   add(body: AddCartItemRequest): Promise<Cart> {
