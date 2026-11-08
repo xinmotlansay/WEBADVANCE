@@ -22,13 +22,13 @@ import {
 } from 'shared';
 import { catchError, of, switchMap } from 'rxjs';
 import { saveBuyNow } from '../../../core/cart/buy-now';
-import { CartStore } from '../../../core/cart/cart.store';
+import { CartStore } from '../../../services/cart/cart.store';
 import {
   VariantPickerService,
   type VariantPickerRequest,
-} from '../../../core/cart/variant-picker.service';
+} from '../../../services/cart/variant-picker.service';
 import { toApiError } from '../../../core/http/api-error';
-import { ToastService } from '../../../core/toast/toast.service';
+import { ToastService } from '../../../services/ui/toast.service';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
 import { QuantityStepperComponent } from '../quantity-stepper/quantity-stepper.component';

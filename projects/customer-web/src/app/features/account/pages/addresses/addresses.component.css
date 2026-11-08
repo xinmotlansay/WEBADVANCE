@@ -21,9 +21,9 @@
 .address-form h2 { margin: 0 0 16px; font-size: 15px; font-weight: 600; }
 .address-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .address-fields label { display: grid; gap: 5px; color: #555; font-size: 12px; font-weight: 500; }
-.address-fields input { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--gray); border-radius: 4px; color: #000; font-size: 13px; }
-.address-fields input:focus { border-color: var(--navy); outline: 0; }
-.address-fields input:disabled { background: #f6f6f6; cursor: not-allowed; }
+.address-fields input, .address-fields select { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--gray); border-radius: 4px; color: #000; font-size: 13px; background: #fff; }
+.address-fields input:focus, .address-fields select:focus { border-color: var(--navy); outline: 0; }
+.address-fields input:disabled, .address-fields select:disabled { background: #f6f6f6; cursor: not-allowed; }
 .address-fields .wide { grid-column: 1 / -1; }
 .default-checkbox { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; cursor: pointer; }
 .form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; }

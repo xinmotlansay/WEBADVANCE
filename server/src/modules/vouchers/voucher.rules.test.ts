@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Types } from 'mongoose';
 import type { VoucherDoc } from './voucher.model.js';
-import { checkVoucher, type VoucherContext, type VoucherLine } from './voucher.rules.js';
+import { checkVoucher, isNewGift, type VoucherContext, type VoucherLine } from './voucher.rules.js';
 
 const now = new Date('2026-10-24T03:00:00Z');
 const SOFA_CATEGORY = new Types.ObjectId();
@@ -141,4 +141,15 @@ test('giỏ chưa chọn dòng nào: hợp lệ với mức giảm 0 nếu khôn
   assert.ok(r.valid);
   assert.equal(r.discount, 0);
   assert.equal(reasonOf(voucher({ minOrderValue: 1 }), ctx({ lines: [] })), 'MIN_ORDER_NOT_MET');
+});
+
+test('voucher mới để báo khách: chỉ voucher tặng, chưa dùng, còn hạn, chưa xem', () => {
+  const gift = { source: 'GIFTED', status: 'UNUSED', seenAt: null } as const;
+  assert.equal(isNewGift(gift), true);
+  assert.equal(isNewGift({ ...gift, seenAt: '2026-11-04T00:00:00.000Z' }), false);
+  assert.equal(isNewGift({ ...gift, status: 'USED' }), false);
+  // Hết hạn: listUserVouchers đã đổi trạng thái thành EXPIRED.
+  assert.equal(isNewGift({ ...gift, status: 'EXPIRED' }), false);
+  assert.equal(isNewGift({ ...gift, source: 'LATE_COMPENSATION' }), false);
+  assert.equal(isNewGift({ ...gift, source: 'COLLECTED' }), false);
 });

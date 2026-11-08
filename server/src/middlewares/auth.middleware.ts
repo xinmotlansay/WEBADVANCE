@@ -103,22 +103,16 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 };
 
 /**
- * Quyền `U`: gán `res.locals['userId']` (ObjectId) cho route cần khách đăng nhập.
- * Có access token hợp lệ thì dùng `sub` của token; chưa có thì dùng user cố định `DEV_USER_ID`
- * (chưa có đăng nhập, FR-02), chặn hẳn ở production.
+ * Quyền `U`: gán `res.locals['userId']` (ObjectId) từ access token hợp lệ của khách đăng nhập.
+ * Không có token thì trả 401, không có user giả dự phòng.
  */
 export const requireUser: RequestHandler = (req, res, next) => {
   const sub = bearerClaims(req.headers.authorization)?.sub;
-  if (sub && Types.ObjectId.isValid(sub)) {
-    res.locals['userId'] = new Types.ObjectId(sub);
-    next();
-    return;
-  }
-  if (config.isProduction || !Types.ObjectId.isValid(config.devUserId)) {
+  if (!sub || !Types.ObjectId.isValid(sub)) {
     next(new AppError('UNAUTHORIZED', 401, 'Bạn cần đăng nhập'));
     return;
   }
-  res.locals['userId'] = new Types.ObjectId(config.devUserId);
+  res.locals['userId'] = new Types.ObjectId(sub);
   next();
 };
 

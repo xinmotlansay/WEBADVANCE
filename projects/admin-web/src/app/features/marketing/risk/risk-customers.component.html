@@ -1,0 +1,354 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Khách hàng rủi ro</h1>
+    @if (data().state === 'ready') {
+      @if (data(); as d) {
+        @if (d.state === 'ready' && d.data.mlAvailable) {
+          <button type="button" class="cv-btn cv-btn--primary" [disabled]="rescoring()" (click)="rescore()">
+            {{ rescoring() ? 'Đang chấm điểm…' : 'Tính lại' }}
+          </button>
+        }
+      }
+    }
+  </header>
+
+  @if (notice()) {
+    <p class="cv-card notice" role="status">{{ notice() }}</p>
+  }
+  @if (actionError()) {
+    <p class="cv-alert" role="alert">{{ actionError() }}</p>
+  }
+
+  @switch (data().state) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        @for (i of [1, 2, 3]; track i) {
+          <span class="cv-skeleton sk"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>{{ $any(data()).message }}</span>
+        <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+      </div>
+    }
+    @default {
+      @if (data(); as d) {
+        @if (d.state === 'ready') {
+          @if (!d.data.hasData) {
+            <div class="cv-empty">
+              <p>
+                Chưa có điểm khách nào. Nạp dữ liệu demo bằng <code>npm run seed:ml-demo</code>{{
+                  d.data.mlAvailable ? ' hoặc bấm Tính lại.' : '.'
+                }}
+              </p>
+            </div>
+          } @else {
+            <p class="cv-muted meta">
+              Chấm lúc {{ dateTime(d.data.scoredAt!) }} · dữ liệu đến {{ dateTime(d.data.cutoff!) }} · mô
+              hình {{ d.data.modelVersion }}
+              @if (!d.data.mlAvailable) {
+                · Dịch vụ chấm điểm chưa chạy, đang hiển thị kết quả chấm lúc
+                {{ dateTime(d.data.scoredAt!) }}
+              }
+            </p>
+
+            <section class="cv-kpis summary" aria-label="Tổng quan">
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">Khách đã chấm điểm<br /><small>Tất cả khách có đơn trong 3 năm</small></div>
+                <p class="cv-kpi__value cv-num">{{ d.data.totalCustomers.toLocaleString('vi-VN') }}</p>
+              </div>
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">Khách rủi ro cao<br /><small>Ô Giữ ngay + Không chi tiền</small></div>
+                <p class="cv-kpi__value cv-num">{{ highRisk().toLocaleString('vi-VN') }}</p>
+              </div>
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">CLV đang bị đe dọa<br /><small>Σ xác suất rời bỏ × CLV, 12 tháng tới</small></div>
+                <p class="cv-kpi__value cv-num">{{ money(d.data.clvAtRisk) }}</p>
+              </div>
+            </section>
+
+            <section class="matrix" aria-label="Ma trận phân khúc khách hàng">
+              <span class="axis axis-y1">Nguy cơ rời bỏ cao</span>
+              <span class="axis axis-y2">Nguy cơ rời bỏ thấp</span>
+              <span class="axis axis-x1">CLV thấp</span>
+              <span class="axis axis-x2">CLV cao</span>
+
+              @for (c of cells(); track c.segment) {
+                <article class="cv-card cell" [attr.data-seg]="c.segment" [class.cell--focus]="c.segment === 'RETAIN'">
+                  <header>
+                    <h2>{{ META[c.segment].title }}</h2>
+                    <span class="axis-tag">{{ META[c.segment].axis }}</span>
+                  </header>
+
+                  <p class="count cv-num">
+                    {{ c.customers.toLocaleString('vi-VN') }} <small>khách</small>
+                  </p>
+                  <div
+                    class="cv-bar"
+                    role="img"
+                    [attr.aria-label]="c.customers + ' trên ' + d.data.totalCustomers + ' khách'"
+                  >
+                    <span
+                      [class.is-accent]="c.segment === 'RETAIN'"
+                      [style.width.%]="(c.customers / d.data.totalCustomers) * 100"
+                    ></span>
+                  </div>
+                  <p class="cv-muted share cv-num">
+                    {{ pct(c.customers / d.data.totalCustomers) }} tổng số khách
+                  </p>
+
+                  <dl class="stats">
+                    <div>
+                      <dt>Xác suất rời bỏ TB</dt>
+                      <dd class="cv-num">{{ pct(c.avgPChurn) }}</dd>
+                    </div>
+                    <div>
+                      <dt>CLV bị đe dọa</dt>
+                      <dd class="cv-num">{{ money(c.clvAtRisk) }}</dd>
+                    </div>
+                  </dl>
+
+                  <h3 class="cv-section-label">Lý do phổ biến</h3>
+                  @if (c.topReasons.length) {
+                    <ul class="reasons">
+                      @for (r of c.topReasons; track r.feature + r.direction) {
+                        <li>
+                          <span class="r-label">{{ r.label }}</span>
+                          <span class="r-meta">
+                            <span class="dir" [class.dir--up]="r.direction === 'UP'">{{
+                              r.direction === 'UP' ? '▲ tăng rủi ro' : '▼ giảm rủi ro'
+                            }}</span>
+                            <span class="cv-num">{{ pct(r.share) }} khách</span>
+                          </span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="cv-muted">Ô này chưa có khách.</p>
+                  }
+
+                  <p class="action"><strong>Cách xử lý</strong>{{ META[c.segment].action }}</p>
+
+                  @if (c.segment === 'RETAIN') {
+                    <button
+                      type="button"
+                      class="cv-btn cv-btn--primary"
+                      [disabled]="c.eligibleCustomers === 0"
+                      (click)="openVoucher($event)"
+                    >
+                      Tạo voucher cho khách có lãi
+                    </button>
+                    <p class="cv-hint">
+                      {{ c.eligibleCustomers.toLocaleString('vi-VN') }} trên
+                      {{ c.customers.toLocaleString('vi-VN') }} khách của ô có lãi kỳ vọng dương ở mức giảm
+                      {{ c.suggestedDiscountPct }}% (kể cả nhóm đối chứng).
+                    </p>
+                  }
+                </article>
+              }
+            </section>
+
+            <section class="cv-card report" aria-labelledby="report-title">
+              <h2 id="report-title">Hiệu quả chiến dịch voucher</h2>
+              <p class="cv-muted">
+                Tỷ lệ quay lại = khách có đơn thật trong hạn voucher (từ ngày gửi đến ngày hết hạn). So với nhóm đối chứng của ô Giữ
+                ngay (không nhận voucher).
+              </p>
+              @if (saveRate(); as sr) {
+                <p class="cv-hint">
+                  Giả định s = {{ pct(sr.assumed) }}
+                  @if (sr.measured; as m) {
+                    · Đo được ŝ = <strong>{{ pct(m.s) }}</strong>
+                    @if (m.ci) {
+                      (KTC 95% {{ pct(m.ci[0]) }}–{{ pct(m.ci[1]) }},
+                    } @else {
+                      (
+                    }
+                    {{ sr.simulated ? 'mô phỏng' : 'thật' }}; {{ sr.treated.n.toLocaleString('vi-VN') }} nhận,
+                    {{ sr.control.n.toLocaleString('vi-VN') }} đối chứng, {{ sr.campaigns }} chiến dịch)
+                  } @else {
+                    · Chưa đo được ŝ
+                  }
+                </p>
+              }
+              @switch (campaigns().state) {
+                @case ('loading') {
+                  <span class="cv-skeleton sk" aria-busy="true"></span>
+                }
+                @case ('error') {
+                  <div class="cv-alert" role="alert">
+                    <span>{{ $any(campaigns()).message }}</span>
+                    <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+                  </div>
+                }
+                @default {
+                  @if (campaigns(); as cp) {
+                    @if (cp.state === 'ready') {
+                      @if (cp.data.campaigns.length === 0) {
+                        <div class="cv-empty">
+                          <p>Chưa có chiến dịch nào. Tạo voucher cho ô Giữ ngay để bắt đầu đo.</p>
+                        </div>
+                      } @else {
+                        <div class="cv-table-wrap">
+                          <table class="cv-table">
+                            <thead>
+                              <tr>
+                                <th scope="col">Mã</th>
+                                <th scope="col">Gửi lúc</th>
+                                <th scope="col" class="num">Nhận voucher</th>
+                                <th scope="col" class="num">Đã xem</th>
+                                <th scope="col" class="num">Đã dùng mã</th>
+                                <th scope="col" class="num">Quay lại (nhận)</th>
+                                <th scope="col" class="num">Quay lại (đối chứng)</th>
+                                <th scope="col" class="num">Chênh lệch</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (r of cp.data.campaigns; track r.id) {
+                                <tr>
+                                  <td>
+                                    {{ r.code }}
+                                    <span class="cv-badge" [class.cv-badge--success]="r.running">{{
+                                      r.running ? 'Đang chạy' : 'Đã hết hạn'
+                                    }}</span>
+                                  </td>
+                                  <td>{{ dateTime(r.sentAt) }}</td>
+                                  <td class="num cv-num">{{ r.treated.n.toLocaleString('vi-VN') }}</td>
+                                  <td class="num cv-num">{{ r.seen.toLocaleString('vi-VN') }}</td>
+                                  <td class="num cv-num">{{ r.used.toLocaleString('vi-VN') }}</td>
+                                  <td class="num cv-num">
+                                    {{ r.treatedRate === null ? '—' : pct(r.treatedRate) }}
+                                    <small>({{ r.treated.returned }}/{{ r.treated.n }})</small>
+                                  </td>
+                                  <td class="num cv-num">
+                                    {{ r.controlRate === null ? '—' : pct(r.controlRate) }}
+                                    <small>({{ r.control.returned }}/{{ r.control.n }})</small>
+                                  </td>
+                                  <td class="num cv-num">
+                                    {{ leadText(r) }}
+                                    @if (!r.enoughSample) {
+                                      <small class="warn">Cỡ mẫu nhỏ, chưa kết luận được</small>
+                                    } @else if (r.significant) {
+                                      <small class="ok">Có ý nghĩa thống kê</small>
+                                    } @else {
+                                      <small class="note">Chưa có ý nghĩa thống kê</small>
+                                    }
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                    }
+                  }
+                }
+              }
+            </section>
+          }
+        }
+      }
+    }
+  }
+</main>
+
+<dialog #dialog class="cv-dialog" aria-labelledby="rv-title">
+  <form class="dlg" (ngSubmit)="submitVoucher()">
+    <h2 id="rv-title">Tạo voucher cho khách có lãi trong ô Giữ ngay</h2>
+    <p class="cv-muted">
+      Voucher chỉ gửi cho khách trong ô có lãi kỳ vọng dương ở mức giảm bạn chọn (trừ nhóm đối chứng), và
+      được thêm thẳng vào ví của họ. Bạn không thấy danh tính khách.
+    </p>
+
+    <div class="cv-field">
+      <label for="rv-pct">Mức giảm (%)</label>
+      <input
+        id="rv-pct"
+        name="pct"
+        type="number"
+        min="1"
+        max="90"
+        step="1"
+        class="cv-input"
+        [(ngModel)]="discountPercent"
+        (change)="loadPreview()"
+        required
+      />
+      <span class="cv-hint">
+        Mặc định 12%, đúng giả định của mô hình (cứu được 30% khách). Mức giảm càng cao thì càng ít khách có lãi.
+      </span>
+      <label style="display: flex; align-items: center; gap: 6px">
+        <input
+          type="checkbox"
+          name="measured"
+          [checked]="useMeasured() && !measuredBlocked()"
+          [disabled]="!!measuredBlocked()"
+          (change)="toggleMeasured($any($event.target).checked)"
+          aria-describedby="rv-measured-hint"
+        />
+        Dùng s đo được
+        @if (saveRate()?.measured; as m) {
+          (ŝ = {{ pct(m.s) }})
+        }
+      </label>
+      <span id="rv-measured-hint" class="cv-hint">
+        {{ measuredBlocked() ?? 'Lọc người nhận và tính lợi nhuận kỳ vọng theo ŝ thay cho giả định 30%.' }}
+      </span>
+      <p class="cv-hint" aria-live="polite">
+        @if (preview(); as p) {
+          Sẽ gửi cho <strong>{{ p.recipients.toLocaleString('vi-VN') }}</strong> khách, giữ
+          {{ p.controls.toLocaleString('vi-VN') }} khách làm nhóm đối chứng.
+          @if (p.cooledDown > 0) {
+            Bỏ qua {{ p.cooledDown.toLocaleString('vi-VN') }} khách còn giữ voucher của chiến dịch trước.
+          }
+          <br />
+          Lợi nhuận kỳ vọng: <strong>{{ signedMoney(p.expectedNet) }}</strong> · chi phí voucher kỳ vọng
+          {{ money(p.expectedCost) }} (tỷ lệ cứu {{ pct(p.saveRate) }}).
+          @if (bestPct(); as b) {
+            <br />
+            Mức có lợi nhuận kỳ vọng cao nhất: <strong>{{ b }}%</strong>
+            ({{ signedMoney(preview()!.curve[bestIndex()!].expectedNet) }}).
+          }
+        } @else if (previewError()) {
+          {{ previewError() }}
+        } @else {
+          Đang tính số người nhận…
+        }
+      </p>
+      @if (preview(); as p) {
+        <figure class="curve">
+          <app-sparkline [values]="curveNet()" [current]="currentIndex()" [best]="bestIndex()" />
+          <figcaption class="cv-hint">
+            Lợi nhuận kỳ vọng theo mức giảm 5–30%. Vạch xanh: mức cao nhất; vạch đứt: mức đang chọn.
+          </figcaption>
+        </figure>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="rv-max">Giảm tối đa (₫)</label>
+      <input id="rv-max" name="max" type="number" min="1000" step="1000" class="cv-input" [(ngModel)]="maxDiscountValue" required />
+      <span class="cv-hint">Bội số của 1.000 ₫.</span>
+    </div>
+    <div class="cv-field">
+      <label for="rv-min">Đơn tối thiểu (₫)</label>
+      <input id="rv-min" name="min" type="number" min="0" step="1000" class="cv-input" [(ngModel)]="minOrderValue" />
+    </div>
+    <div class="cv-field">
+      <label for="rv-days">Hiệu lực (ngày)</label>
+      <input id="rv-days" name="days" type="number" min="7" max="60" step="1" class="cv-input" [(ngModel)]="validDays" required />
+      <span class="cv-hint">Từ 7 đến 60 ngày. Mỗi khách dùng được 1 lần, không cộng với khuyến mãi.</span>
+    </div>
+
+    @if (formError()) {
+      <p class="cv-alert" role="alert">{{ formError() }}</p>
+    }
+    <div class="cv-popup__foot foot">
+      <button type="button" class="cv-btn" (click)="closeVoucher()">Hủy</button>
+      <button type="submit" class="cv-btn cv-btn--primary" [disabled]="saving() || preview()?.recipients === 0">
+        {{ saving() ? 'Đang gửi…' : 'Tạo và gửi voucher' }}
+      </button>
+    </div>
+  </form>
+</dialog>

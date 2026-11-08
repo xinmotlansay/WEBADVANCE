@@ -129,7 +129,7 @@ Build backend và hai Angular app đã qua; build không thêm warning. Repo ch�
 
 - `projects/customer-web/src/app/core/auth/auth.guard.ts`
 - `projects/customer-web/src/app/core/auth/auth.interceptor.ts`
-- `projects/customer-web/src/app/core/auth/auth.service.ts`
+- `projects/customer-web/src/app/services/auth/auth.service.ts`
 - `projects/customer-web/src/app/features/auth/account.component.html`
 - `projects/customer-web/src/app/features/auth/account.component.ts`
 - `projects/customer-web/src/app/features/auth/auth.routes.ts`
@@ -142,7 +142,7 @@ Build backend và hai Angular app đã qua; build không thêm warning. Repo ch�
 
 ### Tìm kiếm, lọc và sản phẩm
 
-- `projects/customer-web/src/app/core/search/product-search.service.ts`
+- `projects/customer-web/src/app/services/search/product-search.service.ts`
 - `projects/customer-web/src/app/features/products/product-detail.component.css`
 - `projects/customer-web/src/app/features/products/product-detail.component.html`
 - `projects/customer-web/src/app/features/products/product-detail.component.ts`
@@ -232,6 +232,6 @@ Gộp giao diện từ nhánh `feature/account_management` nhưng dùng API củ
 - `server/src/modules/account/*`
 - `server/src/modules/reviews/*`
 - `server/test/review-filter.test.ts`
-- `projects/customer-web/src/app/core/shopping/collection-wishlist.service.ts`
+- `projects/customer-web/src/app/services/cart/collection-wishlist.service.ts`
 - `server/src/modules/orders/order-history.ts`
 - `projects/customer-web/src/app/features/account/*`

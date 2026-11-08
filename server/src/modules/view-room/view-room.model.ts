@@ -5,6 +5,8 @@ export interface LayoutItem {
   productId: Types.ObjectId;
   x: number;
   z: number;
+  /** Đồ treo tường: độ cao mép dưới so với sàn (m). Đồ để sàn là 0. */
+  y: number;
   rotationY: number;
 }
 
@@ -12,6 +14,7 @@ export interface ViewRoomLayoutDoc {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   name: string;
+  roomCategoryId?: Types.ObjectId;
   room: {
     length: number;
     width: number;
@@ -28,6 +31,7 @@ const layoutSchema = new Schema<ViewRoomLayoutDoc>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'users', required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 100 },
+    roomCategoryId: { type: Schema.Types.ObjectId, ref: 'categories' },
     room: {
       length: { type: Number, required: true },
       width: { type: Number, required: true },
@@ -41,6 +45,7 @@ const layoutSchema = new Schema<ViewRoomLayoutDoc>(
         productId: { type: Schema.Types.ObjectId, ref: 'products', required: true },
         x: { type: Number, required: true },
         z: { type: Number, required: true },
+        y: { type: Number, default: 0 },
         rotationY: { type: Number, required: true, default: 0 },
       },
     ],

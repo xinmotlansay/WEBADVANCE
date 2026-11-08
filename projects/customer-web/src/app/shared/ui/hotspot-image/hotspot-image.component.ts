@@ -3,8 +3,8 @@ import { RouterLink } from '@angular/router';
 import { CollectionImage, ProductListItem } from 'shared';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
-import { VariantPickerService } from '../../../core/cart/variant-picker.service';
-import { CollectionWishlistService } from '../../../core/shopping/collection-wishlist.service';
+import { VariantPickerService } from '../../../services/cart/variant-picker.service';
+import { CollectionWishlistService } from '../../../services/cart/collection-wishlist.service';
 
 @Component({
   selector: 'app-hotspot-image',

@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { ConfirmService } from '../../../../core/confirm/confirm.service';
+import { ConfirmService } from '../../../../services/ui/confirm.service';
 import {
   AccountApiService,
   type WalkwayPassage,
   type WalkwayProfile,
   type WalkwayProfileInput,
-} from '../../account-api.service';
-import { ToastService } from '../../../../core/toast/toast.service';
+} from '../../../../services/account/account-api.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 interface ProfileForm {
   name: string;

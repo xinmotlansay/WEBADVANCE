@@ -33,6 +33,8 @@ export interface WarrantySubmission {
 }
 export interface AfterSalesRequest {
   id: string;
+  /** Mã yêu cầu hiển thị cho khách (BH-... hoặc RT-...). */
+  code?: string;
   status: string;
   productName: string;
   requestedAt: string;
@@ -42,6 +44,20 @@ export interface AfterSalesRequest {
   rejectReason?: string;
   inspectionResult?: string;
   resolution?: string;
+  homeServiceSchedule?: string | null;
+  trackingCode?: string | null;
+  /** Đổi trả: lịch lấy hàng, bên chịu phí, sản phẩm thay thế, thông tin hoàn tiền do shop ghi. */
+  pickupSchedule?: string | null;
+  costBearer?: 'CARAVESO' | 'CUSTOMER' | null;
+  returnShippingFee?: number;
+  replacementInfo?: {
+    productName: string;
+    sku: string;
+    quantity: number;
+    trackingCode?: string | null;
+    deliveredAt?: string | null;
+  } | null;
+  refundInfo?: { amount: number; transactionAt?: string | null } | null;
   defectDescription?: string;
   description?: string;
   canCancel?: boolean;
@@ -80,12 +96,15 @@ export interface EligibleOrder {
   status: string;
   actualDeliveryDate: string | null;
   returnDeadline: string | null;
+  /** COD thì khách phải nhập tài khoản nhận hoàn; chuyển khoản thì hoàn về tài khoản đã chuyển. */
+  paymentMethod?: 'COD' | 'BANK_TRANSFER';
   items: {
     id: string;
     name: string;
     variantLabel?: string;
     thumbnail?: string;
     quantity: number;
+    unitPrice?: number;
     returnableQuantity: number;
     actions: { canReturn: boolean };
   }[];

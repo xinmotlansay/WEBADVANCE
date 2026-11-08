@@ -80,7 +80,7 @@ export const adminSendMessageHandler: RequestHandler = async (req, res) => {
 };
 
 export const adminCloseHandler: RequestHandler = async (req, res) => {
-  const session = await closeSession(String(req.params.id));
+  const session = await closeSession(String(req.params.id), { id: req.user!.id, roleName: req.user!.roleName });
   res.status(200).json(success({ session }));
 };
 

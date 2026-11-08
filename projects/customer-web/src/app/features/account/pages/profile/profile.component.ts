@@ -3,9 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { map, of, switchMap, type Observable } from 'rxjs';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { AuthService } from '../../../../core/auth/auth.service';
-import { ConfirmService } from '../../../../core/confirm/confirm.service';
-import { AccountApiService, type AccountProfile, type Gender } from '../../account-api.service';
+import { AuthService } from '../../../../services/auth/auth.service';
+import { ConfirmService } from '../../../../services/ui/confirm.service';
+import { AccountApiService, type AccountProfile, type Gender } from '../../../../services/account/account-api.service';
 
 type ContactChannel = 'EMAIL' | 'PHONE';
 interface ContactEdit {
@@ -16,7 +16,7 @@ interface ContactEdit {
   verified: boolean;
 }
 import { AccountIconComponent } from '../../account-icon.component';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 const MAX_BIRTH_DATE_EDITS = 2;
 

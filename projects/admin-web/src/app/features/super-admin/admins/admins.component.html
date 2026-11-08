@@ -1,0 +1,343 @@
+<div class="cv-page">
+  <main class="cv-main">
+    <header class="cv-head">
+      <div>
+        <h1 class="cv-h1">Quản lý Admin</h1>
+        <p class="cv-sub">Tài khoản quản trị, vai trò và quyền truy cập</p>
+      </div>
+      <div class="cv-tools">
+        @if (tab() === 'accounts') {
+          <label class="cv-sr-only" for="admin-search">Tìm theo tên, email, số điện thoại</label>
+          <input
+            id="admin-search"
+            class="cv-input cv-search"
+            type="search"
+            placeholder="Tìm tên, email, số điện thoại..."
+            [value]="query().q"
+            (input)="patchQuery({ q: $any($event.target).value })"
+          />
+        }
+        <button type="button" class="cv-btn primary" (click)="openCreate()">+ Thêm Admin</button>
+      </div>
+    </header>
+
+    <div class="cv-tabs" role="tablist">
+      <button type="button" role="tab" class="cv-tab" [class.on]="tab() === 'accounts'" [attr.aria-selected]="tab() === 'accounts'" (click)="setTab('accounts')">
+        Tài khoản
+      </button>
+      <button type="button" role="tab" class="cv-tab" [class.on]="tab() === 'roles'" [attr.aria-selected]="tab() === 'roles'" (click)="setTab('roles')">
+        Vai trò & quyền
+      </button>
+    </div>
+
+    @if (notice()) {
+      <div class="cv-alert ok gap" role="status">{{ notice() }}</div>
+    }
+
+    @if (tab() === 'accounts') {
+      <div class="cv-chips gap">
+        <label class="cv-chip" [class.on]="query().roleName">
+          <span class="cv-sr-only">Lọc theo vai trò</span>
+          <select [value]="query().roleName" (change)="patchQuery({ roleName: $any($event.target).value })">
+            <option value="">Vai trò: tất cả</option>
+            @for (r of roleNames; track r) {
+              <option [value]="r">{{ roleLabels[r] }}</option>
+            }
+          </select>
+        </label>
+        <label class="cv-chip" [class.on]="query().status">
+          <span class="cv-sr-only">Lọc theo trạng thái</span>
+          <select [value]="query().status" (change)="patchQuery({ status: $any($event.target).value })">
+            <option value="">Trạng thái: tất cả</option>
+            <option value="ACTIVE">Đang hoạt động</option>
+            <option value="LOCKED">Đã vô hiệu hóa</option>
+          </select>
+        </label>
+      </div>
+
+      @if (error()) {
+        <div class="cv-alert gap" role="alert">
+          <span>Không tải được danh sách Admin. {{ error() }}</span>
+          <button type="button" class="cv-btn" (click)="retry()">Thử lại</button>
+        </div>
+      }
+
+      <div class="cv-table-wrap">
+        <table class="cv-table">
+          <thead>
+            <tr>
+              <th scope="col">Họ tên</th>
+              <th scope="col">Email</th>
+              <th scope="col">Số điện thoại</th>
+              <th scope="col">Vai trò</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col" class="num">Ngày tạo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (loading() && !list()) {
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <tr><td colspan="6"><span class="cv-skeleton"></span></td></tr>
+              }
+            } @else {
+              @for (a of list()?.data ?? []; track a.id) {
+                <tr [class.selected]="open()?.id === a.id">
+                  <td>
+                    <span class="cv-person">
+                      <span class="cv-initials" aria-hidden="true">{{ fmt.initialsOf(a.fullName) }}</span>
+                      <button type="button" class="cv-id-btn" (click)="openPopup(a, $event)">{{ a.fullName }}</button>
+                      @if (a.id === meId()) {
+                        <span class="cv-hint">(bạn)</span>
+                      }
+                    </span>
+                  </td>
+                  <td>{{ a.email }}</td>
+                  <td>{{ a.phoneNumber ?? '—' }}</td>
+                  <td>{{ roleLabels[a.roleName] }}</td>
+                  <td><span class="cv-badge" [class]="statusOf(a).tone">{{ statusOf(a).label }}</span></td>
+                  <td class="num">{{ fmt.formatDate(a.createdAt) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6">
+                    @if (hasFilters()) {
+                      <div class="cv-empty">
+                        Không tìm thấy kết quả.
+                        <div><button type="button" class="cv-btn" (click)="clearFilters()">Xóa bộ lọc</button></div>
+                      </div>
+                    } @else {
+                      <div class="cv-empty">
+                        Chưa có tài khoản Admin nào.
+                        <div><button type="button" class="cv-btn primary" (click)="openCreate()">Thêm Admin</button></div>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (list()?.meta; as meta) {
+        @if (meta.totalPages > 1) {
+          <nav class="cv-pager" aria-label="Phân trang">
+            <span>Trang {{ meta.page }}/{{ meta.totalPages }} · {{ meta.total }} tài khoản</span>
+            <span class="cv-tools">
+              <button type="button" class="cv-btn" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">Trước</button>
+              <button type="button" class="cv-btn" [disabled]="meta.page >= meta.totalPages" (click)="goPage(meta.page + 1)">Sau</button>
+            </span>
+          </nav>
+        }
+      }
+    } @else {
+      @if (rolesError()) {
+        <div class="cv-alert gap" role="alert">
+          <span>Không tải được ma trận quyền. {{ rolesError() }}</span>
+          <button type="button" class="cv-btn" (click)="loadRoles()">Thử lại</button>
+        </div>
+      }
+      @if (roles(); as r) {
+        <p class="cv-hint gap">
+          Mỗi tài khoản có đúng một vai trò. Quyền của vai trò cố định theo ma trận dưới đây (AD-14), không chỉnh sửa trên giao diện.
+        </p>
+        <div class="cv-table-wrap">
+          <table class="cv-table matrix">
+            <thead>
+              <tr>
+                <th scope="col">Nhóm chức năng</th>
+                @for (role of r.roles; track role.name) {
+                  <th scope="col">{{ roleLabels[role.name] }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Dashboard</th>
+                @for (role of r.roles; track role.name) {
+                  <td>{{ role.dashboard }}</td>
+                }
+              </tr>
+              @for (row of r.matrix; track row.key) {
+                <tr>
+                  <th scope="row">{{ row.label }}</th>
+                  @for (role of r.roles; track role.name) {
+                    <td>
+                      @switch (row.access[role.name]) {
+                        @case ('FULL') { <span class="cv-badge success">Toàn quyền</span> }
+                        @case ('VIEW') { <span class="cv-badge info">Chỉ xem</span> }
+                        @default { <span class="cv-hint" aria-label="Không truy cập">—</span> }
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (!rolesError()) {
+        <span class="cv-skeleton tall"></span>
+      }
+    }
+
+    @if (open(); as a) {
+      <section #popup class="cv-popup" role="dialog" aria-modal="false" [attr.aria-label]="'Tài khoản ' + a.fullName" tabindex="-1">
+        <div class="cv-popup-head">
+          <span>Tài khoản Admin</span>
+          <button type="button" aria-label="Đóng" (click)="closePopup()">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+          </button>
+        </div>
+        <form class="cv-popup-body form" [formGroup]="editForm" (ngSubmit)="save()">
+          <div>
+            <div class="name">{{ a.fullName }}</div>
+            <div class="cv-hint">{{ a.email }} · <span class="cv-badge" [class]="statusOf(a).tone">{{ statusOf(a).label }}</span></div>
+            @if (a.lockInfo?.reason) {
+              <div class="cv-hint">Lý do: {{ a.lockInfo?.reason }}</div>
+            }
+          </div>
+
+          @if (popupError()) {
+            <div class="cv-alert" role="alert">{{ popupError() }}</div>
+          }
+
+          <div class="cv-field">
+            <label for="edit-name">Họ tên</label>
+            <input id="edit-name" class="cv-input" formControlName="fullName" [class.invalid]="editForm.controls.fullName.touched && editForm.controls.fullName.invalid" />
+          </div>
+          <div class="cv-field">
+            <label for="edit-phone">Số điện thoại</label>
+            <input id="edit-phone" class="cv-input" formControlName="phoneNumber" inputmode="tel" />
+            @if (editForm.controls.phoneNumber.touched && editForm.controls.phoneNumber.invalid) {
+              <span class="cv-error-text">Nhập 10 số, bắt đầu bằng 0 (ví dụ 0901234567).</span>
+            }
+          </div>
+          <div class="cv-field">
+            <label for="edit-role">Vai trò</label>
+            @if (a.id === meId()) {
+              <input id="edit-role" class="cv-input" [value]="roleLabels[a.roleName]" disabled />
+              <span class="cv-hint">Bạn không thể đổi vai trò hoặc vô hiệu hóa chính mình.</span>
+            } @else {
+              <select id="edit-role" class="cv-input" formControlName="roleName">
+                @for (r of roleNames; track r) {
+                  <option [value]="r">{{ roleLabels[r] }}</option>
+                }
+              </select>
+            }
+          </div>
+          <button type="submit" class="cv-sr-only" tabindex="-1">Lưu</button>
+        </form>
+        <div class="cv-popup-foot">
+          <button type="button" class="cv-btn primary grow" [disabled]="saving()" (click)="save()">Lưu thay đổi</button>
+          @if (a.pendingInvite && a.status === 'ACTIVE') {
+            <button type="button" class="cv-btn" [disabled]="saving()" (click)="resendInvite()">Gửi lại liên kết</button>
+          }
+          @if (a.id !== meId()) {
+            @if (a.status === 'ACTIVE') {
+              <button type="button" class="cv-btn danger" [disabled]="saving()" (click)="deactivate()">Vô hiệu hóa</button>
+            } @else {
+              <button type="button" class="cv-btn" [disabled]="saving()" (click)="activate()">Kích hoạt lại</button>
+            }
+          }
+        </div>
+      </section>
+    }
+  </main>
+
+  <aside class="cv-aside" aria-label="Tổng quan tài khoản">
+    <section class="cv-aside-block">
+      <h2 class="cv-label">Admin đang hoạt động</h2>
+      @if (summary(); as s) {
+        <div class="cv-hero">{{ s.totalActive }}</div>
+        <p class="cv-hint">{{ s.pendingInvites }} tài khoản chờ đặt mật khẩu</p>
+      } @else {
+        <span class="cv-skeleton tall"></span>
+      }
+    </section>
+    @if (summary(); as s) {
+      <section class="cv-aside-block">
+        <h2 class="cv-label">Theo vai trò</h2>
+        @for (row of s.rows; track row.name; let first = $first) {
+          <div class="rank">
+            <div class="rank-row">
+              <span>{{ roleLabels[row.name] }}</span>
+              <strong>{{ row.active }}@if (row.locked) {<span class="cv-hint"> · {{ row.locked }} khóa</span>}</strong>
+            </div>
+            <div class="cv-bar thin"><span [class.accent]="first" [style.width.%]="row.width"></span></div>
+          </div>
+        }
+      </section>
+    }
+    <section class="cv-aside-block">
+      <h2 class="cv-label">Quy tắc</h2>
+      <ul class="rules">
+        <li>Admin mới nhận liên kết đặt mật khẩu qua email, hạn 48 giờ. Không ai xem được mật khẩu của người khác.</li>
+        <li>Vô hiệu hóa không xóa tài khoản, nhật ký thao tác vẫn được giữ.</li>
+        <li>Luôn còn ít nhất một Admin cấp cao đang hoạt động.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<dialog #createDialog class="cv-dialog" aria-labelledby="create-title" (close)="createError.set(null)">
+  <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
+    <h2 id="create-title">Thêm tài khoản Admin</h2>
+    <p>Hệ thống gửi email chứa liên kết đặt mật khẩu (hạn 48 giờ) cho người được thêm.</p>
+    @if (createError()) {
+      <div class="cv-alert" role="alert">{{ createError() }}</div>
+    }
+    <div class="cv-field">
+      <label for="new-email">Email đăng nhập</label>
+      <input id="new-email" class="cv-input" type="email" formControlName="email" autocomplete="off" />
+      @if (createForm.controls.email.touched && createForm.controls.email.invalid) {
+        <span class="cv-error-text">Nhập email hợp lệ, ví dụ ten&#64;caraveso.vn.</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="new-name">Họ tên</label>
+      <input id="new-name" class="cv-input" formControlName="fullName" />
+      @if (createForm.controls.fullName.touched && createForm.controls.fullName.invalid) {
+        <span class="cv-error-text">Họ tên từ 2 đến 100 ký tự.</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="new-phone">Số điện thoại (không bắt buộc)</label>
+      <input id="new-phone" class="cv-input" formControlName="phoneNumber" inputmode="tel" />
+      @if (createForm.controls.phoneNumber.touched && createForm.controls.phoneNumber.invalid) {
+        <span class="cv-error-text">Nhập 10 số, bắt đầu bằng 0.</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="new-role">Vai trò</label>
+      <select id="new-role" class="cv-input" formControlName="roleName">
+        @for (r of roleNames; track r) {
+          <option [value]="r">{{ roleLabels[r] }}</option>
+        }
+      </select>
+      <span class="cv-hint">Mỗi tài khoản có đúng một vai trò.</span>
+    </div>
+    <div class="actions">
+      <button type="button" class="cv-btn" (click)="closeCreate()">Hủy</button>
+      <button type="submit" class="cv-btn primary" [disabled]="creating()">Tạo và gửi liên kết</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog #confirmDialog class="cv-dialog" aria-labelledby="confirm-title" (cancel)="closeConfirm()">
+  @if (confirm(); as c) {
+    <form (submit)="$event.preventDefault(); acceptConfirm()">
+      <h2 id="confirm-title">{{ c.title }}</h2>
+      <p>{{ c.message }}</p>
+      @if (c.askReason) {
+        <div class="cv-field">
+          <label for="confirm-reason">Lý do (không bắt buộc)</label>
+          <input id="confirm-reason" class="cv-input" maxlength="300" [value]="confirmReason()" (input)="confirmReason.set($any($event.target).value)" />
+        </div>
+      }
+      <div class="actions">
+        <button type="button" class="cv-btn" (click)="closeConfirm()">Hủy thao tác</button>
+        <button type="submit" class="cv-btn" [class.danger]="c.danger" [class.primary]="!c.danger">{{ c.action }}</button>
+      </div>
+    </form>
+  }
+</dialog>

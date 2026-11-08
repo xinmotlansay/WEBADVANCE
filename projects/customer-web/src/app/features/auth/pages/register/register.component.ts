@@ -6,11 +6,11 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
 import { parseApiError } from '../../../../core/auth/auth-error';
-import { AuthService } from '../../../../core/auth/auth.service';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { AuthService } from '../../../../services/auth/auth.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 import { GoogleAuthComponent } from '../../components/google-auth/google-auth.component';
 
@@ -45,6 +45,7 @@ export class RegisterComponent implements OnDestroy {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
 
   readonly form = this.formBuilder.group(
@@ -182,7 +183,7 @@ export class RegisterComponent implements OnDestroy {
         finalize(() => this.loading.set(false)),
       )
       .subscribe({
-        next: () => void this.router.navigateByUrl('/'),
+        next: () => this.goAfterAuth(),
         error: (error: unknown) => this.errorMessage.set(parseApiError(error).message),
       });
   }
@@ -196,7 +197,13 @@ export class RegisterComponent implements OnDestroy {
   }
 
   onGoogleAuthenticated(): void {
-    void this.router.navigateByUrl('/');
+    this.goAfterAuth();
+  }
+
+  /** Chỉ nhận đường dẫn nội bộ để tránh chuyển hướng ra ngoài. */
+  private goAfterAuth(): void {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    void this.router.navigateByUrl(returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/');
   }
 
   ngOnDestroy(): void {

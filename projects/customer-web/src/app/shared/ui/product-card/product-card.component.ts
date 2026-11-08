@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ProductListItem } from 'shared';
-import { VariantPickerService } from '../../../core/cart/variant-picker.service';
-import { CollectionWishlistService } from '../../../core/shopping/collection-wishlist.service';
+import { VariantPickerService } from '../../../services/cart/variant-picker.service';
+import { CollectionWishlistService } from '../../../services/cart/collection-wishlist.service';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
 

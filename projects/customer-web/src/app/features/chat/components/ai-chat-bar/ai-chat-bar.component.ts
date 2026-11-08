@@ -10,6 +10,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import type {
   ApiResponse,
@@ -18,7 +19,7 @@ import type {
   ChatAiHistoryItem,
   ChatAiProductSuggestion,
 } from 'shared';
-import { ChatUiService } from '../../../../core/chat/chat-ui.service';
+import { ChatUiService } from '../../../../services/chat/chat-ui.service';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 import { AiProductCardComponent } from '../ai-product-card/ai-product-card.component';
 import {
@@ -61,7 +62,7 @@ interface FailedRequest {
  */
 @Component({
   selector: 'app-ai-chat-bar',
-  imports: [IconComponent, AiProductCardComponent],
+  imports: [IconComponent, AiProductCardComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ai-chat-bar.component.html',
   styleUrl: './ai-chat-bar.component.scss',
@@ -88,12 +89,12 @@ export class AiChatBarComponent {
 
   protected readonly canSend = computed(() => this.draft().trim().length > 0 && !this.loading());
   protected readonly canRetry = computed(() => this.lastFailed() !== null && !this.loading());
+  /** Khách chủ động thu gọn hộp hội thoại bằng nút trên thanh nhập. */
+  private readonly collapsed = signal(false);
   protected readonly showPanel = computed(
     () =>
-      this.loading() ||
-      this.error() !== null ||
-      this.historyOpen() ||
-      this.started(),
+      !this.collapsed() &&
+      (this.loading() || this.error() !== null || this.historyOpen() || this.started()),
   );
 
   private readonly scrollRef = viewChild<ElementRef<HTMLDivElement>>('scroll');
@@ -113,6 +114,7 @@ export class AiChatBarComponent {
       if (this.ui.aiOpen()) return;
       this.started.set(false);
       this.historyOpen.set(false);
+      this.collapsed.set(false);
     });
 
     effect(() => {
@@ -150,6 +152,22 @@ export class AiChatBarComponent {
       return;
     }
     this.ui.closeAi();
+  }
+
+  /** Tin nhắn AI đã bấm "Xem thêm" để hiện đủ thẻ sản phẩm. */
+  protected readonly expanded = signal<ReadonlySet<number>>(new Set());
+  protected readonly INITIAL_PRODUCTS = 4;
+
+  protected expand(id: number): void {
+    this.expanded.update((set) => new Set(set).add(id));
+  }
+
+  /** Câu hỏi của khách ngay trước tin nhắn AI, dùng làm từ khóa khi mở trang sản phẩm. */
+  protected questionBefore(id: number): string {
+    const list = this.messages();
+    const index = list.findIndex((m) => m.id === id);
+    for (let i = index - 1; i >= 0; i--) if (list[i].role === 'user') return list[i].content;
+    return '';
   }
 
   protected close(): void {
@@ -191,6 +209,7 @@ export class AiChatBarComponent {
       { id: this.nextId++, role: 'user', content: text },
     ]);
     this.draft.set('');
+    this.collapsed.set(false);
     this.started.set(true);
     this.historyOpen.set(false);
 
@@ -202,6 +221,17 @@ export class AiChatBarComponent {
     const failed = this.lastFailed();
     if (!failed || this.loading()) return;
     await this.request(failed.text, failed.history);
+  }
+
+  /** Nút trên thanh nhập: mở / thu gọn hộp hội thoại. Chỉ nút này mới mở hộp, bấm vào ô nhập thì không. */
+  protected togglePanel(): void {
+    if (this.showPanel()) {
+      this.collapsed.set(true);
+      this.historyOpen.set(false);
+      return;
+    }
+    this.collapsed.set(false);
+    this.started.set(true);
   }
 
   protected toggleHistory(): void {
@@ -227,6 +257,7 @@ export class AiChatBarComponent {
     this.draft.set('');
     this.error.set(null);
     this.lastFailed.set(null);
+    this.collapsed.set(false);
     this.started.set(true);
     this.historyOpen.set(false);
     queueMicrotask(() => this.inputRef()?.nativeElement.focus());
@@ -241,6 +272,7 @@ export class AiChatBarComponent {
 
     if (this.activeSessionId() === id) {
       this.startNewSession();
+      this.collapsed.set(false);
       this.historyOpen.set(true);
     }
   }

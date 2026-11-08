@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ImageSearchResultsService } from '../../core/search/image-search-results.service';
+import { ImageSearchResultsService } from '../../services/search/image-search-results.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ImageSearchService, ImageSearchItem } from 'shared';
 import { ProductCardComponent } from '../../shared/ui/product-card/product-card.component';

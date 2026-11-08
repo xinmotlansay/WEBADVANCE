@@ -78,3 +78,57 @@ describe('toSessionView', () => {
     expect(view.agentId).toBeNull();
   });
 });
+
+describe('tên người trả lời', () => {
+  const sentAt = new Date('2026-10-26T03:00:00.000Z');
+  const message = (senderType: string, senderId: unknown) =>
+    ({
+      _id: '665f00000000000000000001',
+      sessionId: '665f00000000000000000002',
+      senderId,
+      senderType,
+      content: 'Dạ em chào anh/chị',
+      messageType: 'TEXT',
+      isRead: false,
+      sentAt,
+      metadata: null,
+    }) as unknown as ChatMessageDocument;
+
+  it('tin của nhân viên mang tên admin đã trả lời (senderId đã populate)', () => {
+    const view = toMessageView(
+      message('AGENT', { _id: '665f00000000000000000007', profile: { fullName: 'Minh Order' } }),
+    );
+    expect(view.senderId).toBe('665f00000000000000000007');
+    expect(view.senderName).toBe('Minh Order');
+  });
+
+  it('tin của khách và hệ thống không có senderName', () => {
+    expect(toMessageView(message('CUSTOMER', '665f00000000000000000003'))).not.toHaveProperty('senderName');
+    expect(toMessageView(message('SYSTEM', null))).not.toHaveProperty('senderName');
+  });
+
+  it('tin của nhân viên chưa populate vẫn trả đúng id, tên để trống', () => {
+    const view = toMessageView(message('AGENT', '665f00000000000000000007'));
+    expect(view.senderId).toBe('665f00000000000000000007');
+    expect(view.senderName).toBeNull();
+  });
+
+  it('phiên có admin đang xử lý (agentId đã populate) trả id và tên', () => {
+    const view = toSessionView({
+      _id: '665f00000000000000000001',
+      customerId: '665f00000000000000000009',
+      agentId: { _id: '665f00000000000000000007', profile: { fullName: 'Minh Order' } },
+      mode: ChatMode.SUPPORT,
+      status: ChatSessionStatus.IN_PROGRESS,
+      startedAt: new Date('2026-10-26T01:00:00.000Z'),
+      endedAt: null,
+      lastMessageAt: new Date('2026-10-26T02:00:00.000Z'),
+      handoffAt: null,
+      lastMessagePreview: '',
+      customerUnread: 0,
+      agentUnread: 0,
+    } as unknown as ChatSessionDocument);
+    expect(view.agentId).toBe('665f00000000000000000007');
+    expect(view.agent).toEqual({ id: '665f00000000000000000007', fullName: 'Minh Order' });
+  });
+});

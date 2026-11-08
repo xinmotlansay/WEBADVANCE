@@ -3,10 +3,10 @@ import { map, of } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { CatalogApiService, type ProductListItem } from 'shared';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { VariantPickerService } from '../../../../core/cart/variant-picker.service';
-import { AuthService } from '../../../../core/auth/auth.service';
-import { CollectionWishlistService } from '../../../../core/shopping/collection-wishlist.service';
-import { AccountApiService } from '../../account-api.service';
+import { VariantPickerService } from '../../../../services/cart/variant-picker.service';
+import { AuthService } from '../../../../services/auth/auth.service';
+import { CollectionWishlistService } from '../../../../services/cart/collection-wishlist.service';
+import { AccountApiService } from '../../../../services/account/account-api.service';
 import { AccountIconComponent } from '../../account-icon.component';
 
 @Component({

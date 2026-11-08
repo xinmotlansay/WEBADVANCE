@@ -3,6 +3,9 @@ import { Schema, model, type Types } from 'mongoose';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'HIDDEN' | 'DISCONTINUED';
 export type ManualBadge = 'ON' | 'OFF' | null;
 
+/** `WALL` = treo tường (tranh, đồng hồ...): View your Room chỉ cho đặt dính tường. */
+export type ProductPlacement = 'FLOOR' | 'WALL';
+
 export type MediaPurpose = 'MAIN' | 'VARIANT' | 'LIFESTYLE' | 'DIMENSION' | 'PART' | 'MODEL';
 
 export interface ProductMedia {
@@ -41,6 +44,7 @@ export interface ProductDoc {
   warrantyMonths: number;
   warrantyTerms?: string;
   status: ProductStatus;
+  placement?: ProductPlacement;
   media: ProductMedia[];
   parts: ProductPart[];
 }
@@ -70,6 +74,7 @@ const productSchema = new Schema<ProductDoc>(
       enum: ['DRAFT', 'ACTIVE', 'HIDDEN', 'DISCONTINUED'],
       default: 'DRAFT',
     },
+    placement: { type: String, enum: ['FLOOR', 'WALL'], default: 'FLOOR' },
     media: [
       {
         _id: false,

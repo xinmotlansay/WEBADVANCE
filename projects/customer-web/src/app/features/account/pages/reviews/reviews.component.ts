@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { ConfirmService } from '../../../../core/confirm/confirm.service';
-import { AccountApiService, type MyReview, type ReviewableItem } from '../../account-api.service';
-import { ReviewQueueService } from '../../review-queue.service';
+import { ConfirmService } from '../../../../services/ui/confirm.service';
+import { AccountApiService, type MyReview, type ReviewableItem } from '../../../../services/account/account-api.service';
+import { ReviewQueueService } from '../../../../services/account/review-queue.service';
 import { AccountIconComponent } from '../../account-icon.component';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -24,6 +24,7 @@ export class ReviewsComponent {
   private readonly confirm = inject(ConfirmService);
 
   protected readonly stars = [1, 2, 3, 4, 5];
+  protected readonly ratingLabels = ['', 'Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'];
   protected readonly activeTab = signal<'pending' | 'submitted'>('pending');
   protected readonly rating = signal(0);
   protected reviewText = '';
@@ -109,10 +110,10 @@ export class ReviewsComponent {
           this.releasePreviews();
           this.activeTab.set('submitted');
           this.showNotice(
-            result.status === 'REJECTED'
-              ? `Đánh giá chưa được đăng: ${result.rejectReason ?? 'nội dung không phù hợp'}.`
+            result.status === 'PENDING_REVIEW'
+              ? 'Đánh giá của bạn đang chờ kiểm duyệt và sẽ hiển thị sau khi được duyệt.'
               : 'Cảm ơn bạn! Đánh giá đã được gửi.',
-            result.status === 'REJECTED',
+            false,
           );
           this.loadReviews();
         },
@@ -138,10 +139,10 @@ export class ReviewsComponent {
         this.saving.set(false);
         this.editingId.set('');
         this.showNotice(
-          result.status === 'REJECTED'
-            ? `Đánh giá chưa được đăng: ${result.rejectReason ?? 'nội dung không phù hợp'}.`
+          result.status === 'PENDING_REVIEW'
+            ? 'Đánh giá đã cập nhật và đang chờ kiểm duyệt trước khi hiển thị.'
             : 'Đã cập nhật đánh giá.',
-          result.status === 'REJECTED',
+          false,
         );
         this.loadReviews();
       },
@@ -169,6 +170,7 @@ export class ReviewsComponent {
   }
 
   protected statusLabel(review: MyReview): string {
+    if (review.status === 'PENDING_REVIEW') return 'Đang chờ duyệt';
     if (review.status === 'REJECTED') return 'Bị từ chối';
     if (review.status === 'HIDDEN') return 'Đã bị ẩn';
     return '';

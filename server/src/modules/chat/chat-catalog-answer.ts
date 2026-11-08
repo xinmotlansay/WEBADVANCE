@@ -1,4 +1,4 @@
-import type { GeminiChatProduct } from '../../integrations/gemini.js';
+import { MAX_SUGGESTED_PRODUCTS, type GeminiChatProduct } from '../../integrations/gemini.js';
 import type { ChatAiProductSuggestion } from '../../lib/shared-api.js';
 
 type Catalog = { products: GeminiChatProduct[] };
@@ -80,7 +80,7 @@ export function findCatalogPriceProducts(
       }
       return a.distance - b.distance;
     })
-    .slice(0, 5)
+    .slice(0, MAX_SUGGESTED_PRODUCTS)
     .map(({ product }) => product);
 }
 
@@ -99,7 +99,7 @@ export function selectCatalogSuggestionProducts(
   const seen = new Set<string>();
 
   for (const slug of slugs) {
-    if (picked.length >= 4) break;
+    if (picked.length >= MAX_SUGGESTED_PRODUCTS) break;
     if (seen.has(slug)) continue;
 
     const product = bySlug.get(slug);

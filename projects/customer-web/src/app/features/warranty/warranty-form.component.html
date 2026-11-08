@@ -4,7 +4,7 @@
       <p class="eyebrow">CARAVESO / BẢO HÀNH</p>
       <a routerLink="/account/after-sales">← Phiếu và yêu cầu của tôi</a>
     }
-    <header class="intro">
+    <header class="intro" [class.compact]="embedded()">
       <h2>Điền thông tin bảo hành</h2>
       <p>Vui lòng điền đầy đủ thông tin để chúng tôi tiếp nhận và xử lý yêu cầu bảo hành của bạn</p>
     </header>
@@ -114,11 +114,15 @@
             <a routerLink="/policies/warranty" target="_blank">chính sách bảo hành</a> của CaraVeso
           </span>
         </label>
-        @if (form.touched && (form.invalid || !evidence().length)) {
-          <p class="error" role="alert">
-            Vui lòng điền đủ thông tin bắt buộc (mô tả tối thiểu 10 ký tự), tải ít nhất một minh chứng và
-            đồng ý chính sách bảo hành.
-          </p>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
         }
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>

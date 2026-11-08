@@ -31,6 +31,10 @@
 }
 
 <div class="container home">
+  @if (middleBanners().length) {
+    <app-middle-banners [banners]="middleBanners()" />
+  }
+
   @if (recommended().length) {
     <app-product-section title="Có thể bạn sẽ thích" layout="grid" [products]="recommended()" />
   }
@@ -53,3 +57,5 @@
 @if (showrooms().length) {
   <app-showroom-network [showrooms]="showrooms()" />
 }
+
+<app-popup-banner [banners]="popupBanners()" />

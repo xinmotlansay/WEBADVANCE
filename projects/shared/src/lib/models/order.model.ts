@@ -15,7 +15,15 @@ export type OrderStatus =
   | 'DELIVERY_FAILED'
   | 'RETURNING'
   | 'CANCELLED';
-export type PaymentStatus = 'PENDING' | 'DEPOSITED' | 'PAID' | 'UNPAID' | 'FAILED' | 'REFUNDED';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'DEPOSITED'
+  | 'PAID'
+  | 'UNPAID'
+  | 'FAILED'
+  | 'REFUND_PENDING'
+  | 'REFUNDING'
+  | 'REFUNDED';
 
 export interface BuyNowLine {
   variantId: string;

@@ -8,6 +8,9 @@ import { sendData } from '../../utils/response.js';
 import { listMyReviews } from '../reviews/review.service.js';
 import {
   changeContactSchema,
+  claimWelcomeOfferSchema,
+  confirmWelcomeOfferSchema,
+  type ClaimWelcomeOfferBody,
   deleteRequestSchema,
   updateProfileSchema,
   walkwayProfileSchema,
@@ -22,7 +25,9 @@ import {
   createWalkwayProfile,
   deleteWalkwayProfile,
   getProfile,
+  listNewGifts,
   listUserVouchers,
+  markGiftsSeen,
   listWalkwayProfiles,
   listWishlist,
   removeFromWishlist,
@@ -32,6 +37,7 @@ import {
   updateWalkwayProfile,
   type UserVoucherView,
 } from './account.service.js';
+import { claimWelcomeOffer, confirmWelcomeOffer, getWelcomeOfferStatus } from './welcome-offer.service.js';
 
 /** Hồ sơ và dữ liệu cá nhân của khách đăng nhập, mount tại `/users/me` (API Design mục 2, 3). */
 export const accountRoutes = Router();
@@ -116,6 +122,21 @@ accountRoutes.get(
 );
 
 accountRoutes.get(
+  '/vouchers/new',
+  asyncHandler(async (_req, res) => {
+    sendData(res, await listNewGifts(userId(res)));
+  }),
+);
+
+accountRoutes.post(
+  '/vouchers/seen',
+  asyncHandler(async (_req, res) => {
+    await markGiftsSeen(userId(res));
+    sendData(res, { seen: true });
+  }),
+);
+
+accountRoutes.get(
   '/reviews',
   asyncHandler(async (_req, res) => {
     sendData(res, await listMyReviews(userId(res)));
@@ -161,5 +182,29 @@ accountRoutes.delete(
   asyncHandler(async (req, res) => {
     await deleteWalkwayProfile(userId(res), idParam(req.params['id']));
     sendData(res, { deleted: true });
+  }),
+);
+
+accountRoutes.get(
+  '/welcome-offer',
+  asyncHandler(async (_req, res) => {
+    sendData(res, await getWelcomeOfferStatus(userId(res)));
+  }),
+);
+
+accountRoutes.post(
+  '/welcome-offer/confirm',
+  validateBody(confirmWelcomeOfferSchema),
+  asyncHandler(async (_req, res) => {
+    const { token } = res.locals['body'] as { token: string };
+    sendData(res, await confirmWelcomeOffer(userId(res), token));
+  }),
+);
+
+accountRoutes.post(
+  '/welcome-offer/claim',
+  validateBody(claimWelcomeOfferSchema),
+  asyncHandler(async (_req, res) => {
+    sendData(res, await claimWelcomeOffer(userId(res), res.locals['body'] as ClaimWelcomeOfferBody));
   }),
 );

@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+.sk {
+  display: block;
+  height: 56px;
+  margin-bottom: 8px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.filters .cv-field {
+  margin-bottom: 0;
+}
+.thumb {
+  width: 72px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: var(--cv-radius);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cv-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}

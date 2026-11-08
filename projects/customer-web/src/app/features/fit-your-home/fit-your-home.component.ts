@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { FitStatus, WalkwayPassage } from 'shared';
-import { VariantPickerService } from '../../core/cart/variant-picker.service';
+import { VariantPickerService } from '../../services/cart/variant-picker.service';
 import { CompactHeaderComponent } from '../../layout/compact-header/compact-header.component';
 import { VndPipe } from '../../shared/pipes/vnd.pipe';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
@@ -18,7 +18,7 @@ import {
   clearanceLabel,
   describePassage,
 } from './fit-labels';
-import { FitYourHomeService } from './fit-your-home.service';
+import { FitYourHomeService } from '../../services/room/fit-your-home.service';
 
 @Component({
   selector: 'app-fit-your-home',

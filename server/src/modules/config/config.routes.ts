@@ -11,8 +11,19 @@ export const DEFAULT_STORE_INFO = {
   email: '',
   address: '',
   establishedDate: '',
+  copyright: '',
+  social: { facebook: '', youtube: '', tiktok: '', instagram: '' },
   workingHours: { start: '08:00', end: '17:00', days: [1, 2, 3, 4, 5, 6] },
 };
+
+function mergeStore(stored: Partial<typeof DEFAULT_STORE_INFO> | undefined) {
+  return {
+    ...DEFAULT_STORE_INFO,
+    ...stored,
+    social: { ...DEFAULT_STORE_INFO.social, ...stored?.social },
+    workingHours: { ...DEFAULT_STORE_INFO.workingHours, ...stored?.workingHours },
+  };
+}
 
 export const configRoutes = Router();
 
@@ -27,12 +38,12 @@ configRoutes.get(
     const byKey = new Map(configs.map((c) => [c._id, c.value]));
 
     sendData(res, {
-      store: { ...DEFAULT_STORE_INFO, ...(byKey.get('store') as object | undefined) },
+      store: mergeStore(byKey.get('store') as Partial<typeof DEFAULT_STORE_INFO> | undefined),
       payment: checkout.payment,
       shipping: checkout.shipping,
       invoice: checkout.invoice,
       labels: { newDays: Number(byKey.get('labels.newDays') ?? 30) },
-      policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 3), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 7) },
+      policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 7), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 10) },
       limits: { maxImageSizeMb: 5 },
     });
   }),

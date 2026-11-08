@@ -1,7 +1,18 @@
 <div class="topbar">
   <div class="container topbar__inner">
+    <!-- Thanh thông báo do Marketing soạn; tắt / hết hạn / lỗi thì để trống, topbar vẫn giữ các link. -->
     <p class="topbar__promo">
-      Chỉ duy nhất 1 lần, tặng voucher 100.000 VND cho khách hàng mới của CaraVeso
+      @if (announcement(); as bar) {
+        @for (item of [bar]; track item.id) {
+          <span class="topbar__item" (mouseenter)="pauseAnnouncements(true)" (mouseleave)="pauseAnnouncements(false)">
+            @if (item.linkUrl) {
+              <a [cvLink]="item.linkUrl">{{ item.text }}</a>
+            } @else {
+              {{ item.text }}
+            }
+          </span>
+        }
+      }
     </p>
     <a class="topbar__support" routerLink="/support">Đổi trả &amp; Bảo hành</a>
     <div class="topbar__account">
@@ -32,10 +43,11 @@
 
     <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Danh mục chính">
       <div class="nav__item nav__item--dropdown">
-        <button type="button" class="nav__link">
+        <a class="nav__link" routerLink="/products" (click)="closeMenu()">
           Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
-        </button>
+        </a>
         <ul class="dropdown">
+          <li><a routerLink="/products" (click)="closeMenu()">Tất cả sản phẩm</a></li>
           @for (category of productCategories(); track category.id) {
             <li>
               <a
@@ -167,3 +179,5 @@
     </div>
   </div>
 </header>
+
+<app-gift-voucher-strip />

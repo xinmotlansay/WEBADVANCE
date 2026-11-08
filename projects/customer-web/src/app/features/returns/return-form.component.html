@@ -4,7 +4,7 @@
       <p class="eyebrow">CARAVESO / ĐỔI TRẢ</p>
       <a routerLink="/policies/returns">Xem chính sách và điều kiện</a>
     }
-    <header class="intro">
+    <header class="intro" [class.compact]="embedded()">
       <h2>Điền thông tin đổi trả</h2>
       <p>Vui lòng điền đầy đủ thông tin để chúng tôi tiếp nhận và xử lý yêu cầu đổi trả của bạn</p>
     </header>
@@ -139,56 +139,50 @@
         />
         <p class="hint">Lỗi sản phẩm, giao sai hoặc hư hại khi vận chuyển cần video mở hàng.</p>
         @if (form.controls.type.value === 'RETURN') {
-          <h3>3. Tài khoản nhận hoàn tiền</h3>
-          <div formGroupName="refundAccount" class="grid">
-            <label class="field"><span>Ngân hàng <b class="req">*</b></span><input formControlName="bankName" /></label
-            ><label class="field"
-              ><span>Số tài khoản <b class="req">*</b></span><input
-                formControlName="accountNumber"
-                inputmode="numeric"
-                autocomplete="off" /></label
-            ><label class="field full"><span>Chủ tài khoản <b class="req">*</b></span><input formControlName="accountHolder" /></label>
-          </div>
+          <h3>3. Hoàn tiền</h3>
+          @if (needsRefundAccount()) {
+            <p class="sub">Đơn thanh toán khi nhận hàng (COD): tiền hoàn được chuyển về tài khoản ngân hàng bên dưới trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra.</p>
+            <div formGroupName="refundAccount" class="grid">
+              <label class="field"><span>Ngân hàng <b class="req">*</b></span><input formControlName="bankName" /></label
+              ><label class="field"
+                ><span>Số tài khoản <b class="req">*</b></span><input
+                  formControlName="accountNumber"
+                  inputmode="numeric"
+                  autocomplete="off" /></label
+              ><label class="field full"><span>Chủ tài khoản <b class="req">*</b></span><input formControlName="accountHolder" /></label>
+            </div>
+          } @else if (refundToSourceBank()) {
+            <p class="sub">Đơn đã thanh toán chuyển khoản: tiền hoàn được chuyển về chính tài khoản ngân hàng bạn đã dùng để thanh toán, theo quy định của ngân hàng, trong {{ refundDays() }} ngày làm việc kể từ khi hàng trả về đạt điều kiện kiểm tra. Bạn không cần nhập thêm tài khoản.</p>
+          } @else {
+            <p class="sub">Chọn đơn hàng để xem hình thức hoàn tiền.</p>
+          }
         } @else {
           <h3>3. Sản phẩm thay thế</h3>
-          <label class="field"
-            ><span>Tìm sản phẩm thay thế</span><input
-              type="search"
-              [formControl]="replacementSearch"
-              maxlength="120"
-          /></label>
-          @let products = replacements();
-          @if (products === undefined) {
-            <p role="status">Đang tìm sản phẩm…</p>
-          } @else if (products === null) {
-            <p class="error">Không tải được sản phẩm thay thế. Hãy thử từ khóa khác.</p>
-          } @else {
-            <label class="field"
-              ><span>Sản phẩm thay thế <b class="req">*</b></span><select [formControl]="replacementSlug">
-                <option value="">Chọn sản phẩm</option>
-                @for (product of products; track product.id) {
-                  <option [value]="product.slug">{{ product.name }}</option>
-                }
-              </select></label
-            >
-          }
-          @if (replacementDetail(); as product) {
-            <label class="field"
-              ><span>Biến thể thay thế <b class="req">*</b></span><select formControlName="replacementVariantId">
-                <option value="">Chọn màu / chất liệu</option>
-                @for (variant of product.variants; track variant.id) {
-                  <option [value]="variant.id" [disabled]="variant.stockStatus === 'OUT_OF_STOCK'">
-                    {{ variant.sku }} · {{ variant.color }} · {{ variant.material }} ·
-                    {{ variant.price.final }} VND
-                  </option>
-                }
-              </select></label
-            >
-          }
-          <p class="hint">
-            Sản phẩm đổi phải có giá ngang hoặc cao hơn giá thực trả; máy chủ kiểm tra lại giá và số
-            lượng.
+          <p class="sub">
+            Chỉ nên chọn sản phẩm có giá ngang hoặc cao hơn giá thực trả
+            @if (selectedItem()?.unitPrice; as paid) { ({{ paid | vnd }}); }
+            phần chênh lệch (nếu có) bạn thanh toán thêm. Máy chủ kiểm tra lại giá và số lượng.
           </p>
+          @if (replacement(); as pick) {
+            <div class="pick-selected">
+              <div class="pick-thumb"><img [src]="pick.product.thumbnail" [alt]="pick.product.name" /></div>
+              <div class="pick-body">
+                <strong>{{ pick.product.name }}</strong>
+                <small>{{ pick.variant.color }} · {{ pick.variant.material }} · {{ pick.variant.price.final | vnd }}</small>
+              </div>
+              <button type="button" class="pick-change" (click)="pickerOpen.set(true)">Đổi sản phẩm khác</button>
+            </div>
+          } @else {
+            <button type="button" class="pick-empty" (click)="pickerOpen.set(true)">
+              <span>+</span> Chọn sản phẩm thay thế <b class="req">*</b>
+            </button>
+            @if (form.controls.replacementVariantId.touched && form.controls.replacementVariantId.invalid) {
+              <p class="error">Vui lòng chọn sản phẩm thay thế.</p>
+            }
+          }
+          @if (pickerOpen()) {
+            <app-product-picker [minPrice]="selectedItem()?.unitPrice ?? 0" (picked)="onPicked($event)" (closed)="pickerOpen.set(false)" />
+          }
         }
         <h3>4. Thông tin liên hệ / lấy hàng</h3>
         <div formGroupName="contact" class="grid">
@@ -209,6 +203,16 @@
             />
           </label>
         </div>
+        @if (problems().length) {
+          <div class="error" role="alert">
+            <p>Vui lòng kiểm tra lại:</p>
+            <ul>
+              @for (problem of problems(); track problem) {
+                <li>{{ problem }}</li>
+              }
+            </ul>
+          </div>
+        }
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }

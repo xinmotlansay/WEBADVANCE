@@ -21,10 +21,15 @@ import {
 import { resolvePayment } from '../checkout/pricing.js';
 import { getCheckoutConfig, type BankAccountConfig } from '../config/config.service.js';
 import { StockHistoryModel, type StockChangeType } from '../products/stock-history.model.js';
+import { ProductModel } from '../products/product.model.js';
 import { VariantModel } from '../products/variant.model.js';
+import { formatDimensions } from '../cart/cart.service.js';
+import { notifyStockLevelsInBackground } from '../admin/admin-inventory.service.js';
 import { consumeVoucher, refundVoucherUsage } from '../vouchers/voucher.service.js';
 import { OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
-import { PaymentTransactionModel, type RefundAccount } from './payment-transaction.model.js';
+import { RefundSource } from '../../lib/shared-enums.js';
+import { paidAmountOf } from '../payments/payment.rules.js';
+import { findOrderRefunds, requestRefund } from '../payments/refund.service.js';
 import { getItemActions } from './order-history.js';
 import { ShipmentModel } from './shipment.model.js';
 
@@ -204,6 +209,149 @@ const isDuplicateKey = (err: unknown, field: string): boolean =>
   (err as { code?: number }).code === 11000 &&
   field in ((err as { keyPattern?: object }).keyPattern ?? {});
 
+export interface ExchangeOrderInput {
+  session: ClientSession;
+  /** Đơn gốc có sản phẩm khách trả lại: lấy địa chỉ và khách của đơn này. */
+  original: Pick<OrderDoc, '_id' | 'userId' | 'orderCode' | 'shippingAddress'>;
+  returnRequestId: Types.ObjectId;
+  returnCode: string;
+  variantId: Types.ObjectId;
+  quantity: number;
+  /** Giá sản phẩm thay thế khách đã thấy khi gửi yêu cầu. */
+  unitPrice: number;
+  /** Giá trị hàng khách trả lại, trừ vào đơn mới. */
+  credit: number;
+  /** Khách chịu phí (đổi ý): đơn mới tính phí giao theo cấp vận chuyển của sản phẩm như đơn thường. */
+  customerBearsShipping: boolean;
+  /** Phí lấy hàng/hoàn do Order Admin nhập, chỉ thu khi khách chịu phí. */
+  returnShippingFee: number;
+  trackingCode: string;
+  actorId: string | null;
+  now?: Date;
+}
+
+/** Phí giao hàng của sản phẩm thay thế theo cấp vận chuyển (cùng bảng phí với đơn thường). */
+export async function exchangeDeliveryFee(variantId: Types.ObjectId, quantity: number): Promise<number> {
+  const variant = await VariantModel.findById(variantId).select('shippingTier').lean();
+  const { shipping } = await getCheckoutConfig();
+  const fee = shipping.tiers.find((tier) => tier.tier === variant?.shippingTier)?.fee ?? 0;
+  return fee * quantity;
+}
+
+/**
+ * Hoàn tất đổi hàng: tạo đơn mới giao sản phẩm thay thế cho khách. Giá trị hàng trả lại được trừ vào
+ * đơn mới; phần chênh lệch (và phí hoàn nếu khách chịu) thu COD khi giao. Chạy trong transaction của
+ * phiếu đổi trả nên trừ kho, tạo đơn và đóng phiếu cùng thành công hoặc cùng hủy.
+ */
+export async function createExchangeOrder(input: ExchangeOrderInput): Promise<OrderDoc> {
+  const { session, original } = input;
+  const now = input.now ?? new Date();
+
+  const variant = await VariantModel.findOne({ _id: input.variantId, status: 'ACTIVE' }).session(session).lean();
+  const product = variant
+    ? await ProductModel.findOne({ _id: variant.productId, status: 'ACTIVE' }).session(session).lean()
+    : null;
+  if (!variant || !product) {
+    throw new AppError('REPLACEMENT_PRODUCT_UNAVAILABLE', 409, 'Sản phẩm thay thế hiện không được kinh doanh');
+  }
+
+  const orderId = new mongoose.Types.ObjectId();
+  const stockOk = await changeStock(session, orderId, variant._id, -input.quantity, 'SALE');
+  if (!stockOk) {
+    throw new AppError('REPLACEMENT_STOCK_UNAVAILABLE', 409, 'Không đủ tồn kho để giao sản phẩm thay thế');
+  }
+
+  const subtotal = input.unitPrice * input.quantity;
+  const exchangeCredit = Math.min(input.credit, subtotal);
+  // Lỗi từ CaraVeso: CaraVeso chịu toàn bộ phí. Khách đổi ý: khách chịu phí giao hàng theo cấp vận chuyển
+  // và phí lấy hàng (nếu có) (FR-42).
+  const deliveryFee = input.customerBearsShipping ? await exchangeDeliveryFee(variant._id, input.quantity) : 0;
+  const shippingFee = deliveryFee + (input.customerBearsShipping ? input.returnShippingFee : 0);
+  const totalAmount = subtotal - exchangeCredit + shippingFee;
+  const note = `Đơn đổi hàng từ phiếu ${input.returnCode} (đơn gốc ${original.orderCode}). Khách chỉ thanh toán phần chênh lệch khi nhận hàng.`;
+  const orderCode = await nextOrderCode(now, session);
+
+  const [created] = await OrderModel.create(
+    [
+      {
+        _id: orderId,
+        orderCode,
+        userId: original.userId,
+        idempotencyKey: `exchange:${input.returnRequestId.toString()}`,
+        shippingAddress: original.shippingAddress,
+        subtotal,
+        promotionDiscount: 0,
+        voucherDiscount: 0,
+        shippingFee,
+        installationFee: 0,
+        exchangeCredit,
+        exchangeFrom: {
+          returnRequestId: input.returnRequestId,
+          orderId: original._id,
+          returnCode: input.returnCode,
+        },
+        totalAmount,
+        // Phiếu đã được Order Admin duyệt và kiểm hàng nên đơn mới vào thẳng "Đã xác nhận".
+        status: 'CONFIRMED',
+        note,
+        source: 'EXCHANGE',
+        invoiceInfo: { type: 'NONE' },
+        items: [
+          {
+            variantId: variant._id,
+            snapshot: {
+              name: product.name,
+              sku: variant.sku,
+              color: variant.color ?? undefined,
+              material: variant.material ?? undefined,
+              dimensions: formatDimensions(variant.dimensions) ?? undefined,
+            },
+            quantity: input.quantity,
+            unitPrice: input.unitPrice,
+            promotionDiscount: 0,
+            voucherDiscountShare: 0,
+            finalAmount: subtotal,
+            shippingTier: variant.shippingTier,
+            shippingFee: deliveryFee,
+            hasInstallation: false,
+            installationFee: 0,
+            warrantyMonths: product.warrantyMonths,
+          },
+        ],
+        statusHistory: [
+          {
+            changedBy: input.actorId ? new mongoose.Types.ObjectId(input.actorId) : null,
+            toStatus: 'CONFIRMED',
+            note: `Tạo từ phiếu đổi hàng ${input.returnCode}`,
+            changedAt: now,
+          },
+        ],
+        // Thu COD phần còn lại khi giao; không còn gì phải thu thì coi như đã thanh toán.
+        payment: {
+          method: 'COD',
+          collectionType: 'FULL',
+          status: totalAmount > 0 ? 'UNPAID' : 'PAID',
+          codAmount: totalAmount,
+          ...(totalAmount > 0 ? {} : { paidAt: now }),
+        },
+      },
+    ],
+    { session },
+  );
+
+  await ShipmentModel.create(
+    [
+      {
+        orderId,
+        trackingCode: input.trackingCode,
+        estimatedDeliveryDate: toDate(vnToday(new Date(now.getTime() + 3 * 86_400_000))),
+      },
+    ],
+    { session },
+  );
+  return created!;
+}
+
 /** FR-31, API Design 8.3. Gửi lại cùng `Idempotency-Key` trả lại đơn cũ. */
 export async function createOrder(
   userId: Types.ObjectId,
@@ -343,6 +491,8 @@ export async function createOrder(
     }
     throw err;
   }
+  // PA-08: báo Product Admin nếu đơn làm biến thể xuống dưới ngưỡng.
+  notifyStockLevelsInBackground(lines.map((l) => l.ctx.variant._id));
 
   if (body.newAddress?.saveAddress) {
     const { saveAddress: _save, ...newAddress } = body.newAddress;
@@ -381,10 +531,9 @@ async function returnToCart(order: OrderDoc, session: ClientSession): Promise<vo
 }
 
 interface CancelActor {
-  cancelledBy: 'CUSTOMER' | 'SYSTEM';
+  cancelledBy: 'CUSTOMER' | 'SYSTEM' | 'ADMIN';
   userId: Types.ObjectId | null;
   reason: string;
-  refundAccount?: RefundAccount;
 }
 
 /**
@@ -422,20 +571,15 @@ async function cancelOrder(
     // Hủy hoặc hết hạn thanh toán thì hoàn lượt voucher và trả voucher về ví (FR-37).
     if (before.voucherId) await refundVoucherUsage(session, before._id, now);
     if (isPaid(before)) {
-      // Hoàn 100% (kể cả cọc, phí lắp đặt vì chưa lắp) trong 3–7 ngày làm việc; Order Admin xử lý.
-      await PaymentTransactionModel.create(
-        [
-          {
-            orderId: before._id,
-            type: 'REFUND',
-            amount: amountDue(before),
-            recordSource: 'AUTO',
-            status: 'PENDING',
-            refundAccount: actor.refundAccount,
-          },
-        ],
-        { session },
-      );
+      // Hoàn 100% (kể cả cọc, phí lắp đặt vì chưa lắp) về tài khoản đã chuyển tiền, theo quy định
+      // của ngân hàng (3–7 ngày làm việc); Order Admin xử lý ở màn Thanh toán & đối soát.
+      await requestRefund({
+        order: before,
+        amount: paidAmountOf(before),
+        source: RefundSource.ORDER_CANCEL,
+        note: actor.reason,
+        session,
+      });
     }
     if (before.source === 'CART' && before.status === 'PENDING_PAYMENT') {
       await returnToCart(before, session);
@@ -490,21 +634,17 @@ export async function getOrderPayment(
 export async function cancelByCustomer(
   userId: Types.ObjectId,
   orderId: Types.ObjectId,
-  body: { reason: string; reasonNote?: string; refundAccount?: RefundAccount },
+  body: { reason: string; reasonNote?: string },
 ): Promise<OrderPaymentView> {
   const order = await findOwnOrder(userId, orderId);
   if (!CUSTOMER_CANCELLABLE.includes(order.status)) {
     throw new AppError('ORDER_INVALID_STATE', 409, 'Đơn hàng không thể hủy ở trạng thái hiện tại');
-  }
-  if (isPaid(order) && !body.refundAccount) {
-    throw new AppError('REFUND_ACCOUNT_REQUIRED', 400, 'Cần tài khoản nhận hoàn tiền');
   }
   const reason = body.reasonNote ? `${body.reason}: ${body.reasonNote}` : body.reason;
   const cancelled = await cancelOrder(order._id, CUSTOMER_CANCELLABLE, {
     cancelledBy: 'CUSTOMER',
     userId,
     reason,
-    refundAccount: body.refundAccount,
   });
   if (!cancelled) {
     throw new AppError('ORDER_INVALID_STATE', 409, 'Đơn hàng vừa thay đổi trạng thái');
@@ -512,6 +652,25 @@ export async function cancelByCustomer(
   const { bankAccount } = await getCheckoutConfig();
   return toPaymentView(cancelled, bankAccount);
 }
+
+/** OA-06: Admin hủy đơn chưa bàn giao, bắt buộc lý do; trả kho và tạo hoàn tiền nếu đã thu. */
+export async function cancelByAdmin(
+  orderId: Types.ObjectId,
+  adminId: Types.ObjectId,
+  reason: string,
+): Promise<OrderDoc> {
+  const cancelled = await cancelOrder(orderId, ADMIN_CANCELLABLE, {
+    cancelledBy: 'ADMIN',
+    userId: adminId,
+    reason,
+  });
+  if (!cancelled) {
+    throw new AppError('ORDER_INVALID_STATE', 409, 'Đơn hàng không thể hủy ở trạng thái hiện tại');
+  }
+  return cancelled;
+}
+
+const ADMIN_CANCELLABLE: OrderStatus[] = ['PENDING_PAYMENT', 'PENDING_CONFIRMATION', 'CONFIRMED'];
 
 /** Job mỗi phút (API Design 14): hủy đơn QR quá hạn. Trả số đơn đã hủy. */
 export async function expireOverduePayments(now = new Date()): Promise<number> {
@@ -560,6 +719,10 @@ export async function rescheduleDelivery(
     throw new AppError('SCHEDULE_INVALID', 409, 'Đơn này không hỗ trợ hẹn lịch giao');
   }
   const shipment = await ShipmentModel.findOne({ orderId }).orFail();
+  const estimatedDeliveryDate = shipment.estimatedDeliveryDate;
+  if (!estimatedDeliveryDate) {
+    throw new AppError('SCHEDULE_INVALID', 409, 'Đơn chưa có ngày giao dự kiến');
+  }
   if (shipment.rescheduleCount >= shipping.maxReschedule) {
     throw new AppError(
       'RESCHEDULE_LIMIT',
@@ -569,14 +732,14 @@ export async function rescheduleDelivery(
   }
 
   // Mốc giao hiện tại: ngày hẹn (đầu khung giờ) hoặc ngày dự kiến 8h, giờ Việt Nam.
-  const currentDate = fromDate(shipment.scheduledDate ?? shipment.estimatedDeliveryDate);
+  const currentDate = fromDate(shipment.scheduledDate ?? estimatedDeliveryDate);
   const slotStart = shipping.slots.find((s) => s.code === shipment.scheduledSlot)?.from ?? '08:00';
   const deliveryAt = new Date(`${currentDate}T${slotStart}:00+07:00`);
   if (deliveryAt.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
     throw new AppError('RESCHEDULE_TOO_LATE', 409, 'Chỉ đổi lịch trước giờ giao ít nhất 24 giờ');
   }
 
-  const estimated = fromDate(shipment.estimatedDeliveryDate);
+  const estimated = fromDate(estimatedDeliveryDate);
   const tomorrow = addDays(vnToday(now), 1);
   const quote = {
     estimatedDeliveryDate: estimated,
@@ -609,11 +772,13 @@ export async function rescheduleDelivery(
 /** API Design 3.1 (rút gọn): chi tiết đơn cho trang thành công; FR-10 bổ sung `items[].actions`. */
 export async function getOrderDetail(userId: Types.ObjectId, orderId: Types.ObjectId) {
   const order = await findOwnOrder(userId, orderId);
-  const [shipment, { shipping }, actions] = await Promise.all([
+  const [shipment, { shipping }, actions, refunds] = await Promise.all([
     ShipmentModel.findOne({ orderId }).lean(),
     getCheckoutConfig(),
     getItemActions(order),
+    findOrderRefunds([orderId]),
   ]);
+  const refund = refunds.get(orderId.toString());
   const open = CUSTOMER_CANCELLABLE.includes(order.status);
   const day = (d?: Date | null): DateOnly | null => (d ? fromDate(d) : null);
   return {
@@ -641,6 +806,7 @@ export async function getOrderDetail(userId: Types.ObjectId, orderId: Types.Obje
     voucherDiscount: order.voucherDiscount,
     shippingFee: order.shippingFee,
     installationFee: order.installationFee,
+    exchangeCredit: order.exchangeCredit ?? 0,
     totalAmount: order.totalAmount,
     note: order.note ?? null,
     payment: {
@@ -652,6 +818,16 @@ export async function getOrderDetail(userId: Types.ObjectId, orderId: Types.Obje
       dueAt: order.payment.dueAt?.toISOString() ?? null,
       paidAt: order.payment.paidAt?.toISOString() ?? null,
     },
+    /** Trạng thái hoàn tiền của đơn đã hủy (chỉ khi đã thu tiền). Không lộ chứng từ nội bộ. */
+    refund: refund
+      ? {
+          amount: refund.amount,
+          status: refund.status,
+          refundTo: refund.refundTo ?? null,
+          requestedAt: refund.createdAt.toISOString(),
+          completedAt: refund.status === 'COMPLETED' ? refund.transactionAt.toISOString() : null,
+        }
+      : null,
     shipment: shipment && {
       status: shipment.status,
       estimatedDeliveryDate: day(shipment.estimatedDeliveryDate),

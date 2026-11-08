@@ -5,12 +5,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CatalogApiService, type ProductDetail, type ProductListItem, type ProductReviewPage, type StockStatus } from 'shared';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { saveBuyNow } from '../../core/cart/buy-now';
-import { CartStore } from '../../core/cart/cart.store';
+import { CartStore } from '../../services/cart/cart.store';
 import { apiErrorMessage } from '../../core/api-error';
-import { AuthService } from '../../core/auth/auth.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { AccountApiService } from '../account/account-api.service';
-import { CollectionWishlistService } from '../../core/shopping/collection-wishlist.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { ToastService } from '../../services/ui/toast.service';
+import { AccountApiService } from '../../services/account/account-api.service';
+import { CollectionWishlistService } from '../../services/cart/collection-wishlist.service';
 import { DimensionDrawingComponent } from '../../shared/ui/dimension-drawing/dimension-drawing.component';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 import { ProductCardComponent } from '../../shared/ui/product-card/product-card.component';
@@ -168,7 +168,7 @@ export class ProductDetailComponent {
   protected readonly selectedImageIndex = signal(0);
   protected readonly selectedTab = signal<'description' | 'specifications'>('description');
   protected readonly quantity = signal(1);
-  protected readonly notice = signal<{ text: string; type: 'success' | 'error' } | null>(null);
+  protected readonly notice = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   /** Khóa thao tác đang gửi lên server, dùng để chặn bấm lặp. */
   protected readonly pendingAction = signal<string | null>(null);
   protected readonly stockLabels = STOCK_LABELS;
@@ -205,6 +205,8 @@ export class ProductDetailComponent {
     const detail = this.product();
     return detail ? toView(detail) : null;
   });
+  /** Không đặt tên `product` trong template: `@if (view(); as product)` đã dùng tên đó cho giá trị `view()`. */
+  protected readonly has3D = computed(() => this.product()?.has3DModel ?? false);
   protected readonly selectedVariant = computed(() => this.view()?.variants[this.selectedVariantIndex()] ?? null);
   protected readonly isFavorite = computed(() => {
     const view = this.view();

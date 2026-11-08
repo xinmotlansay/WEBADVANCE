@@ -715,6 +715,7 @@ Collection: `product_collections` (trước đây: `COLLECTION`, kèm `HINH_ANH_
 | 21 | images[].hotspots[].x | Number | Y | Tọa độ ngang theo tỷ lệ ảnh (0–1) |
 | 22 | images[].hotspots[].y | Number | Y | Tọa độ dọc theo tỷ lệ ảnh (0–1) |
 | 23 | images[].hotspots[].displayOrder | Number | | Thứ tự ưu tiên khi có nhiều hotspot |
+| 24 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 28: Nguồn cảm hứng (Inspiration)
 
@@ -730,6 +731,8 @@ Collection: `inspirations` (trước đây: `NGUON_CAM_HUNG`, kèm `SANPHAM_NGUO
 | 4 | products | Array\<Object\> | | Sản phẩm xuất hiện trong ảnh, hiển thị ở popup |
 | 5 | products[].productId | ObjectId (ref: products) | Y | Sản phẩm |
 | 6 | products[].displayOrder | Number | Y | Thứ tự trong danh sách popup |
+| 7 | displayOrder | Number | | Default: 0. Thứ tự trong lưới khách (trang Nguồn cảm hứng, gallery trang chủ) |
+| 8 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
 
 ### Thực thể 29: Banner (Banner)
 
@@ -851,6 +854,12 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 ---
 
 ## Phụ lục – Bảng đối chiếu tên
+
+### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
+
+- `system_configs`: tên khóa đã dùng trong code (danh sách đầy đủ ở `server/src/modules/super-admin/system-config.registry.ts`): `store`, `policy.returnDays`, `policy.reviewDays`, `policy.lateCompensationDays`, `policy.lateCompensationValue`, `policy.lateCompensationValidDays`, `policy.refundDaysMin`, `policy.refundDaysMax`, `policy.overdueConfirmationHours`, `payment`, `payment.bankAccount`, `shipping`, `shipping.maxRedelivery`, `inventory.lowStockThreshold`, `security.*` (`maxLoginAttempts`, `loginLockMinutes`, `otpExpireMinutes`, `otpMaxAttempts`, `otpResendSeconds`, `otpMaxSendsPerHour`, `adminSessionMinutes`), `labels.newDays`, `labels.bestSellerTopPercent`, `labels.bestSellerMinSold`, `email.templates`, `invoice` (thêm `sellerName`, `sellerTaxCode`, `sellerAddress`, `symbol`). Giá trị object lưu đầy đủ field; module đọc vẫn trộn với mặc định nếu thiếu.
+- `audit_logs`: model chặn `update*`/`delete*`. Index `{ performedAt: -1 }`, `{ userId: 1, performedAt: -1 }`, `{ targetType: 1, targetId: 1, performedAt: -1 }`. `action` dạng `ĐỐI_TƯỢNG_HÀNH_ĐỘNG`: `ADMIN_CREATE`, `ADMIN_UPDATE`, `ADMIN_ROLE_CHANGE`, `ADMIN_DEACTIVATE`, `ADMIN_ACTIVATE`, `ADMIN_INVITE_RESEND`, `CONFIG_UPDATE`; `targetType`: `ADMIN`, `SYSTEM_CONFIG`. Module khác ghi nhật ký qua `recordAudit(req, {...})` ở `super-admin/audit-log.service.ts` (tự che mật khẩu, số tài khoản).
+- `otps` với `purpose = ADMIN_SET_PASSWORD`: `codeHash` là SHA-256 của token trong liên kết, `expiresAt` 48 giờ, `isVerified = true` sau khi dùng.
 
 ### Bổ sung triển khai 2026-10-23
 

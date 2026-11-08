@@ -11,8 +11,8 @@ import {
 } from '@angular/core';
 import type { ChatMessageView, ChatSenderType } from 'shared';
 import { ChatSenderType as Sender } from 'shared';
-import { ChatUiService } from '../../../../core/chat/chat-ui.service';
-import { ChatService } from '../../chat.service';
+import { ChatUiService } from '../../../../services/chat/chat-ui.service';
+import { ChatService } from '../../../../services/chat/chat.service';
 
 /** Khung chat CSKH: mở từ icon bên phải, bắt buộc đăng nhập và lưu lịch sử trong DB. */
 @Component({
@@ -49,7 +49,8 @@ export class ChatWidgetComponent {
     return 'Gửi tin nhắn, nhân viên sẽ phản hồi';
   });
 
-  protected readonly canSend = computed(() => !this.chat.isClosed() && !this.chat.sending());
+  // Phiên đã đóng vẫn nhắn được: tin mới đưa phiên về "Chờ nhận" để CSKH tiếp nhận lại.
+  protected readonly canSend = computed(() => !this.chat.sending());
 
   constructor() {
     // Chỉ phụ thuộc `supportOpen`; mọi đọc/ghi signal bên trong phải untracked,
@@ -77,6 +78,13 @@ export class ChatWidgetComponent {
         if (messages.length > 0 && open) {
           this.scrollToBottom();
         }
+      });
+    });
+
+    effect(() => {
+      const typing = this.chat.agentTyping();
+      untracked(() => {
+        if (typing && this.ui.supportOpen()) this.scrollToBottom();
       });
     });
 
@@ -128,16 +136,21 @@ export class ChatWidgetComponent {
     }
   }
 
-  protected restart(): void {
-    void this.chat.open().then(() => this.scrollToBottom());
-  }
-
   protected isMine(message: ChatMessageView): boolean {
     return message.senderType === Sender.CUSTOMER;
   }
 
   protected isSystem(message: ChatMessageView): boolean {
     return message.senderType === Sender.SYSTEM;
+  }
+
+  /** Chữ cái đầu của họ và tên, ví dụ "Minh Order" -> "MO". */
+  protected initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'CS';
+    const first = parts[0]![0] ?? '';
+    const last = parts.length > 1 ? (parts[parts.length - 1]![0] ?? '') : '';
+    return (first + last).toUpperCase();
   }
 
   protected avatarLabel(sender: ChatSenderType): string {

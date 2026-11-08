@@ -12,6 +12,8 @@ export interface UserVoucherDoc {
   status: 'UNUSED' | 'USED' | 'EXPIRED';
   /** Đơn đã dùng voucher này, để hoàn lại ví khi đơn bị hủy. */
   usedOrderId?: Types.ObjectId;
+  /** Lúc khách xem/đóng dải thông báo voucher tặng (báo cáo chiến dịch cột "Đã xem"). */
+  seenAt?: Date;
 }
 
 const userVoucherSchema = new Schema<UserVoucherDoc>(
@@ -29,6 +31,7 @@ const userVoucherSchema = new Schema<UserVoucherDoc>(
       default: 'UNUSED',
     },
     usedOrderId: { type: Schema.Types.ObjectId, ref: 'orders' },
+    seenAt: Date,
   },
   { timestamps: true },
 );

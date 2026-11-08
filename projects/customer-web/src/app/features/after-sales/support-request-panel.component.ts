@@ -1,10 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, combineLatest, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { EligibleOrder, ReturnExchangeService, WarrantyCard } from 'shared';
-import { inject } from '@angular/core';
 import { ReturnFormComponent } from '../returns/return-form.component';
 import { WarrantyFormComponent } from '../warranty/warranty-form.component';
 
@@ -43,6 +55,9 @@ function normalize(text: string): string {
 })
 export class SupportRequestPanelComponent {
   private readonly returns = inject(ReturnExchangeService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private readonly searchForm = viewChild<ElementRef<HTMLFormElement>>('searchForm');
 
   readonly kind = input.required<PanelKind>();
   readonly loggedIn = input(false);
@@ -125,13 +140,87 @@ export class SupportRequestPanelComponent {
       );
   });
 
+  constructor() {
+    // Khung vừa xổ xuống thì cuộn tới đó, để khách thấy thao tác tiếp theo ngay.
+    // Cũng cuộn lại khi khách bấm sang loại yêu cầu còn lại (khung được tái sử dụng).
+    // Dừng ở hàng 2 ô chọn loại để thấy cả tiêu đề khung và ô tìm kiếm ngay bên dưới.
+    effect(() => {
+      this.kind();
+      this.pickedCardId.set('');
+      this.pickedItem.set(null);
+      this.scrollToCards();
+    });
+  }
+
   protected search(order: string, name: string): void {
     this.orderQuery.set(order);
     this.nameQuery.set(name);
+    // Tìm lại thì quay về danh sách kết quả, bỏ lựa chọn cũ.
+    this.pickedCardId.set('');
+    this.pickedItem.set(null);
+  }
+
+  protected pickCard(id: string): void {
+    this.clearSearch();
+    this.pickedCardId.set(id);
+    this.scrollTo('.step-target');
+  }
+
+  protected pickItem(row: ReturnCandidate): void {
+    this.clearSearch();
+    this.pickedItem.set(row);
+    this.scrollTo('.step-target');
   }
 
   protected backToSearch(): void {
     this.pickedCardId.set('');
     this.pickedItem.set(null);
+    this.scrollTo('[data-scroll-target="search"]');
+  }
+
+  /** Xóa ô tìm kiếm (cả giá trị đang gõ dở) khi đã chọn sản phẩm. */
+  private clearSearch(): void {
+    this.orderQuery.set('');
+    this.nameQuery.set('');
+    this.searchForm()?.nativeElement.reset();
+  }
+
+  /** Cuộn mượt để hàng 2 ô chọn loại nằm ngay dưới thanh header. */
+  private scrollToCards(): void {
+    afterNextRender(
+      () => {
+        const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Chờ router cuộn lên đầu trang xong (scrollPositionRestoration) rồi mới cuộn tới đích.
+        setTimeout(() => {
+          const cards = this.host.nativeElement.parentElement?.querySelector('.service-grid');
+          if (!cards) return;
+          const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-offset')) || 115;
+          const top = cards.getBoundingClientRect().top + window.scrollY - header - 36;
+          window.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' });
+        }, 120);
+      },
+      { injector: this.injector },
+    );
+  }
+
+  /** Cuộn mượt tới selector đầu tiên tìm thấy sau khi Angular vẽ xong; tắt cuộn mượt nếu máy bật giảm chuyển động. */
+  private scrollTo(...selectors: string[]): void {
+    afterNextRender(
+      () => {
+        const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Router (scrollPositionRestoration) tự cuộn lên đầu trang sau mỗi lần điều hướng,
+        // nên chờ nó xong rồi mới cuộn tới đích, nếu không sẽ bị kéo ngược lên.
+        setTimeout(() => {
+          for (const selector of selectors) {
+            const target = this.host.nativeElement.querySelector(selector);
+            if (target) {
+              target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+              return;
+            }
+          }
+        }, 120);
+      },
+      { injector: this.injector },
+    );
   }
 }

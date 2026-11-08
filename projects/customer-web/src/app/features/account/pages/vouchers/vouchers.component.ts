@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { AccountApiService, type AccountVoucher } from '../../account-api.service';
-import { ToastService } from '../../../../core/toast/toast.service';
+import { AccountApiService, type AccountVoucher } from '../../../../services/account/account-api.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 
 type VoucherFilter = 'Tất cả' | 'Có thể sử dụng' | 'Đã sử dụng' | 'Hết hạn';
 const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;

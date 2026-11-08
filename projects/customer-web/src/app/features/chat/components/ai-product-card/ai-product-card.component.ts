@@ -1,19 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { ChatAiProductSuggestion } from 'shared';
-import { CollectionWishlistService } from '../../../../core/shopping/collection-wishlist.service';
+import { CollectionWishlistService } from '../../../../services/cart/collection-wishlist.service';
 import { VndPipe } from '../../../../shared/pipes/vnd.pipe';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 
 /** Thẻ sản phẩm AI gợi ý. Nút tim thêm/bỏ khỏi danh sách yêu thích, nút giỏ chưa có chức năng. */
 @Component({
   selector: 'app-ai-product-card',
-  imports: [VndPipe, IconComponent],
+  imports: [VndPipe, IconComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ai-product-card.component.html',
   styleUrl: './ai-product-card.component.css',
 })
 export class AiProductCardComponent {
   readonly product = input.required<ChatAiProductSuggestion>();
+  /** Khách bấm sang trang sản phẩm; khung chat nên thu nhỏ lại. */
+  readonly opened = output<void>();
 
   private readonly wishlist = inject(CollectionWishlistService);
 

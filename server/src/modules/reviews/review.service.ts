@@ -7,6 +7,8 @@ import { UserModel } from '../auth/auth.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { pickThumbnail } from '../products/product.service.js';
 import { VariantModel } from '../products/variant.model.js';
+import { pushNotification } from '../admin/admin-notification.model.js';
+import { RoleName } from '../../lib/shared-enums.js';
 import { reviewViolation } from './review-filter.js';
 import { ReviewModel, type ReviewDoc } from './review.model.js';
 
@@ -220,6 +222,7 @@ export async function createReview(
   const variant = await VariantModel.findById(item.variantId, { productId: 1 }).lean();
   if (!variant) throw new AppError('NOT_FOUND', 404, 'Sản phẩm không còn tồn tại');
 
+  // Nội dung nghi vi phạm (từ thô tục, liên kết, spam...) không hiện ngay mà chờ Product Admin duyệt.
   const rejectReason = reviewViolation(comment) ?? undefined;
   const rejected = !!rejectReason;
   const review = await ReviewModel.create({
@@ -231,7 +234,7 @@ export async function createReview(
     rating: body.rating,
     comment,
     images,
-    status: rejected ? 'REJECTED' : 'VISIBLE',
+    status: rejected ? 'PENDING_REVIEW' : 'VISIBLE',
     rejectReason,
   });
   return { id: review._id.toString(), status: review.status, rejectReason: rejectReason ?? null };
@@ -278,7 +281,7 @@ export async function updateReview(
     review.images = body.images;
   }
   const violation = reviewViolation(review.comment ?? '');
-  review.status = violation ? 'REJECTED' : 'VISIBLE';
+  review.status = violation ? 'PENDING_REVIEW' : 'VISIBLE';
   review.rejectReason = violation ?? undefined;
   review.isEdited = true;
   review.editedAt = new Date();
@@ -309,4 +312,15 @@ export async function reportReview(
   }
   review.reports.push({ userId, reason, reportedAt: new Date() });
   await review.save();
+  // PA-09: đưa vào hàng chờ kiểm duyệt; báo một lần mỗi đợt báo cáo của đánh giá.
+  const product = await ProductModel.findById(review.productId).select('name').lean();
+  await pushNotification({
+    type: 'REVIEW_REPORTED',
+    roleNames: [RoleName.SUPER_ADMIN, RoleName.PRODUCT_ADMIN],
+    title: `Đánh giá bị báo cáo: ${product?.name ?? 'sản phẩm'}`,
+    detail: `${review.rating}★ · lý do: ${reason}`,
+    link: '/danh-gia',
+    targetId: String(review._id),
+    dedupeKey: `REVIEW:${String(review._id)}:${review.reportsReviewedAt?.getTime() ?? 0}`,
+  });
 }

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from './core/auth/auth.service';
+import { AuthService } from './services/auth/auth.service';
 import { authGuard } from './core/guards/auth.guard';
 
 const wishlistEntryGuard = () =>
@@ -9,6 +9,7 @@ const wishlistEntryGuard = () =>
 
 export const routes: Routes = [
   { path: 'support', loadChildren: () => import('./features/after-sales/after-sales.routes').then((m) => m.AFTER_SALES_ROUTES) },
+  { path: 'careers', loadChildren: () => import('./features/careers/careers.routes').then((m) => m.CAREERS_ROUTES) },
   { path: 'policies', loadChildren: () => import('./features/policies/policies.routes').then((m) => m.POLICIES_ROUTES) },
   { path: 'search/image', loadChildren: () => import('./features/image-search/image-search.routes').then((m) => m.IMAGE_SEARCH_ROUTES) },
   { path: 'products', loadChildren: () => import('./features/products/products.routes').then((m) => m.PRODUCTS_ROUTES) },
@@ -17,6 +18,21 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     loadChildren: () => import('./features/home/home.routes').then((m) => m.HOME_ROUTES),
+  },
+  {
+    path: 'welcome-offer',
+    data: { layout: 'solid' },
+    title: 'Ưu đãi 10% cho khách hàng mới | CaraVeso',
+    loadComponent: () =>
+      import('./features/welcome-offer/welcome-offer.component').then((m) => m.WelcomeOfferComponent),
+  },
+  {
+    path: 'welcome-offer/confirm',
+    data: { layout: 'solid' },
+    canActivate: [authGuard],
+    title: 'Xác nhận ưu đãi khách mới | CaraVeso',
+    loadComponent: () =>
+      import('./features/welcome-offer/welcome-offer-confirm.component').then((m) => m.WelcomeOfferConfirmComponent),
   },
   {
     path: 'promotions',
@@ -74,6 +90,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { layout: 'solid' },
     loadChildren: () => import('./features/account/account.routes').then((m) => m.ACCOUNT_ROUTES),
+  },
+  {
+    path: 'news',
+    data: { layout: 'solid' },
+    loadChildren: () => import('./features/news/news.routes').then((m) => m.NEWS_ROUTES),
   },
   // Các trang chưa làm (sản phẩm, tìm kiếm...) tạm đưa về trang chủ.
   { path: '**', redirectTo: '' },

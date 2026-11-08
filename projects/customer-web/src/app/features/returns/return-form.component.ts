@@ -9,6 +9,7 @@ import {
   OnInit,
   output,
 } from '@angular/core';
+import { invalidFieldMessages } from '../after-sales/form-problems';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -33,12 +34,14 @@ import {
   ReturnExchangeService,
   ReturnSubmission,
 } from 'shared';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { apiErrorMessage } from '../../core/api-error';
+import { ProductPickerComponent, type PickedProduct } from '../../shared/ui/product-picker/product-picker.component';
+import { VndPipe } from '../../shared/pipes/vnd.pipe';
 import { EvidenceUploadComponent } from '../../shared/ui/evidence-upload/evidence-upload.component';
 @Component({
   selector: 'app-return-form',
-  imports: [ReactiveFormsModule, RouterLink, EvidenceUploadComponent, DatePipe],
+  imports: [ReactiveFormsModule, RouterLink, EvidenceUploadComponent, DatePipe, VndPipe, ProductPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-form.component.html',
   styleUrl: '../after-sales/request-form.css',
@@ -107,64 +110,37 @@ export class ReturnFormComponent implements OnInit {
   protected readonly selectedItem = computed(
     () => this.order()?.items.find((item) => item.id === this.selectedItemId()) ?? null,
   );
-  protected readonly replacementSearch = new FormControl('', { nonNullable: true });
-  protected readonly replacementSlug = new FormControl('', { nonNullable: true });
-  protected readonly replacements = toSignal(
-    this.replacementSearch.valueChanges.pipe(
-      startWith(''),
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((q) =>
-        this.catalog.getProducts({ q, inStock: true, limit: 20 }).pipe(
-          map((r) => r.items),
-          catchError(() => of(null)),
-          startWith(undefined),
-        ),
-      ),
+  protected readonly refundDays = toSignal(
+    this.catalog.getPublicConfig().pipe(
+      map((c) => `${c.policy?.refundDaysMin ?? 7}–${c.policy?.refundDaysMax ?? 10}`),
+      catchError(() => of('7–10')),
     ),
+    { initialValue: '7–10' },
   );
-  protected readonly replacementDetail = toSignal(
-    this.replacementSlug.valueChanges.pipe(
-      tap(() => this.form.controls.replacementVariantId.setValue('')),
-      switchMap((slug) =>
-        slug
-          ? this.catalog.getProduct(slug).pipe(
-              catchError(() => of(null)),
-              startWith(null),
-            )
-          : of(null),
-      ),
-    ),
+  private readonly typeValue = toSignal(this.form.controls.type.valueChanges, {
+    initialValue: this.form.controls.type.value,
+  });
+  /** Đơn COD: khách nhập tài khoản nhận hoàn. Đơn chuyển khoản: hoàn về tài khoản đã chuyển tiền. */
+  protected readonly needsRefundAccount = computed(
+    () => this.typeValue() === 'RETURN' && this.order()?.paymentMethod === 'COD',
   );
+  protected readonly refundToSourceBank = computed(
+    () => this.typeValue() === 'RETURN' && this.order()?.paymentMethod === 'BANK_TRANSFER',
+  );
+  protected readonly pickerOpen = signal(false);
+  protected readonly replacement = signal<PickedProduct | null>(null);
+
+  protected onPicked(pick: PickedProduct): void {
+    this.replacement.set(pick);
+    this.form.controls.replacementVariantId.setValue(pick.variant.id);
+    this.form.controls.replacementVariantId.markAsTouched();
+    this.pickerOpen.set(false);
+  }
+
   constructor() {
     this.form.controls.type.valueChanges
       .pipe(startWith(this.form.controls.type.value), takeUntilDestroyed(this.destroyRef))
-      .subscribe((type) => {
-        const bank = this.form.controls.refundAccount.controls;
-        bank.bankName.setValidators(
-          type === 'RETURN'
-            ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)]
-            : [],
-        );
-        bank.accountNumber.setValidators(
-          type === 'RETURN' ? [Validators.required, Validators.pattern(/^\d{6,30}$/)] : [],
-        );
-        bank.accountHolder.setValidators(
-          type === 'RETURN'
-            ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)]
-            : [],
-        );
-        this.form.controls.replacementVariantId.setValidators(
-          type === 'EXCHANGE' ? [Validators.required] : [],
-        );
-        for (const control of [
-          bank.bankName,
-          bank.accountNumber,
-          bank.accountHolder,
-          this.form.controls.replacementVariantId,
-        ])
-          control.updateValueAndValidity({ emitEvent: false });
-      });
+      .subscribe(() => this.applyConditionalValidators());
     combineLatest([
       this.form.controls.orderId.valueChanges.pipe(startWith(''), distinctUntilChanged()),
       this.retryOrder.pipe(startWith(0)),
@@ -191,12 +167,38 @@ export class ReturnFormComponent implements OnInit {
       )
       .subscribe((order) => {
         this.order.set(order);
+        this.applyConditionalValidators();
         const itemId = this.presetItemId();
         if (itemId && order?.items.some((i) => i.id === itemId && i.actions.canReturn)) {
           this.form.controls.orderItemId.setValue(itemId);
         }
         this.orderLoading.set(false);
       });
+  }
+  /** Tài khoản nhận hoàn chỉ bắt buộc khi trả hàng đơn COD; sản phẩm thay thế chỉ khi đổi hàng. */
+  private applyConditionalValidators(): void {
+    const type = this.form.controls.type.value;
+    const needsAccount = type === 'RETURN' && this.order()?.paymentMethod === 'COD';
+    const bank = this.form.controls.refundAccount.controls;
+    bank.bankName.setValidators(
+      needsAccount ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)] : [],
+    );
+    bank.accountNumber.setValidators(
+      needsAccount ? [Validators.required, Validators.pattern(/^\d{6,30}$/)] : [],
+    );
+    bank.accountHolder.setValidators(
+      needsAccount ? [Validators.required, Validators.minLength(2), Validators.maxLength(100)] : [],
+    );
+    this.form.controls.replacementVariantId.setValidators(
+      type === 'EXCHANGE' ? [Validators.required] : [],
+    );
+    for (const control of [
+      bank.bankName,
+      bank.accountNumber,
+      bank.accountHolder,
+      this.form.controls.replacementVariantId,
+    ])
+      control.updateValueAndValidity({ emitEvent: false });
   }
   ngOnInit(): void {
     if (this.presetOrderId()) this.form.controls.orderId.setValue(this.presetOrderId());
@@ -210,20 +212,22 @@ export class ReturnFormComponent implements OnInit {
   protected hasEligibleItems(): boolean {
     return this.order()?.items.some((i) => i.actions.canReturn) ?? false;
   }
+  protected readonly problems = signal<string[]>([]);
   protected submit(): void {
     this.form.markAllAsTouched();
     this.error.set('');
     if (this.loading() || this.uploading() || this.orderLoading()) return;
     const value = this.form.getRawValue();
-    if (
-      this.form.invalid ||
-      !this.evidence().length ||
-      !this.order()?.items.some((i) => i.id === value.orderItemId && i.actions.canReturn) ||
-      value.quantity > this.maxQuantity()
-    ) {
-      this.error.set(
-        'Chọn sản phẩm đủ điều kiện, số lượng hợp lệ, thêm minh chứng và điền đủ mô tả, thông tin liên hệ.',
-      );
+    this.problems.set([]);
+    const problems = invalidFieldMessages(this.form);
+    if (!this.order()?.items.some((i) => i.id === value.orderItemId && i.actions.canReturn)) {
+      problems.unshift('Chọn sản phẩm còn đủ điều kiện đổi trả.');
+    } else if (value.quantity > this.maxQuantity()) {
+      problems.push(`Số lượng tối đa có thể đổi trả là ${this.maxQuantity()}.`);
+    }
+    if (!this.evidence().length) problems.push('Tải lên ít nhất một ảnh hoặc video minh chứng.');
+    if (problems.length) {
+      this.problems.set([...new Set(problems)]);
       return;
     }
     if (
@@ -234,7 +238,7 @@ export class ReturnFormComponent implements OnInit {
       return;
     }
     if (
-      value.type === 'RETURN' &&
+      this.needsRefundAccount() &&
       (value.refundAccount.bankName.trim().length < 2 ||
         !/^\d{6,30}$/.test(value.refundAccount.accountNumber.trim()) ||
         value.refundAccount.accountHolder.trim().length < 2)
@@ -250,7 +254,8 @@ export class ReturnFormComponent implements OnInit {
     const body: ReturnSubmission = {
       ...rest,
       evidence: this.evidence(),
-      ...(value.type === 'RETURN' ? { refundAccount } : { replacementVariantId }),
+      ...(this.needsRefundAccount() ? { refundAccount } : {}),
+      ...(value.type === 'EXCHANGE' ? { replacementVariantId } : {}),
     };
     this.loading.set(true);
     this.api
@@ -261,7 +266,7 @@ export class ReturnFormComponent implements OnInit {
           if (this.embedded()) {
             this.requestCreated.emit(result.id);
             this.loading.set(false);
-          } else void this.router.navigate(['/account/after-sales'], { queryParams: { kind: 'return', request: result.id } });
+          } else void this.router.navigate(['/support/success'], { queryParams: { kind: 'return', request: result.id } });
         },
         error: (error: unknown) => {
           this.error.set(apiErrorMessage(error));

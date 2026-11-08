@@ -27,16 +27,56 @@
         <dl>
           <div><dt>Ngày gửi</dt><dd>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
           <div><dt>Liên hệ</dt><dd>{{ request.contact.name }} · {{ request.contact.phone }}</dd></div>
-          <div><dt>Địa chỉ</dt><dd>{{ request.contact.address }}</dd></div>
+          <div><dt>Địa chỉ của bạn</dt><dd>{{ request.contact.address }}</dd></div>
+          @if (store(); as shop) {
+            <div><dt>Cửa hàng</dt><dd>{{ shop.name }} · {{ shop.hotline }}</dd></div>
+            <div><dt>Địa chỉ cửa hàng</dt><dd>{{ shop.address }}</dd></div>
+          }
           @if (request.refundAccount) {
             <div><dt>Tài khoản hoàn tiền</dt><dd>{{ request.refundAccount.bankName }} · {{ request.refundAccount.accountNumber }}</dd></div>
           }
-          @if (request.refundAmount !== undefined) {
+          @if (request.refundAmount !== undefined && !request.refundInfo) {
             <div><dt>Số tiền hoàn</dt><dd>{{ request.refundAmount | vnd }}</dd></div>
           }
         </dl>
         @if (request.rejectReason) { <p class="api-error">Lý do từ chối: {{ request.rejectReason }}</p> }
-        @if (request.inspectionResult) { <p>Kết quả kiểm tra: {{ request.inspectionResult }}</p> }
+        @if (request.homeServiceSchedule || request.trackingCode || request.inspectionResult || request.resolution || request.pickupSchedule || request.replacementInfo || request.refundInfo || request.costBearer) {
+          <dl class="result">
+            @if (request.pickupSchedule) {
+              <div><dt>Lịch lấy hàng</dt><dd>{{ request.pickupSchedule | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
+            }
+            @if (request.costBearer) {
+              <div>
+                <dt>Phí vận chuyển</dt>
+                <dd>{{ request.costBearer === 'CARAVESO' ? 'CaraVeso chịu phí' : 'Khách chịu phí' }}@if (request.costBearer === 'CUSTOMER' && request.returnShippingFee) { · {{ request.returnShippingFee | vnd }}}</dd>
+              </div>
+            }
+            @if (request.replacementInfo; as rep) {
+              <div><dt>Sản phẩm đổi</dt><dd>{{ rep.productName }} × {{ rep.quantity }}</dd></div>
+              @if (rep.trackingCode) {
+                <div><dt>Mã vận đơn giao hàng</dt><dd>{{ rep.trackingCode }}</dd></div>
+              }
+              @if (rep.deliveredAt) {
+                <div><dt>Giao hàng đổi</dt><dd>{{ rep.deliveredAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
+              }
+            }
+            @if (request.refundInfo; as refund) {
+              <div><dt>Đã hoàn tiền</dt><dd>{{ refund.amount | vnd }}@if (refund.transactionAt) { · {{ refund.transactionAt | date: 'dd/MM/yyyy HH:mm' : '+0700' }}}</dd></div>
+            }
+            @if (request.homeServiceSchedule) {
+              <div><dt>Lịch kiểm tra tại nhà</dt><dd>{{ request.homeServiceSchedule | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd></div>
+            }
+            @if (request.trackingCode) {
+              <div><dt>Mã vận đơn gửi về kho</dt><dd>{{ request.trackingCode }}</dd></div>
+            }
+            @if (request.inspectionResult) {
+              <div><dt>Kết quả kiểm tra</dt><dd>{{ inspectionLabel(request.inspectionResult) }}</dd></div>
+            }
+            @if (request.resolution) {
+              <div><dt>Hướng xử lý</dt><dd>{{ resolutionLabel(request.resolution) }}</dd></div>
+            }
+          </dl>
+        }
         <div class="evidence-list">
           @for (url of request.evidence; track url) {
             @if (isVideo(url)) {

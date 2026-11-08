@@ -1,0 +1,103 @@
+<main class="cv-main">
+  <header class="ed-top">
+    <div class="ed-title">
+      <h1>Thanh thông báo</h1>
+      @if (!loading() && !loadError()) {
+        <span class="cv-badge" [class]="'cv-badge ' + status().cls">{{ status().label }}</span>
+      }
+    </div>
+    <div class="ed-actions">
+      <button type="button" class="cv-btn" [disabled]="saving() || loading()" (click)="save('DRAFT')">Lưu nháp</button>
+      <button type="button" class="cv-btn cv-btn--primary" [disabled]="saving() || loading()" (click)="togglePublish()">Đăng…</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <span class="cv-skeleton sk" aria-busy="true" aria-label="Đang tải"></span>
+  } @else if (loadError()) {
+    <div class="cv-alert" role="alert">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+    </div>
+  } @else {
+    @for (w of warnings(); track w) {
+      <p class="cv-alert cv-alert--warn" role="status">{{ w }}</p>
+    }
+    @if (scheduledAt(); as at) {
+      <p class="cv-card notice" role="status">Có bản đã hẹn đăng lúc {{ at | date: 'dd/MM/yyyy HH:mm' }}.</p>
+    }
+    @if (message()) {
+      <p class="cv-card notice" role="status">{{ message() }}</p>
+    }
+    @if (error() && !publishOpen()) {
+      <p class="cv-alert" role="alert">{{ error() }}</p>
+    }
+
+    <div class="ed-grid">
+    <div class="ed-form">
+      <section class="cv-card block">
+        <label class="ed-switch">
+          <input type="checkbox" role="switch" name="bar-on" [(ngModel)]="bar.enabled" />
+          <span class="ed-switch-track" aria-hidden="true"></span>
+          <span class="ed-switch-label">{{ bar.enabled ? 'Đang bật thanh thông báo' : 'Thanh thông báo đang tắt' }}</span>
+        </label>
+        <div class="cv-field">
+          <label for="bar-text">Nội dung (5–120 ký tự)</label>
+          <input id="bar-text" class="cv-input" maxlength="120" name="bar-text" [(ngModel)]="bar.text" />
+          <span class="cv-hint">{{ bar.text.length }}/120</span>
+        </div>
+        <div class="cv-field">
+          <label for="bar-link">Liên kết (tùy chọn)</label>
+          <input id="bar-link" class="cv-input" maxlength="500" placeholder="/promotions hoặc https://…" name="bar-link" [(ngModel)]="bar.linkUrl" />
+        </div>
+        <div class="cols">
+          <div class="cv-field">
+            <label for="bar-from">Hiển thị từ (tùy chọn)</label>
+            <input id="bar-from" class="cv-input" type="datetime-local" name="bar-from" [(ngModel)]="bar.startAt" />
+          </div>
+          <div class="cv-field">
+            <label for="bar-to">Đến (tùy chọn)</label>
+            <input id="bar-to" class="cv-input" type="datetime-local" name="bar-to" [(ngModel)]="bar.endAt" />
+          </div>
+        </div>
+      </section>
+
+    </div>
+    <aside class="ed-side" aria-label="Xem trước và lịch sử">
+      <section class="cv-card ed-preview" aria-labelledby="pv">
+        <h2 id="pv" class="cv-section-label">Xem trước</h2>
+        <div class="ed-frame" aria-hidden="true">
+          <div class="ed-frame-top ed-frame-top--bar" [class.ed-frame-top--off]="!bar.enabled">
+            <span>{{ bar.text || 'Nội dung thanh thông báo' }}</span>
+          </div>
+          <p class="ed-frame-empty">{{ bar.enabled ? 'Thanh nằm trên cùng mọi trang của khách.' : 'Đang tắt: khách không thấy thanh này.' }}</p>
+        </div>
+      </section>
+    <section class="cv-card history" aria-labelledby="hist">
+      <h2 id="hist">Lịch sử phiên bản (10 bản gần nhất)</h2>
+      @if (versions().length === 0) {
+        <p class="cv-muted">Chưa có phiên bản nào. Mỗi lần đăng hoặc lên lịch sẽ lưu một phiên bản.</p>
+      } @else {
+        <ul>
+          @for (v of versions(); track v.id) {
+            <li>
+              <span>{{ v.savedAt | date: 'dd/MM/yyyy HH:mm' }} · {{ v.action === 'PUBLISH' ? 'Đăng ngay' : 'Lên lịch' }}</span>
+              <button type="button" class="cv-btn" (click)="restore(v)">Khôi phục</button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+    </aside>
+    </div>
+  }
+@if (publishOpen()) {
+  <app-publish-dialog
+    [subject]="{ kind: 'Thanh thông báo', name: bar.text || 'Thanh thông báo', note: bar.linkUrl ? 'Liên kết: ' + bar.linkUrl : '' }"
+    [busy]="saving()"
+    [serverError]="error()"
+    (confirmed)="confirmPublish($event)"
+    (cancelled)="closePublish()"
+  />
+}
+</main>

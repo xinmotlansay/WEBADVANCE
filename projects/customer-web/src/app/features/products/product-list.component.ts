@@ -19,6 +19,7 @@ import {
   ProductFacets,
   ProductSort,
   Category,
+  type Banner,
 } from 'shared';
 import {
   catchError,
@@ -34,8 +35,8 @@ import {
 import { ProductCardComponent } from '../../shared/ui/product-card/product-card.component';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 import { PriceRangeComponent } from './price-range.component';
-import { ImageSearchResultsService } from '../../core/search/image-search-results.service';
-import { SearchUiService } from '../../core/search/search-ui.service';
+import { ImageSearchResultsService } from '../../services/search/image-search-results.service';
+import { SearchUiService } from '../../services/search/search-ui.service';
 
 interface Result {
   items: ProductListItem[];
@@ -51,9 +52,13 @@ const EMPTY: Result = {
 };
 const PRICE_FORMATTER = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
+import { LinkDirective } from '../../shared/ui/link/link.directive';
+import { BannerTrackerService } from '../../services/ui/banner-tracker.service';
+
 @Component({
   selector: 'app-product-list',
   imports: [
+    LinkDirective,
     ProductCardComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -81,6 +86,25 @@ export class ProductListComponent {
   protected readonly imageSearch = computed(() => this.params().has('image'));
   protected readonly imagePreview = computed(() => this.imageResults.preview(this.params().get('image') ?? ''));
   protected readonly retry = new Subject<number>();
+
+  protected readonly bannerTracker = inject(BannerTrackerService);
+  /** Banner trang danh mục (FR-011): chỉ khi đang lọc đúng một danh mục. */
+  protected readonly categoryBanner = toSignal(
+    this.route.queryParamMap.pipe(
+      map((p) => (p.get('categoryIds') ?? '').split(',').filter(Boolean)),
+      map((ids) => (ids.length === 1 ? ids[0] : '')),
+      distinctUntilChanged(),
+      switchMap((id) =>
+        id && !this.embedded()
+          ? this.api.getBanners('CATEGORY', id).pipe(
+              map((list): Banner | null => list[0] ?? null),
+              catchError(() => of(null)),
+            )
+          : of(null),
+      ),
+    ),
+    { initialValue: null },
+  );
 
   /** Đặc tính có thật trong kết quả hiện tại; chỉ phụ thuộc ngữ cảnh tìm kiếm, không phụ thuộc bộ lọc đang chọn. */
   protected readonly facets = toSignal(
@@ -169,6 +193,12 @@ export class ProductListComponent {
     ),
     { initialValue: [] },
   );
+  /** Tên danh mục khi khách đang xem đúng một danh mục (từ trang chủ hoặc bộ lọc). */
+  protected readonly categoryName = computed(() => {
+    const ids = (this.params().get('categoryIds') ?? '').split(',').filter(Boolean);
+    if (ids.length !== 1) return '';
+    return this.categories().find((c) => c.id === ids[0])?.name ?? '';
+  });
   protected readonly categoryGroups = computed(() => {
     const available = this.facets() ? this.facetCategoryIds() : null;
     const visible = (c: Category) => !available || available.has(c.id);

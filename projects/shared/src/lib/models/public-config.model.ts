@@ -5,6 +5,8 @@ export interface StoreInfo {
   email: string;
   address: string;
   establishedDate: string;
+  copyright: string;
+  social: { facebook: string; youtube: string; tiktok: string; instagram: string };
   workingHours: { start: string; end: string; days: number[] };
 }
 

@@ -85,12 +85,16 @@
       <div class="try-before-buy">
         <span>Trải nghiệm trước khi mua</span>
         <div>
-          <a routerLink="/view-your-room"><app-icon name="lucide:box" [size]="24" /> View your room</a>
-          <a routerLink="/fit-your-home"><app-icon name="lucide:door-open" [size]="24" /> Fit your home</a>
+          @if (has3D()) {
+            <a routerLink="/view-your-room" [queryParams]="{ product: view()?.slug }"><app-icon name="lucide:box" [size]="24" /> View your room</a>
+          } @else {
+            <button type="button" class="tool-disabled" aria-disabled="true" title="Sản phẩm này chưa hỗ trợ xem 3D" (click)="notice.set({ type: 'info', text: 'Sản phẩm này chưa hỗ trợ xem 3D trong View your room.' })"><app-icon name="lucide:box" [size]="24" /> View your room</button>
+          }
+          <a routerLink="/fit-your-home" [queryParams]="{ product: view()?.slug, variant: selectedVariant()?.id }"><app-icon name="lucide:door-open" [size]="24" /> Fit your home</a>
         </div>
       </div>
       @if (notice(); as message) {
-        <p class="action-notice" [class.error]="message.type === 'error'" [attr.role]="message.type === 'error' ? 'alert' : 'status'">{{ message.text }} <button type="button" (click)="notice.set(null)" aria-label="Đóng thông báo">×</button></p>
+        <p class="action-notice" [class.error]="message.type === 'error'" [class.info]="message.type === 'info'" [attr.role]="message.type === 'error' ? 'alert' : 'status'">{{ message.text }} <button type="button" (click)="notice.set(null)" aria-label="Đóng thông báo">×</button></p>
       }
     </div>
   </section>

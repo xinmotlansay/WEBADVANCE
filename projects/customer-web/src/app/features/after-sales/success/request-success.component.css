@@ -1,0 +1,118 @@
+:host {
+  display: block;
+  min-height: 100svh;
+  background: var(--color-white);
+}
+
+.page {
+  padding-block: 64px 112px;
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.check {
+  width: 88px;
+  height: 88px;
+  fill: none;
+  stroke: #00c443;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.title {
+  margin: 28px 0 0;
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--color-primary);
+}
+
+.code {
+  margin: 14px 0 0;
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+}
+
+.code__value {
+  margin-left: 4px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.meta {
+  margin: 6px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.text {
+  margin: 24px 0 0;
+  max-width: 580px;
+  font-size: var(--font-size-sm);
+  line-height: 1.75;
+  color: var(--color-muted);
+}
+
+.text + .text {
+  margin-top: 12px;
+}
+
+.link {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 32px;
+  padding: 0 32px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.cta:hover {
+  background: color-mix(in srgb, var(--color-primary) 88%, var(--color-white));
+}
+
+.cta:focus-visible,
+.link:focus-visible,
+.code__value:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .check {
+    width: 76px;
+    height: 76px;
+  }
+  .page {
+    padding-block: 40px 80px;
+  }
+  .cta {
+    width: 100%;
+  }
+}

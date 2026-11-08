@@ -1,8 +1,7 @@
-ol {
-      padding-left: var(--space-lg);
-    }
-    li {
-      margin-block: var(--space-lg);
-      padding-left: var(--space-md);
-      border-left: 2px solid var(--color-primary);
-    }
+.steps { margin: 0 0 0 6px; padding: 0; list-style: none; }
+.steps li { position: relative; display: flex; align-items: flex-start; gap: 12px; padding-bottom: 16px; color: #000; }
+.steps li.fail { color: #b42318; }
+.steps li:not(:last-child)::after { position: absolute; top: 24px; bottom: 2px; left: 9px; width: 1.5px; background: currentColor; content: ''; }
+.steps li div { display: grid; gap: 4px; padding-top: 1px; }
+.steps li span { font-size: 13px; font-weight: 500; }
+.steps small { color: #8a8a8a; font-size: 11px; }

@@ -12,8 +12,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { finalize, switchMap } from 'rxjs';
 import type { GoogleEmailExistsDetails } from 'shared';
 import { parseApiError } from '../../../../core/auth/auth-error';
-import { AuthService } from '../../../../core/auth/auth.service';
-import { GoogleAuthError, GoogleAuthService } from '../../../../core/auth/google-auth.service';
+import { AuthService } from '../../../../services/auth/auth.service';
+import { GoogleAuthError, GoogleAuthService } from '../../../../services/auth/google-auth.service';
 
 type LinkMode = 'password' | 'otp';
 

@@ -1,4 +1,6 @@
 import { thumbnailsByVariant, variantLabel } from './item-display.js';
+import { emitToAgents } from '../../socket/index.js';
+import { nextRequestCode } from './request-code.js';
 import mongoose, { type Types } from 'mongoose';
 import { AppError } from '../../utils/app-error.js';
 import {
@@ -57,6 +59,7 @@ export async function eligibleOrder(order: OrderDoc) {
     id: order._id.toString(),
     orderCode: order.orderCode,
     status: order.status,
+    paymentMethod: order.payment.method,
     actualDeliveryDate: shipment?.actualDeliveryDate ?? null,
     returnDeadline: shipment?.actualDeliveryDate
       ? new Date(shipment.actualDeliveryDate.getTime() + days * 86400000)
@@ -72,6 +75,8 @@ export async function eligibleOrder(order: OrderDoc) {
         variantLabel: variantLabel(item.snapshot),
         thumbnail: thumbs.get(item.variantId.toString()) ?? '',
         quantity: item.quantity,
+        /** Giá thực trả cho 1 sản phẩm (sau giảm giá), dùng để lọc sản phẩm đổi. */
+        unitPrice: Math.round(item.finalAmount / item.quantity),
         returnableQuantity: eligible ? remaining : 0,
         actions: { canReturn: eligible && remaining > 0 },
       };
@@ -106,6 +111,12 @@ export async function createReturn(userId: Types.ObjectId, body: z.infer<typeof 
       );
     const item = order.items.find((i) => i._id.toString() === body.orderItemId);
     if (!item) throw new AppError('NOT_FOUND', 404, 'Không tìm thấy sản phẩm trong đơn');
+    // Đơn COD: tiền hoàn về tài khoản khách nhập. Đơn chuyển khoản: hoàn về tài khoản đã chuyển.
+    const needsRefundAccount = body.type === 'RETURN' && order.payment.method === 'COD';
+    if (needsRefundAccount && !body.refundAccount)
+      throw new AppError('VALIDATION_ERROR', 400, 'Đơn COD cần tài khoản nhận hoàn tiền', [
+        { field: 'refundAccount.accountNumber', issue: 'Cần tài khoản nhận hoàn tiền' },
+      ]);
     const previous = await ReturnRequestModel.find({ orderId: order._id, orderItemId: item._id })
       .session(session)
       .lean();
@@ -142,24 +153,45 @@ export async function createReturn(userId: Types.ObjectId, body: z.infer<typeof 
           409,
           'Sản phẩm thay thế phải còn đủ hàng và có giá ngang hoặc cao hơn giá thực trả',
         );
-      replacement = { variantId: variant._id, quantity: body.quantity, unitPrice: price };
+      // Lưu cả tên và SKU để Order Admin thấy ngay sản phẩm khách đã chọn, không phải nhập lại.
+      replacement = {
+        variantId: variant._id,
+        quantity: body.quantity,
+        unitPrice: price,
+        productName: product.name,
+        sku: variant.sku,
+      };
     }
-    const { replacementVariantId: _variantId, ...input } = body;
+    const { replacementVariantId: _variantId, refundAccount, ...input } = body;
     const [request] = await ReturnRequestModel.create(
       [
         {
           ...input,
+          ...(needsRefundAccount ? { refundAccount } : {}),
+          code: await nextRequestCode('RT', ReturnRequestModel as never),
           userId,
           status: 'PENDING',
           replacement,
           requestedAt: new Date(),
           timeline: [{ status: 'PENDING', at: new Date() }],
+          history: [{ status: 'PENDING', at: new Date(), note: null }],
         },
       ],
       { session },
     );
+    // Báo cho Order Admin đang mở màn Đổi trả để danh sách tự làm mới.
+    emitToAgents('return:created', { id: request._id.toString(), code: request.code });
     return { id: request._id.toString(), status: request.status };
   });
+}
+/** Tiến trình cho khách: dùng lịch sử do Order Admin ghi (đủ từng bước), thiếu thì suy ra từ trạng thái. */
+function customerReturnTimeline(request: ReturnRequestDoc) {
+  const history = request.history ?? [];
+  if (!history.length) return timeline(request, 'PENDING');
+  return [
+    ...(history.some((entry) => entry.status === 'PENDING') ? [] : [{ status: 'PENDING', at: request.requestedAt }]),
+    ...history.map((entry) => ({ status: entry.status, at: entry.at, ...(entry.note ? { note: entry.note } : {}) })),
+  ];
 }
 export async function returnRequestDto(request: ReturnRequestDoc) {
   const order = await OrderModel.findById(request.orderId).lean();
@@ -167,6 +199,7 @@ export async function returnRequestDto(request: ReturnRequestDoc) {
   // Explicit public DTO prevents internal bank data and admin notes from leaking.
   return {
     id: request._id.toString(),
+    code: request.code ?? '',
     orderId: request.orderId.toString(),
     orderItemId: request.orderItemId.toString(),
     productName:
@@ -190,6 +223,24 @@ export async function returnRequestDto(request: ReturnRequestDoc) {
         }
       : undefined,
     canCancel: request.status === 'PENDING',
-    timeline: timeline(request, 'PENDING'),
+    inspectionResult: request.inspectionResult ?? undefined,
+    pickupSchedule: request.pickupSchedule ?? null,
+    trackingCode: request.customerShipment?.trackingCode ?? null,
+    costBearer: request.costBearer ?? null,
+    returnShippingFee: request.returnShippingFee ?? 0,
+    replacementInfo:
+      request.replacement?.productName || request.replacement?.sku
+        ? {
+            productName: request.replacement.productName ?? '',
+            sku: request.replacement.sku ?? '',
+            quantity: request.replacement.quantity ?? 1,
+            trackingCode: request.replacement.trackingCode ?? null,
+            deliveredAt: request.replacement.deliveredAt ?? null,
+          }
+        : null,
+    refundInfo: request.refund?.completed
+      ? { amount: request.refundAmount ?? 0, transactionAt: request.refund.transactionAt ?? null }
+      : null,
+    timeline: customerReturnTimeline(request),
   };
 }

@@ -621,7 +621,7 @@ Body như 5.5, thêm `"includeCaution": false`. Trả tối đa 6 `ProductListIt
 | :-- | :-- | :-- | :-- | :-- |
 | GET | `/collections` | P | FR-26 | Danh sách (tên, slogan, ảnh đại diện), theo `displayOrder` |
 | GET | `/collections/:slug` | P | FR-26 | Chi tiết: ảnh + hotspot + sản phẩm thuộc collection |
-| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng |
+| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng, theo `displayOrder` |
 | GET | `/inspirations/:id` | P | FR-27 | Ảnh + danh sách sản phẩm popup |
 | GET | `/banners` | P | | Banner đang hiển thị (trong `startDate–endDate`, `VISIBLE`) |
 | POST | `/banners/:id/impression` | P | MA-09 | Ghi lượt hiển thị |
@@ -1046,21 +1046,30 @@ Quy tắc:
 | POST | `/admin/contents` | MA-06 | Tạo (nháp hoặc xuất bản) |
 | PUT | `/admin/contents/:id` | MA-06 | Sửa |
 | PATCH | `/admin/contents/:id/status` | MA-06 | `DRAFT/VISIBLE/HIDDEN` |
-| GET | `/admin/collections` | MA-07 | Danh sách |
-| POST | `/admin/collections` | MA-07 | Tạo (kèm `images`, `hotspots`, `products`) |
-| PUT | `/admin/collections/:id` | MA-07 | Sửa (thay toàn bộ nội dung) |
-| PATCH | `/admin/collections/:id/status` | MA-07 | Ẩn/hiện |
-| GET | `/admin/inspirations` | MA-08 | Danh sách |
-| POST | `/admin/inspirations` | MA-08 | Tạo |
-| PUT | `/admin/inspirations/:id` | MA-08 | Sửa ảnh và danh sách sản phẩm popup |
-| PATCH | `/admin/inspirations/:id/status` | MA-08 | Ẩn/hiện |
+| GET | `/admin/marketing/collections` | MA-07 | Danh sách (`?status=&q=`), kèm `thumbnail`, `imageCount`, `productCount`, `flags: ['INACTIVE_PRODUCT']` |
+| GET | `/admin/marketing/collections/:id` | MA-07 | Chi tiết cho form (`productIds` theo thứ tự, `images[].hotspots[]`, `inactiveProductIds`) |
+| POST | `/admin/marketing/collections` | MA-07 | Tạo (trạng thái `HIDDEN`, đứng cuối) |
+| PATCH | `/admin/marketing/collections/:id` | MA-07 | Sửa cả form kèm `version`; không gửi `images` = giữ ảnh cũ |
+| POST | `/admin/marketing/collections/:id/hide`, `/show` | MA-07 | Ẩn/hiện; hiện cần ≥ 1 ảnh và ≥ 1 sản phẩm (`E-MKT-020-02`) |
+| DELETE | `/admin/marketing/collections/:id` | MA-07 | Xóa cứng, phải ẩn trước (`E-MKT-020-03`) |
+| POST | `/admin/marketing/collections/reorder` | MA-07 | `{ ids }` đủ mọi collection theo thứ tự mới → `displayOrder` |
+| POST | `/admin/marketing/collections/images` | MA-07 | Multipart `file`: JPG/PNG/WEBP ≤ 3 MB, cạnh ngắn ≥ 800 px (`E-MKT-020-04`) → `{ url, width, height }` |
+| GET | `/admin/marketing/inspirations` | MA-08 | Danh sách (`?status=`) theo `displayOrder`, kèm `productIds`, `flags` |
+| GET | `/admin/marketing/inspirations/:id` | MA-08 | Chi tiết cho form |
+| POST | `/admin/marketing/inspirations` | MA-08 | Tạo `{ imageUrl, productIds }` (≤ 12, `ACTIVE`, bỏ trùng), trạng thái `HIDDEN` |
+| PATCH | `/admin/marketing/inspirations/:id` | MA-08 | Sửa kèm `version` |
+| POST | `/admin/marketing/inspirations/:id/hide`, `/show` | MA-08 | Ẩn/hiện; hiện cần ≥ 1 sản phẩm (`E-MKT-021-02`) |
+| DELETE | `/admin/marketing/inspirations/:id` | MA-08 | Xóa cứng, phải ẩn trước (`E-MKT-021-03`) |
+| POST | `/admin/marketing/inspirations/reorder` | MA-08 | `{ ids }` đủ mọi ảnh → `displayOrder` |
+| POST | `/admin/marketing/inspirations/images` | MA-08 | Như ảnh collection, lưu `uploads/inspirations` |
 | GET | `/admin/reports/marketing` | MA-09 | Báo cáo (`?from=&to=`): lượt dùng voucher, doanh thu theo chương trình, banner impression/click. Chỉ số tổng hợp, không có thông tin cá nhân |
 
 Quy tắc chính:
 - **Promotion**: `discountType`, `discountValue`, `maxDiscountValue`, `minOrderValue`, `startDate/endDate`; `status` tự chuyển `UPCOMING → RUNNING → ENDED` theo thời gian, `PAUSED` do admin.
 - **Một sản phẩm một chương trình**: tại một thời điểm, mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi (không tính voucher). Khi tạo, sửa hoặc kích hoạt lại (`PATCH .../status`), backend mở rộng `targets[].categoryId` thành danh sách sản phẩm rồi kiểm tra chồng lấn thời gian với các chương trình `UPCOMING`, `RUNNING`, `PAUSED` khác. Vi phạm trả `409 PROMOTION_CONFLICT`.
 - **Voucher body** (`POST /admin/vouchers`): `code` (unique, uppercase), `type`, `customerGroup`, `stackableWithPromotion`, `discountType/Value`, `maxDiscountValue`, `minOrderValue`, `scope[]`, `totalUsageLimit`, `perUserLimit`, `startDate/endDate`. `type = ASSIGNED` thì `customerGroup` bỏ qua, dùng `/assign`.
-- **Collection** hotspot: `images[].hotspots[] = { productId, x, y, displayOrder }` với `x, y ∈ [0,1]`. Cần ít nhất một ảnh `isThumbnail`.
+- **Collection** hotspot: `images[].hotspots[] = { productId, x, y }` với `x, y ∈ [0,1]`, tối đa 10 ảnh, 8 điểm/ảnh. Server giữ đúng một ảnh `isThumbnail` (không chọn → ảnh đầu) và tự thêm sản phẩm của hotspot vào cuối `products`. Slug trùng → `409 E-MKT-020-01`.
+- **Collection, Nguồn cảm hứng**: sửa với `version` cũ → `409 E-COM-05`. Sản phẩm mới chọn phải `ACTIVE`; sản phẩm đã có mà ngừng bán được giữ và gắn cờ `INACTIVE_PRODUCT`.
 - MA không xem được thông tin cá nhân khách ở báo cáo (PA/MA-10).
 
 ### 11.2. Order Admin (OA-01 → OA-16), quyền `OA`
@@ -1076,6 +1085,9 @@ Quy tắc chính:
 | GET | `/admin/orders/:id/payment` | OA-07 | Trạng thái thanh toán + giao dịch |
 | GET | `/admin/payments/exceptions` | OA-08 | Giao dịch cần đối soát (`WRONG_CONTENT`, `UNDERPAID`, `OVERPAID`, `LATE`) |
 | POST | `/admin/payments/:transactionId/resolve` | OA-08 | Xác nhận thủ công (bắt buộc `note`) |
+| GET | `/admin/payments/refunds/pending` | OA-06, OA-08, OA-10, OA-13 | Hàng đợi hoàn tiền: các khoản `REFUND` `PENDING`, khoản cũ nhất lên đầu |
+| POST | `/admin/payments/:transactionId/refund/start` | OA-06, OA-08, OA-10, OA-13 | Bước 1, xác nhận hoàn tiền: `PENDING → PROCESSING` (Đang hoàn tiền); yêu cầu trả hàng liên quan `AWAITING_REFUND → REFUNDING` |
+| POST | `/admin/payments/:transactionId/refund` | OA-06, OA-08, OA-10, OA-13 | Bước 2, hoàn tất hoàn tiền (thủ công, vì chưa nối ngân hàng): `PROCESSING → COMPLETED`, bắt buộc `proofImage`, `transactionAt`, `note`; yêu cầu trả hàng tự `COMPLETED` |
 | PUT | `/admin/orders/:id/shipment` | OA-09 | Nhập `carrier`, `trackingCode` hoặc `assignedTeam`, `installationSchedule` |
 | POST | `/admin/orders/:id/shipment/delivered` | OA-09 | Ghi `actualDeliveryDate`, chuyển `DELIVERED` |
 | POST | `/admin/orders/:id/delivery-failed` | OA-10 | Ghi `failureReason`, chuyển `DELIVERY_FAILED` |
@@ -1091,19 +1103,20 @@ Quy tắc chính:
 | GET | `/admin/return-requests` | OA-13 | Danh sách (`?status=&type=`) |
 | GET | `/admin/return-requests/:id` | OA-13 | Chi tiết + minh chứng |
 | POST | `/admin/return-requests/:id/confirm` | OA-13 | `PENDING → CONFIRMED` (đã kiểm điều kiện) |
-| POST | `/admin/return-requests/:id/reject` | OA-13 | Bắt buộc `rejectReason` |
+| POST | `/admin/return-requests/:id/reject` | OA-13 | Bắt buộc `rejectReason`; trả hàng đã kiểm tra mà hàng có vấn đề thì từ chối được ở `PROCESSING` |
 | PATCH | `/admin/return-requests/:id` | OA-13 | Cập nhật `costBearer`, phí, `replacement`, `pickupSchedule`, tracking |
 | POST | `/admin/return-requests/:id/receive` | OA-13 | Ghi nhận nhận hàng + `inspectionResult` (`AWAITING_GOODS → PROCESSING`) |
-| POST | `/admin/return-requests/:id/refund` | OA-13 | Ghi hoàn tiền: `proofImage`, `transactionAt` (tạo/cập nhật `payment_transactions` `REFUND` → `COMPLETED`), đơn trả sang `COMPLETED` |
+| POST | `/admin/return-requests/:id/approve-refund` | OA-13 | Trả hàng đã nhận và kiểm tra: duyệt hoàn tiền (`amount` tùy chọn, tối đa giá trị sản phẩm trừ phí khách chịu). `PROCESSING → AWAITING_REFUND`, tạo khoản `REFUND` `PENDING` ở Thanh toán & đối soát |
+| POST | `/admin/return-requests/:id/refund` | OA-13 | Bước cuối, do `POST /admin/payments/:id/refund` gọi: yêu cầu phải ở `REFUNDING`, giao dịch `REFUND` `PROCESSING → COMPLETED`, yêu cầu sang `COMPLETED` tự động. Màn Đổi trả không còn nút hoàn tiền |
 | POST | `/admin/return-requests/:id/complete` | OA-13 | Hoàn tất đổi hàng sau giao hàng mới (ghi `replacementDeliveredAt`, kích hoạt phiếu bảo hành mới) |
 | GET | `/admin/warranty-requests` | OA-14 | Danh sách |
 | GET | `/admin/warranty-requests/:id` | OA-14 | Chi tiết + lịch sử bảo hành của phiếu |
 | POST | `/admin/warranty-requests/:id/accept` | OA-14 | `PENDING_CONFIRMATION → RECEIVED` |
 | POST | `/admin/warranty-requests/:id/reject` | OA-14 | Bắt buộc `rejectReason` |
 | PATCH | `/admin/warranty-requests/:id/status` | OA-14 | `INSPECTING`, `IN_WARRANTY`, `COMPLETED` + `inspectionResult`, `resolution`, `homeServiceSchedule`, tracking |
-| GET | `/admin/chat/sessions` | OA-15 | Phiên chat (`?status=WAITING|IN_PROGRESS|CLOSED`) |
-| POST | `/admin/chat/sessions/:id/claim` | OA-15 | Nhận phiên (`agentId = me`, `IN_PROGRESS`) |
-| POST | `/admin/chat/sessions/:id/close` | OA-15 | Kết thúc phiên |
+| GET | `/admin/chat/sessions` | OA-15 | Phiên chat CSKH có tin nhắn (`?status=WAITING|IN_PROGRESS|CLOSED`). Phiên với trợ lý AI và phiên chưa có tin nhắn không vào danh sách. Mỗi phiên có `agent` (người đang xử lý) |
+| POST | `/admin/chat/sessions/:id/claim` | OA-15 | Nhận phiên `WAITING` (`agentId = me`, `IN_PROGRESS`). Phiên đã có người nhận trả `409 CHAT_SESSION_TAKEN` kèm tên người đang xử lý |
+| POST | `/admin/chat/sessions/:id/close` | OA-15 | Đóng phiên. `IN_PROGRESS` chỉ người đang xử lý (hoặc Super Admin) đóng được; `WAITING` admin nào cũng đóng được |
 | GET/POST | `/admin/chat/sessions/:id/messages` | OA-15 | Xem/gửi tin (hoặc dùng socket) |
 
 ### 11.3. Ví dụ payload quan trọng
@@ -1116,7 +1129,26 @@ Quy tắc chính:
 { "orderId": "671...", "action": "MARK_PAID", "note": "Khách chuyển sai nội dung, đã đối chiếu sao kê", "reconciliationStatus": "MANUALLY_RESOLVED" }
 ```
 
-`action`: `MARK_PAID` (gắn vào đơn, đơn → `PENDING_CONFIRMATION` nếu đang chờ), `REFUND_BACK` (tạo hoàn tiền), `IGNORE`. `note` bắt buộc, ghi `recordSource = MANUAL`, `handledBy`, audit log.
+`action`: `MARK_PAID` (gắn vào đơn, đơn → `PENDING_CONFIRMATION` nếu đang chờ), `REFUND_BACK` (đóng giao dịch lệch và tạo một giao dịch `REFUND` `PENDING` riêng, hoàn về tài khoản đã chuyển), `IGNORE`. `note` bắt buộc, ghi `recordSource = MANUAL`, `handledBy`, audit log.
+
+**Hoàn tiền (giao dịch `type = REFUND`).** Mọi khoản hoàn đi qua một hàng đợi chung với vòng đời `PENDING` (Chờ hoàn tiền) → `PROCESSING` (Đang hoàn tiền, sau khi Order Admin bấm xác nhận hoàn tiền) → `COMPLETED` (sau khi Order Admin báo đã chuyển tiền kèm chứng từ). Không nhảy cóc được từ `PENDING` sang `COMPLETED`.
+
+Luồng trả hàng hoàn tiền: khách gửi yêu cầu → Order Admin xác nhận lý do (`CONFIRMED`) → hàng về kho, kiểm tra (`PROCESSING`) → duyệt hoàn tiền (`AWAITING_REFUND`, khoản hoàn `PENDING`) → xác nhận hoàn tiền ở Thanh toán & đối soát (`REFUNDING`, khoản hoàn `PROCESSING`) → hoàn tất hoàn tiền (`COMPLETED`, khoản hoàn `COMPLETED`, đơn `REFUNDED` khi đã hoàn đủ).
+
+Hủy đơn đã thu tiền (khách hoặc admin hủy) và giao thất bại theo cùng vòng đời, không có bước duyệt vì chưa giao hàng: khoản hoàn vào `PENDING` ngay khi hủy. Trạng thái thanh toán của đơn đi theo: `REFUND_PENDING` (Chờ hoàn tiền) → `REFUNDING` (Đang hoàn tiền, khi xác nhận hoàn tiền) → `REFUNDED` (Đã hoàn tiền, khi hoàn tất). `payment.statusBeforeRefund` (`PAID` hoặc `DEPOSITED`) giữ lại số đã thu để kiểm tra tổng hoàn không vượt số đã thu. Khoản hoàn của trả hàng và đối soát không đổi trạng thái thanh toán của đơn cho tới khi hoàn đủ.
+
+Nguồn các khoản hoàn:
+
+| Nguồn (`refundSource`) | Khi nào tạo | Số tiền |
+|---|---|---|
+| `ORDER_CANCEL` | Khách hoặc admin hủy đơn đã thu tiền (admin chọn `refundToCustomer = false` thì không tạo) | Toàn bộ số đã thu (kể cả cọc) |
+| `DELIVERY_FAILED` | Hoàn tất hoàn hàng về kho (OA-10) | Số đã thu trừ phí vận chuyển thực tế |
+| `RETURN` | Nhận hàng trả về (`receive`) | Giá trị sản phẩm trả trừ phí khách chịu |
+| `RECONCILIATION` | Đối soát chọn `REFUND_BACK` | Số tiền giao dịch lệch |
+
+Nơi nhận (`refundTo`): đơn chuyển khoản (`BANK_TRANSFER`) → `SOURCE_BANK`, hoàn về tài khoản đã chuyển tiền theo quy định của ngân hàng, kèm `originalTransactionCode` để tra, khách không phải nhập tài khoản. Đơn COD (chỉ phát sinh khi trả hàng) → `CUSTOMER_ACCOUNT`, dùng `refundAccount` khách nhập khi gửi yêu cầu trả hàng (bắt buộc với đơn COD). Tổng các khoản hoàn (đang chờ và đã xong) của một đơn không được vượt số đã thu (`REFUND_EXCEEDS_PAID`, 409). Một yêu cầu trả hàng chỉ có một khoản hoàn.
+
+`POST /admin/payments/:transactionId/refund`: `{ "amount": 9500000, "transactionAt": "2026-11-05T03:00:00.000Z", "proofImage": "/uploads/refund-proofs/....png", "note": "Đã hoàn qua VCB" }`. `amount` bỏ trống thì lấy đúng số cần hoàn và không được vượt số đó. Khoản hoàn của yêu cầu trả hàng sẽ hoàn tất luôn yêu cầu trả hàng. Đơn chỉ chuyển `REFUNDED` khi đã hoàn đủ số đã thu, hoặc đơn đã hủy và không còn khoản chờ. `GET /admin/payments` nhận thêm bộ lọc `type` và `status`.
 
 `PUT /admin/orders/:id/shipment`:
 
@@ -1162,6 +1194,7 @@ Mọi chuyển trạng thái ghi `statusHistory` (`changedBy` null nếu hệ th
 | PATCH | `/admin/admins/:id` | AD-12 | Sửa thông tin |
 | POST | `/admin/admins/:id/deactivate` | AD-12 | Vô hiệu hóa (`LOCKED`) |
 | POST | `/admin/admins/:id/activate` | AD-12 | Kích hoạt lại |
+| POST | `/admin/admins/:id/resend-invite` | AD-11 | Gửi lại liên kết đặt mật khẩu (tài khoản chưa đặt mật khẩu, đang hoạt động) |
 | PATCH | `/admin/admins/:id/role` | AD-13 | Đổi vai trò (đúng một vai trò) |
 | GET | `/admin/roles` | AD-14 | Danh sách vai trò (chỉ đọc, ma trận cố định) |
 | GET | `/admin/audit-logs` | AD-10, NF-A04 | Nhật ký (`?userId=&action=&targetType=&from=&to=`) |
@@ -1290,6 +1323,8 @@ Kết nối `wss://<host>/socket.io` với `auth: { token: <accessToken> }`.
 | `order:status-updated` | S → C | `{ orderId, toStatus }` | Theo dõi đơn thời gian thực (FR-10) |
 | `notification:new` | S → C | `Notification` | Chỉ gửi cho Admin (cảnh báo tồn kho, đối soát). Không có thông báo cho khách |
 
+Trạng thái chat CSKH: `WAITING` (Chờ nhận: khách vừa nhắn, chưa ai xử lý) → `IN_PROGRESS` (Đang xử lý: một admin giữ phiên, admin khác chỉ xem, trả lời hay đóng thay đều bị chặn) → `CLOSED` (Đã đóng). Phiên đóng khi admin đó bấm Đóng phiên hoặc đăng xuất hẳn (không còn phiên đăng nhập nào); đóng phiên không thêm tin nhắn nào vào hội thoại. Tin nhắn của nhân viên có `senderName` (tên admin đã trả lời). Sự kiện `chat:typing` chỉ chuyển đi khi người gửi là khách của phiên hoặc admin đang giữ phiên (`IN_PROGRESS`), kèm `senderName` khi là nhân viên. Khách nhắn vào phiên `CLOSED` thì chính phiên đó quay về `WAITING` (`agentId = null`), và khi khách mở lại khung chat sẽ thấy đúng cuộc trò chuyện cũ.
+
 Phòng: mỗi user một room `user:<id>`, mỗi phiên chat một room `chat:<sessionId>`. Agent có thêm room `agents` để nhận phiên `WAITING`.
 
 ---
@@ -1339,6 +1374,17 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 ## Lịch sử thay đổi
 
+### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
+
+- `GET /admin/dashboard/overview?range=today|7d|30d|month` (mặc định `30d`). Ngoài các trường ở 11b.5 trả thêm: `revenue.selected`, `revenue.selectedChangePercent` (so với kỳ liền trước cùng độ dài, `null` khi kỳ trước bằng 0), `revenue.byMonth[] = { month, year, revenue }` (T1 → tháng hiện tại), `ordersToday { count, changePercent }`, `averageOrderValueChangePercent`, `cancelRateChangePoints`, `returnRateChangePoints`, `overdueConfirmation { thresholdHours, count, items[] }`, `recentOrders[]` (8 đơn mới nhất), `recentAdminActivity[]` (5 dòng nhật ký mới nhất). Doanh thu tính trên đơn không ở `PENDING_PAYMENT`/`CANCELLED`, theo `createdAt`, giờ `Asia/Ho_Chi_Minh`.
+- `GET /admin/admins?q=&roleName=&status=&page=&limit=`: mỗi phần tử có `pendingInvite` (chưa đặt mật khẩu), `lockInfo`; response có thêm `summary { byRole{ROLE: {active, locked}}, pendingInvites }`.
+- `POST /admin/admins` `{ email, fullName, roleName, phoneNumber? }` → `201 { admin, inviteExpiresAt }`. Chỉ hỗ trợ cách gửi liên kết đặt mật khẩu (hạn 48 giờ, lưu `otps` `ADMIN_SET_PASSWORD`, `codeHash` = SHA-256 của token). Email trùng trả `409 EMAIL_EXISTS`.
+- `POST /admin/auth/set-password` `{ token, password }` (P, kiểm `Origin`, giới hạn 10 lần/15 phút/IP): mật khẩu 12–72 ký tự, token dùng một lần. Sai/hết hạn trả `400 INVITE_INVALID`. Liên kết dạng `${ADMIN_WEB_URL}/dat-mat-khau?token=...`.
+- `PATCH /admin/admins/:id` chỉ sửa `fullName`, `phoneNumber` (email là tên đăng nhập). Đổi vai trò và vô hiệu hóa thu hồi mọi phiên của người bị tác động. `POST /admin/admins/:id/deactivate` nhận `{ reason? }`.
+- `GET /admin/roles` → `{ roles[] { name, description, dashboard, activeAdminCount }, matrix[] { key, label, access{ROLE: FULL|VIEW|NONE} } }`.
+- `GET /admin/audit-logs` trả `actor { id, fullName, roleName }`; `from`/`to` là ngày `YYYY-MM-DD` giờ VN, `to` tính hết ngày.
+- `GET /admin/system-configs` → mảng nhóm `{ key, label, items[] { key, label, description, fields[] { path, label, type, unit? }, value, isDefault, updatedAt, updatedByName } }`; khóa chưa lưu trả giá trị mặc định. `PUT /admin/system-configs/:key` `{ value }` kiểm tra theo khóa, khóa lạ trả `404`, sai kiểu trả `400 VALIDATION_ERROR` với `details[].field = value.<path>`.
+
 ### Bổ sung triển khai 2026-10-23
 
 - `GET /warranty-cards?q=`: tìm trong phiếu của người đăng nhập theo serial, mã đơn hoặc điện thoại nhận hàng. Mỗi phiếu trả thêm `id`, `orderCode`, `productName`, `remainingDays`.
@@ -1353,6 +1399,7 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 | Phiên bản | Ngày | Nội dung |
 | :-- | :-- | :-- |
+| 1.10 | 2026-11-01 | Admin cấp cao: dashboard tổng quan theo kỳ, quản lý Admin (thêm `resend-invite`, `set-password`), ma trận quyền, nhật ký, cấu hình hệ thống (chi tiết phía trên); mã lỗi `INVITE_INVALID` |
 | 1.6 | 2026-10-23 | Triển khai tìm kiếm/lọc, collection hotspot, auth CUSTOMER, upload minh chứng, bảo hành và đổi trả; bổ sung tra cứu phiếu, contact/timeline, hủy yêu cầu, session MongoDB và adapter tìm ảnh (chi tiết phía trên) |
 | 1.0 | 2026-10-17 | Bản đầu từ FR và thiết kế MongoDB |
 | 1.1 | 2026-10-17 | Thêm hoàn tiền, state machine đổi/trả và bảo hành, hóa đơn, cấu trúc dashboard, `GET /config/public`, `PATCH /cart/selection`, chi tiết `PATCH /cart/items`, mã lỗi bổ sung, ghi chú bảo mật, sửa tham chiếu mục 8.5, hỗ trợ `userVoucherId` khi đặt hàng |
@@ -1364,6 +1411,7 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 | 1.7 | 2026-10-21 | Giỏ hàng và thanh toán (`cart-checkout-spec.md`): chặn vượt tồn ở `/cart*` (`INSUFFICIENT_STOCK`, cảnh báo `EXCEEDS_STOCK`), lắp đặt chỉ cấp 3–4 và tính theo số lượng, voucher không giảm phí, ngày giao dự kiến theo `leadDays`, hẹn lịch chỉ đơn có hàng cấp 3–4 (`schedulable`), `POST /orders` thêm `expectedTotal` (`PRICE_CHANGED`) và `invoiceInfo` (FR-45), lưu `orders.source` và trả dòng vào giỏ khi đơn từ giỏ bị hủy lúc chờ thanh toán, gửi email hóa đơn khi khách chọn |
 | 1.8 | 2026-10-21 | `GET /cart`: thêm `variant.sku`, `variant.originalPrice` (giá gốc gạch ngang như thẻ sản phẩm), `variant.installationService`, `variant.unitInstallationFee`; ghi rõ `priceAtAdd`/`currentPrice` là giá sau khuyến mãi; `GET /config/public` đã trả `payment`, `shipping`, `invoice` |
 | 1.9 | 2026-10-22 | Giỏ hàng và thanh toán (đã code): `/users/me/addresses` có `GET`, `POST`, `PATCH` (chưa có `DELETE`); `POST /checkout/preview` trả `blockingIssues` dạng object, thêm mã `NO_ITEMS`, `items[].cartItemId/product/variant` và `address`; `POST /orders` gửi lại cùng `Idempotency-Key` trả `200`, lỗi chặn kèm `details.preview`; `GET /orders/:id/payment` cùng cấu trúc `POST /orders` thêm `paid`, `expired`; `GET /orders/:id` bản rút gọn; webhook xác thực bằng `X-Webhook-Secret`; body không phải JSON trả `400 VALIDATION_ERROR` |
+| 1.10 | 2026-11-05 | Collection và Nguồn cảm hứng (MA-07/08): endpoint admin thật dưới `/admin/marketing/*` (sửa bằng `PATCH` + `version`, ẩn/hiện, xóa, sắp xếp, tải ảnh); `GET /inspirations` sắp theo `displayOrder` |
 
 ---
 

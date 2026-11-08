@@ -12,9 +12,9 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CatalogApiService, OrderApiService, type OrderPayment, type PublicConfig } from 'shared';
 import { catchError, firstValueFrom, interval, of, switchMap, takeWhile, timer } from 'rxjs';
-import { CartStore } from '../../../core/cart/cart.store';
+import { CartStore } from '../../../services/cart/cart.store';
 import { toApiError } from '../../../core/http/api-error';
-import { ToastService } from '../../../core/toast/toast.service';
+import { ToastService } from '../../../services/ui/toast.service';
 import { CompactHeaderComponent } from '../../../layout/compact-header/compact-header.component';
 import { VndPipe } from '../../../shared/pipes/vnd.pipe';
 

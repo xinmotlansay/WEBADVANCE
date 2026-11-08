@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AdminAuthService } from '../auth/admin-auth.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
 
 /** Chưa đăng nhập thì về trang đăng nhập, nhớ trang đang vào để quay lại sau (mục 9, admin-ui-rule). */
 export const authGuard: CanActivateFn = (_route, state) => {

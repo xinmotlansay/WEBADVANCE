@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CartStore } from '../../core/cart/cart.store';
+import { CartStore } from '../../services/cart/cart.store';
 import { IconComponent } from '../../shared/ui/icons/icon.component';
 
 /** Cuộn quá ngưỡng này (px) thì ẩn header khi bật `hideOnScroll`. */

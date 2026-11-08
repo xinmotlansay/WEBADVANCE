@@ -60,3 +60,26 @@ export const walkwayProfileSchema = z.object({
 export type ChangeContactBody = z.infer<typeof changeContactSchema>;
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;
 export type WalkwayProfileBody = z.infer<typeof walkwayProfileSchema>;
+
+/** Ưu đãi khách mới: hoàn thiện hồ sơ để nhận mã NEW11 qua email. */
+export const claimWelcomeOfferSchema = z.object({
+  fullName: z.string().trim().min(2, 'Họ và tên tối thiểu 2 ký tự').max(120),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
+  dateOfBirth: z.iso.date('Ngày sinh không hợp lệ'),
+  /** Chỉ cần khi tài khoản đăng ký bằng SĐT và chưa có email để nhận mã. */
+  email: z.email('Email không hợp lệ').optional(),
+  /** Chỉ cần khi tài khoản đăng ký bằng email và chưa có SĐT (dùng cho địa chỉ nhận hàng). */
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(/^(0|\+84)\d{9}$/, 'Số điện thoại không hợp lệ')
+    .optional(),
+  addressLine: z.string().trim().min(1, 'Nhập địa chỉ').max(200),
+  ward: z.string().trim().min(1, 'Nhập phường/xã').max(100),
+  district: z.string().trim().min(1, 'Nhập quận/huyện').max(100),
+  province: z.string().trim().min(1, 'Nhập tỉnh/thành phố').max(100),
+});
+
+export const confirmWelcomeOfferSchema = z.object({ token: z.string().min(10).max(2000) });
+
+export type ClaimWelcomeOfferBody = z.infer<typeof claimWelcomeOfferSchema>;

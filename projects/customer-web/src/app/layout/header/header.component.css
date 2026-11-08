@@ -42,6 +42,19 @@
 .topbar__promo {
   text-align: center;
 }
+.topbar__item {
+  display: inline-block;
+  animation: topbar-fade 0.5s ease;
+}
+@keyframes topbar-fade {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar__item { animation: none; }
+}
+.topbar__promo a {
+  text-decoration: underline;
+}
 .topbar__account {
   position: absolute;
   right: var(--page-gutter);

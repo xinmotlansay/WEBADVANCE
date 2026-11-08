@@ -15,6 +15,7 @@ export interface OrderDoc {
   shippingAddress: { recipientName: string; recipientPhone: string; addressLine: string };
   createdAt: Date;
   totalAmount: number;
+  payment: { method: 'COD' | 'BANK_TRANSFER' };
   afterSalesVersion?: number;
 }
 // Cùng collection `orders` với module orders; tên model riêng để không trùng đăng ký trong mongoose.
@@ -36,6 +37,7 @@ export const OrderModel = model<OrderDoc>(
       shippingAddress: { recipientName: String, recipientPhone: String, addressLine: String },
       createdAt: Date,
       totalAmount: Number,
+      payment: { method: String },
       afterSalesVersion: { type: Number, default: 0 },
     },
     { strict: false, collection: 'orders' },
@@ -88,6 +90,10 @@ export interface TimelineEntry {
 }
 export interface WarrantyRequestDoc {
   _id: Types.ObjectId;
+  /** Mã yêu cầu (BH-...), có chỉ mục unique dùng chung với màn Order Admin. */
+  code?: string;
+  orderId?: Types.ObjectId;
+  orderItemId?: Types.ObjectId;
   userId: Types.ObjectId;
   warrantyCardId: Types.ObjectId;
   defectType?: string;
@@ -102,6 +108,11 @@ export interface WarrantyRequestDoc {
   inspectionResult?: string;
   resolution?: string;
   timeline: TimelineEntry[];
+  /** Lịch sử xử lý ghi bởi Order Admin. */
+  history?: { at: Date; status: string; note?: string | null }[];
+  homeServiceSchedule?: Date | null;
+  customerShipment?: { trackingCode?: string | null };
+  returnShipment?: { trackingCode?: string | null };
 }
 const contactSchema = new Schema<Contact>(
   { name: String, phone: String, email: String, address: String },
@@ -115,6 +126,9 @@ export const WarrantyRequestModel = model<WarrantyRequestDoc>(
   'warranty_requests',
   new Schema<WarrantyRequestDoc>(
     {
+      code: String,
+      orderId: Schema.Types.ObjectId,
+      orderItemId: Schema.Types.ObjectId,
       userId: { type: Schema.Types.ObjectId, required: true, index: true },
       warrantyCardId: { type: Schema.Types.ObjectId, required: true },
       defectType: String,
@@ -129,12 +143,19 @@ export const WarrantyRequestModel = model<WarrantyRequestDoc>(
       inspectionResult: String,
       resolution: String,
       timeline: [timelineSchema],
+      // Lịch sử xử lý do Order Admin ghi (cùng collection với màn Bảo hành bên admin).
+      history: [{ _id: false, at: Date, status: String, note: String }],
+      homeServiceSchedule: Date,
+      customerShipment: { trackingCode: String },
+      returnShipment: { trackingCode: String },
     },
     { timestamps: true },
   ),
 );
 export interface ReturnRequestDoc {
   _id: Types.ObjectId;
+  /** Mã yêu cầu (RT-...), có chỉ mục unique dùng chung với màn Order Admin. */
+  code?: string;
   userId: Types.ObjectId;
   orderId: Types.ObjectId;
   orderItemId: Types.ObjectId;
@@ -152,13 +173,31 @@ export interface ReturnRequestDoc {
   refundAmount?: number;
   resolution?: string;
   refundAccount?: { bankName: string; accountNumber: string; accountHolder: string };
-  replacement?: { variantId: Types.ObjectId; quantity: number; unitPrice: number };
+  /** Các trường do Order Admin ghi khi xử lý (cùng collection). */
+  history?: { at: Date; status: string; note?: string | null }[];
+  inspectionResult?: string | null;
+  pickupSchedule?: Date | null;
+  costBearer?: string | null;
+  returnShippingFee?: number;
+  customerShipment?: { trackingCode?: string | null };
+  returnShipment?: { trackingCode?: string | null };
+  refund?: { proofImage?: string | null; transactionAt?: Date | null; completed?: boolean };
+  replacement?: {
+    variantId: Types.ObjectId;
+    quantity: number;
+    unitPrice: number;
+    productName?: string | null;
+    sku?: string | null;
+    trackingCode?: string | null;
+    deliveredAt?: Date | null;
+  };
   timeline: TimelineEntry[];
 }
 export const ReturnRequestModel = model<ReturnRequestDoc>(
   'return_requests',
   new Schema<ReturnRequestDoc>(
     {
+      code: String,
       userId: { type: Schema.Types.ObjectId, required: true, index: true },
       orderId: Schema.Types.ObjectId,
       orderItemId: Schema.Types.ObjectId,
@@ -180,7 +219,13 @@ export const ReturnRequestModel = model<ReturnRequestDoc>(
         accountNumber: { type: String, select: false },
         accountHolder: String,
       },
-      replacement: { variantId: Schema.Types.ObjectId, quantity: Number, unitPrice: Number },
+      replacement: {
+        variantId: Schema.Types.ObjectId,
+        quantity: Number,
+        unitPrice: Number,
+        productName: String,
+        sku: String,
+      },
       timeline: [timelineSchema],
     },
     { timestamps: true, strict: false },

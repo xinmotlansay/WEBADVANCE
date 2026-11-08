@@ -1,0 +1,384 @@
+<main class="cv-main">
+  <header class="cv-page-head">
+    <h1>Dashboard marketing</h1>
+    <div class="cv-segmented" role="group" aria-label="Khoảng thời gian">
+      @for (r of RANGES; track r.key) {
+        <button type="button" [attr.aria-pressed]="range() === r.key" (click)="setRange(r.key)">
+          {{ r.label }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (range() === 'custom') {
+    <form class="custom" (ngSubmit)="applyCustom()">
+      <div class="cv-field">
+        <label for="df">Từ ngày</label>
+        <input id="df" name="from" type="date" [(ngModel)]="from" />
+      </div>
+      <div class="cv-field">
+        <label for="dt">Đến ngày</label>
+        <input id="dt" name="to" type="date" [(ngModel)]="to" />
+      </div>
+      <button type="submit" class="cv-btn cv-btn--primary">Áp dụng</button>
+    </form>
+  }
+  @if (rangeError()) {
+    <p class="cv-alert" role="alert">{{ rangeError() }}</p>
+  }
+
+  <!-- Khối 1: trạng thái hiện tại, chỉ số theo kỳ, Top 5, cần chú ý -->
+  @switch (main().state) {
+    @case ('loading') {
+      <div aria-busy="true" aria-label="Đang tải">
+        @for (i of [1, 2, 3]; track i) {
+          <span class="cv-skeleton sk"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <div class="cv-alert" role="alert">
+        <span>Không tải được dữ liệu</span>
+        <button type="button" class="cv-btn" (click)="loadMain(true)">Thử lại</button>
+      </div>
+    }
+    @default {
+      @if (main(); as m) {
+        @if (m.state === 'ready') {
+          <p class="cv-muted updated">
+            Cập nhật lúc {{ time(m.data.updatedAt) }} · thẻ trạng thái tự làm mới mỗi 60 giây
+          </p>
+
+          <section class="bento" aria-label="Chỉ số theo kỳ">
+            <div class="cv-card hero-card">
+              <span class="cv-section-label">Tổng tiền đã giảm</span>
+              <p class="cv-hero">{{ money(m.data.metrics.discountTotal.value) }}</p>
+              <p class="cv-delta" [class]="'cv-delta ' + delta(m.data.metrics.discountTotal).cls">
+                {{ hint() }} · {{ delta(m.data.metrics.discountTotal).text }}
+              </p>
+            </div>
+            <div class="cv-kpis">
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">
+                  Đơn có ưu đãi<br /><small>{{ hint() }}</small>
+                </div>
+                <p class="cv-kpi__value">{{ m.data.metrics.offerOrders.value }}</p>
+                <span
+                  class="cv-delta"
+                  [class]="'cv-delta ' + delta(m.data.metrics.offerOrders).cls"
+                  >{{ delta(m.data.metrics.offerOrders).text }}</span
+                >
+              </div>
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">
+                  Lượt dùng mã<br /><small>{{ hint() }}</small>
+                </div>
+                <p class="cv-kpi__value">{{ m.data.metrics.voucherUses.value }}</p>
+                <span
+                  class="cv-delta"
+                  [class]="'cv-delta ' + delta(m.data.metrics.voucherUses).cls"
+                  >{{ delta(m.data.metrics.voucherUses).text }}</span
+                >
+                <app-sparkline [values]="dailyUses()" />
+              </div>
+              <div class="cv-kpi">
+                <div class="cv-kpi__label">
+                  Doanh thu đơn hoàn thành có ưu đãi<br /><small
+                    >{{ hint() }}, không gồm phí vận chuyển</small
+                  >
+                </div>
+                <p class="cv-kpi__value">{{ money(m.data.metrics.revenue.value) }}</p>
+                <span class="cv-delta" [class]="'cv-delta ' + delta(m.data.metrics.revenue).cls">{{
+                  delta(m.data.metrics.revenue).text
+                }}</span>
+                <app-sparkline [values]="dailyRevenue()" />
+              </div>
+            </div>
+          </section>
+
+          @if (risk(); as r) {
+            <a class="cv-card risk-card" routerLink="/marketing/khach-hang-rui-ro">
+              <span class="cv-section-label">Khách hàng rủi ro</span>
+              <span class="risk-body">
+                <span class="risk-stat">
+                  <span class="cv-kpi__value">{{ r.highRisk.toLocaleString('vi-VN') }}</span>
+                  <span class="cv-muted">khách rủi ro cao</span>
+                </span>
+                <span class="risk-stat">
+                  <span class="cv-kpi__value">{{ money(r.clvAtRisk) }}</span>
+                  <span class="cv-muted">CLV đang bị đe dọa</span>
+                </span>
+                <span class="risk-go">Xem ma trận phân khúc <span aria-hidden="true">→</span></span>
+              </span>
+            </a>
+          }
+
+          <section class="cv-kpis status" aria-label="Trạng thái hiện tại">
+            <a class="cv-kpi link" routerLink="/marketing/khuyen-mai">
+              <div class="cv-kpi__label">Khuyến mãi<br /><small>hiện tại</small></div>
+              <p class="cv-kpi__value">{{ m.data.cards.promotions.running }} <small class="unit">đang diễn ra</small></p>
+              <span class="cv-muted">
+                {{ m.data.cards.promotions.upcoming }} sắp diễn ra · {{ m.data.cards.promotions.paused }} tạm dừng
+              </span>
+            </a>
+            <a class="cv-kpi link" routerLink="/marketing/ma-giam-gia">
+              <div class="cv-kpi__label">Mã giảm giá<br /><small>đang hiệu lực</small></div>
+              <p class="cv-kpi__value">{{ m.data.cards.vouchersActive }}</p>
+            </a>
+            <div class="cv-kpi">
+              <div class="cv-kpi__label">Banner<br /><small>đang hiển thị</small></div>
+              <p class="cv-kpi__value">{{ bannerTotal() }}</p>
+            </div>
+          </section>
+
+          <div class="two">
+            <section class="cv-card" aria-labelledby="t-v">
+              <h3 id="t-v">
+                Top 5 mã theo lượt dùng <small class="cv-muted">({{ hint() }})</small>
+              </h3>
+              @for (v of m.data.top.vouchers; track v.id; let first = $first; let i = $index) {
+                <div class="rank">
+                  <div class="rank__row">
+                    <span><b class="rk">{{ i + 1 }}</b>{{ v.name }}</span
+                    ><span class="cv-num">{{ v.uses }}</span>
+                  </div>
+                  <div class="cv-bar">
+                    <span
+                      [style.width.%]="(v.uses / topVoucherMax()) * 100"
+                      [class.is-accent]="first"
+                    ></span>
+                  </div>
+                </div>
+              } @empty {
+                <p class="cv-muted">Chưa có dữ liệu trong khoảng thời gian đã chọn.</p>
+              }
+            </section>
+            <section class="cv-card" aria-labelledby="t-p">
+              <h3 id="t-p">
+                Top 5 chương trình theo doanh thu <small class="cv-muted">({{ hint() }})</small>
+              </h3>
+              @for (p of m.data.top.promotions; track p.id; let first = $first; let i = $index) {
+                <div class="rank">
+                  <div class="rank__row">
+                    <span><b class="rk">{{ i + 1 }}</b>{{ p.name }}</span
+                    ><span class="cv-num">{{ money(p.revenue) }}</span>
+                  </div>
+                  <div class="cv-bar">
+                    <span
+                      [style.width.%]="(p.revenue / topPromoMax()) * 100"
+                      [class.is-accent]="first"
+                    ></span>
+                  </div>
+                </div>
+              } @empty {
+                <p class="cv-muted">Chưa có dữ liệu trong khoảng thời gian đã chọn.</p>
+              }
+            </section>
+          </div>
+
+          <section
+            class="cv-card attention"
+            [class.cv-card--warn]="m.data.attention.length > 0"
+            aria-labelledby="t-a"
+          >
+            <h3 id="t-a">Cần chú ý</h3>
+            @if (m.data.attention.length === 0) {
+              <p class="cv-muted">Không có mục nào cần xử lý.</p>
+            } @else {
+              <ul>
+                @for (a of m.data.attention; track a.text) {
+                  <li>
+                    <a [routerLink]="'/marketing/' + a.link">{{ a.text }}</a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      }
+    }
+  }
+
+  <!-- Khối 2: hiệu quả chi tiết (Khuyến mãi & Mã giảm giá; tab Banner làm ở nhiệm vụ banner) -->
+  <section class="detail" aria-labelledby="t-d">
+    <div class="cv-page-head">
+      <h2 id="t-d">Hiệu quả khuyến mãi &amp; mã giảm giá</h2>
+      @if (detail(); as d) {
+        @if (d.state === 'ready') {
+          <button type="button" class="cv-btn" (click)="exportCsv(d.data)">Xuất CSV</button>
+        }
+      }
+    </div>
+
+    @switch (detail().state) {
+      @case ('loading') {
+        <div aria-busy="true" aria-label="Đang tải">
+          @for (i of [1, 2]; track i) {
+            <span class="cv-skeleton sk"></span>
+          }
+        </div>
+      }
+      @case ('error') {
+        <div class="cv-alert" role="alert">
+          <span>Không tải được dữ liệu</span>
+          <button type="button" class="cv-btn" (click)="loadDetail()">Thử lại</button>
+        </div>
+      }
+      @default {
+        @if (detail(); as d) {
+          @if (d.state === 'ready') {
+            @if (
+              d.data.summary.offerOrders === 0 &&
+              d.data.byPromotion.length === 0 &&
+              d.data.byVoucher.length === 0
+            ) {
+              <div class="cv-empty"><p>Chưa có dữ liệu trong khoảng thời gian đã chọn.</p></div>
+            } @else {
+              <p class="cv-muted updated">
+                Cập nhật lúc {{ time(d.data.updatedAt) }} · {{ hint() }}
+              </p>
+              <div class="eff">
+                <div class="cv-kpis eff__kpis">
+                  <div class="cv-kpi">
+                    <div class="cv-kpi__label">Đơn có ưu đãi</div>
+                    <p class="cv-kpi__value">{{ d.data.summary.offerOrders }}</p>
+                  </div>
+                  <div class="cv-kpi">
+                    <div class="cv-kpi__label">Đơn hoàn thành</div>
+                    <p class="cv-kpi__value">{{ d.data.summary.doneOrders }}</p>
+                  </div>
+                </div>
+                <div class="cv-card eff__gauges">
+                  <app-meter
+                    label="Tỷ lệ hủy"
+                    [value]="d.data.summary.cancelRate"
+                    [text]="pct(d.data.summary.cancelRate)"
+                    [warnAt]="0.2"
+                  />
+                  <app-meter
+                    label="Chi phí ưu đãi / doanh thu"
+                    [value]="d.data.summary.costRatio"
+                    [text]="pct(d.data.summary.costRatio)"
+                    [warnAt]="0.3"
+                  />
+                </div>
+                <div class="cv-card aov">
+                  <span class="cv-section-label">Giá trị đơn trung bình</span>
+                  @if (d.data.summary.aovWithOffer != null || d.data.summary.aovWithoutOffer != null) {
+                    <div class="aov__row">
+                      <span>Có ưu đãi</span>
+                      <div class="cv-bar">
+                        <span
+                          class="is-accent"
+                          [style.width.%]="share(d.data.summary.aovWithOffer ?? 0, [d.data.summary.aovWithOffer ?? 0, d.data.summary.aovWithoutOffer ?? 0])"
+                        ></span>
+                      </div>
+                      <strong class="cv-num">{{ d.data.summary.aovWithOffer == null ? '—' : money(d.data.summary.aovWithOffer) }}</strong>
+                    </div>
+                    <div class="aov__row">
+                      <span>Không ưu đãi</span>
+                      <div class="cv-bar">
+                        <span
+                          [style.width.%]="share(d.data.summary.aovWithoutOffer ?? 0, [d.data.summary.aovWithOffer ?? 0, d.data.summary.aovWithoutOffer ?? 0])"
+                        ></span>
+                      </div>
+                      <strong class="cv-num">{{ d.data.summary.aovWithoutOffer == null ? '—' : money(d.data.summary.aovWithoutOffer) }}</strong>
+                    </div>
+                    @if (aovDiff(d.data.summary); as diff) {
+                      <p class="cv-muted aov__diff">Chênh lệch: {{ diff }}</p>
+                    }
+                  } @else {
+                    <p class="cv-muted">Chưa đủ dữ liệu để so sánh.</p>
+                  }
+                </div>
+              </div>
+
+              <div class="two">
+                <app-line-chart
+                  title="Lượt dùng mã theo ngày"
+                  unit="lượt"
+                  [points]="usePoints(d.data)"
+                />
+                <app-line-chart
+                  title="Doanh thu theo ngày"
+                  unit="₫"
+                  [points]="revenuePoints(d.data)"
+                />
+              </div>
+
+              <h3 class="tbl-h">Theo chương trình</h3>
+              <div class="cv-table-wrap">
+                <table class="cv-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Mã KM</th>
+                      <th scope="col">Tên</th>
+                      <th scope="col" class="cv-num">Số đơn</th>
+                      <th scope="col" class="cv-num">Sản phẩm bán</th>
+                      <th scope="col" class="cv-num">Tổng tiền giảm</th>
+                      <th scope="col" class="cv-num">Doanh thu</th>
+                      <th scope="col" class="cv-num">Tỷ lệ hủy</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of d.data.byPromotion; track r.id) {
+                      <tr>
+                        <td>{{ r.code }}</td>
+                        <td>{{ r.name }}</td>
+                        <td class="cv-num">{{ r.orders }}</td>
+                        <td class="cv-num">{{ r.units }}</td>
+                        <td class="cv-num">{{ money(r.discount) }}</td>
+                        <td class="cv-num bar-cell" [style.--w]="share(r.revenue, promoRevenues(d.data))">{{ money(r.revenue) }}</td>
+                        <td class="cv-num"><span [class.rate-bad]="(r.cancelRate ?? 0) >= 0.2">{{ pct(r.cancelRate) }}</span></td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="7" class="cv-muted">
+                          Chưa có dữ liệu trong khoảng thời gian đã chọn.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="tbl-h">Theo mã giảm giá</h3>
+              <div class="cv-table-wrap">
+                <table class="cv-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Mã</th>
+                      <th scope="col" class="cv-num">Lượt dùng (kỳ) / Tổng lượt</th>
+                      <th scope="col" class="cv-num">Lượt hoàn do hủy đơn</th>
+                      <th scope="col" class="cv-num">Khách mới</th>
+                      <th scope="col" class="cv-num">Tổng tiền giảm</th>
+                      <th scope="col" class="cv-num">Doanh thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of d.data.byVoucher; track r.id) {
+                      <tr>
+                        <td>{{ r.code }}</td>
+                        <td class="cv-num">{{ r.uses }} / {{ r.totalUsageLimit ?? '∞' }}</td>
+                        <td class="cv-num">{{ r.refunded }}</td>
+                        <td class="cv-num">{{ r.newCustomers }}</td>
+                        <td class="cv-num">{{ money(r.discount) }}</td>
+                        <td class="cv-num bar-cell" [style.--w]="share(r.revenue, voucherRevenues(d.data))">{{ money(r.revenue) }}</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="6" class="cv-muted">
+                          Chưa có dữ liệu trong khoảng thời gian đã chọn.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        }
+      }
+    }
+  </section>
+</main>

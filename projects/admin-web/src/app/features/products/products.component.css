@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+.filters {
+  margin-bottom: 12px;
+}
+
+.list {
+  position: relative;
+}
+
+app-product-popup {
+  display: contents;
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 280px;
+}
+
+.thumb {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--cv-radius);
+  background: var(--cv-initials-bg);
+  object-fit: cover;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.from {
+  margin-right: 4px;
+  font-size: 11px;
+}
+
+.stock {
+  font-weight: 500;
+}
+
+.stock.low {
+  color: var(--cv-attn-text);
+  font-weight: 600;
+}
+
+.stock.out {
+  color: var(--cv-danger-text);
+  font-weight: 600;
+}
+
+

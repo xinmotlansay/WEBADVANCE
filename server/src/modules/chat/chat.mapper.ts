@@ -1,4 +1,4 @@
-import type { ChatCustomerView, ChatMessageView, ChatSessionView } from '../../lib/shared-api.js';
+import type { ChatAgentView, ChatCustomerView, ChatMessageView, ChatSessionView } from '../../lib/shared-api.js';
 import type { ChatMessageDocument, ChatSessionDocument } from './chat.model.js';
 
 const PREVIEW_LENGTH = 160;
@@ -31,13 +31,32 @@ function mapCustomer(raw: unknown): ChatCustomerView | undefined {
   };
 }
 
+interface PopulatedAgent {
+  _id: unknown;
+  profile?: { fullName?: string };
+}
+
+/** `agentId` có thể là ObjectId thuần hoặc đã populate; chỉ có tên khi đã populate. */
+function mapAgent(raw: unknown): ChatAgentView | null {
+  if (!raw || typeof raw !== 'object' || !('profile' in raw)) return null;
+  const agent = raw as PopulatedAgent;
+  return { id: String(agent._id), fullName: agent.profile?.fullName ?? '' };
+}
+
+function agentIdOf(raw: unknown): string | null {
+  if (!raw) return null;
+  if (typeof raw === 'object' && '_id' in raw && 'profile' in raw) return String((raw as { _id: unknown })._id);
+  return String(raw);
+}
+
 export function toSessionView(session: ChatSessionDocument): ChatSessionView {
   const customer = mapCustomer(session.customerId);
+  const agent = mapAgent(session.agentId);
 
   return {
     id: String(session._id),
     customerId: customer?.id ?? String(session.customerId),
-    agentId: session.agentId ? String(session.agentId) : null,
+    agentId: agentIdOf(session.agentId),
     mode: session.mode,
     status: session.status,
     startedAt: session.startedAt.toISOString(),
@@ -48,15 +67,28 @@ export function toSessionView(session: ChatSessionDocument): ChatSessionView {
     customerUnread: session.customerUnread,
     agentUnread: session.agentUnread,
     ...(customer ? { customer } : {}),
+    ...(agent ? { agent } : {}),
   };
 }
 
+/** `senderId` có thể là ObjectId thuần hoặc đã populate (để lấy tên nhân viên). */
+function senderOf(raw: unknown): { id: string | null; name: string | null } {
+  if (!raw) return { id: null, name: null };
+  if (typeof raw === 'object' && '_id' in raw && 'profile' in raw) {
+    const user = raw as { _id: unknown; profile?: { fullName?: string } };
+    return { id: String(user._id), name: user.profile?.fullName || null };
+  }
+  return { id: String(raw), name: null };
+}
+
 export function toMessageView(message: ChatMessageDocument): ChatMessageView {
+  const sender = senderOf(message.senderId);
   return {
     id: String(message._id),
     sessionId: String(message.sessionId),
-    senderId: message.senderId ? String(message.senderId) : null,
+    senderId: sender.id,
     senderType: message.senderType,
+    ...(message.senderType === 'AGENT' ? { senderName: sender.name } : {}),
     content: message.content,
     messageType: message.messageType,
     isRead: message.isRead,

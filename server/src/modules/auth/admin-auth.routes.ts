@@ -10,6 +10,8 @@ import {
   requireAdminRole,
 } from './admin-auth.controller.js';
 import { adminLoginSchema } from './auth.schema.js';
+import { setPasswordHandler } from '../super-admin/super-admin.controller.js';
+import { setPasswordSchema } from '../super-admin/super-admin.schema.js';
 
 export const adminAuthRouter = Router();
 
@@ -29,3 +31,12 @@ adminAuthRouter.post(
 adminAuthRouter.post('/refresh', checkOrigin, adminRefreshHandler);
 adminAuthRouter.post('/logout', checkOrigin, adminLogoutHandler);
 adminAuthRouter.get('/me', requireAuth, requireAdminRole, adminMeHandler);
+
+// AD-11: Admin mới đặt mật khẩu bằng liên kết trong email.
+adminAuthRouter.post(
+  '/set-password',
+  checkOrigin,
+  validate({ body: setPasswordSchema }),
+  rateLimit({ prefix: 'admin:set-password', limit: 10, windowSeconds: 15 * 60, keyFn: (req) => req.ip ?? 'unknown' }),
+  setPasswordHandler,
+);

@@ -1,0 +1,67 @@
+<div class="detail">
+  @let data = job();
+  <nav class="crumbs container" aria-label="Đường dẫn">
+    <a routerLink="/">Trang chủ</a><span aria-hidden="true">/</span>
+    <a routerLink="/careers">Tuyển dụng</a>
+    @if (data) { <span aria-hidden="true">/</span><span class="crumbs__here" aria-current="page">{{ data.title }}</span> }
+  </nav>
+
+  @if (data === undefined) {
+    <p class="container status" role="status">Đang tải…</p>
+  } @else if (data === null) {
+    <div class="container missing">
+      <h1>Vị trí này không còn nhận hồ sơ</h1>
+      <p>Vị trí đã đóng hoặc hết hạn nộp. Bạn có thể xem các vị trí khác đang tuyển.</p>
+      <a class="btn btn--primary" routerLink="/careers">Xem vị trí đang tuyển</a>
+    </div>
+  } @else {
+    <div class="container layout">
+      <article>
+        <header>
+          <h1>{{ data.title }}</h1>
+          <p class="meta">
+            <span>{{ data.department }}</span><span>{{ data.city }}</span><span>{{ typeLabels[data.type] }}</span><span>{{ levelLabels[data.level] }}</span>
+          </p>
+          @if (data.summary) { <p class="summary">{{ data.summary }}</p> }
+        </header>
+
+        @if (data.responsibilities.length) {
+          <section>
+            <h2>Mô tả công việc</h2>
+            <ul>@for (line of data.responsibilities; track $index) { <li>{{ line }}</li> }</ul>
+          </section>
+        }
+        @if (data.requirements.length) {
+          <section>
+            <h2>Yêu cầu ứng viên</h2>
+            <ul>@for (line of data.requirements; track $index) { <li>{{ line }}</li> }</ul>
+          </section>
+        }
+        @if (data.benefits.length) {
+          <section>
+            <h2>Quyền lợi</h2>
+            <ul>@for (line of data.benefits; track $index) { <li>{{ line }}</li> }</ul>
+          </section>
+        }
+      </article>
+
+      <aside class="card" aria-label="Thông tin vị trí">
+        <p class="salary">{{ data.salary }}</p>
+        <dl>
+          <div><dt>Hình thức</dt><dd>{{ typeLabels[data.type] }}</dd></div>
+          <div><dt>Cấp bậc</dt><dd>{{ levelLabels[data.level] }}</dd></div>
+          <div><dt>Nơi làm việc</dt><dd>{{ data.city }}</dd></div>
+          <div><dt>Số lượng</dt><dd>{{ data.quantity }} người</dd></div>
+          <div><dt>Hạn nộp hồ sơ</dt><dd>{{ data.deadline ? formatDate(data.deadline) : 'Không giới hạn' }}</dd></div>
+        </dl>
+        @if (applyHref(); as href) {
+          <a class="btn btn--primary apply" [href]="href">Ứng tuyển qua email</a>
+          <p class="note">Gửi CV kèm tên vị trí trong tiêu đề thư.</p>
+        } @else if (hotline()) {
+          <p class="note">Liên hệ hotline {{ hotline() }} để ứng tuyển.</p>
+        }
+        <a class="back" routerLink="/careers">← Tất cả vị trí</a>
+      </aside>
+    </div>
+  }
+</div>

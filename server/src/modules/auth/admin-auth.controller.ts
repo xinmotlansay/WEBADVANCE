@@ -1,10 +1,12 @@
 import type { RequestHandler } from 'express';
 import { AppError } from '../../lib/app-error.js';
 import { config } from '../../config/index.js';
+import { logger } from '../../lib/logger.js';
 import { ADMIN_ROLE_NAMES, type RoleName } from '../../lib/shared-enums.js';
+import { closeAgentSessions } from '../chat/chat.service.js';
 import type { AdminLoginBody } from './auth.schema.js';
 import { getCurrentUser, login, type AuthUserDto } from './auth.service.js';
-import { readRefreshToken, revokeSession, rotateSession } from './token.service.js';
+import { hasActiveSessions, readRefreshToken, revokeSession, rotateSession } from './token.service.js';
 
 export const ADMIN_IDLE_TIMEOUT_SECONDS = config.adminRefreshTtlSeconds;
 
@@ -49,7 +51,14 @@ export const adminRefreshHandler: RequestHandler = async (req, res) => {
 export const adminLogoutHandler: RequestHandler = async (req, res) => {
   const rawToken = readRefreshToken(req, true);
   if (rawToken) {
-    await revokeSession(rawToken, res, { admin: true });
+    const userId = await revokeSession(rawToken, res, { admin: true });
+    // Admin đăng xuất hẳn (không còn phiên đăng nhập nào): các phiên chat CSKH đang xử lý chuyển sang
+    // "Đã đóng". Không để lỗi chat chặn đăng xuất.
+    if (userId && !(await hasActiveSessions(userId))) {
+      await closeAgentSessions(userId).catch((error: unknown) =>
+        logger.warn({ err: error, userId }, 'Không đóng được phiên chat khi admin đăng xuất'),
+      );
+    }
   }
   res.status(200).json(success({ loggedOut: true }, 'Đã đăng xuất'));
 };

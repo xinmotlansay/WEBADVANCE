@@ -1,0 +1,11 @@
+:host { display: block; }
+.sk { height: 64px; }
+.grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.form { display: grid; gap: 4px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pv { display: grid; gap: 10px; }
+.pv h2 { margin: 0; }
+.pv p { margin: 0; }
+.pv-bar { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 16px; border-radius: 8px; background: var(--cv-navy); color: #fff; font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+.pv-text--link { text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }

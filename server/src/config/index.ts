@@ -6,7 +6,10 @@ export const config = {
   vectorIndex: process.env['VECTOR_SEARCH_INDEX'] ?? 'product_image_vector',
   port: Number(process.env['PORT'] ?? 3000),
   mongodbUri: process.env['MONGODB_URI'] ?? '',
-  redisUrl: process.env['REDIS_URL'] ?? '',
+  /** Service ML chấm điểm khách. Trống = Web chạy bằng điểm đã seed và ẩn nút Tính lại. */
+  mlApiUrl: (process.env['ML_API_URL'] ?? '').replace(/\/+$/, ''),
+  /** Shared secret gửi kèm header X-ML-Token khi gọi `/score`; phải trùng ML_API_TOKEN của service ML. */
+  mlApiToken: (process.env['ML_API_TOKEN'] ?? '').trim(),
   jwtSecret: (process.env['JWT_SECRET'] ?? '').trim(),
   cookieSecret: process.env['COOKIE_SECRET'] ?? '',
   resendApiKey: process.env['RESEND_API_KEY'] ?? '',
@@ -23,9 +26,17 @@ export const config = {
   isProduction: process.env['NODE_ENV'] === 'production',
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
-  otpEmailFrom: process.env['OTP_EMAIL_FROM'] ?? 'CaraVeso <onboarding@resend.dev>',
+  otpEmailFrom: process.env['OTP_EMAIL_FROM'] || 'CaraVeso <onboarding@resend.dev>',
+  /** Địa chỉ trang quản trị, dùng tạo liên kết đặt mật khẩu cho Admin mới (AD-11). */
+  adminWebUrl: (process.env['ADMIN_WEB_URL'] ?? 'http://localhost:4201').replace(/\/+$/, ''),
+  /** Địa chỉ trang khách, dùng tạo liên kết xác nhận ưu đãi khách mới trong email. */
+  customerWebUrl: (process.env['CUSTOMER_WEB_URL'] ?? 'http://localhost:4200').replace(/\/+$/, ''),
   /** Origin được gọi các endpoint dùng cookie (refresh, logout). */
-  allowedOrigins: (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:4200,http://localhost:4201')
+  allowedOrigins: (
+    process.env['ALLOWED_ORIGINS'] ??
+    // README chạy dev bằng `--host 127.0.0.1`, nên cho phép cả hai dạng host.
+    'http://localhost:4200,http://localhost:4201,http://127.0.0.1:4200,http://127.0.0.1:4201'
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),

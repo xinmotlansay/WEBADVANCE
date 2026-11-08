@@ -5,6 +5,8 @@ export interface TileItem {
   id: string;
   name: string;
   image: string;
+  /** Có thì mở link này (vd. `/collections/<slug>`), không thì lọc sản phẩm theo danh mục `id`. */
+  link?: string;
 }
 
 /** Lưới ảnh kèm nhãn, dùng cho Danh mục sản phẩm (`category`) và Cho căn phòng của bạn (`room`). */

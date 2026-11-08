@@ -27,6 +27,9 @@
           </p>
           <p class="order-total"><span>{{ order.paymentText }}</span><strong>{{ formatPrice(order.total) }}<u>đ</u></strong></p>
         </div>
+        @if (order.refund; as refund) {
+          <p class="refund-note" [attr.data-tone]="refund.tone"><strong>{{ refund.label }}.</strong> {{ refund.text }}</p>
+        }
 
         <footer class="order-footer">
           <button class="tracking-button" type="button" [attr.aria-expanded]="expandedOrder() === order.id" (click)="toggleTracking(order)">
@@ -62,13 +65,8 @@
               @for (reason of cancelReasons; track reason) {
                 <label><input type="radio" name="cancelReason" [value]="reason" [(ngModel)]="cancelReason" /> {{ reason }}</label>
               }
-              @if (order.needsRefundAccount) {
-                <div class="refund-fields">
-                  <strong>Tài khoản nhận hoàn tiền</strong>
-                  <input [(ngModel)]="refund.bankName" name="bankName" placeholder="Ngân hàng" maxlength="100" />
-                  <input [(ngModel)]="refund.accountNumber" name="accountNumber" placeholder="Số tài khoản" maxlength="30" inputmode="numeric" />
-                  <input [(ngModel)]="refund.accountHolder" name="accountHolder" placeholder="Tên chủ tài khoản" maxlength="100" />
-                </div>
+              @if (order.refundToSourceBank) {
+                <p class="modal-hint">Đơn đã thanh toán: tiền được hoàn về chính tài khoản ngân hàng bạn đã chuyển, theo quy định của ngân hàng (thường 3–7 ngày làm việc). Bạn không cần nhập thêm tài khoản.</p>
               }
               <div class="modal-buttons">
                 <button class="outline-button" type="button" (click)="cancellingOrder.set('')">Không huỷ</button>
@@ -117,6 +115,9 @@
             <div class="grand"><dt>Tổng cộng</dt><dd>{{ formatPrice(order.total) }}<u>đ</u></dd></div>
           </dl>
           <p class="payment-text">{{ order.paymentText }}</p>
+          @if (order.refund; as refund) {
+            <p class="refund-note" [attr.data-tone]="refund.tone"><strong>{{ refund.label }}.</strong> {{ refund.text }}</p>
+          }
 
           <h4>{{ order.trackingTitle }}</h4>
           <ol class="steps">

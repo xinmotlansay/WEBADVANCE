@@ -13,13 +13,9 @@
 .account-layout {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 24px var(--page-gutter) var(--space-2xl);
+  padding: var(--space-lg) var(--page-gutter) var(--space-2xl);
   border: 0;
 }
-.breadcrumb { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; font-size: 14px; }
-.breadcrumb a { color: inherit; }
-.breadcrumb .sep { width: 1px; height: 12px; background: var(--gray); }
-.breadcrumb strong { font-weight: 700; }
 .account-body {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
@@ -60,8 +56,7 @@
 }
 @media (max-width: 680px) {
   .account-body { grid-template-columns: 1fr; gap: 20px; }
-  .breadcrumb { margin-bottom: 20px; }
-  .account-sidebar nav { display: flex; overflow-x: auto; border-bottom: 1px solid var(--gray-light); }
+    .account-sidebar nav { display: flex; overflow-x: auto; border-bottom: 1px solid var(--gray-light); }
   .account-sidebar nav a { min-height: 32px; flex: 0 0 auto; padding: 0 10px; font-size: 14px; white-space: nowrap; }
   .account-sidebar nav a.active { border-bottom: 2px solid var(--navy); }
 }

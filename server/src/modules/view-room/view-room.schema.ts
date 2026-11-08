@@ -22,6 +22,7 @@ export const suggestionSchema = z.object({
 });
 
 export const layoutSchema = z.object({
+  roomCategoryId: objectId.optional(),
   name: z.string().trim().min(1).max(100),
   room: roomSizeSchema.extend({
     wallColor: z.union([z.enum(WALL_COLORS), z.string().regex(WALL_HEX_COLOR)]),
@@ -33,6 +34,7 @@ export const layoutSchema = z.object({
         productId: objectId,
         x: z.number().finite(),
         z: z.number().finite(),
+        y: z.number().finite().min(0).max(5).default(0),
         rotationY: z.number().finite().min(0).max(360),
       }),
     )

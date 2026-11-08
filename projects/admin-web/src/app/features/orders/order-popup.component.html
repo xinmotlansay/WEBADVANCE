@@ -1,0 +1,154 @@
+<app-detail-popup kicker="Đơn" [title]="title()" (closed)="closed.emit()">
+  @if (detail.isLoading() && !detail.value()) {
+    <div class="loading" role="status" aria-label="Đang tải chi tiết đơn">
+      <span class="skeleton" style="width: 60%"></span>
+      <span class="skeleton" style="width: 85%"></span>
+      <span class="skeleton" style="width: 40%"></span>
+      <span class="skeleton" style="width: 100%; height: 48px"></span>
+    </div>
+  } @else if (detail.error()) {
+    <div class="alert-box" role="alert">
+      Không tải được chi tiết đơn.
+      <button type="button" class="btn" (click)="detail.reload()">Thử lại</button>
+    </div>
+  } @else if (detail.value()) {
+    @let order = detail.value()!;
+    <div class="who">
+      <div class="who-row">
+        <strong>{{ order.customerName }}</strong>
+        <span [class]="toneClass(orderStatus[order.status])">{{ orderStatus[order.status]?.label }}</span>
+      </div>
+      <p>{{ order.customerPhone }} · {{ order.address }}</p>
+      <p>{{ summaryLine(order) }}</p>
+      @if (order.note) {
+        <p class="note">Ghi chú: {{ order.note }}</p>
+      }
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Thông tin đơn">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'items'" (click)="tab.set('items')">
+        Sản phẩm ({{ order.itemCount }})
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'payment'" (click)="tab.set('payment')">
+        Thanh toán
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'history'" (click)="tab.set('history')">
+        Lịch sử
+      </button>
+    </div>
+
+    <div class="tab-body" role="tabpanel">
+      @switch (tab()) {
+        @case ('items') {
+          <ul class="lines">
+            @for (item of order.items; track item.id) {
+              <li>
+                <div class="line-main">
+                  <span class="line-name">{{ item.name }}</span>
+                  <span class="muted">
+                    SL {{ item.quantity }}{{ item.variant ? ' · ' + item.variant : '' }}{{ item.hasInstallation ? ' · Lắp đặt' : '' }}
+                  </span>
+                </div>
+                <strong class="tabular">{{ item.finalAmount | vnd }}</strong>
+              </li>
+            }
+          </ul>
+          <dl class="amounts">
+            <div><dt>Phí vận chuyển</dt><dd>{{ order.amounts.shippingFee | vnd }}</dd></div>
+            @if (order.amounts.installationFee) {
+              <div><dt>Phí lắp đặt</dt><dd>{{ order.amounts.installationFee | vnd }}</dd></div>
+            }
+            @if (order.amounts.promotionDiscount + order.amounts.voucherDiscount) {
+              <div>
+                <dt>Giảm giá</dt>
+                <dd>−{{ order.amounts.promotionDiscount + order.amounts.voucherDiscount | vnd }}</dd>
+              </div>
+            }
+          </dl>
+        }
+        @case ('payment') {
+          <dl class="facts">
+            <div><dt>Phương thức</dt><dd>{{ paymentMethod[order.payment.method] ?? order.payment.method }}</dd></div>
+            <div>
+              <dt>Trạng thái</dt>
+              <dd>
+                <span [class]="toneClass(paymentStatus[order.payment.status])">
+                  {{ paymentStatus[order.payment.status]?.label ?? order.payment.status }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Hình thức thu</dt>
+              <dd>{{ order.payment.collectionType === 'DEPOSIT' ? 'Đặt cọc ' + (order.payment.depositAmount | vnd) : 'Thu toàn bộ' }}</dd>
+            </div>
+            @if (order.payment.paidAt) {
+              <div><dt>Thanh toán lúc</dt><dd>{{ order.payment.paidAt | vnTime }} {{ order.payment.paidAt | vnDate }}</dd></div>
+            }
+            @if (order.shipment; as shipment) {
+              <div><dt>Giao dự kiến</dt><dd>{{ shipment.estimatedDeliveryDate | vnDate }}</dd></div>
+              @if (shipment.scheduledDate) {
+                <div>
+                  <dt>Lịch hẹn</dt>
+                  <dd>{{ shipment.scheduledDate | vnDate }} · {{ shipment.scheduledSlot === 'MORNING' ? 'Buổi sáng' : 'Buổi chiều' }}</dd>
+                </div>
+              }
+            }
+          </dl>
+        }
+        @case ('history') {
+          <ol class="history">
+            @for (change of order.statusHistory.slice().reverse(); track $index) {
+              <li>
+                <span class="when tabular">{{ change.changedAt | vnTime }} · {{ change.changedAt | vnDate: true }}</span>
+                <span>
+                  {{ orderStatus[change.toStatus]?.label ?? change.toStatus }}
+                  <span class="muted">{{ change.bySystem ? '· Hệ thống' : '· Admin/Khách' }}</span>
+                </span>
+                @if (change.note) {
+                  <span class="muted">{{ change.note }}</span>
+                }
+              </li>
+            } @empty {
+              <li class="muted">Chưa có thay đổi trạng thái.</li>
+            }
+          </ol>
+        }
+      }
+    </div>
+
+    <div class="total">
+      <span>Tổng:</span>
+      <strong class="tabular">{{ order.amounts.total | vnd }}</strong>
+    </div>
+  }
+
+  <ng-container popup-actions>
+    @if (detail.value(); as order) {
+      @if (canConfirm()) {
+        <button type="button" class="btn btn-primary grow" [disabled]="busy()" (click)="confirm()">
+          {{ busy() ? 'Đang xác nhận…' : 'Xác nhận đơn' }}
+        </button>
+      }
+      <button type="button" class="btn" [class.grow]="!canConfirm()" (click)="print(order)">In phiếu</button>
+      @if (canCancel()) {
+        <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="cancelError.set(''); cancelling.set(true)">
+          Hủy đơn
+        </button>
+      }
+    }
+  </ng-container>
+</app-detail-popup>
+
+@if (cancelling()) {
+  <app-confirm-dialog
+    [title]="'Hủy đơn ' + title() + '?'"
+    message="Đơn chuyển sang Đã hủy, hàng được trả về kho. Nếu khách đã thanh toán, hệ thống tạo yêu cầu hoàn tiền để Order Admin xử lý."
+    confirmLabel="Hủy đơn"
+    reasonLabel="Lý do hủy"
+    [reasonOptions]="cancelReasons"
+    [busy]="busy()"
+    [error]="cancelError()"
+    (confirmed)="cancel($event)"
+    (cancelled)="cancelling.set(false)"
+  />
+}

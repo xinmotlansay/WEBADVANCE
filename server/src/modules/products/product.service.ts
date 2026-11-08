@@ -302,6 +302,7 @@ export interface ProductDetail {
   /** Giá thấp nhất sau khuyến mãi, trang View your Room dùng khi đặt vào phòng. */
   priceFrom: number;
   model3DUrl: string | null;
+  placement: 'FLOOR' | 'WALL';
   dimensions: { length: number; width: number; height: number; unit: string } | null;
   parts: {
     name: string;
@@ -394,6 +395,7 @@ export async function getProductDetail(slug: string): Promise<ProductDetail> {
     has3DModel: !!model,
     priceFrom: item?.priceFrom ?? 0,
     model3DUrl: model?.url ?? null,
+    placement: product.placement ?? 'FLOOR',
     dimensions: size?.dimensions
       ? {
           length: size.dimensions.length ?? 0,

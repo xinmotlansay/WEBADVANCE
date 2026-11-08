@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
-import { AdminAuthService } from '../auth/admin-auth.service';
+import { AdminAuthService } from '../../services/auth/admin-auth.service';
 
 const PUBLIC_AUTH_PATHS = ['/admin/auth/login', '/admin/auth/refresh', '/admin/auth/logout'];
 

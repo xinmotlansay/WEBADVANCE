@@ -17,7 +17,7 @@
 }
 
 .rail:hover,
-.rail:focus-within,
+.rail:has(:focus-visible),
 .rail.touch-open,
 .rail.drawer-open {
   width: 248px;
@@ -39,7 +39,7 @@
 
 /* Mở rộng: nền trong hơn, làm mờ nhẹ nội dung phía sau để vẫn thấy được (kính mờ) và nổi lên bằng bóng navy */
 .rail:hover :is(.tile, .sb),
-.rail:focus-within :is(.tile, .sb),
+.rail:has(:focus-visible) :is(.tile, .sb),
 .rail.touch-open :is(.tile, .sb),
 .rail.drawer-open :is(.tile, .sb) {
   background: color-mix(in srgb, var(--cv-sidebar) 50%, transparent);
@@ -55,7 +55,7 @@
 }
 
 .rail:hover .tx,
-.rail:focus-within .tx,
+.rail:has(:focus-visible) .tx,
 .rail.touch-open .tx,
 .rail.drawer-open .tx {
   opacity: 1;
@@ -208,7 +208,7 @@
 
 /* Mở rộng: pill cao hơn để chữ CaraVeso và dòng "Trang quản trị" có chỗ thở */
 .rail:hover .foot,
-.rail:focus-within .foot,
+.rail:has(:focus-visible) .foot,
 .rail.touch-open .foot,
 .rail.drawer-open .foot {
   height: 54px;
@@ -224,7 +224,7 @@
 }
 
 .rail:hover .foot-brand,
-.rail:focus-within .foot-brand,
+.rail:has(:focus-visible) .foot-brand,
 .rail.touch-open .foot-brand,
 .rail.drawer-open .foot-brand {
   padding-left: 22px;
@@ -258,7 +258,7 @@
 }
 
 .rail:hover .foot-label,
-.rail:focus-within .foot-label,
+.rail:has(:focus-visible) .foot-label,
 .rail.touch-open .foot-label,
 .rail.drawer-open .foot-label {
   max-height: 16px;
@@ -286,7 +286,7 @@
 }
 
 .rail:hover .foot-logout,
-.rail:focus-within .foot-logout,
+.rail:has(:focus-visible) .foot-logout,
 .rail.touch-open .foot-logout,
 .rail.drawer-open .foot-logout {
   width: 44px;

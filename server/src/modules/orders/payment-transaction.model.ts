@@ -22,8 +22,11 @@ export interface PaymentTransactionDoc {
   bankTransactionCode?: string;
   receivedContent?: string;
   reconciliationStatus?: ReconciliationStatus;
-  status?: 'PENDING' | 'COMPLETED' | 'FAILED';
+  status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   refundAccount?: RefundAccount;
+  refundTo?: 'SOURCE_BANK' | 'CUSTOMER_ACCOUNT';
+  refundSource?: string;
+  originalTransactionCode?: string;
   proofImage?: string;
   note?: string;
   handledBy?: Types.ObjectId | null;
@@ -47,8 +50,11 @@ const paymentTransactionSchema = new Schema<PaymentTransactionDoc>(
       type: String,
       enum: ['MATCHED', 'WRONG_CONTENT', 'UNDERPAID', 'OVERPAID', 'LATE', 'MANUALLY_RESOLVED'],
     },
-    status: { type: String, enum: ['PENDING', 'COMPLETED', 'FAILED'] },
+    status: { type: String, enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'] },
     refundAccount: { bankName: String, accountNumber: String, accountHolder: String },
+    refundTo: { type: String, enum: ['SOURCE_BANK', 'CUSTOMER_ACCOUNT'] },
+    refundSource: String,
+    originalTransactionCode: String,
     proofImage: String,
     note: String,
     handledBy: { type: Schema.Types.ObjectId, ref: 'users', default: null },

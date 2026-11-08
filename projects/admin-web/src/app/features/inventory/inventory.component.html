@@ -1,0 +1,350 @@
+<div class="page">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Tồn kho</h1>
+        <p class="page-sub">Tồn theo từng biến thể đang bán. Mọi thay đổi được ghi vào lịch sử biến động.</p>
+      </div>
+      <div class="head-tools">
+        @if (tab() === 'stock') {
+          <label class="search">
+            <span class="sr-only">Tìm theo tên, SKU hoặc màu</span>
+            <app-icon name="search" [small]="true" />
+            <input type="search" placeholder="Tên, màu hoặc SKU 100.001.01" [value]="searchText()" (input)="onSearch($any($event.target).value)" />
+          </label>
+        }
+        <app-notification-bell [items]="bell()" (picked)="applyAlert($event)" />
+      </div>
+    </header>
+
+    <div class="tabs-line" role="tablist" aria-label="Tồn kho">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'stock'" (click)="setTab('stock')">Tồn kho theo biến thể</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'history'" (click)="setTab('history')">Lịch sử biến động</button>
+    </div>
+
+    @if (tab() === 'stock') {
+      <div class="filters-row">
+        <app-filter-chip label="Tình trạng" [multiple]="false" [options]="stateOptions" [selected]="stateFilter()" (selectedChange)="setState($event)" />
+        @if (hasFilters()) {
+          <button type="button" class="btn-link" (click)="clearFilters()">Xóa bộ lọc</button>
+        }
+      </div>
+
+      <section class="list-section" aria-label="Tồn kho theo biến thể">
+        @if (inventory.error()) {
+          <div class="alert-box" role="alert">
+            Không tải được tồn kho.
+            <button type="button" class="btn" (click)="inventory.reload()">Thử lại</button>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th scope="col" class="check">
+                    <input type="checkbox" aria-label="Chọn tất cả biến thể trong trang" [checked]="allChecked()" [disabled]="!rows().length" (change)="toggleAll()" />
+                  </th>
+                  <th scope="col">
+                    <button type="button" class="th-sort" [class.on]="sortIcon('name')" (click)="toggleSort('name')">
+                      Sản phẩm
+                      @if (sortIcon('name'); as icon) {
+                        <app-icon [name]="icon" [small]="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col">SKU</th>
+                  <th scope="col">Biến thể</th>
+                  <th scope="col" class="num">
+                    <button type="button" class="th-sort" [class.on]="sortIcon('stock')" (click)="toggleSort('stock')">
+                      Tồn
+                      @if (sortIcon('stock'); as icon) {
+                        <app-icon [name]="icon" [small]="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col" class="num">Ngưỡng</th>
+                  <th scope="col">Tình trạng</th>
+                  <th scope="col">Biến động gần nhất</th>
+                  <th scope="col"><span class="sr-only">Thao tác</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (inventory.isLoading() && !inventory.value()) {
+                  @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+                    <tr aria-hidden="true">
+                      <td class="check"><span class="skeleton" style="width: 16px"></span></td>
+                      <td><span class="skeleton" style="width: 180px"></span></td>
+                      <td><span class="skeleton" style="width: 70px"></span></td>
+                      <td><span class="skeleton" style="width: 80px"></span></td>
+                      <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                      <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                      <td><span class="skeleton" style="width: 60px"></span></td>
+                      <td><span class="skeleton" style="width: 60px"></span></td>
+                      <td></td>
+                    </tr>
+                  }
+                } @else {
+                  @for (row of rows(); track row.variantId) {
+                    <tr [class.selected]="selected().has(row.variantId)">
+                      <td class="check">
+                        <input type="checkbox" [attr.aria-label]="'Chọn ' + row.sku" [checked]="selected().has(row.variantId)" (change)="toggleRow(row)" />
+                      </td>
+                      <td>
+                        <div class="cell-main">
+                          @if (row.thumbnail) {
+                            <img class="thumb-sm" [src]="row.thumbnail" alt="" loading="lazy" />
+                          } @else {
+                            <span class="thumb-sm" aria-hidden="true"></span>
+                          }
+                          <span class="cell-text">
+                            <button type="button" class="cell-link" (click)="adjusting.set(row)">{{ row.productName }}</button>
+                            @if (row.productStatus !== 'ACTIVE') {
+                              <span class="cell-sub">{{ row.productStatus === 'DRAFT' ? 'Nháp' : 'Đang ẩn' }}</span>
+                            }
+                          </span>
+                        </div>
+                      </td>
+                      <td class="tabular">{{ row.sku }}</td>
+                      <td>{{ row.color || 'Mặc định' }}{{ row.material ? ' · ' + row.material : '' }}</td>
+                      <td class="num tabular">
+                        <span [class.qty-low]="row.state === 'LOW'" [class.qty-out]="row.state === 'OUT'">{{ row.stockQuantity | num }}</span>
+                      </td>
+                      <td class="num tabular muted">{{ row.lowStockThreshold | num }}</td>
+                      <td><span [class]="toneClass(stockState[row.state])">{{ stockState[row.state].label }}</span></td>
+                      <td class="tabular">{{ row.lastMovementAt ? (row.lastMovementAt | vnDate: true) : '—' }}</td>
+                      <td>
+                        <div class="row-actions">
+                          <button type="button" class="btn" (click)="adjusting.set(row)">Cập nhật</button>
+                          <button type="button" class="btn" (click)="showHistory(row)">Lịch sử</button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="9">
+                        <div class="state">
+                          @if (hasFilters()) {
+                            <p>Không tìm thấy kết quả.</p>
+                            <button type="button" class="btn" (click)="clearFilters()">Xóa bộ lọc</button>
+                          } @else {
+                            <p>Chưa có biến thể nào đang bán.</p>
+                            <a class="btn" routerLink="/san-pham/them">Thêm sản phẩm</a>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (inventory.value(); as result) {
+            @if (result.meta.total > 0) {
+              <nav class="pager" aria-label="Phân trang tồn kho">
+                <span>
+                  {{ (result.meta.page - 1) * result.meta.limit + 1 }}–{{ (result.meta.page - 1) * result.meta.limit + result.data.length }}
+                  trong {{ result.meta.total | num }} biến thể
+                </span>
+                @if (result.meta.totalPages > 1) {
+                  <div class="pager-btns">
+                    <button type="button" class="btn" [disabled]="result.meta.page <= 1" (click)="goPage(result.meta.page - 1)">Trang trước</button>
+                    <span class="tabular page-no">{{ result.meta.page }} / {{ result.meta.totalPages }}</span>
+                    <button type="button" class="btn" [disabled]="result.meta.page >= result.meta.totalPages" (click)="goPage(result.meta.page + 1)">Trang sau</button>
+                  </div>
+                }
+              </nav>
+            }
+          }
+        }
+      </section>
+    } @else {
+      <div class="filters-row">
+        <app-filter-chip label="Loại biến động" [options]="typeOptions" [selected]="historyTypes()" (selectedChange)="setHistoryTypes($event)" />
+        @if (historyVariant(); as v) {
+          <span class="variant-filter">
+            Biến thể <strong class="tabular">{{ v.label }}</strong>
+            <button type="button" class="btn-link" (click)="clearHistoryVariant()">Xem tất cả</button>
+          </span>
+        }
+      </div>
+
+      <section class="list-section" aria-label="Lịch sử biến động tồn kho">
+        @if (history.error()) {
+          <div class="alert-box" role="alert">
+            Không tải được lịch sử biến động.
+            <button type="button" class="btn" (click)="history.reload()">Thử lại</button>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th scope="col">Thời gian</th>
+                  <th scope="col">Sản phẩm</th>
+                  <th scope="col">Loại</th>
+                  <th scope="col" class="num">Thay đổi</th>
+                  <th scope="col" class="num">Tồn sau</th>
+                  <th scope="col">Người thực hiện</th>
+                  <th scope="col">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (history.isLoading() && !history.value()) {
+                  @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                    <tr aria-hidden="true">
+                      <td><span class="skeleton" style="width: 90px"></span></td>
+                      <td><span class="skeleton" style="width: 180px"></span></td>
+                      <td><span class="skeleton" style="width: 70px"></span></td>
+                      <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                      <td><span class="skeleton" style="width: 30px; margin-left: auto"></span></td>
+                      <td><span class="skeleton" style="width: 90px"></span></td>
+                      <td><span class="skeleton" style="width: 120px"></span></td>
+                    </tr>
+                  }
+                } @else {
+                  @for (m of history.value()?.data ?? []; track m.id) {
+                    <tr>
+                      <td class="tabular">{{ m.performedAt | vnTime }} · {{ m.performedAt | vnDate: true }}</td>
+                      <td>
+                        <span class="cell-text">
+                          <span>{{ m.productName || '—' }}</span>
+                          <span class="cell-sub tabular">{{ m.sku }}{{ m.color ? ' · ' + m.color : '' }}</span>
+                        </span>
+                      </td>
+                      <td>{{ changeLabel[m.changeType] }}</td>
+                      <td class="num tabular" [class.up]="m.quantityChange > 0" [class.down]="m.quantityChange < 0">
+                        {{ m.quantityChange > 0 ? '+' : '' }}{{ m.quantityChange | num }}
+                      </td>
+                      <td class="num tabular">{{ m.quantityAfter | num }}</td>
+                      <td>{{ m.performedBy }}</td>
+                      <td><span class="note muted" [title]="m.note">{{ m.note || '—' }}</span></td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7">
+                        <div class="state">
+                          @if (historyTypes().length || historyVariant()) {
+                            <p>Không tìm thấy kết quả.</p>
+                            <button type="button" class="btn" (click)="setHistoryTypes([]); clearHistoryVariant()">Xóa bộ lọc</button>
+                          } @else {
+                            <p>Chưa có biến động tồn kho nào.</p>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (history.value(); as result) {
+            @if (result.meta.total > 0) {
+              <nav class="pager" aria-label="Phân trang lịch sử">
+                <span>
+                  {{ (result.meta.page - 1) * result.meta.limit + 1 }}–{{ (result.meta.page - 1) * result.meta.limit + result.data.length }}
+                  trong {{ result.meta.total | num }} biến động
+                </span>
+                @if (result.meta.totalPages > 1) {
+                  <div class="pager-btns">
+                    <button type="button" class="btn" [disabled]="result.meta.page <= 1" (click)="historyPage.set(result.meta.page - 1)">Trang trước</button>
+                    <span class="tabular page-no">{{ result.meta.page }} / {{ result.meta.totalPages }}</span>
+                    <button type="button" class="btn" [disabled]="result.meta.page >= result.meta.totalPages" (click)="historyPage.set(result.meta.page + 1)">Trang sau</button>
+                  </div>
+                }
+              </nav>
+            }
+          }
+        }
+      </section>
+    }
+
+    @if (selected().size && tab() === 'stock') {
+      <app-bulk-bar [count]="selected().size" (cleared)="clearSelection()">
+        <button type="button" class="btn btn-accent" (click)="importSelected()">Nhập kho</button>
+        <button type="button" class="bulk-btn" (click)="exportSelected()">Xuất</button>
+      </app-bulk-bar>
+    }
+  </main>
+
+  <aside class="aside" aria-label="Tổng quan tồn kho">
+    @if (summary.error() && !summary.value()) {
+      <section class="ov-block">
+        <div class="alert-box" role="alert">
+          Không tải được số liệu.
+          <button type="button" class="btn" (click)="summary.reload()">Thử lại</button>
+        </div>
+      </section>
+    } @else if (summary.value()) {
+      @let data = summary.value()!;
+      <section class="ov-block">
+        <h2 class="section-label">Tổng tồn kho</h2>
+        <p class="hero-num">{{ data.totalUnits | num }}</p>
+        <p class="hero-sub muted">sản phẩm trên {{ data.variants.ok + data.variants.low + data.variants.out | num }} biến thể đang bán</p>
+        <div class="bar stack" role="img" aria-label="Tỷ lệ tình trạng tồn kho">
+          @for (part of stack(); track part.key) {
+            @if (part.count) {
+              <span [class]="part.cls" [style.width.%]="part.width"></span>
+            }
+          }
+        </div>
+        <div class="legend">
+          @for (part of stack(); track part.key) {
+            <span><strong>{{ part.count | num }}</strong> {{ part.label }}</span>
+          }
+        </div>
+      </section>
+
+      <section class="ov-block" [class.warn]="data.variants.out > 0">
+        <h2 class="section-label">Cảnh báo</h2>
+        <ul class="alerts">
+          <li>
+            <button type="button" (click)="applyAlert('OUT')">
+              <span><strong>Hết hàng</strong><small>Khách không đặt được</small></span>
+              <span class="badge" [class.b-danger]="data.variants.out" [class.b-neutral]="!data.variants.out">{{ data.variants.out | num }}</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" (click)="applyAlert('LOW')">
+              <span><strong>Sắp hết hàng</strong><small>Tồn ≤ ngưỡng của biến thể</small></span>
+              <span class="badge" [class.b-attn]="data.variants.low" [class.b-neutral]="!data.variants.low">{{ data.variants.low | num }}</span>
+            </button>
+          </li>
+        </ul>
+        <p class="caption">Product Admin nhận thông báo trong ứng dụng ngay khi biến thể xuống dưới ngưỡng và email tóm tắt lúc 8:00 mỗi ngày.</p>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Biến động · 7 ngày</h2>
+        <dl class="grid2">
+          <div><dt>Nhập kho</dt><dd class="tabular">{{ data.last7Days.imported | num }}</dd></div>
+          <div><dt>Bán ra (đặt hàng)</dt><dd class="tabular">{{ data.last7Days.sold | num }}</dd></div>
+          <div><dt>Số lần biến động</dt><dd class="tabular">{{ data.last7Days.movements | num }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="ov-block">
+        <h2 class="section-label">Liên quan</h2>
+        <ul class="link-list">
+          <li><a routerLink="/san-pham">Danh sách sản phẩm</a></li>
+          <li><a routerLink="/van-chuyen">Cấp độ vận chuyển</a></li>
+        </ul>
+      </section>
+    } @else {
+      <section class="ov-block" aria-hidden="true">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 60%; height: 48px; margin: 12px 0"></span>
+        <span class="skeleton"></span>
+      </section>
+    }
+  </aside>
+</div>
+
+@if (adjusting(); as row) {
+  <app-stock-adjust-dialog [row]="row" (saved)="onSaved()" (cancelled)="adjusting.set(null)" />
+}
+
+@if (importing(); as rows) {
+  <app-variant-import-dialog [rows]="rows" (done)="onSaved()" (cancelled)="importing.set(null)" />
+}

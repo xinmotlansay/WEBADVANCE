@@ -1,0 +1,71 @@
+import type { OrderBadgeTone } from './order.enum';
+
+export enum ReturnType {
+  EXCHANGE = 'EXCHANGE',
+  REFUND = 'REFUND',
+}
+
+export const RETURN_TYPE_LABEL: Record<ReturnType, string> = {
+  [ReturnType.EXCHANGE]: 'Đổi hàng',
+  [ReturnType.REFUND]: 'Trả hàng hoàn tiền',
+};
+
+export enum ReturnStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  AWAITING_GOODS = 'AWAITING_GOODS',
+  PROCESSING = 'PROCESSING',
+  /** Trả hàng: đã duyệt hoàn tiền, chờ Order Admin xác nhận ở Thanh toán & đối soát. */
+  AWAITING_REFUND = 'AWAITING_REFUND',
+  /** Trả hàng: Order Admin đã xác nhận hoàn, đang chuyển tiền cho khách. */
+  REFUNDING = 'REFUNDING',
+  COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export const RETURN_STATUS_LABEL: Record<ReturnStatus, string> = {
+  [ReturnStatus.PENDING]: 'Chờ xử lý',
+  [ReturnStatus.CONFIRMED]: 'Đã xác nhận',
+  [ReturnStatus.AWAITING_GOODS]: 'Chờ nhận hàng',
+  [ReturnStatus.PROCESSING]: 'Đang xử lý',
+  [ReturnStatus.AWAITING_REFUND]: 'Chờ hoàn tiền',
+  [ReturnStatus.REFUNDING]: 'Đang hoàn tiền',
+  [ReturnStatus.COMPLETED]: 'Hoàn tất',
+  [ReturnStatus.REJECTED]: 'Từ chối',
+  [ReturnStatus.CANCELLED]: 'Khách đã hủy',
+};
+
+export const RETURN_STATUS_TONE: Record<ReturnStatus, OrderBadgeTone> = {
+  [ReturnStatus.PENDING]: 'warning',
+  [ReturnStatus.CONFIRMED]: 'info',
+  [ReturnStatus.AWAITING_GOODS]: 'info',
+  [ReturnStatus.PROCESSING]: 'info',
+  [ReturnStatus.AWAITING_REFUND]: 'warning',
+  [ReturnStatus.REFUNDING]: 'info',
+  [ReturnStatus.COMPLETED]: 'success',
+  [ReturnStatus.REJECTED]: 'danger',
+  [ReturnStatus.CANCELLED]: 'neutral',
+};
+
+export enum ReturnCostBearer {
+  CUSTOMER = 'CUSTOMER',
+  SHOP = 'SHOP',
+}
+
+export const RETURN_COST_BEARER_LABEL: Record<ReturnCostBearer, string> = {
+  [ReturnCostBearer.CUSTOMER]: 'Khách chịu phí',
+  [ReturnCostBearer.SHOP]: 'CaraVeso chịu phí',
+};
+
+export enum InspectionResult {
+  PASS = 'PASS',
+  DAMAGED = 'DAMAGED',
+  INCOMPLETE = 'INCOMPLETE',
+}
+
+export const INSPECTION_RESULT_LABEL: Record<InspectionResult, string> = {
+  [InspectionResult.PASS]: 'Hàng nguyên vẹn',
+  [InspectionResult.DAMAGED]: 'Hàng hư hỏng',
+  [InspectionResult.INCOMPLETE]: 'Thiếu phụ kiện',
+};

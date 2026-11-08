@@ -1,0 +1,264 @@
+:host {
+  display: block;
+}
+
+.kpis,
+.chart-card {
+  margin-bottom: 24px;
+}
+
+.cv-alert {
+  margin-bottom: 16px;
+}
+
+.cv-skeleton.w60 {
+  width: 60%;
+}
+
+.cv-skeleton.big {
+  height: 32px;
+  margin-top: 12px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.block {
+  display: block;
+}
+
+/* Biểu đồ cột doanh thu (mục 7): tháng hiện tại tô màu nhấn, cột khác xanh nhạt, giá trị in trên cột */
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.chart {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  height: 220px;
+  padding-top: 8px;
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.val {
+  font-size: 12px;
+  color: var(--cv-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  width: 100%;
+  max-width: 56px;
+  border-radius: var(--cv-radius-sm) var(--cv-radius-sm) 0 0;
+  background: var(--cv-bar-muted);
+}
+
+.bar.current {
+  background: var(--cv-accent);
+}
+
+.x {
+  position: absolute;
+  bottom: 0;
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.chart-skeleton {
+  height: 220px;
+}
+
+.recent-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.recent-head .cv-label {
+  margin: 0;
+}
+
+/* Popup */
+.pop-name {
+  font-weight: 600;
+}
+
+.pop-items {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--cv-border);
+}
+
+.pop-items li,
+.pop-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.pop-total {
+  border-bottom: 0;
+  font-size: 15px;
+}
+
+/* Cột tổng quan */
+.rev-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rev-head .cv-label {
+  margin: 4px 0 0;
+}
+
+.seg {
+  display: flex;
+  gap: 4px;
+}
+
+.seg button {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--cv-radius);
+  background: var(--cv-surface-alt);
+  color: var(--cv-navy);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.seg button.on {
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font-weight: 600;
+}
+
+.split {
+  display: flex;
+  height: 10px;
+  margin-top: 20px;
+}
+
+.legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--cv-muted);
+}
+
+.legend strong {
+  color: var(--cv-navy);
+}
+
+.warn-label {
+  color: var(--cv-warn-text);
+}
+
+.overdue {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.overdue a {
+  color: inherit;
+}
+
+.rows,
+.bars,
+.activity {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cv-warn-border);
+  font-size: 14px;
+}
+
+.bars {
+  margin: 0;
+}
+
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.bars strong {
+  text-align: right;
+}
+
+.bar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.rank-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.cv-bar.thin {
+  height: 6px;
+}
+
+.activity li {
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.activity + .cv-btn {
+  margin-top: 4px;
+}
+
+@media print {
+  .cv-aside,
+  .cv-bulk,
+  .cv-tools {
+    display: none;
+  }
+}

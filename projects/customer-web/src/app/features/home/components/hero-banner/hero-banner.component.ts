@@ -3,19 +3,21 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import type { Banner } from 'shared';
+import { LinkDirective } from '../../../../shared/ui/link/link.directive';
+import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 
 const AUTOPLAY_MS = 6000;
 
 @Component({
   selector: 'app-hero-banner',
-  imports: [RouterLink, IconComponent],
+  imports: [LinkDirective, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hero-banner.component.html',
   styleUrl: './hero-banner.component.css',
@@ -28,7 +30,14 @@ export class HeroBannerComponent {
 
   private timer: ReturnType<typeof setInterval> | undefined;
 
+  protected readonly tracker = inject(BannerTrackerService);
+
   constructor() {
+    // Ghi lượt hiển thị cho banner đang được xem (mỗi banner 1 lượt/phiên).
+    effect(() => {
+      const banner = this.current();
+      if (banner) this.tracker.impression(banner.id);
+    });
     this.startAutoplay();
     inject(DestroyRef).onDestroy(() => this.stopAutoplay());
   }

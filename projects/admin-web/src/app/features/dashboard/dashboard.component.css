@@ -26,6 +26,10 @@
   color: var(--cv-muted);
 }
 
+.denied {
+  margin: 16px 32px 0;
+}
+
 @media (min-width: 768px) {
   .page {
     padding: 32px;

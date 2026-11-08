@@ -2,9 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import type { ApiPageResponse, ApiResponse, PageMeta } from '../models/api-response.model';
-import type { Banner } from '../models/banner.model';
+import type { ArticleDetail, ArticlePage, ArticleType } from '../models/article.model';
+import type { Banner, BannerPosition } from '../models/banner.model';
 import type { Category, CategoryType } from '../models/category.model';
+import type { Job, JobListQuery, JobListResult } from '../models/career.model';
 import type { CollectionDetail, CollectionSummary } from '../models/collection.model';
+import type { AnnouncementBar, ContentBlock } from '../models/content.model';
 import type { InspirationDetail, InspirationSummary } from '../models/inspiration.model';
 import type {
   ProductDetail,
@@ -23,11 +26,45 @@ const API_BASE = '/api/v1';
 export class CatalogApiService {
   private readonly http = inject(HttpClient);
 
-  getBanners(): Observable<Banner[]> {
-    return this.http.get<ApiResponse<Banner[]>>(`${API_BASE}/banners`).pipe(map((r) => r.data));
+  getBanners(position: BannerPosition = 'HOME_SLIDER', categoryId?: string): Observable<Banner[]> {
+    let params = new HttpParams().set('position', position);
+    if (categoryId) params = params.set('categoryId', categoryId);
+    return this.http
+      .get<ApiResponse<Banner[]>>(`${API_BASE}/banners`, { params })
+      .pipe(map((r) => r.data));
   }
 
-  getCategories(type?: CategoryType): Observable<Category[]> {
+  /** Ghi lượt hiển thị/nhấp banner (server trả 204). */
+  trackBanner(id: string, action: 'impression' | 'click'): Observable<unknown> {
+    return this.http.post(`${API_BASE}/banners/${encodeURIComponent(id)}/${action}`, null);
+  }
+
+  /** Thanh thông báo đầu trang; `null` khi tắt hoặc ngoài thời gian hiển thị. */
+  /** Các thông báo đang hiển thị, theo thứ tự admin sắp xếp. */
+  getAnnouncements(): Observable<AnnouncementBar[]> {
+    return this.http
+      .get<ApiResponse<AnnouncementBar[]>>(`${API_BASE}/content/announcements`)
+      .pipe(map((r) => r.data));
+  }
+
+  getArticles(query: { type?: ArticleType; page?: number; pageSize?: number } = {}): Observable<ArticlePage> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) params = params.set(key, String(value));
+    }
+    return this.http
+      .get<ApiResponse<ArticlePage>>(`${API_BASE}/articles`, { params })
+      .pipe(map((r) => r.data));
+  }
+
+  /** Slug cũ: server trả 301, trình duyệt tự theo; `slug` trong kết quả là slug mới. */
+  getArticle(slug: string): Observable<ArticleDetail> {
+    return this.http
+      .get<ApiResponse<ArticleDetail>>(`${API_BASE}/articles/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
+  }
+
+    getCategories(type?: CategoryType): Observable<Category[]> {
     const params = type ? new HttpParams().set('type', type) : undefined;
     return this.http
       .get<ApiResponse<Category[]>>(`${API_BASE}/categories`, { params })
@@ -129,6 +166,24 @@ export class CatalogApiService {
   getPublicConfig(): Observable<PublicConfig> {
     return this.http
       .get<ApiResponse<PublicConfig>>(`${API_BASE}/config/public`)
+      .pipe(map((r) => r.data));
+  }
+
+  getPolicyPage(slug: string): Observable<{ slug: string; title: string; paragraphs: string[] }> {
+    return this.http
+      .get<ApiResponse<{ slug: string; title: string; paragraphs: string[] }>>(`${API_BASE}/config/policies/${encodeURIComponent(slug)}`)
+      .pipe(map((r) => r.data));
+  }
+
+  getJobs(query: JobListQuery = {}): Observable<JobListResult> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) if (value) params = params.set(key, value);
+    return this.http.get<ApiResponse<JobListResult>>(`${API_BASE}/careers/jobs`, { params }).pipe(map((r) => r.data));
+  }
+
+  getJob(slug: string): Observable<Job> {
+    return this.http
+      .get<ApiResponse<Job>>(`${API_BASE}/careers/jobs/${encodeURIComponent(slug)}`)
       .pipe(map((r) => r.data));
   }
 

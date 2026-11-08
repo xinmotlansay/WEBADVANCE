@@ -8,11 +8,28 @@ export interface BannerDoc {
   linkUrl?: string;
   displayOrder: number;
   startDate: Date;
-  endDate: Date;
-  status: 'VISIBLE' | 'HIDDEN';
+  /** Bỏ trống = không giới hạn (FR-012). */
+  endDate?: Date | null;
+  status: 'DRAFT' | 'VISIBLE' | 'HIDDEN';
   impressionCount: number;
   clickCount: number;
+  /** Mã `BN` + 5 chữ số (FRD 1.5); dữ liệu cũ chưa có. */
+  code?: string;
+  position: BannerPosition;
+  mobileImageUrl?: string;
+  ctaLabel?: string;
+  openInNewTab?: boolean;
+  /** Bắt buộc khi vị trí CATEGORY. */
+  categoryIds?: Types.ObjectId[];
+  popupFrequency?: 'SESSION' | 'DAILY' | 'ONCE';
+  /** Xóa mềm (FR-014): ẩn khỏi quản lý và website, giữ số liệu cho thống kê. */
+  deletedAt?: Date | null;
+  /** Lần gần nhất đổi ảnh khi đang hiển thị (tách số liệu thành hai giai đoạn). */
+  imageChangedAt?: Date;
+  version?: number;
 }
+
+export type BannerPosition = 'HOME_SLIDER' | 'HOME_MIDDLE' | 'CATEGORY' | 'POPUP';
 
 const bannerSchema = new Schema<BannerDoc>(
   {
@@ -22,10 +39,29 @@ const bannerSchema = new Schema<BannerDoc>(
     linkUrl: String,
     displayOrder: { type: Number, default: 0 },
     startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
-    status: { type: String, required: true, enum: ['VISIBLE', 'HIDDEN'], default: 'VISIBLE' },
+    endDate: Date,
+    status: {
+      type: String,
+      required: true,
+      enum: ['DRAFT', 'VISIBLE', 'HIDDEN'],
+      default: 'VISIBLE',
+    },
     impressionCount: { type: Number, default: 0 },
     clickCount: { type: Number, default: 0 },
+    code: { type: String, unique: true, sparse: true },
+    position: {
+      type: String,
+      enum: ['HOME_SLIDER', 'HOME_MIDDLE', 'CATEGORY', 'POPUP'],
+      default: 'HOME_SLIDER',
+    },
+    mobileImageUrl: String,
+    ctaLabel: String,
+    openInNewTab: Boolean,
+    categoryIds: [{ type: Schema.Types.ObjectId, ref: 'categories' }],
+    popupFrequency: { type: String, enum: ['SESSION', 'DAILY', 'ONCE'] },
+    deletedAt: { type: Date, default: null },
+    imageChangedAt: Date,
+    version: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

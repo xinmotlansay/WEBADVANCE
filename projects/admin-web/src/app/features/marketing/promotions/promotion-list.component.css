@@ -1,0 +1,134 @@
+:host {
+  display: block;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.filters .cv-field {
+  margin-bottom: 0;
+}
+.search {
+  flex: 1 1 220px;
+}
+.sk {
+  height: 56px;
+  margin-bottom: 4px;
+}
+.per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 12px 0;
+}
+.info dt {
+  color: var(--cv-muted);
+}
+.info dd {
+  margin: 0;
+  text-align: right;
+}
+.lines-h {
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+.lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.lines th,
+.lines td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--cv-row-line);
+  text-align: left;
+  vertical-align: top;
+}
+.lines .cv-num {
+  text-align: right;
+}
+.warn {
+  color: var(--cv-warn-text);
+}
+.dlg {
+  padding: 20px;
+}
+.dlg h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.dlg-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Lịch: thanh thời gian theo tháng */
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cal {
+  padding: 8px 12px 12px;
+  min-width: 0;
+}
+.cal-days {
+  display: flex;
+  margin-bottom: 8px;
+  color: var(--cv-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-days span {
+  flex: 1;
+  text-align: center;
+}
+.cal-row {
+  position: relative;
+  height: 36px;
+  border-top: 1px solid var(--cv-row-line);
+}
+.cal-bar {
+  position: absolute;
+  top: 4px;
+  height: 28px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-navy);
+  color: var(--cv-surface);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cal-bar.s-UPCOMING {
+  background: var(--cv-info-text);
+}
+.cal-bar.s-PAUSED {
+  background: var(--cv-attention-text);
+}
+.cal-bar.s-ENDED,
+.cal-bar.s-DRAFT {
+  background: var(--cv-muted);
+}

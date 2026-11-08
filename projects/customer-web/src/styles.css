@@ -245,6 +245,13 @@ button:disabled { opacity: .5; cursor: default; }
 @media (min-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1180px) { .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
+/* Thanh đường dẫn dùng chung (giống trang chi tiết sản phẩm). */
+.page-crumbs { background: var(--color-surface); color: var(--color-muted); }
+.page-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding-block: 5px; list-style: none; }
+.page-crumbs li { display: flex; align-items: center; font-size: var(--font-size-sm); }
+.page-crumbs a:hover { text-decoration: underline; }
+.page-crumbs [aria-current='page'] { color: var(--color-primary); font-weight: var(--font-weight-semibold); }
+
 /* ---- Trang tài khoản (theo thiết kế Figma): các lớp dùng chung của các trang con ---- */
 .account-area .account-screen { min-width: 0; color: #000; font-size: 14px; }
 /* Tiêu đề trang tài khoản: mọi trang cùng cỡ chữ, căn giữa, nội dung cùng bề rộng. */
@@ -274,3 +281,9 @@ button:disabled { opacity: .5; cursor: default; }
   .account-area .screen-heading, .account-area .screen-heading h1 { font-size: 20px; }
   .account-area .screen-heading { margin-bottom: 12px; }
 }
+
+/* Banner danh mục do Marketing đặt (FR-011), dùng trong product-list. */
+.category-banner { display: block; margin-bottom: var(--space-lg); overflow: hidden; border-radius: var(--radius); }
+/* Tỉ lệ theo quy định upload của admin: 1200×300 desktop, 750×400 mobile. */
+.category-banner img { display: block; width: 100%; aspect-ratio: 4 / 1; object-fit: cover; }
+@media (max-width: 767px) { .category-banner img { aspect-ratio: 15 / 8; } }

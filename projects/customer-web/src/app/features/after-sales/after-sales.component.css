@@ -1,22 +1,7 @@
 :host {
   display: block;
+  padding-top: var(--header-offset);
 }
-.eyebrow {
-  display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-.eyebrow a {
-  color: inherit;
-}
-.track-hint {
-  margin: var(--space-xl) 0 0;
-  color: var(--color-muted);
-  font-size: 14px;
-}
-.track-hint a {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.support-page {
+  padding-top: var(--space-lg);
 }

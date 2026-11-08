@@ -1,0 +1,176 @@
+:host {
+  display: contents;
+}
+
+.loading {
+  display: grid;
+  gap: 12px;
+}
+
+.who {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.who-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.who strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.who p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cv-muted);
+}
+
+.who .note {
+  color: var(--cv-warn-text);
+}
+
+.tabs {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.tabs button {
+  margin-bottom: -1px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--cv-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: var(--cv-navy);
+  color: var(--cv-navy);
+  font-weight: 600;
+}
+
+.tab-body {
+  min-height: 150px;
+  padding-top: 12px;
+}
+
+.lines {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.line-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.line-name {
+  font-weight: 500;
+}
+
+.line-main .muted {
+  font-size: 12px;
+}
+
+.amounts,
+.facts {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--cv-border);
+}
+
+.facts {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.amounts div,
+.facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+dt {
+  color: var(--cv-muted);
+}
+
+dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.history {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--cv-border);
+  list-style: none;
+}
+
+.history li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+
+.history li::before {
+  content: '';
+  position: absolute;
+  left: -21px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--cv-navy);
+}
+
+.when {
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cv-border);
+  font-size: 14px;
+}
+
+.total strong {
+  font-weight: 600;
+}
+
+.grow {
+  flex: 1;
+}

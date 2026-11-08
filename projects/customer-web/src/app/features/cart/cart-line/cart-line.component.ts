@@ -9,11 +9,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { CartItem } from 'shared';
-import { CartStore } from '../../../core/cart/cart.store';
-import { VariantPickerService } from '../../../core/cart/variant-picker.service';
-import { ConfirmService } from '../../../core/confirm/confirm.service';
+import { CartStore } from '../../../services/cart/cart.store';
+import { VariantPickerService } from '../../../services/cart/variant-picker.service';
+import { ConfirmService } from '../../../services/ui/confirm.service';
 import { toApiError } from '../../../core/http/api-error';
-import { ToastService } from '../../../core/toast/toast.service';
+import { ToastService } from '../../../services/ui/toast.service';
 import { VndPipe } from '../../../shared/pipes/vnd.pipe';
 import { IconComponent } from '../../../shared/ui/icons/icon.component';
 import { QuantityStepperComponent } from '../../../shared/ui/quantity-stepper/quantity-stepper.component';

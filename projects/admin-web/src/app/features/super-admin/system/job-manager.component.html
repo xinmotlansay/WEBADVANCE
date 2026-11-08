@@ -1,0 +1,153 @@
+<div class="head">
+  <p class="cv-hint">Hiển thị ở trang Tuyển dụng của website khách. Chỉ vị trí "Đang tuyển" và chưa quá hạn nhận hồ sơ mới được khách nhìn thấy. Ứng viên gửi hồ sơ qua email cửa hàng ở nhóm Thông tin chân trang.</p>
+  <button type="button" class="cv-btn primary" (click)="openCreate()">Đăng vị trí mới</button>
+</div>
+
+<div class="filter" role="group" aria-label="Lọc theo trạng thái">
+  @for (opt of [['ALL', 'Tất cả'], ['OPEN', 'Đang tuyển'], ['CLOSED', 'Đã đóng'], ['HIDDEN', 'Đang ẩn']]; track opt[0]) {
+    <button type="button" class="cv-btn chip" [class.primary]="filter() === opt[0]" [attr.aria-pressed]="filter() === opt[0]" (click)="filter.set($any(opt[0]))">{{ opt[1] }}</button>
+  }
+  <span class="cv-hint">{{ openCount() }} vị trí đang tuyển</span>
+</div>
+
+@if (loadError()) {
+  <div class="cv-alert" role="alert">
+    <span>{{ loadError() }}</span>
+    <button type="button" class="cv-btn" (click)="load()">Thử lại</button>
+  </div>
+}
+
+<div class="cv-table-wrap">
+  <table class="cv-table">
+    <thead>
+      <tr>
+        <th scope="col">Vị trí</th>
+        <th scope="col">Nơi làm việc</th>
+        <th scope="col">Hình thức</th>
+        <th scope="col">Hạn nộp</th>
+        <th scope="col">Trạng thái</th>
+        <th scope="col"><span class="cv-sr-only">Thao tác</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (!list() && !loadError()) {
+        @for (i of [1, 2, 3]; track i) {
+          <tr><td colspan="6"><span class="cv-skeleton"></span></td></tr>
+        }
+      }
+      @for (j of shown(); track j.id) {
+        <tr>
+          <td>
+            <button type="button" class="cv-id-btn" (click)="openEdit(j)">{{ j.title }}</button>
+            <span class="cv-hint block">{{ j.department }} · {{ j.salary }} · cần {{ j.quantity }}</span>
+          </td>
+          <td>{{ j.city }}</td>
+          <td>{{ typeLabels[j.type] }}</td>
+          <td class="tnum">{{ j.deadline ?? 'Không giới hạn' }}</td>
+          <td><span class="cv-badge" [class]="statusLabels[j.status].tone">{{ statusLabels[j.status].label }}</span></td>
+          <td class="row-actions">
+            <button type="button" class="cv-btn" (click)="openEdit(j)">Sửa</button>
+            <button type="button" class="cv-btn danger" (click)="askDelete(j)">Xóa</button>
+          </td>
+        </tr>
+      } @empty {
+        @if (list()) {
+          <tr><td colspan="6" class="cv-empty">{{ list()!.length ? 'Không có vị trí nào ở trạng thái này.' : 'Chưa có vị trí nào. Bấm "Đăng vị trí mới" để thêm.' }}</td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<dialog #dialog class="cv-dialog wide-dialog" aria-labelledby="job-title" (close)="formError.set(null)">
+  <form [formGroup]="form" (ngSubmit)="submit()" class="scroll">
+    <h2 id="job-title">{{ editing() ? 'Sửa vị trí tuyển dụng' : 'Đăng vị trí tuyển dụng' }}</h2>
+    @if (formError()) {
+      <div class="cv-alert" role="alert">{{ formError() }}</div>
+    }
+    <div class="grid">
+      <div class="cv-field span2">
+        <label for="job-name">Tên vị trí</label>
+        <input id="job-name" class="cv-input" formControlName="title" [class.invalid]="invalid('title')" />
+        @if (invalid('title')) { <span class="cv-error-text">Nhập tên vị trí từ 3 ký tự.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="job-dept">Phòng ban</label>
+        <input id="job-dept" class="cv-input" formControlName="department" list="job-depts" [class.invalid]="invalid('department')" />
+        <datalist id="job-depts">@for (d of distinct('department'); track d) { <option [value]="d"></option> }</datalist>
+        @if (invalid('department')) { <span class="cv-error-text">Nhập phòng ban.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="job-city">Nơi làm việc</label>
+        <input id="job-city" class="cv-input" formControlName="city" list="job-cities" [class.invalid]="invalid('city')" />
+        <datalist id="job-cities">@for (c of distinct('city'); track c) { <option [value]="c"></option> }</datalist>
+        @if (invalid('city')) { <span class="cv-error-text">Nhập nơi làm việc.</span> }
+      </div>
+      <div class="cv-field">
+        <label for="job-type">Hình thức</label>
+        <select id="job-type" class="cv-input" formControlName="type">
+          @for (t of types; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }
+        </select>
+      </div>
+      <div class="cv-field">
+        <label for="job-level">Cấp bậc</label>
+        <select id="job-level" class="cv-input" formControlName="level">
+          @for (l of levels; track l[0]) { <option [value]="l[0]">{{ l[1] }}</option> }
+        </select>
+      </div>
+      <div class="cv-field">
+        <label for="job-salary">Mức lương</label>
+        <input id="job-salary" class="cv-input" formControlName="salary" placeholder="15 – 25 triệu" />
+      </div>
+      <div class="cv-field">
+        <label for="job-qty">Số lượng cần tuyển</label>
+        <input id="job-qty" class="cv-input" type="number" min="1" formControlName="quantity" [class.invalid]="invalid('quantity')" />
+      </div>
+      <div class="cv-field">
+        <label for="job-deadline">Hạn nhận hồ sơ</label>
+        <input id="job-deadline" class="cv-input" type="date" formControlName="deadline" />
+        <span class="cv-hint">Để trống nếu không giới hạn.</span>
+      </div>
+      <div class="cv-field">
+        <label for="job-status">Trạng thái</label>
+        <select id="job-status" class="cv-input" formControlName="status">
+          @for (s of statuses; track s[0]) { <option [value]="s[0]">{{ s[1] }}</option> }
+        </select>
+      </div>
+      <div class="cv-field span2">
+        <label for="job-summary">Giới thiệu ngắn</label>
+        <textarea id="job-summary" class="cv-input" rows="2" formControlName="summary"></textarea>
+      </div>
+      <div class="cv-field span2">
+        <label for="job-resp">Mô tả công việc</label>
+        <textarea id="job-resp" class="cv-input" rows="4" formControlName="responsibilities"></textarea>
+        <span class="cv-hint">Mỗi dòng một ý.</span>
+      </div>
+      <div class="cv-field span2">
+        <label for="job-req">Yêu cầu ứng viên</label>
+        <textarea id="job-req" class="cv-input" rows="4" formControlName="requirements"></textarea>
+      </div>
+      <div class="cv-field span2">
+        <label for="job-ben">Quyền lợi</label>
+        <textarea id="job-ben" class="cv-input" rows="4" formControlName="benefits"></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="cv-btn" (click)="closeForm()">Hủy</button>
+      <button type="submit" class="cv-btn primary" [disabled]="saving()">{{ editing() ? 'Lưu thay đổi' : 'Đăng vị trí' }}</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog #confirmDialog class="cv-dialog" aria-labelledby="job-del-title" (cancel)="closeDelete()">
+  @if (toDelete(); as job) {
+    <form (submit)="$event.preventDefault(); confirmDelete()">
+      <h2 id="job-del-title">Xóa vị trí {{ job.title }}?</h2>
+      <p>Vị trí sẽ biến mất khỏi website khách và không khôi phục được. Hết nhu cầu tuyển thì nên chọn "Sửa" rồi đổi trạng thái sang "Đã đóng" để còn lưu lại.</p>
+      <div class="actions">
+        <button type="button" class="cv-btn" (click)="closeDelete()">Giữ lại</button>
+        <button type="submit" class="cv-btn danger" [disabled]="saving()">Xóa vị trí</button>
+      </div>
+    </form>
+  }
+</dialog>

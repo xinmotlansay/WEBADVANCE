@@ -1,0 +1,59 @@
+<div class="fields" [class.single]="item().fields.length === 1">
+  @for (field of item().fields; track field.path; let i = $index) {
+    @if (startsSection(i)) {
+      <h4 class="wide section-title">{{ field.section }}</h4>
+    }
+    @switch (field.type) {
+      @case ('boolean') {
+        <label class="toggle">
+          <input type="checkbox" [checked]="read(field)" (change)="write(field, $any($event.target).checked)" />
+          {{ field.label }}
+        </label>
+      }
+      @case ('weekdays') {
+        <fieldset class="cv-field days wide">
+          <legend class="cv-field-label">{{ field.label }}</legend>
+          <div class="day-row">
+            @for (d of weekdays; track d.value) {
+              <label class="day" [class.on]="hasDay(field, d.value)">
+                <input type="checkbox" [checked]="hasDay(field, d.value)" (change)="toggleDay(field, d.value)" />
+                {{ d.label }}
+              </label>
+            }
+          </div>
+        </fieldset>
+      }
+      @case ('textarea') {
+        <div class="cv-field wide">
+          <label [for]="inputId(field)">{{ field.label }}</label>
+          <textarea class="cv-input" [id]="inputId(field)" [value]="display(field)" (input)="write(field, $any($event.target).value)"></textarea>
+        </div>
+      }
+      @default {
+        <div class="cv-field">
+          <label [for]="inputId(field)">{{ field.label }}</label>
+          <span class="with-unit">
+            <input
+              class="cv-input"
+              [id]="inputId(field)"
+              [type]="inputType(field)"
+              [attr.step]="field.type === 'money' ? 1000 : field.type === 'percent' ? 0.1 : null"
+              [attr.min]="['number', 'money', 'percent'].includes(field.type) ? 0 : null"
+              [value]="display(field)"
+              (input)="write(field, $any($event.target).value)"
+            />
+            @if (field.unit) {
+              <span class="unit">{{ field.unit }}</span>
+            }
+          </span>
+          @if (field.type === 'money' && $any(read(field)) >= 1000) {
+            <span class="cv-hint">{{ fmt.formatMoney($any(read(field))) }}</span>
+          }
+          @if (hint(field); as text) {
+            <span class="cv-hint">{{ text }}</span>
+          }
+        </div>
+      }
+    }
+  }
+</div>

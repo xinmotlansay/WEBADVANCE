@@ -488,7 +488,7 @@ Bước 1–4 đã xong trên nhánh `feature/cart` (2026-10-22).
 
 ## 8. Chạy thử và demo
 
-1. `.env` cần `MONGODB_URI`, `BANK_WEBHOOK_SECRET` (chuỗi bất kỳ) và tùy chọn `DEV_USER_ID` (chưa có đăng nhập, mọi request của khách coi là user này; chặn ở production).
+1. `.env` cần `MONGODB_URI`, `BANK_WEBHOOK_SECRET` (chuỗi bất kỳ) (route giỏ hàng, thanh toán, đơn hàng cần khách đăng nhập, không còn user giả).
 2. Chạy `npm run dev:server`, `npm run dev:worker` (hủy đơn quá hạn mỗi phút) và `npm run start:customer`.
 3. Thêm sản phẩm vào giỏ hoặc bấm Mua ngay trên thẻ sản phẩm → Thanh toán → Đặt hàng.
 4. Đơn QR: lấy nội dung chuyển khoản và số tiền trên trang QR rồi chạy

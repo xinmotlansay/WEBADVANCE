@@ -11,16 +11,20 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogApiService, type ProductListItem } from 'shared';
 import { firstValueFrom } from 'rxjs';
-import { AuthTokenService } from '../../core/auth/auth-token.service';
+import { ConfirmService } from '../../services/ui/confirm.service';
+import { VariantPickerService } from '../../services/cart/variant-picker.service';
+import { AuthService } from '../../services/auth/auth.service';
 import { ProductPanelComponent } from './components/product-panel/product-panel.component';
 import {
   RoomSettingsComponent,
   type RoomTypeOption,
 } from './components/room-settings/room-settings.component';
-import { ViewRoomApiService } from './view-room-api.service';
+import { ViewRoomApiService, type SavedLayout } from '../../services/room/view-room-api.service';
 import { ViewRoomHeaderComponent } from './components/view-room-header/view-room-header.component';
 import { RoomScene, type ViewMode } from './scene/room-scene';
 import {
@@ -38,10 +42,12 @@ import {
 /** Gộp các lần đổi liên tiếp (kéo thanh trượt) thành một bước hoàn tác. */
 const COALESCE_MS = 800;
 const HISTORY_LIMIT = 50;
+/** Bản nháp giữ tạm khi khách đi đăng nhập giữa chừng, để quay lại không mất phòng đang làm. */
+const DRAFT_KEY = 'vyr-draft';
 
 @Component({
   selector: 'app-view-your-room',
-  imports: [RoomSettingsComponent, ProductPanelComponent, ViewRoomHeaderComponent],
+  imports: [FormsModule, RouterLink, RoomSettingsComponent, ProductPanelComponent, ViewRoomHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './view-your-room.component.html',
   styleUrl: './view-your-room.component.css',
@@ -51,7 +57,11 @@ export class ViewYourRoomComponent implements AfterViewInit {
   private readonly catalog = inject(CatalogApiService);
   private readonly api = inject(ViewRoomApiService);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly auth = inject(AuthTokenService);
+  protected readonly auth = inject(AuthService);
+  private readonly variantPicker = inject(VariantPickerService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly confirm = inject(ConfirmService);
   private readonly canvasHost = viewChild.required<ElementRef<HTMLElement>>('canvasHost');
 
   protected readonly room = signal<RoomConfig>(DEFAULT_ROOM);
@@ -63,6 +73,23 @@ export class ViewYourRoomComponent implements AfterViewInit {
   protected readonly total = computed(() =>
     this.items().reduce((sum, item) => sum + item.priceFrom, 0),
   );
+  protected readonly listOpen = signal(false);
+  protected readonly layouts = signal<SavedLayout[]>([]);
+  protected readonly layoutsLoading = signal(false);
+  protected readonly panel = signal<'save' | 'layouts' | null>(null);
+  protected readonly currentLayout = signal<{ id: string; name: string } | null>(null);
+  protected readonly dirty = signal(false);
+  protected saveName = '';
+  /** Gộp các món cùng sản phẩm thành một dòng kèm số lượng. */
+  protected readonly roomProducts = computed(() => {
+    const map = new Map<string, { slug: string; name: string; priceFrom: number; count: number }>();
+    for (const item of this.items()) {
+      const row = map.get(item.productId);
+      if (row) row.count += 1;
+      else map.set(item.productId, { slug: item.slug, name: item.name, priceFrom: item.priceFrom, count: 1 });
+    }
+    return [...map.values()];
+  });
   protected readonly zoomPercent = signal(100);
   protected readonly viewMode = signal<ViewMode>('3d');
   protected readonly canUndo = signal(false);
@@ -101,6 +128,8 @@ export class ViewYourRoomComponent implements AfterViewInit {
     );
     this.scene.setRoom(this.room());
     this.loadCatalog();
+    this.restoreDraft();
+    void this.addFromQuery();
 
     this.destroyRef.onDestroy(() => {
       this.scene?.dispose();
@@ -143,6 +172,15 @@ export class ViewYourRoomComponent implements AfterViewInit {
     this.onRoomChange({ ...this.room(), length: size.length, width: size.width });
   }
 
+  /** Vào từ trang sản phẩm (`?product=<slug>`): đặt sẵn sản phẩm đó vào phòng. */
+  private async addFromQuery(): Promise<void> {
+    const slug = this.route.snapshot.queryParamMap.get('product');
+    if (!slug) return;
+    await this.addProduct({ slug } as ProductListItem);
+    // Bỏ tham số khỏi URL để tải lại trang không đặt thêm một bản nữa.
+    void this.router.navigate([], { queryParams: { product: null }, replaceUrl: true });
+  }
+
   protected async addProduct(product: ProductListItem): Promise<void> {
     if (!this.scene) return;
     const detail = await this.loadDetail(product.slug);
@@ -160,8 +198,10 @@ export class ViewYourRoomComponent implements AfterViewInit {
       priceFrom: detail.priceFrom,
       model3DUrl: detail.model3DUrl,
       dimensions: detail.dimensions,
+      placement: detail.placement ?? 'FLOOR',
       x: 0,
       z: 0,
+      y: 0,
       rotationY: 0,
     };
     const spot = await this.scene.findFreeSpot(draft);
@@ -170,7 +210,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
       return;
     }
 
-    const placed: PlacedItem = { ...draft, x: spot.x, z: spot.z };
+    const placed: PlacedItem = { ...draft, x: spot.x, z: spot.z, y: spot.y, rotationY: spot.rotationY };
     this.record();
     this.items.update((list) => [...list, placed]);
     this.selectedUid.set(placed.uid);
@@ -232,27 +272,207 @@ export class ViewYourRoomComponent implements AfterViewInit {
     this.scene?.zoomOut();
   }
 
-  protected save(): void {
-    if (!this.auth.isLoggedIn() || this.saving()) return;
-    const name = `Bố cục ${new Date().toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`;
+  /** Nút "Lưu bố cục": chưa đăng nhập thì chuyển đi đăng nhập, đăng nhập rồi thì mở khung đặt tên. */
+  protected openSave(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.saveDraft();
+      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+    if (this.items().length === 0) {
+      this.notify('Hãy thêm ít nhất một sản phẩm vào phòng trước khi lưu');
+      return;
+    }
+    if (this.panel() === 'save') {
+      this.panel.set(null);
+      return;
+    }
+    this.saveName = this.currentLayout()?.name ?? this.defaultLayoutName();
+    this.panel.set('save');
+    // Cần danh sách bố cục đã lưu để tên mặc định không trùng; có danh sách rồi thì cập nhật lại ô tên.
+    if (!this.currentLayout()) {
+      this.api
+        .listLayouts()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (list) => {
+            this.layouts.set(list);
+            if (this.panel() === 'save' && this.saveName === this.defaultLayoutName([])) {
+              this.saveName = this.defaultLayoutName(list);
+            }
+          },
+        });
+    }
+  }
+
+  /** `asNew`: lưu thành bố cục mới thay vì ghi đè bố cục đang mở. */
+  protected save(asNew = false): void {
+    if (!this.auth.isAuthenticated() || this.saving()) return;
+    const name = this.saveName.trim();
+    if (!name) {
+      this.notify('Vui lòng đặt tên cho bố cục');
+      return;
+    }
+    const current = asNew ? null : this.currentLayout();
     this.saving.set(true);
     this.api
-      .saveLayout(name, this.snapshot())
+      .saveLayout(name, this.snapshot(), this.roomTypeId(), current?.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (saved) => {
           this.saving.set(false);
-          this.notify('Đã lưu bố cục');
+          this.panel.set(null);
+          this.currentLayout.set({ id: saved.id, name: saved.name });
+          this.dirty.set(false);
+          this.layouts.set([]);
+          this.notify(current ? 'Đã cập nhật bố cục' : 'Đã lưu bố cục');
         },
-        error: () => {
+        error: (error: { error?: { error?: { message?: string } } }) => {
           this.saving.set(false);
-          this.notify('Không lưu được bố cục, thử lại sau');
+          this.notify(error.error?.error?.message ?? 'Không lưu được bố cục, thử lại sau');
         },
       });
   }
 
-  protected scrollToProducts(): void {
-    document.getElementById('vyr-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  protected openLayouts(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.saveDraft();
+      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+    if (this.panel() === 'layouts') {
+      this.panel.set(null);
+      return;
+    }
+    this.panel.set('layouts');
+    this.layoutsLoading.set(true);
+    this.api
+      .listLayouts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (list) => {
+          this.layouts.set(list);
+          this.layoutsLoading.set(false);
+        },
+        error: () => {
+          this.layoutsLoading.set(false);
+          this.notify('Không tải được danh sách bố cục');
+        },
+      });
+  }
+
+  protected async openLayout(layout: SavedLayout): Promise<void> {
+    if (this.dirty() && this.items().length > 0) {
+      const ok = await this.confirm.ask({
+        title: 'Mở bố cục khác',
+        message: 'Phòng hiện tại có thay đổi chưa lưu và sẽ bị thay thế. Bạn vẫn muốn mở?',
+        confirmText: 'Mở bố cục',
+      });
+      if (!ok) return;
+    }
+    this.api
+      .getLayout(layout.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (detail) => {
+          const items = detail.items.map((item) => ({ ...item, uid: newUid() }));
+          if (detail.roomCategoryId && this.roomTypes().some((t) => t.id === detail.roomCategoryId)) {
+            this.roomTypeId.set(detail.roomCategoryId);
+          }
+          this.apply({ room: detail.room, items });
+          this.past = [];
+          this.future = [];
+          this.lastRecordKey = null;
+          this.canUndo.set(false);
+          this.canRedo.set(false);
+          this.dirty.set(false);
+          this.currentLayout.set({ id: detail.id, name: detail.name });
+          this.panel.set(null);
+          this.notify(
+            detail.skippedCount > 0
+              ? `Đã mở "${detail.name}", ${detail.skippedCount} sản phẩm không còn bán nên bị bỏ qua`
+              : `Đã mở "${detail.name}"`,
+          );
+        },
+        error: () => this.notify('Không mở được bố cục, thử lại sau'),
+      });
+  }
+
+  protected async deleteLayout(layout: SavedLayout): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: 'Xóa bố cục',
+      message: `Xóa bố cục "${layout.name}"? Thao tác này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+    });
+    if (!ok) return;
+    this.api
+      .deleteLayout(layout.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.layouts.update((list) => list.filter((item) => item.id !== layout.id));
+          if (this.currentLayout()?.id === layout.id) this.currentLayout.set(null);
+          this.notify('Đã xóa bố cục');
+        },
+        error: () => this.notify('Không xóa được bố cục, thử lại sau'),
+      });
+  }
+
+  protected closePanel(): void {
+    this.panel.set(null);
+  }
+
+  protected formatSavedAt(value: string): string {
+    return new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  protected toggleList(): void {
+    this.listOpen.update((open) => !open);
+  }
+
+  protected addToCart(slug: string): void {
+    this.variantPicker.open({ mode: 'add', slug });
+  }
+
+  /** Tên mặc định: "<tên loại phòng> <số>", số nhỏ nhất chưa bị bố cục nào đã lưu dùng. */
+  private defaultLayoutName(saved: SavedLayout[] = this.layouts()): string {
+    const base = this.roomTypes().find((type) => type.id === this.roomTypeId())?.name ?? 'Bố cục';
+    const taken = new Set(saved.map((layout) => layout.name.trim().toLowerCase()));
+    let n = 1;
+    while (taken.has(`${base} ${n}`.toLowerCase())) n += 1;
+    return `${base} ${n}`;
+  }
+
+  private saveDraft(): void {
+    if (this.items().length === 0) return;
+    try {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ snapshot: this.snapshot(), roomTypeId: this.roomTypeId() }),
+      );
+    } catch {
+      // Trình duyệt chặn sessionStorage: bỏ qua, chỉ mất tính năng giữ nháp.
+    }
+  }
+
+  private restoreDraft(): void {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(DRAFT_KEY);
+      const draft = JSON.parse(raw) as { snapshot: LayoutSnapshot; roomTypeId: string | null };
+      if (!draft.snapshot?.items?.length) return;
+      this.apply(draft.snapshot);
+      this.past = [];
+      this.updateHistoryFlags();
+      this.notify(
+        this.auth.isAuthenticated()
+          ? 'Đã khôi phục phòng bạn đang làm, bấm "Lưu bố cục" để lưu lại'
+          : 'Đã khôi phục phòng bạn đang làm',
+      );
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
   }
 
   private loadCatalog(): void {
@@ -286,7 +506,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
     }
   }
 
-  private updateItem(uid: string, patch: Partial<Pick<PlacedItem, 'x' | 'z' | 'rotationY'>>): void {
+  private updateItem(uid: string, patch: Partial<Pick<PlacedItem, 'x' | 'z' | 'y' | 'rotationY'>>): void {
     this.record();
     this.items.update((list) =>
       list.map((item) => (item.uid === uid ? { ...item, ...patch } : item)),
@@ -325,6 +545,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   }
 
   private updateHistoryFlags(): void {
+    this.dirty.set(true);
     this.canUndo.set(this.past.length > 0);
     this.canRedo.set(this.future.length > 0);
   }
