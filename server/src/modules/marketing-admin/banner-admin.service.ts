@@ -1,9 +1,7 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { Types } from 'mongoose';
 import sharp from 'sharp';
 import { z } from 'zod';
+import { uploadPublicFile } from '../../lib/supabase-storage.js';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile } from '../../utils/file-upload.js';
 import { BannerModel, type BannerDoc, type BannerPosition } from '../banners/banner.model.js';
@@ -303,9 +301,6 @@ export async function uploadBannerImage(
   const width = meta.width ?? 0;
   const height = meta.height ?? 0;
   checkImage(kind, position, { width, height, bytes: bytes.length });
-  const name = `${randomUUID()}.${format.ext}`;
-  const dir = path.resolve('uploads/banners');
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
-  return { url: `/uploads/banners/${name}`, width, height };
+  const url = await uploadPublicFile(bytes, { folder: 'banners', ext: format.ext, contentType: format.mime });
+  return { url, width, height };
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isStoredImageUrl } from '../../lib/supabase-storage.js';
 export const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Mã không hợp lệ');
 export const contactSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -10,7 +11,7 @@ export const contactSchema = z.object({
   address: z.string().trim().min(10).max(500),
 });
 export const evidenceSchema = z
-  .array(z.string().startsWith('/uploads/').max(200))
+  .array(z.string().max(300).refine((u) => (u.startsWith('/uploads/') && !u.includes('..')) || isStoredImageUrl(u), 'Minh chứng không hợp lệ'))
   .min(1, 'Cần ít nhất một minh chứng')
   .max(6);
 export const warrantySchema = z.object({

@@ -1,7 +1,6 @@
 import { Router, raw } from 'express';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
-import path from 'node:path';
+import { deleteStoredFile, uploadPublicFile } from '../../lib/supabase-storage.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { readMultipart, detectFile } from '../../utils/file-upload.js';
@@ -33,14 +32,11 @@ uploadRoutes.post(
         413,
         format.video ? 'Video tối đa 50 MB' : 'Ảnh tối đa 5 MB',
       );
-    const name = `${randomUUID()}.${format.ext}`,
-      url = `/uploads/evidence/${name}`,
-      directory = path.resolve('uploads/evidence');
-    await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, name), bytes, { flag: 'wx' });
+    const id = randomUUID(),
+      url = await uploadPublicFile(bytes, { folder: 'evidence', ext: format.ext, contentType: format.mime });
     try {
       await UploadedFileModel.create({
-        _id: name,
+        _id: id,
         userId: currentUserId(res),
         purpose: String(purpose),
         url,
@@ -49,7 +45,8 @@ uploadRoutes.post(
         createdAt: new Date(),
       });
     } catch (error) {
-      await unlink(path.join(directory, name));
+      // Lỗi gốc quan trọng hơn: lỗi khi dọn file rác chỉ ghi log, không che lỗi gốc.
+      await deleteStoredFile(url).catch((cleanupError) => console.error(cleanupError));
       throw error;
     }
     res.status(201);

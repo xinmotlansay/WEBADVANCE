@@ -30,30 +30,22 @@
       color-mix(in srgb, var(--color-black) 45%, transparent),
       transparent 32%
     ),
-    linear-gradient(0deg, color-mix(in srgb, var(--color-black) 40%, transparent), transparent 55%);
+    linear-gradient(0deg, color-mix(in srgb, var(--color-black) 72%, transparent), transparent 62%);
 }
 .hero__text {
   position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  padding-inline: var(--page-gutter);
-  color: var(--color-white);
-  text-align: center;
-  text-shadow: 0 1px 12px color-mix(in srgb, var(--color-black) 40%, transparent);
-  pointer-events: none;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
 }
 .hero__text h1 {
-  font-size: var(--font-size-display);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.02em;
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
 }
 .hero__text p {
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-medium);
+  opacity: 0.92;
 }
 .hero picture {
   display: contents;
@@ -114,6 +106,9 @@
 }
 
 @media (max-width: 640px) {
+  .hero__text {
+    bottom: 28%;
+  }
   .hero__arrow {
     width: 32px;
     height: 32px;

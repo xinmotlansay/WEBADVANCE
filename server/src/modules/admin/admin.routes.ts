@@ -1,8 +1,6 @@
 import { Router, raw, type Request } from 'express';
-import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { Types } from 'mongoose';
+import { uploadPublicFile } from '../../lib/supabase-storage.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { requireRole } from '../../middlewares/rbac.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
@@ -211,12 +209,9 @@ adminRouter.post(
     const format = detectFile(bytes);
     if (format.video) throw new AppError('VALIDATION_ERROR', 400, 'Chỉ nhận ảnh JPG, PNG hoặc WebP');
     if (bytes.length > 5 * 1024 * 1024) throw new AppError('FILE_TOO_LARGE', 413, 'Ảnh tối đa 5 MB');
-    const name = `${randomUUID()}.${format.ext}`;
-    const directory = path.resolve('uploads/products');
-    await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, name), bytes, { flag: 'wx' });
+    const url = await uploadPublicFile(bytes, { folder: 'products', ext: format.ext, contentType: format.mime });
     res.status(201);
-    sendData(res, { url: `/uploads/products/${name}` });
+    sendData(res, { url });
   },
 );
 
@@ -233,12 +228,9 @@ adminRouter.post(
       throw new AppError('UNSUPPORTED_FILE_TYPE', 415, 'Chỉ nhận model 3D định dạng .glb');
     }
     if (bytes.length > 30 * 1024 * 1024) throw new AppError('FILE_TOO_LARGE', 413, 'Model 3D tối đa 30 MB');
-    const name = `${randomUUID()}.glb`;
-    const directory = path.resolve('uploads/models');
-    await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, name), bytes, { flag: 'wx' });
+    const url = await uploadPublicFile(bytes, { folder: 'models', ext: 'glb', contentType: 'model/gltf-binary' });
     res.status(201);
-    sendData(res, { url: `/uploads/models/${name}` });
+    sendData(res, { url });
   },
 );
 
