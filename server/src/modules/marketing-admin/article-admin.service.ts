@@ -1,9 +1,7 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { Types } from 'mongoose';
 import sharp from 'sharp';
 import { z } from 'zod';
+import { uploadPublicFile } from '../../lib/supabase-storage.js';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile } from '../../utils/file-upload.js';
 import { ArticleModel, type ArticleDoc, type ArticleState } from '../articles/article.model.js';
@@ -221,9 +219,6 @@ export async function uploadArticleCover(bytes: Uint8Array): Promise<{ url: stri
   const width = meta.width ?? 0;
   const height = meta.height ?? 0;
   checkCover({ width, height, bytes: bytes.length });
-  const name = `${randomUUID()}.${format.ext}`;
-  const dir = path.resolve('uploads/articles');
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
-  return { url: `/uploads/articles/${name}`, width, height };
+  const url = await uploadPublicFile(bytes, { folder: 'articles', ext: format.ext, contentType: format.mime });
+  return { url, width, height };
 }

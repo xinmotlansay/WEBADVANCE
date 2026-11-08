@@ -39,6 +39,7 @@
     "@angular/forms": "19.2.25",
     "@angular/platform-browser": "19.2.25",
     "@angular/router": "19.2.25",
+    "@supabase/supabase-js": "^2.119.0",
     "@types/three": "0.180.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

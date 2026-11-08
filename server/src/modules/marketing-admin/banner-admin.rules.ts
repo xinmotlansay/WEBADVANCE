@@ -1,7 +1,12 @@
 import { z } from 'zod';
+import { isStoredImageUrl } from '../../lib/supabase-storage.js';
 import { AppError } from '../../utils/app-error.js';
 import type { BannerPosition } from '../banners/banner.model.js';
 import type { BannerStatus } from './effective-status.js';
+
+/** Ảnh banner: file cũ `/uploads/banners/...` hoặc file đã lưu trên Supabase Storage. */
+const isBannerImageUrl = (u: string): boolean =>
+  (u.startsWith('/uploads/banners/') && !u.includes('..')) || isStoredImageUrl(u);
 
 /** Quy tắc FR-MKT_AD-011→014. Hàm thuần để test không cần DB. */
 
@@ -67,8 +72,8 @@ const fields = {
   position: z.enum(POSITIONS),
   title: z.string().trim().min(5, 'Tiêu đề từ 5 đến 100 ký tự.').max(100, 'Tiêu đề từ 5 đến 100 ký tự.'),
   content: z.string().trim().max(200).optional(),
-  imageUrl: z.string().startsWith('/uploads/banners/'),
-  mobileImageUrl: z.string().startsWith('/uploads/banners/').nullish(),
+  imageUrl: z.string().refine(isBannerImageUrl, 'Ảnh banner không hợp lệ.'),
+  mobileImageUrl: z.string().refine(isBannerImageUrl, 'Ảnh banner không hợp lệ.').nullish(),
   ctaLabel: z.string().trim().min(2).max(20).nullish(),
   linkUrl: z.string().trim().nullish(),
   openInNewTab: z.boolean().optional(),

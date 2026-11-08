@@ -1,7 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { Types } from 'mongoose';
+import { uploadPublicFile } from '../../lib/supabase-storage.js';
 import { AppError } from '../../utils/app-error.js';
 import { detectFile } from '../../utils/file-upload.js';
 import { CollectionModel } from '../collections/collection.model.js';
@@ -170,11 +168,8 @@ export async function uploadContentImage(bytes: Uint8Array): Promise<{ url: stri
   if (format.video || bytes.length > 2 * 1024 * 1024) {
     throw new AppError('E-MKT-015-06', 400, 'Ảnh chấp nhận JPG, PNG, WEBP, tối đa 2 MB và cần văn bản thay thế.');
   }
-  const name = `${randomUUID()}.${format.ext}`;
-  const dir = path.resolve('uploads/content');
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
-  return { url: `/uploads/content/${name}` };
+  const url = await uploadPublicFile(bytes, { folder: 'content', ext: format.ext, contentType: format.mime });
+  return { url };
 }
 
 export type { ContentKey };
