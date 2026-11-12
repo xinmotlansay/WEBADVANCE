@@ -1,13 +1,60 @@
-import { Resend } from 'resend';
 import { AppError } from '../lib/app-error.js';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
-let client: Resend | null = null;
+const BREVO_SEND_URL = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_TIMEOUT_MS = 15_000;
 
-function getClient(): Resend {
-  client ??= new Resend(config.resendApiKey);
-  return client;
+interface BrevoSender {
+  name?: string;
+  email: string;
+}
+
+interface SendResult {
+  messageId?: string;
+  error?: { status?: number; message: string };
+}
+
+/**
+ * Tách `OTP_EMAIL_FROM` dạng "Tên <email@domain>" hoặc "email@domain" thành sender của Brevo.
+ * Sender phải là địa chỉ đã xác thực trong tài khoản Brevo.
+ */
+export function parseSender(from: string): BrevoSender {
+  const match = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+  if (match) {
+    return { name: match[1] || undefined, email: match[2]!.trim() };
+  }
+  return { email: from.trim() };
+}
+
+/** Gọi API gửi email giao dịch của Brevo. Không ném lỗi mạng, trả về `error` để hàm gọi tự xử lý. */
+async function sendBrevoEmail(payload: { to: string; subject: string; html: string }): Promise<SendResult> {
+  try {
+    const response = await fetch(BREVO_SEND_URL, {
+      method: 'POST',
+      headers: {
+        'api-key': config.brevoApiKey,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: parseSender(config.otpEmailFrom),
+        to: [{ email: payload.to }],
+        subject: payload.subject,
+        htmlContent: payload.html,
+      }),
+      signal: AbortSignal.timeout(BREVO_TIMEOUT_MS),
+    });
+
+    const body = (await response.json().catch(() => ({}))) as { messageId?: string; message?: string };
+
+    if (!response.ok) {
+      return { error: { status: response.status, message: body.message ?? response.statusText } };
+    }
+    return { messageId: body.messageId };
+  } catch (err) {
+    return { error: { message: err instanceof Error ? err.message : String(err) } };
+  }
 }
 
 const SUBJECT_BY_PURPOSE: Record<string, string> = {
@@ -19,13 +66,13 @@ const SUBJECT_BY_PURPOSE: Record<string, string> = {
 };
 
 /**
- * Gửi OTP qua email bằng Resend.
- * Ở môi trường dev không có RESEND_API_KEY thì ghi mã ra log để test
+ * Gửi OTP qua email bằng Brevo.
+ * Ở môi trường dev không có BREVO_API_KEY thì ghi mã ra log để test
  * (cùng cách xử lý với OTP số điện thoại mô phỏng theo docs/architecture.md 5.3).
  */
 export async function sendOtpEmail(to: string, code: string, purpose: string): Promise<void> {
-  if (!config.resendApiKey) {
-    if (!!config.isProduction) {
+  if (!config.brevoApiKey) {
+    if (config.isProduction) {
       throw new AppError(
         'EMAIL_NOT_CONFIGURED',
         500,
@@ -33,13 +80,12 @@ export async function sendOtpEmail(to: string, code: string, purpose: string): P
       );
     }
     // Đặt tên `otp` (không phải `code`) vì logger che trường `code`; ở dev cần đọc mã này để đăng ký.
-    logger.warn({ to, otp: code, purpose }, 'OTP email (dev, chưa cấu hình Resend)');
+    logger.warn({ to, otp: code, purpose }, 'OTP email (dev, chưa cấu hình Brevo)');
     return;
   }
 
   const subject = SUBJECT_BY_PURPOSE[purpose] ?? 'Mã xác thực CaraVeso';
-  const response = await getClient().emails.send({
-    from: config.otpEmailFrom,
+  const response = await sendBrevoEmail({
     to,
     subject,
     html: `
@@ -70,7 +116,7 @@ export async function sendOtpEmail(to: string, code: string, purpose: string): P
   if (response.error) {
     logger.error(
       { err: response.error, to, purpose },
-      'Resend từ chối gửi email OTP',
+      'Brevo từ chối gửi email OTP',
     );
     throw new AppError(
       'EMAIL_SEND_FAILED',
@@ -79,7 +125,7 @@ export async function sendOtpEmail(to: string, code: string, purpose: string): P
     );
   }
 
-  logger.info({ to, purpose, emailId: response.data?.id }, 'Đã gửi mã xác thực qua email');
+  logger.info({ to, purpose, emailId: response.messageId }, 'Đã gửi mã xác thực qua email');
 }
 
 export interface StockDigestLine {
@@ -96,13 +142,13 @@ function escapeHtml(text: string): string {
 
 /**
  * PA-08: email tóm tắt tồn kho hằng ngày cho Product Admin (mẫu email "tóm tắt tồn kho", AD-15).
- * Dev không có RESEND_API_KEY thì chỉ ghi log, giống email OTP.
+ * Dev không có BREVO_API_KEY thì chỉ ghi log, giống email OTP.
  */
 export async function sendStockDigestEmail(to: string, day: string, lines: StockDigestLine[]): Promise<void> {
   const dateLabel = day.split('-').reverse().join('/');
   const out = lines.filter((l) => l.stock === 0).length;
-  if (!config.resendApiKey) {
-    logger.warn({ to, day, low: lines.length - out, out }, 'Email tóm tắt tồn kho (dev, chưa cấu hình Resend)');
+  if (!config.brevoApiKey) {
+    logger.warn({ to, day, low: lines.length - out, out }, 'Email tóm tắt tồn kho (dev, chưa cấu hình Brevo)');
     return;
   }
   const rows = lines
@@ -117,8 +163,7 @@ export async function sendStockDigestEmail(to: string, day: string, lines: Stock
         </tr>`,
     )
     .join('');
-  const response = await getClient().emails.send({
-    from: config.otpEmailFrom,
+  const response = await sendBrevoEmail({
     to,
     subject: `[CaraVeso] Tóm tắt tồn kho ${dateLabel}: ${lines.length - out} sắp hết, ${out} hết hàng`,
     html: `
@@ -141,14 +186,14 @@ export async function sendStockDigestEmail(to: string, day: string, lines: Stock
     `,
   });
   if (response.error) {
-    logger.error({ err: response.error, to }, 'Resend từ chối gửi email tóm tắt tồn kho');
+    logger.error({ err: response.error, to }, 'Brevo từ chối gửi email tóm tắt tồn kho');
     return;
   }
-  logger.info({ to, day, emailId: response.data?.id }, 'Đã gửi email tóm tắt tồn kho');
+  logger.info({ to, day, emailId: response.messageId }, 'Đã gửi email tóm tắt tồn kho');
 }
 
 /**
- * AD-11: gửi liên kết đặt mật khẩu cho Admin mới. Dev chưa cấu hình Resend thì ghi liên kết ra log.
+ * AD-11: gửi liên kết đặt mật khẩu cho Admin mới. Dev chưa cấu hình Brevo thì ghi liên kết ra log.
  */
 export async function sendAdminInviteEmail(
   to: string,
@@ -156,16 +201,15 @@ export async function sendAdminInviteEmail(
   link: string,
   expiresInHours: number,
 ): Promise<void> {
-  if (!config.resendApiKey) {
+  if (!config.brevoApiKey) {
     if (config.isProduction) {
       throw new AppError('EMAIL_NOT_CONFIGURED', 500, 'Hệ thống chưa cấu hình dịch vụ gửi email');
     }
-    logger.warn({ to, link }, 'Liên kết đặt mật khẩu Admin (dev, chưa cấu hình Resend)');
+    logger.warn({ to, link }, 'Liên kết đặt mật khẩu Admin (dev, chưa cấu hình Brevo)');
     return;
   }
 
-  const response = await getClient().emails.send({
-    from: config.otpEmailFrom,
+  const response = await sendBrevoEmail({
     to,
     subject: 'Đặt mật khẩu tài khoản quản trị CaraVeso',
     html: `
@@ -188,24 +232,23 @@ export async function sendAdminInviteEmail(
   });
 
   if (response.error) {
-    logger.error({ err: response.error, to }, 'Resend từ chối gửi email đặt mật khẩu Admin');
+    logger.error({ err: response.error, to }, 'Brevo từ chối gửi email đặt mật khẩu Admin');
     throw new AppError('EMAIL_SEND_FAILED', 502, 'Không gửi được email đặt mật khẩu, vui lòng thử lại sau');
   }
 }
 
-/** Email tặng mã giảm giá khách mới sau khi hoàn thiện hồ sơ. Dev chưa có Resend thì ghi log. */
+/** Email tặng mã giảm giá khách mới sau khi hoàn thiện hồ sơ. Dev chưa có Brevo thì ghi log. */
 export async function sendWelcomeVoucherEmail(
   to: string,
   fullName: string,
   code: string,
   confirmUrl: string,
 ): Promise<boolean> {
-  if (!config.resendApiKey) {
-    logger.warn({ to, voucher: code, confirmUrl }, 'Email mã khách mới (dev, chưa cấu hình Resend)');
+  if (!config.brevoApiKey) {
+    logger.warn({ to, voucher: code, confirmUrl }, 'Email mã khách mới (dev, chưa cấu hình Brevo)');
     return true;
   }
-  const response = await getClient().emails.send({
-    from: config.otpEmailFrom,
+  const response = await sendBrevoEmail({
     to,
     subject: `Quà chào mừng từ CaraVeso: mã ${code} giảm 10%`,
     html: `
@@ -226,9 +269,9 @@ export async function sendWelcomeVoucherEmail(
     `,
   });
   if (response.error) {
-    logger.error({ err: response.error, to }, 'Resend từ chối gửi email mã khách mới');
+    logger.error({ err: response.error, to }, 'Brevo từ chối gửi email mã khách mới');
     return false;
   }
-  logger.info({ to, emailId: response.data?.id }, 'Đã gửi email mã khách mới');
+  logger.info({ to, emailId: response.messageId }, 'Đã gửi email mã khách mới');
   return true;
 }

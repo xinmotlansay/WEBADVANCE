@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
 import { config } from '../../config/index.js';
-import { sendAdminInviteEmail } from '../../integrations/resend.js';
+import { sendAdminInviteEmail } from '../../integrations/brevo.js';
 import {
   ADMIN_ROLE_NAMES,
   AuthSource,
@@ -202,9 +202,13 @@ export interface CreateAdminInput {
   fullName: string;
   roleName: RoleName;
   phoneNumber?: string;
+  password: string;
 }
 
-/** AD-11: tạo tài khoản Admin chưa có mật khẩu, gửi liên kết đặt mật khẩu. Không trả mật khẩu cho ai. */
+/**
+ * AD-11: tạo tài khoản Admin với mật khẩu tạm do Admin cấp cao đặt. Admin mới phải đổi mật khẩu ở lần
+ * đăng nhập đầu. Mật khẩu không được ghi vào nhật ký hay trả lại trong response.
+ */
 export async function createAdmin(req: Request, input: CreateAdminInput) {
   const roleIds = await adminRoleIds();
   const user = await UserModel.create({
@@ -214,9 +218,10 @@ export async function createAdmin(req: Request, input: CreateAdminInput) {
     authSource: AuthSource.EMAIL,
     profile: { fullName: input.fullName },
     status: UserStatus.ACTIVE,
+    passwordHash: await bcrypt.hash(input.password, BCRYPT_ROUNDS),
+    security: { mustChangePassword: true },
   });
 
-  const invite = await issueInvite(user);
   await recordAudit(req, {
     action: 'ADMIN_CREATE',
     targetType: 'ADMIN',
@@ -225,7 +230,7 @@ export async function createAdmin(req: Request, input: CreateAdminInput) {
   });
 
   const created = await findAdmin(String(user._id));
-  return { admin: toView(created.toObject() as unknown as AdminUserLean), inviteExpiresAt: invite.expiresAt };
+  return { admin: toView(created.toObject() as unknown as AdminUserLean) };
 }
 
 export async function resendInvite(req: Request, id: string) {
@@ -343,6 +348,27 @@ export async function activateAdmin(req: Request, id: string) {
     newValue: { status: UserStatus.ACTIVE },
   });
   return toView(user.toObject() as unknown as AdminUserLean);
+}
+
+/**
+ * Super Admin đặt lại mật khẩu tạm cho Admin (khi quên mật khẩu). Admin phải đổi ở lần đăng nhập kế tiếp,
+ * mọi phiên cũ bị thu hồi. Không dùng cho chính mình: đổi mật khẩu của mình làm ở chức năng đổi mật khẩu.
+ */
+export async function resetAdminPassword(req: Request, id: string, password: string) {
+  if (req.user!.id === id) {
+    throw new AppError('SELF_ACTION_FORBIDDEN', 409, 'Hãy dùng chức năng đổi mật khẩu cho chính bạn');
+  }
+  const user = await findAdmin(id);
+  user.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  user.security.mustChangePassword = true;
+  user.security.failedLoginCount = 0;
+  user.security.lockedUntil = null;
+  await user.save();
+  await revokeAllSessions(id);
+
+  // Nhật ký không ghi mật khẩu, chỉ ghi việc đã đặt lại.
+  await recordAudit(req, { action: 'ADMIN_PASSWORD_RESET', targetType: 'ADMIN', targetId: id });
+  return toView((await findAdmin(id)).toObject() as unknown as AdminUserLean);
 }
 
 /** AD-14: vai trò và ma trận quyền cố định (chỉ đọc). */

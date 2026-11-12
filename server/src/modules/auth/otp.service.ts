@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { AppError } from '../../lib/app-error.js';
 import { logger } from '../../lib/logger.js';
 import { OtpChannel, OtpPurpose } from '../../lib/shared-enums.js';
-import { sendOtpEmail } from '../../integrations/resend.js';
+import { sendOtpEmail } from '../../integrations/brevo.js';
 import { OtpModel, UserModel } from './auth.model.js';
 import { canResendOtp, OTP_RESEND_INTERVAL_SECONDS } from './auth.rules.js';
 

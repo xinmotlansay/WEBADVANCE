@@ -4,7 +4,7 @@ import { StockHistoryModel, type StockChangeType } from '../products/stock-histo
 import { ProductModel } from '../products/product.model.js';
 import { RoleModel, UserModel } from '../auth/auth.model.js';
 import { RoleName, UserStatus } from '../../lib/shared-enums.js';
-import { sendStockDigestEmail } from '../../integrations/resend.js';
+import { sendStockDigestEmail } from '../../integrations/brevo.js';
 import { logger } from '../../lib/logger.js';
 import { AppError } from '../../utils/app-error.js';
 import { AdminNotificationModel, pushNotification } from './admin-notification.model.js';

@@ -12,7 +12,7 @@ export const config = {
   mlApiToken: (process.env['ML_API_TOKEN'] ?? '').trim(),
   jwtSecret: (process.env['JWT_SECRET'] ?? '').trim(),
   cookieSecret: process.env['COOKIE_SECRET'] ?? '',
-  resendApiKey: process.env['RESEND_API_KEY'] ?? '',
+  brevoApiKey: (process.env['BREVO_API_KEY'] ?? '').trim(),
   geminiApiKey: process.env['GEMINI_API_KEY'] ?? '',
   /** Chat AI: model chính, model dự phòng, thời gian chờ và giới hạn tần suất cho khách công khai. */
   geminiChatModel: process.env['GEMINI_CHAT_MODEL'] ?? 'gemini-3.1-flash-lite',
@@ -26,7 +26,7 @@ export const config = {
   isProduction: process.env['NODE_ENV'] === 'production',
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',
-  otpEmailFrom: process.env['OTP_EMAIL_FROM'] || 'CaraVeso <onboarding@resend.dev>',
+  otpEmailFrom: process.env['OTP_EMAIL_FROM'] || 'CaraVeso <no-reply@your-verified-domain.com>',
   /** Địa chỉ trang quản trị, dùng tạo liên kết đặt mật khẩu cho Admin mới (AD-11). */
   adminWebUrl: (process.env['ADMIN_WEB_URL'] ?? 'http://localhost:4201').replace(/\/+$/, ''),
   /** Địa chỉ trang khách, dùng tạo liên kết xác nhận ưu đãi khách mới trong email. */

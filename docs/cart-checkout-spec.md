@@ -16,7 +16,7 @@ Phạm vi: FR-28 → FR-39 và FR-45 (giỏ hàng, đặt hàng từ giỏ, mua 
 | Cấu hình (`GET /config/public`) | Phí vận chuyển, ngưỡng cọc, số ngày chuẩn bị | **Có** module `config` | Bổ sung khóa `shipping.leadDays`, `invoice.vatRate` |
 | Trang chi tiết sản phẩm (FR-18) | Điểm vào Thêm giỏ / Mua ngay | Chưa có | **Popup chọn biến thể là điểm vào chính** |
 | Worker/BullMQ (`server/src/jobs`) | Tự hủy đơn hết hạn QR, gửi email hóa đơn | Thư mục rỗng | Làm job hết hạn thanh toán trong feature này |
-| Resend (`integrations/resend.ts`) | Gửi email hóa đơn | **Có** | Dùng khi phát hành hóa đơn (ngoài phạm vi feature, chỉ lưu lựa chọn) |
+| Brevo (`integrations/brevo.ts`) | Gửi email hóa đơn | **Có** | Dùng khi phát hành hóa đơn (ngoài phạm vi feature, chỉ lưu lựa chọn) |
 
 ---
 

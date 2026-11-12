@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import { config } from '../../config/index.js';
-import { sendWelcomeVoucherEmail } from '../../integrations/resend.js';
+import { sendWelcomeVoucherEmail } from '../../integrations/brevo.js';
 import { logger } from '../../lib/logger.js';
 import { AppError } from '../../utils/app-error.js';
 import { createAddress } from '../addresses/address.service.js';

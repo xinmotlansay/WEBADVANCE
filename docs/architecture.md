@@ -21,7 +21,7 @@ flowchart LR
     WS["Socket.IO"]
     W["Worker (BullMQ)"]
     EMB["Embedding ảnh (CLIP/SigLIP)"]
-    FILES["Thư mục uploads/ (static)"]
+    FILES["Thư mục uploads/ (static, chỉ refund-proofs + tìm ảnh tạm)"]
   end
 
   subgraph Data["Dữ liệu"]
@@ -31,10 +31,11 @@ flowchart LR
 
   subgraph Ext["Dịch vụ ngoài / mô phỏng"]
     G["Gemini API"]
-    RS["Resend (email)"]
+    RS["Brevo (email)"]
     GO["Google OAuth"]
     BK["Webhook ngân hàng (mô phỏng)"]
     SMS["OTP SĐT (mô phỏng)"]
+    SB["Supabase Storage (bucket công khai)"]
   end
 
   C -->|REST| API
@@ -45,6 +46,7 @@ flowchart LR
   API --> R
   API --> EMB
   API --> FILES
+  API --> SB
   W --> M
   W --> R
   W --> EMB
@@ -73,12 +75,12 @@ Toàn bộ nằm trong **một Angular workspace, một `package.json`**. Expres
 | Tìm bằng AI | Gemini API | Xem mục 5.7 |
 | Cache, hàng đợi | Redis + BullMQ | Xem mục 5.8 |
 | Realtime | Socket.IO | Chat CSKH, cập nhật thanh toán và trạng thái đơn |
-| Email | Resend | OTP email, liên kết đặt mật khẩu Admin, tóm tắt tồn kho, hóa đơn điện tử (khi khách chọn) |
+| Email | Brevo | OTP email, liên kết đặt mật khẩu Admin, tóm tắt tồn kho, hóa đơn điện tử (khi khách chọn) |
 | OTP số điện thoại | Mô phỏng | Mã OTP ghi ra log backend ở môi trường dev |
 | Đăng nhập Google | Google Identity Services | Client gửi `idToken`, backend xác minh |
 | Thanh toán QR | Mô phỏng webhook ngân hàng | Xem mục 5.2 |
 | Hóa đơn PDF | Puppeteer | Xem mục 5.10 |
-| Lưu file | Thư mục `uploads/` trên backend | Xem mục 5.5 |
+| Lưu file | Supabase Storage (bucket công khai) cho ảnh/model/evidence; `uploads/` cục bộ chỉ còn cho chứng từ hoàn tiền (private) và xử lý tạm khi tìm bằng ảnh | Xem mục 5.5 |
 
 ---
 
@@ -94,7 +96,7 @@ caraveso/
 │   ├── admin-web/       # app admin
 │   └── shared/          # model, API client dùng chung
 ├── server/              # Express API + worker
-├── uploads/             # file tải lên (không commit)
+├── uploads/             # chỉ còn chứng từ hoàn tiền (private) + tạm cho tìm ảnh (không commit)
 ├── .github/             # pull_request_template.md
 ├── README.md  .env.example  .gitignore
 └── package.json
@@ -129,7 +131,7 @@ src/
 ├── modules/      # mỗi nghiệp vụ một thư mục (auth, products, orders...)
 ├── middlewares/  # auth, rbac, validate, idempotency, rateLimit, audit
 ├── jobs/         # BullMQ
-├── integrations/ # gemini, resend, google, embedding
+├── integrations/ # gemini, brevo, google, embedding
 ├── config/
 └── server.ts  worker.ts
 ```
@@ -184,7 +186,7 @@ Mô hình phân lớp: `route → middleware → controller → service → mode
 - Giới hạn tần suất (NF-16) đếm trong collection `ratecounters` (cửa sổ cố định, TTL index). Dự án không dùng Redis: chỉ cần MongoDB Atlas.
 - Admin: mỗi lần refresh đặt lại TTL 30 phút. Quá 30 phút không thao tác thì refresh trả `401 SESSION_EXPIRED` (NF-A02).
 - Khóa đăng nhập sai (FR-02): đếm lần sai và thời gian khóa trong `users.security`, tính thời gian còn lại từ `lockedUntil`.
-- OTP email gửi bằng Resend. OTP số điện thoại mô phỏng: ghi mã ra log, không gửi SMS. Mã chỉ lưu dạng băm trong `otps`.
+- OTP email gửi bằng Brevo. OTP số điện thoại mô phỏng: ghi mã ra log, không gửi SMS. Mã chỉ lưu dạng băm trong `otps`.
 
 ### 5.4. Phân quyền
 
@@ -192,9 +194,9 @@ Ma trận 4 vai trò cố định, kiểm bằng middleware `rbac` theo route. R
 
 ### 5.5. Lưu file
 
-- File tải lên được lưu ở thư mục `uploads/` (gốc dự án), Express phục vụ như file tĩnh (`/uploads/...`). Đổi tên ngẫu nhiên khi lưu và kiểm MIME thực tế bằng magic bytes.
+- File công khai (ảnh/model 3D sản phẩm, banner, bài viết, collection, nguồn cảm hứng, content block, minh chứng bảo hành/đổi trả) được upload lên **Supabase Storage**, bucket công khai (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, mặc định `images`). Đặt phía sau `server/src/lib/supabase-storage.ts` (`uploadPublicFile`, `deleteStoredFile`, `isStoredImageUrl`) để sau này đổi provider mà không sửa nghiệp vụ. Tên file vẫn đổi ngẫu nhiên (UUID) theo từng thư mục (`products`, `models`, `banners`, `articles`, `collections`/`inspirations`, `content`, `evidence`) và kiểm MIME thực tế bằng magic bytes trước khi upload (`detectFile()`, không đổi vị trí kiểm tra). Database chỉ lưu URL công khai đầy đủ (`https://<project>.supabase.co/storage/v1/object/public/<bucket>/<folder>/<uuid>.<ext>`), không còn lưu đường dẫn tương đối `/uploads/...` cho các loại file này. Upload lỗi trả `502 UPLOAD_FAILED`.
+- Chứng từ hoàn tiền (`REFUND_PROOF`) vẫn lưu cục bộ ở `private-uploads/refund-proofs/` (không public, không qua Supabase) vì là dữ liệu nhạy cảm chỉ Order Admin xem qua route riêng.
 - **Không lưu vào `src/assets` của Angular**: thư mục này được đóng gói lúc build, không ghi thêm được lúc chạy. `assets` chỉ dùng cho logo, icon và ảnh tĩnh của giao diện, ảnh sản phẩm mẫu seed có thể để trong `server/seed/`.
-- Đặt phía sau một `StorageService` (`save`, `delete`, `getUrl`) để sau này đổi sang Cloudinary hoặc S3 mà không sửa nghiệp vụ.
 - Ảnh tìm kiếm của khách chỉ xử lý trong bộ nhớ, không ghi vào `uploads/` (FR-16, NF-07).
 
 ### 5.6. Tìm kiếm
@@ -246,11 +248,12 @@ flowchart TB
 | Hết hạn thanh toán | **Delayed job** tạo cùng lúc tạo đơn (trễ 15 phút) | Hủy đơn, trả tồn, hoàn lượt voucher. Thêm job quét 1 phút/lần làm lưới an toàn nếu job bị mất |
 | Voucher bù giao trễ | Repeatable, 1 giờ | Tạo `late_compensation_requests` |
 | Nhãn Bán chạy | Repeatable, hằng ngày | Tính `isAutoBestSeller` |
-| Cảnh báo tồn kho | Repeatable, hằng ngày | Gửi email tóm tắt qua Resend |
+| Cảnh báo tồn kho | Repeatable, hằng ngày | Gửi email tóm tắt qua Brevo |
 | Hết hạn dữ liệu | Repeatable, hằng ngày | `user_vouchers`, `warranty_cards`, `promotions` đổi trạng thái |
 | Dọn OTP | TTL index MongoDB trên `expiresAt` | Không cần job |
 | Tạo embedding ảnh | Theo sự kiện | Mục 5.6 |
 | Tạo hóa đơn PDF | Theo sự kiện | Mục 5.10 |
+| Lịch đăng marketing (banner/collection/nguồn cảm hứng/thông báo) | Không có job | Trạng thái "đã đăng/đã lên lịch" tính ngay lúc đọc bằng so sánh `publishAt`/`startDate` với giờ hiện tại (mục 11.1b của API Contract), không cần cron chuyển trạng thái |
 
 Mỗi job phải **idempotent** (chạy lại không gây sai dữ liệu), vì BullMQ có thể thử lại khi lỗi.
 
@@ -266,7 +269,7 @@ React Three Fiber là thư viện của React nên **không dùng được trự
 
 - Khi đơn chuyển sang `DELIVERED`, hệ thống đưa một job vào BullMQ để tạo hóa đơn, đúng quy định FR (chỉ phát hành sau khi giao thành công, không xuất thủ công).
 - Job render mẫu HTML bằng **Puppeteer** thành PDF, lưu ở `uploads/invoices/`, ghi `invoices.fileUrl` và `invoiceNumber`. Thông tin người mua lấy từ `orders.invoiceInfo` (FR-45).
-- Nếu khách chọn nhận hóa đơn qua email (`invoiceInfo.sendEmail`), job gửi email kèm PDF qua Resend, ghi `invoices.emailSentAt`. Gửi lỗi thì BullMQ thử lại, hết lượt chỉ ghi log.
+- Nếu khách chọn nhận hóa đơn qua email (`invoiceInfo.sendEmail`), job gửi email kèm PDF qua Brevo, ghi `invoices.emailSentAt`. Gửi lỗi thì BullMQ thử lại, hết lượt chỉ ghi log.
 - Puppeteer cần Chromium. Khi deploy lên Render phải dùng Docker image có Chromium. Nếu quá nặng, thay bằng thư viện nhẹ hơn (PDFKit).
 
 ### 5.11. Realtime (Socket.IO)
@@ -309,11 +312,13 @@ sequenceDiagram
 | Giai đoạn | Cách chạy |
 | :-- | :-- |
 | Demo local | MongoDB Atlas (cần internet), chạy theo bảng "Cách chạy" ở mục 3 |
-| Demo online (khi hoàn thiện) | Cả dự án lên **Render** (một web service chạy server và file tĩnh, một worker chạy BullMQ), Redis dùng dịch vụ Redis của Render hoặc Upstash. **Không dùng Vercel** vì Socket.IO và BullMQ cần tiến trình chạy liên tục |
+| Demo online (khi hoàn thiện) | Backend (API, Socket.IO, worker BullMQ) lên **Render** (một web service, một worker), Redis dùng dịch vụ Redis của Render hoặc Upstash — Vercel chỉ chạy serverless/edge nên không phù hợp cho Socket.IO/BullMQ. Frontend tĩnh (`customer-web` + `admin-web`) build và host trên **Vercel**, `rewrites` chuyển `/api`, `/uploads`, `/socket.io` sang backend Render (xem `vercel.json`, chi tiết dưới) |
 
-Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`, `RESEND_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`. Cùng origin nên không cần cấu hình CORS ở production, chỉ cần ở dev nếu không dùng proxy.
+Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`, `BREVO_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`. Khi frontend và backend không cùng origin (Vercel + Render) cần cấu hình CORS cho domain Vercel ở backend; dev dùng proxy nên không cần.
 
-Lưu ý khi deploy online: thư mục `uploads/` trên Render mặc định **mất khi redeploy**. Trước khi demo online cần gắn ổ đĩa lưu trữ hoặc chuyển sang Cloudinary (đổi ở `StorageService`).
+Lưu ý khi deploy online: ảnh/model/evidence công khai đã bền vững trên Supabase Storage, không mất khi redeploy (mục 5.5). Thư mục `private-uploads/refund-proofs/` trên Render vẫn **mất khi redeploy** vì chưa chuyển sang dịch vụ ngoài; cần gắn ổ đĩa lưu trữ hoặc chuyển nốt sang Supabase (bucket riêng tư) trước khi demo online dài hạn.
+
+Frontend (`customer-web`, `admin-web`) có thể build tĩnh và host trên **Vercel** (`vercel.json` ở gốc repo): build cả hai app Angular, gộp `admin-web` vào `dist/customer-web/browser/admin`, rồi `rewrites` chuyển `/api/*`, `/uploads/*`, `/socket.io/*` sang backend Express trên Render. Cách này tách hosting frontend (Vercel CDN) khỏi backend (Render, vẫn giữ tiến trình chạy liên tục cho Socket.IO/BullMQ).
 
 ---
 

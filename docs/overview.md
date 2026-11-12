@@ -50,7 +50,7 @@ Mỗi tài khoản Admin chỉ có một vai trò. Quyền của từng vai trò
 | Thanh toán | FR-37 → FR-40 | Hủy đơn, COD và QR, đặt cọc đơn trên 20.000.000đ, voucher bù giao trễ |
 | Hậu mãi | FR-41 → FR-44 | Đổi/trả, hoàn tiền, bảo hành, chat CSKH |
 | Product Admin | PA-01 → PA-10 | Sản phẩm, danh mục, tồn kho, kiểm duyệt đánh giá |
-| Marketing Admin | MA-01 → MA-10 | Khuyến mãi, voucher, banner, nội dung, Collection, báo cáo |
+| Marketing Admin | MA-01 → MA-12 | Khuyến mãi, voucher, banner, nội dung, Collection, Nguồn cảm hứng, lịch đăng, thanh thông báo, báo cáo |
 | Order Admin | OA-01 → OA-16 | Đơn hàng, đối soát, vận chuyển, đổi trả, bảo hành, chat |
 | Super Admin | AD-01 → AD-15 | Dashboard tổng quan, khách hàng, Admin, cấu hình, nhật ký |
 
@@ -90,7 +90,7 @@ Chi tiết từng chức năng xem Requirements.
 | Máy chủ | Node.js, Express, Socket.IO |
 | Cơ sở dữ liệu | MongoDB Atlas (Atlas Search, Vector Search) |
 | Hàng đợi, cache | Redis, BullMQ |
-| Dịch vụ ngoài | Gemini API, Resend, Google OAuth |
+| Dịch vụ ngoài | Gemini API, Brevo, Google OAuth |
 | Tạo hóa đơn | Puppeteer |
 
 Chi tiết xem Architecture.
