@@ -618,11 +618,26 @@ textarea.cv-input {
 .cv-dialog {
   width: 440px;
   max-width: calc(100vw - 32px);
+  /* Form dài (ví dụ tạo Admin) cao hơn màn hình: cho cuộn trong hộp thay vì bị cắt phần trên */
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   padding: 0;
   border: 1px solid var(--cv-border-strong);
   border-radius: var(--cv-radius-lg);
   color: var(--cv-navy);
   box-shadow: var(--cv-shadow-pop);
+}
+
+/* Căn giữa theo cách của dialog native và chặn chiều cao theo màn hình. Đặt selector cụ thể hơn
+   để ghi đè top: 50% + translate trong components.css (làm phần trên hộp bị đẩy khỏi màn hình). */
+dialog.cv-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
+  transform: none;
+  overflow-y: auto;
 }
 
 .cv-dialog::backdrop {

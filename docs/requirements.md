@@ -133,6 +133,7 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 | FR-35 | Dịch vụ lắp đặt | Một số sản phẩm đặc thù có dịch vụ lắp đặt (bắt buộc hoặc tùy chọn, do Product Admin quy định), do đội vận tải của CaraVeso thực hiện cùng ngày giao, chỉ áp dụng cho sản phẩm cấp vận chuyển 3–4. Phí lắp đặt cố định theo sản phẩm, tính theo số lượng, hiển thị rõ trước khi đặt; voucher không giảm phí lắp đặt. Hủy trước khi giao được hoàn phí lắp đặt; trả hàng do đổi ý sau khi đã lắp không hoàn phí lắp đặt |
 | FR-36 | Ghi chú, ngày giao dự kiến và hẹn lịch giao | Ghi chú của đơn chỉ dùng để phục vụ giao hàng. Hệ thống hiển thị ngày giao dự kiến (mục 1.1). Đơn có sản phẩm cấp 3–4 (đội xe CaraVeso giao) thì khách có thể hẹn lịch giao: chọn ngày và khung giờ (sáng 8–12, chiều 13–17), không chọn Chủ nhật; đổi lịch tối đa 2 lần, trước giờ giao ít nhất 24 giờ. Ngày hẹn tối đa 7 ngày sau ngày dự kiến. Mốc tính bù trễ là ngày dự kiến gốc, hoặc ngày hẹn cuối cùng nếu khách đã hẹn |
 | FR-45 | Yêu cầu xuất hóa đơn VAT | Tại trang thanh toán, khách chọn: Không cần xuất hóa đơn VAT (mặc định), Cá nhân (họ tên, mã số thuế cá nhân hoặc CCCD tùy chọn, địa chỉ) hoặc Công ty (tên công ty, mã số thuế, địa chỉ). Với Cá nhân và Công ty, khách tick chọn có hoặc không nhận hóa đơn qua email (mặc định không, tick thì bắt buộc nhập email). Hóa đơn điện tử vẫn tự phát hành khi giao thành công; khách xem và tải ở FR-10. Giá hiển thị đã bao gồm VAT |
+| FR-46 | Ưu đãi 10% khách mới | Khách đã đăng nhập, chưa từng có đơn hàng, được mời hoàn thiện thông tin (họ tên, giới tính, ngày sinh, địa chỉ) để nhận ưu đãi. Sau khi gửi, hệ thống gửi email xác nhận kèm liên kết (hạn 30 ngày); bấm liên kết mới cấp voucher giảm 10% vào ví (dùng một lần, hạn 1 năm). Vẫn còn đơn hàng từ trước thì không đủ điều kiện |
 
 ## Thanh toán và hủy đơn
 
@@ -199,12 +200,14 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 | MA-02 | Dashboard Marketing | Số chiến dịch, mã giảm giá đang hoạt động, banner, doanh thu tổng hợp theo chương trình và các chỉ số marketing liên quan |
 | MA-03 | Quản lý chương trình khuyến mãi | Xem, tạo, chỉnh sửa, xóa hoặc ngừng chương trình giảm giá theo sản phẩm, danh mục, giá trị đơn hàng hoặc thời gian. Mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi tại cùng một thời điểm (không tính voucher): hệ thống từ chối tạo, sửa hoặc kích hoạt lại chương trình nếu có sản phẩm (kể cả sản phẩm thuộc danh mục áp dụng) đã nằm trong chương trình khác đang sắp diễn ra, đang chạy hoặc tạm dừng có thời gian chồng lấn và báo rõ sản phẩm và chương trình xung đột (gộp bốn tính năng gốc) |
 | MA-04 | Quản lý mã giảm giá | Xem, tạo, chỉnh sửa, vô hiệu hóa voucher. Loại voucher: công khai (nhập mã), thu thập vào ví, gán riêng cho khách. Điều kiện: giá trị giảm, mức giảm tối đa, giá trị đơn tối thiểu (tính sau khuyến mãi), phạm vi sản phẩm hoặc danh mục, nhóm khách (khách mới, sinh nhật trong tháng, gán riêng), cờ cộng với khuyến mãi, tổng lượt dùng, lượt dùng mỗi người, thời hạn. Mỗi đơn tối đa 1 voucher |
-| MA-05 | Quản lý banner | Xem, thêm, chỉnh sửa (hình, nội dung, đường dẫn, thời gian hiển thị), xóa hoặc ngừng hiển thị banner |
-| MA-06 | Quản lý nội dung | Cập nhật nội dung trang chủ, landing page, và thêm, sửa, ẩn bài viết, thông báo, nội dung truyền thông |
-| MA-07 | Quản lý Collection | Tạo, sửa, ẩn collection: tên, slogan, mô tả ngắn và chi tiết, ảnh không gian và ảnh đại diện, thứ tự hiển thị. Đặt hotspot lên ảnh và gắn sản phẩm cho từng hotspot. Liên kết collection với sản phẩm |
-| MA-08 | Quản lý Nguồn cảm hứng | Tạo, sửa, ẩn ảnh nguồn cảm hứng; gắn danh sách sản phẩm và thứ tự hiển thị trong popup |
-| MA-09 | Báo cáo Marketing | Theo dõi lượt dùng mã giảm giá, hiệu quả và doanh thu theo chương trình (số liệu tổng hợp, không xem thông tin cá nhân của khách); theo dõi lượt hiển thị và click banner |
+| MA-05 | Quản lý banner | Xem, thêm, chỉnh sửa (hình, nội dung, đường dẫn, thời gian hiển thị), xóa hoặc ngừng hiển thị banner. Giao diện quản trị hiện chỉ còn loại Slider trang chủ (`HOME_SLIDER`); dữ liệu và quy tắc cho các vị trí khác (giữa trang chủ, danh mục, popup) vẫn còn ở backend nhưng chưa có màn hình quản lý |
+| MA-06 | Quản lý nội dung | Thêm, sửa, ẩn bài viết và nội dung truyền thông. Màn hình chỉnh nội dung trang chủ và landing page đã gỡ khỏi giao diện quản trị (API đọc trang landing `/lp/:slug` vẫn còn phục vụ nội dung cũ, không còn chỗ chỉnh sửa); mục quản lý thông báo trang khách tách riêng thành MA-12 |
+| MA-07 | Quản lý Collection | Tạo, sửa, ẩn collection: tên, slogan, mô tả ngắn và chi tiết, ảnh không gian và ảnh đại diện, thứ tự hiển thị. Đặt hotspot lên ảnh và gắn sản phẩm cho từng hotspot. Liên kết collection với sản phẩm. Có thể đăng ngay hoặc lên lịch đăng (MA-11) |
+| MA-08 | Quản lý Nguồn cảm hứng | Tạo, sửa, ẩn ảnh nguồn cảm hứng; gắn danh sách sản phẩm và thứ tự hiển thị trong popup. Có thể đăng ngay hoặc lên lịch đăng (MA-11) |
+| MA-09 | Báo cáo Marketing | Theo dõi lượt dùng mã giảm giá, hiệu quả và doanh thu theo chương trình (số liệu tổng hợp, không xem thông tin cá nhân của khách); theo dõi lượt hiển thị và click banner. API báo cáo vẫn hoạt động nhưng hiện không còn mục trong menu quản trị |
 | MA-10 | Hạn chế quyền | Không xử lý đơn hàng, không phân quyền Admin, không chỉnh cấu hình chung |
+| MA-11 | Lịch đăng nội dung marketing | Xem lịch dạng tháng các banner, collection, nguồn cảm hứng và thông báo đã đăng hoặc đã lên lịch; đổi giờ đăng (phải sau thời điểm hiện tại ít nhất 5 phút và trước thời điểm kết thúc nếu có) hoặc hủy lịch (đưa về nháp/ẩn). Mỗi mục có thể chọn đăng ngay hoặc đăng vào thời điểm chọn ngay khi tạo/sửa |
+| MA-12 | Quản lý thanh thông báo | Thêm, sửa, ẩn/hiện, xóa (phải ẩn trước), sắp xếp thứ tự nhiều thông báo (kèm liên kết tùy chọn); đăng ngay hoặc lên lịch, đặt thời điểm kết thúc. Trang khách chỉ hiển thị thông báo đang hiệu lực (đã tới giờ đăng, chưa hết hạn, không bị ẩn) và tự xoay lần lượt khi có nhiều hơn một thông báo |
 
 ## 3. Order Admin (Quản trị viên đơn hàng)
 
@@ -243,7 +246,7 @@ Admin cấp cao có toàn quyền quản lý và xử lý mọi chức năng c�
 | AD-08 | Kiểm duyệt đánh giá | Toàn quyền như Product Admin (PA-09) |
 | AD-09 | Quản lý đổi trả và bảo hành | Toàn quyền như Order Admin, gồm xử lý hoàn tiền |
 | AD-10 | Xem danh sách Admin và lịch sử hoạt động | Xem danh sách tài khoản Admin, vai trò, trạng thái và nhật ký thao tác |
-| AD-11 | Thêm tài khoản Admin | Admin cấp cao nhập email và chọn vai trò; hệ thống gửi liên kết đặt mật khẩu (hạn 24–48 giờ) hoặc cấp mật khẩu tạm bắt buộc đổi ngay lần đăng nhập đầu. Không ai xem được mật khẩu của người khác |
+| AD-11 | Thêm tài khoản Admin | Admin cấp cao nhập email, chọn vai trò và đặt mật khẩu tạm cho tài khoản mới; người được thêm bắt buộc đổi mật khẩu ngay lần đăng nhập đầu (chặn mọi chức năng khác tới khi đổi xong). Admin cấp cao cũng có thể đặt lại mật khẩu tạm cho Admin khác khi họ quên mật khẩu (trừ chính mình); đặt lại thu hồi toàn bộ phiên đang đăng nhập của người đó và bắt đổi mật khẩu ở lần đăng nhập kế tiếp. Không ai xem được mật khẩu của người khác |
 | AD-12 | Sửa và vô hiệu hóa tài khoản Admin | Cập nhật thông tin hoặc vô hiệu hóa (không xóa cứng để giữ nhật ký). Không được tự khóa, tự xóa hoặc hạ vai trò của chính mình, và không được vô hiệu hóa Admin cấp cao cuối cùng |
 | AD-13 | Gán vai trò | Mỗi tài khoản Admin chỉ có đúng một vai trò (Admin cấp cao, Product Admin, Marketing Admin, Order Admin). Quyền của mỗi vai trò cố định theo ma trận ở mục 5 |
 | AD-14 | Quản lý quyền truy cập | Quy định chức năng từng vai trò được phép, cố định theo ma trận ở mục 5 (không chỉnh sửa động) |
@@ -265,6 +268,7 @@ Ký hiệu: **Có** = toàn quyền, **Xem** = chỉ xem, **—** = không truy 
 | Thông tin khách hàng | Có (gồm khóa/mở) | — | — | Xem |
 | Khuyến mãi, voucher, banner, nội dung | Có | — | Có | — |
 | Collection, Nguồn cảm hứng | Có | — | Có | — |
+| Lịch đăng, thanh thông báo | Có | — | Có | — |
 | Báo cáo marketing, doanh thu theo chương trình | Có | — | Xem (tổng hợp) | — |
 | Quản lý Admin và gán vai trò | Có | — | — | — |
 | Cấu hình hệ thống, nhật ký hoạt động | Có | — | — | — |

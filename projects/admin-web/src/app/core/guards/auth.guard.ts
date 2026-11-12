@@ -8,6 +8,10 @@ export const authGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
 
   if (auth.isAuthenticated()) {
+    // Mật khẩu tạm: buộc sang trang đổi mật khẩu trước, server chặn mọi chức năng khác (MUST_CHANGE_PASSWORD).
+    if (auth.user()?.mustChangePassword && !state.url.startsWith('/doi-mat-khau')) {
+      return router.createUrlTree(['/doi-mat-khau']);
+    }
     return true;
   }
 

@@ -13,6 +13,7 @@ import {
   configKeyParamsSchema,
   createAdminSchema,
   deactivateSchema,
+  resetAdminPasswordSchema,
   idParamsSchema,
   overviewQuerySchema,
   updateAdminSchema,
@@ -36,6 +37,12 @@ superAdminRoutes.patch('/admins/:id/role', ...sa, validate({ params: idParamsSch
 superAdminRoutes.post('/admins/:id/deactivate', ...sa, validate({ params: idParamsSchema, body: deactivateSchema }), c.deactivateHandler);
 superAdminRoutes.post('/admins/:id/activate', ...sa, validate({ params: idParamsSchema }), c.activateHandler);
 superAdminRoutes.post('/admins/:id/resend-invite', ...sa, validate({ params: idParamsSchema }), c.resendInviteHandler);
+superAdminRoutes.post(
+  '/admins/:id/reset-password',
+  ...sa,
+  validate({ params: idParamsSchema, body: resetAdminPasswordSchema }),
+  c.resetAdminPasswordHandler,
+);
 
 superAdminRoutes.get('/roles', ...sa, c.listRolesHandler);
 

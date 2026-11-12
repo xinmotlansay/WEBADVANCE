@@ -716,6 +716,7 @@ Collection: `product_collections` (trước đây: `COLLECTION`, kèm `HINH_ANH_
 | 22 | images[].hotspots[].y | Number | Y | Tọa độ dọc theo tỷ lệ ảnh (0–1) |
 | 23 | images[].hotspots[].displayOrder | Number | | Thứ tự ưu tiên khi có nhiều hotspot |
 | 24 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
+| 25 | publishAt | Date | | Null = hiện ngay khi `status = VISIBLE`. Có giá trị ở tương lai = đã lên lịch đăng, trang khách chưa hiển thị cho tới khi qua mốc này (MA-11) |
 
 ### Thực thể 28: Nguồn cảm hứng (Inspiration)
 
@@ -733,6 +734,7 @@ Collection: `inspirations` (trước đây: `NGUON_CAM_HUNG`, kèm `SANPHAM_NGUO
 | 6 | products[].displayOrder | Number | Y | Thứ tự trong danh sách popup |
 | 7 | displayOrder | Number | | Default: 0. Thứ tự trong lưới khách (trang Nguồn cảm hứng, gallery trang chủ) |
 | 8 | version | Number | | Default: 0. Tăng mỗi lần admin sửa; khóa lạc quan (`E-COM-05`) |
+| 9 | publishAt | Date | | Null = hiện ngay khi `status = VISIBLE`. Có giá trị ở tương lai = đã lên lịch đăng (MA-11) |
 
 ### Thực thể 29: Banner (Banner)
 
@@ -772,6 +774,28 @@ Collection: `contents` (mới). Nội dung trang chủ, landing page, bài viế
 | 8 | status | String | Y | Default: `DRAFT`. `DRAFT` (nháp), `VISIBLE`, `HIDDEN` |
 | 9 | publishedAt | Date | | Ngày xuất bản |
 | 10 | createdBy | ObjectId (ref: users) | | Người tạo |
+
+**Khoảng trống cần đồng bộ:** nội dung trang chủ/landing page và thanh thông báo thực tế không nằm ở collection `contents` này mà ở một collection riêng `content_areas` (model `ContentAreaModel`, khóa `key = HOME` hoặc `LP:<slug>`; trước đây có thêm `ANNOUNCEMENT_BAR`), chưa được mô tả ở đây — bảng trên mô tả thiết kế dự kiến, không khớp hoàn toàn implementation cho `HOMEPAGE`/`LANDING`/`ANNOUNCEMENT`. Từ 2026-11-08, nội dung thanh thông báo (`ANNOUNCEMENT_BAR`) được chuyển một lần từ `content_areas` sang collection mới `announcements` (Thực thể 30b); `content_areas` (`HOME`, `LP:<slug>`) vẫn giữ nguyên, chỉ còn phục vụ đọc vì màn hình quản trị đã gỡ.
+
+### Thực thể 30b: Thông báo trang khách (Announcement)
+
+Collection: `announcements` (mới, MA-12). Mỗi bản ghi là một thông báo hiển thị luân phiên ở thanh thông báo trang khách.
+
+*Bảng 3.35b. Thuộc tính Thông báo*
+
+| # | Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ràng buộc / Mô tả |
+|---|---|---|---|---|
+| 1 | _id | ObjectId | Y | Mã định danh, do MongoDB tự sinh |
+| 2 | text | String | Y | Tối đa 120 ký tự |
+| 3 | linkUrl | String | | Rỗng = không có liên kết |
+| 4 | status | String | Y | Default: `DRAFT`. `DRAFT`, `LIVE`, `HIDDEN` |
+| 5 | publishAt | Date | | Null = đăng ngay khi `status = LIVE`. Có giá trị ở tương lai = đã lên lịch |
+| 6 | endAt | Date | | Null = không giới hạn thời gian kết thúc |
+| 7 | displayOrder | Number | Y | Thứ tự xoay lần lượt trên trang khách |
+| 8 | version | Number | | Default: 0. Khóa lạc quan khi sửa (`409 CONFLICT`) |
+| 9 | deletedAt | Date | | Xóa mềm; chỉ xóa được khi không ở trạng thái đang hiệu lực |
+
+Trạng thái hiển thị thực tế cho khách tính tại thời điểm đọc, không lưu riêng: `ACTIVE` khi `status = LIVE` và (`publishAt` null hoặc đã qua) và (`endAt` null hoặc chưa tới); `SCHEDULED` khi `LIVE` nhưng `publishAt` còn ở tương lai; `ENDED` khi đã qua `endAt`. `GET /content/announcements` (công khai) trả toàn bộ thông báo `ACTIVE` cùng lúc; việc xoay lần lượt khi có nhiều thông báo do frontend tự thực hiện.
 
 ---
 
@@ -858,8 +882,22 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 ### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
 
 - `system_configs`: tên khóa đã dùng trong code (danh sách đầy đủ ở `server/src/modules/super-admin/system-config.registry.ts`): `store`, `policy.returnDays`, `policy.reviewDays`, `policy.lateCompensationDays`, `policy.lateCompensationValue`, `policy.lateCompensationValidDays`, `policy.refundDaysMin`, `policy.refundDaysMax`, `policy.overdueConfirmationHours`, `payment`, `payment.bankAccount`, `shipping`, `shipping.maxRedelivery`, `inventory.lowStockThreshold`, `security.*` (`maxLoginAttempts`, `loginLockMinutes`, `otpExpireMinutes`, `otpMaxAttempts`, `otpResendSeconds`, `otpMaxSendsPerHour`, `adminSessionMinutes`), `labels.newDays`, `labels.bestSellerTopPercent`, `labels.bestSellerMinSold`, `email.templates`, `invoice` (thêm `sellerName`, `sellerTaxCode`, `sellerAddress`, `symbol`). Giá trị object lưu đầy đủ field; module đọc vẫn trộn với mặc định nếu thiếu.
-- `audit_logs`: model chặn `update*`/`delete*`. Index `{ performedAt: -1 }`, `{ userId: 1, performedAt: -1 }`, `{ targetType: 1, targetId: 1, performedAt: -1 }`. `action` dạng `ĐỐI_TƯỢNG_HÀNH_ĐỘNG`: `ADMIN_CREATE`, `ADMIN_UPDATE`, `ADMIN_ROLE_CHANGE`, `ADMIN_DEACTIVATE`, `ADMIN_ACTIVATE`, `ADMIN_INVITE_RESEND`, `CONFIG_UPDATE`; `targetType`: `ADMIN`, `SYSTEM_CONFIG`. Module khác ghi nhật ký qua `recordAudit(req, {...})` ở `super-admin/audit-log.service.ts` (tự che mật khẩu, số tài khoản).
-- `otps` với `purpose = ADMIN_SET_PASSWORD`: `codeHash` là SHA-256 của token trong liên kết, `expiresAt` 48 giờ, `isVerified = true` sau khi dùng.
+- `audit_logs`: model chặn `update*`/`delete*`. Index `{ performedAt: -1 }`, `{ userId: 1, performedAt: -1 }`, `{ targetType: 1, targetId: 1, performedAt: -1 }`. `action` dạng `ĐỐI_TƯỢNG_HÀNH_ĐỘNG`: `ADMIN_CREATE`, `ADMIN_UPDATE`, `ADMIN_ROLE_CHANGE`, `ADMIN_DEACTIVATE`, `ADMIN_ACTIVATE`, `ADMIN_INVITE_RESEND`, `ADMIN_PASSWORD_RESET`, `CONFIG_UPDATE`; `targetType`: `ADMIN`, `SYSTEM_CONFIG`. Module khác ghi nhật ký qua `recordAudit(req, {...})` ở `super-admin/audit-log.service.ts` (tự che mật khẩu, số tài khoản).
+- `otps` với `purpose = ADMIN_SET_PASSWORD`: `codeHash` là SHA-256 của token trong liên kết, `expiresAt` 48 giờ, `isVerified = true` sau khi dùng. Chỉ còn dùng cho tài khoản Admin cũ gửi lại liên kết (`resend-invite`); tài khoản tạo mới từ 2026-11-10 không qua bảng này nữa (xem bên dưới).
+
+### Bổ sung triển khai 2026-11-10 (mật khẩu tạm Admin)
+
+- `users.passwordHash` được set ngay khi `POST /admin/admins` tạo tài khoản (Super Admin nhập mật khẩu tạm), không còn tạo qua `otps`/`ADMIN_SET_PASSWORD` cho tài khoản mới. `users.security.mustChangePassword` luôn `true` sau khi tạo hoặc sau khi Super Admin đặt lại mật khẩu (`ADMIN_PASSWORD_RESET`).
+
+### Bổ sung triển khai 2026-11-09 (lưu file)
+
+- Các field lưu URL file (ví dụ `products.media[].url`, `banners.imageUrl/mobileImageUrl`, `product_collections.images[].url`, `inspirations.imageUrl`, `contents.thumbnail`, minh chứng bảo hành/đổi trả) nay chứa URL Supabase Storage đầy đủ thay vì đường dẫn tương đối `/uploads/...`; không đổi tên hay kiểu field. Riêng chứng từ hoàn tiền (`payment_transactions`/yêu cầu hoàn tiền) vẫn giữ đường dẫn `/uploads/refund-proofs/...` cục bộ.
+
+### Bổ sung triển khai 2026-11-08 (marketing: lịch đăng, thông báo, ưu đãi khách mới)
+
+- `product_collections`, `inspirations` thêm field `publishAt` (Thực thể 27, 28).
+- Collection mới `announcements` (Thực thể 30b) thay cho khóa `ANNOUNCEMENT_BAR` trong `content_areas`; dữ liệu cũ được chuyển một lần khi collection mới còn trống.
+- Không có field mới cho ưu đãi 10% khách mới: voucher tạo qua cơ chế `vouchers`/`user_vouchers` hiện có (mã `NEW11`, `customerGroup = NEW_CUSTOMER`, nguồn `GIFTED`), hồ sơ khách dùng field có sẵn ở `users.profile`/`addresses`.
 
 ### Bổ sung triển khai 2026-10-23
 

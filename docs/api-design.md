@@ -619,15 +619,16 @@ Body như 5.5, thêm `"includeCaution": false`. Trả tối đa 6 `ProductListIt
 
 | Method | Path | Quyền | FR | Mô tả |
 | :-- | :-- | :-- | :-- | :-- |
-| GET | `/collections` | P | FR-26 | Danh sách (tên, slogan, ảnh đại diện), theo `displayOrder` |
-| GET | `/collections/:slug` | P | FR-26 | Chi tiết: ảnh + hotspot + sản phẩm thuộc collection |
-| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng, theo `displayOrder` |
-| GET | `/inspirations/:id` | P | FR-27 | Ảnh + danh sách sản phẩm popup |
-| GET | `/banners` | P | | Banner đang hiển thị (trong `startDate–endDate`, `VISIBLE`) |
+| GET | `/collections` | P | FR-26 | Danh sách (tên, slogan, ảnh đại diện), theo `displayOrder`; chỉ mục đã tới giờ đăng (`publishAt` null hoặc đã qua) |
+| GET | `/collections/:slug` | P | FR-26 | Chi tiết: ảnh + hotspot + sản phẩm thuộc collection; 404 nếu chưa tới `publishAt` |
+| GET | `/inspirations` | P | FR-27 | Danh sách ảnh cảm hứng, theo `displayOrder`; chỉ mục đã tới giờ đăng |
+| GET | `/inspirations/:id` | P | FR-27 | Ảnh + danh sách sản phẩm popup; 404 nếu chưa tới `publishAt` |
+| GET | `/banners` | P | | Banner đang hiển thị (trong `startDate–endDate`, `VISIBLE`); hiện chỉ có loại `HOME_SLIDER` do giao diện quản trị chỉ tạo loại này |
 | POST | `/banners/:id/impression` | P | MA-09 | Ghi lượt hiển thị |
 | POST | `/banners/:id/click` | P | MA-09 | Ghi lượt click |
-| GET | `/contents` | P | | Bài viết/thông báo (`?type=ARTICLE&page=`) |
-| GET | `/contents/:slug` | P | | Nội dung chi tiết (trang chủ, landing, bài viết) |
+| GET | `/contents` | P | | Bài viết/nội dung truyền thông (`?type=ARTICLE&page=`). Thanh thông báo **không** còn đi qua đây, xem `/content/announcements` (MA-12) |
+| GET | `/contents/:slug` | P | | Nội dung chi tiết (trang chủ, landing, bài viết). Riêng trang chủ/landing không còn màn hình quản trị để sửa (route `/lp/:slug` vẫn đọc dữ liệu cũ); bài viết vẫn có màn hình quản trị, chỉ không còn liên kết trong menu |
+| GET | `/content/announcements` | P | | Toàn bộ thông báo đang hiệu lực `{ id, text, linkUrl }[]`; trang khách tự xoay lần lượt khi có nhiều thông báo |
 | GET | `/promotions/flash-sale` | P | | Chương trình khuyến mãi đang chạy kết thúc sớm nhất kèm sản phẩm, dùng cho khối Flash Sale ở trang chủ |
 | GET | `/showrooms` | P | | Danh sách showroom đang mở (`?region=NORTH|CENTRAL|SOUTH`), theo `displayOrder` |
 
@@ -720,6 +721,16 @@ Một đơn tối đa một voucher. `PUT /cart/voucher` luôn trả `200` với
 ```
 
 `reason`: `NOT_FOUND`, `EXPIRED`, `NOT_STARTED`, `PAUSED`, `USAGE_LIMIT_REACHED`, `PER_USER_LIMIT_REACHED`, `MIN_ORDER_NOT_MET` (tính sau khuyến mãi), `SCOPE_NOT_MATCHED`, `CUSTOMER_GROUP_NOT_ELIGIBLE` (khách mới/sinh nhật trong tháng/gán riêng), `NOT_STACKABLE` (có khuyến mãi mà `stackableWithPromotion = false`). Giảm giá tính theo `PERCENT` hoặc `FIXED_AMOUNT`, chặn bởi `maxDiscountValue`, chỉ áp trên tiền hàng sau khuyến mãi (không giảm phí vận chuyển và phí lắp đặt). Phần giảm phân bổ vào `items[].voucherDiscountShare` tỉ lệ theo giá trị dòng.
+
+### 7.4. Ưu đãi 10% khách mới (FR-46)
+
+| Method | Path | Quyền | Mô tả |
+| :-- | :-- | :-- | :-- |
+| GET | `/users/me/welcome-offer` | U | `{ eligible, claimed, email, phoneNumber, fullName, gender, dateOfBirth }`. `eligible = true` khi khách chưa có đơn hàng nào |
+| POST | `/users/me/welcome-offer/claim` | U | Gửi `{ fullName, gender, dateOfBirth, address }` hoàn thiện hồ sơ; hệ thống gửi email xác nhận kèm liên kết (JWT riêng, hạn 30 ngày). **Chưa cấp voucher ở bước này** |
+| POST | `/users/me/welcome-offer/confirm` | U | `{ token }` từ liên kết email; xác minh token khớp đúng khách đang đăng nhập và vẫn `eligible`, cấp voucher giảm 10% (mã `NEW11`, `customerGroup: NEW_CUSTOMER`, dùng một lần, hạn 1 năm) vào `user_vouchers` (`source: GIFTED`) |
+
+Voucher `NEW11` được tạo (nếu chưa có) ngay khi có khách xác nhận đầu tiên, dùng chung cho mọi khách mới, mỗi khách chỉ nhận một lần (`perUserLimit = 1`). Có đơn hàng từ trước khi xác nhận thì không được cấp.
 
 ---
 
@@ -1022,7 +1033,7 @@ Quy tắc:
 
 ## 11. Admin – Marketing, Order, Super Admin
 
-### 11.1. Marketing Admin (MA-01 → MA-10), quyền `MA`
+### 11.1. Marketing Admin (MA-01 → MA-12), quyền `MA`
 
 | Method | Path | FR | Mô tả |
 | :-- | :-- | :-- | :-- |
@@ -1037,32 +1048,50 @@ Quy tắc:
 | PUT | `/admin/vouchers/:id` | MA-04 | Sửa |
 | PATCH | `/admin/vouchers/:id/status` | MA-04 | Vô hiệu hóa/kích hoạt |
 | POST | `/admin/vouchers/:id/assign` | MA-04 | Gán riêng cho khách `{ "userIds": [] }` (tạo `user_vouchers` `GIFTED`) |
-| GET | `/admin/banners` | MA-05 | Danh sách |
-| POST | `/admin/banners` | MA-05 | Thêm |
-| PUT | `/admin/banners/:id` | MA-05 | Sửa |
-| PATCH | `/admin/banners/:id/status` | MA-05 | Ẩn/hiện |
-| DELETE | `/admin/banners/:id` | MA-05 | Xóa |
-| GET | `/admin/contents` | MA-06 | Danh sách (`?type=&status=`) |
+| GET | `/admin/marketing/banners` | MA-05 | Danh sách. Giao diện quản trị hiện chỉ tạo/sửa `HOME_SLIDER`; backend vẫn chấp nhận `HOME_MIDDLE/CATEGORY/POPUP` nhưng không có màn hình |
+| POST | `/admin/marketing/banners` | MA-05 | Thêm (đăng ngay hoặc lên lịch qua `publishAt`, xem 11.1b) |
+| PUT | `/admin/marketing/banners/:id` | MA-05 | Sửa |
+| PATCH | `/admin/marketing/banners/:id/status` | MA-05 | Ẩn/hiện |
+| DELETE | `/admin/marketing/banners/:id` | MA-05 | Xóa |
+| GET | `/admin/contents` | MA-06 | Danh sách (`?type=&status=`). Chỉ còn phục vụ bài viết/nội dung truyền thông cũ; không còn màn hình quản trị cho nội dung trang chủ/landing page (API đọc `/lp/:slug` vẫn hoạt động) |
 | POST | `/admin/contents` | MA-06 | Tạo (nháp hoặc xuất bản) |
 | PUT | `/admin/contents/:id` | MA-06 | Sửa |
 | PATCH | `/admin/contents/:id/status` | MA-06 | `DRAFT/VISIBLE/HIDDEN` |
 | GET | `/admin/marketing/collections` | MA-07 | Danh sách (`?status=&q=`), kèm `thumbnail`, `imageCount`, `productCount`, `flags: ['INACTIVE_PRODUCT']` |
-| GET | `/admin/marketing/collections/:id` | MA-07 | Chi tiết cho form (`productIds` theo thứ tự, `images[].hotspots[]`, `inactiveProductIds`) |
+| GET | `/admin/marketing/collections/:id` | MA-07 | Chi tiết cho form (`productIds` theo thứ tự, `images[].hotspots[]`, `inactiveProductIds`, `publishAt`) |
 | POST | `/admin/marketing/collections` | MA-07 | Tạo (trạng thái `HIDDEN`, đứng cuối) |
 | PATCH | `/admin/marketing/collections/:id` | MA-07 | Sửa cả form kèm `version`; không gửi `images` = giữ ảnh cũ |
-| POST | `/admin/marketing/collections/:id/hide`, `/show` | MA-07 | Ẩn/hiện; hiện cần ≥ 1 ảnh và ≥ 1 sản phẩm (`E-MKT-020-02`) |
+| POST | `/admin/marketing/collections/:id/hide`, `/show` | MA-07 | Ẩn/hiện; hiện cần ≥ 1 ảnh và ≥ 1 sản phẩm (`E-MKT-020-02`), đăng ngay hoặc lên lịch qua `publishAt` (11.1b) |
 | DELETE | `/admin/marketing/collections/:id` | MA-07 | Xóa cứng, phải ẩn trước (`E-MKT-020-03`) |
 | POST | `/admin/marketing/collections/reorder` | MA-07 | `{ ids }` đủ mọi collection theo thứ tự mới → `displayOrder` |
 | POST | `/admin/marketing/collections/images` | MA-07 | Multipart `file`: JPG/PNG/WEBP ≤ 3 MB, cạnh ngắn ≥ 800 px (`E-MKT-020-04`) → `{ url, width, height }` |
 | GET | `/admin/marketing/inspirations` | MA-08 | Danh sách (`?status=`) theo `displayOrder`, kèm `productIds`, `flags` |
-| GET | `/admin/marketing/inspirations/:id` | MA-08 | Chi tiết cho form |
+| GET | `/admin/marketing/inspirations/:id` | MA-08 | Chi tiết cho form (kèm `publishAt`) |
 | POST | `/admin/marketing/inspirations` | MA-08 | Tạo `{ imageUrl, productIds }` (≤ 12, `ACTIVE`, bỏ trùng), trạng thái `HIDDEN` |
 | PATCH | `/admin/marketing/inspirations/:id` | MA-08 | Sửa kèm `version` |
-| POST | `/admin/marketing/inspirations/:id/hide`, `/show` | MA-08 | Ẩn/hiện; hiện cần ≥ 1 sản phẩm (`E-MKT-021-02`) |
+| POST | `/admin/marketing/inspirations/:id/hide`, `/show` | MA-08 | Ẩn/hiện; hiện cần ≥ 1 sản phẩm (`E-MKT-021-02`), đăng ngay hoặc lên lịch qua `publishAt` (11.1b) |
 | DELETE | `/admin/marketing/inspirations/:id` | MA-08 | Xóa cứng, phải ẩn trước (`E-MKT-021-03`) |
 | POST | `/admin/marketing/inspirations/reorder` | MA-08 | `{ ids }` đủ mọi ảnh → `displayOrder` |
-| POST | `/admin/marketing/inspirations/images` | MA-08 | Như ảnh collection, lưu `uploads/inspirations` |
-| GET | `/admin/reports/marketing` | MA-09 | Báo cáo (`?from=&to=`): lượt dùng voucher, doanh thu theo chương trình, banner impression/click. Chỉ số tổng hợp, không có thông tin cá nhân |
+| POST | `/admin/marketing/inspirations/images` | MA-08 | Như ảnh collection |
+| GET | `/admin/reports/marketing` | MA-09 | Báo cáo (`?from=&to=`): lượt dùng voucher, doanh thu theo chương trình, banner impression/click. Chỉ số tổng hợp, không có thông tin cá nhân. **Chưa có mục tương ứng trong menu quản trị hiện tại** (route vẫn hoạt động) |
+| GET | `/admin/marketing/schedule` | MA-11 | `?from=&to=` (ISO, bắt buộc) → `ScheduleEvent[] = { key, type: BANNER\|COLLECTION\|INSPIRATION\|ANNOUNCEMENT, id, title, thumbnail, at, endAt, state: SCHEDULED\|PUBLISHED, editPath }`. `state` tính tại thời điểm đọc, không lưu riêng |
+| POST | `/admin/marketing/schedule/:type/:id/reschedule` | MA-11 | `{ publishAt }`: phải ≥ hiện tại + 5 phút và trước `endDate/endAt` nếu có; chỉ áp dụng khi mục đang chờ đăng (`publishAt/startDate` còn ở tương lai) |
+| POST | `/admin/marketing/schedule/:type/:id/cancel` | MA-11 | Hủy lịch, đưa về nháp/ẩn (`ANNOUNCEMENT→DRAFT`, `BANNER→DRAFT`, `COLLECTION/INSPIRATION→HIDDEN`); không xóa dữ liệu |
+| GET | `/admin/marketing/announcements` | MA-12 | `?status=` → `{ items, counts }` (đếm theo từng trạng thái và `ALL`) |
+| POST | `/admin/marketing/announcements` | MA-12 | Tạo `{ text (≤120 ký tự), linkUrl? }`, trạng thái `DRAFT`, thêm cuối thứ tự |
+| GET | `/admin/marketing/announcements/:id` | MA-12 | Chi tiết |
+| PATCH | `/admin/marketing/announcements/:id` | MA-12 | Sửa kèm `version` (optimistic lock, sai → `409 CONFLICT`) |
+| POST | `/admin/marketing/announcements/:id/publish` | MA-12 | `{ publishAt? }`: bỏ trống = đăng ngay, có giá trị = lên lịch (cùng quy tắc 5 phút) |
+| POST | `/admin/marketing/announcements/:id/hide`, `/show` | MA-12 | Chuyển `HIDDEN`/`LIVE` |
+| DELETE | `/admin/marketing/announcements/:id` | MA-12 | Xóa mềm; chặn khi đang `ACTIVE` (phải ẩn trước) |
+| POST | `/admin/marketing/announcements/reorder` | MA-12 | `{ ids }` đủ mọi thông báo đang hiện (không `HIDDEN`) theo thứ tự mới |
+
+### 11.1b. Lịch đăng và trạng thái nội dung marketing
+
+- Banner, Collection, Nguồn cảm hứng và Thông báo đều có `publishAt` (Banner dùng `startDate`): `null`/đã qua = hiển thị ngay khi ở trạng thái hiện/live; ở tương lai = đã lên lịch, trang khách chưa hiển thị. Không có cron chuyển trạng thái — tình trạng "đã đăng/đã lên lịch" tính ngay lúc đọc (`publishAt ≤ now`), nên không cần BullMQ job cho việc này.
+- Trang khách chỉ nhận mục đã tới giờ: `collection.routes.ts`/`inspiration.routes.ts` lọc `status = VISIBLE` **và** (`publishAt` null hoặc `≤ now`); tương tự cho banner (`startDate`) và announcement (`status = LIVE`, `publishAt` null/qua, `endAt` null/chưa tới).
+- Thông báo (announcement): `GET /content/announcements` (không cần đăng nhập) trả **toàn bộ** thông báo đang hiệu lực cùng lúc (`{ id, text, linkUrl }[]`), không phải một thông báo mỗi lần gọi. Việc xoay lần lượt nhiều thông báo do **frontend** (header customer-web) tự đổi vị trí hiển thị theo thời gian, không phải server trả tuần tự.
+- Dữ liệu cũ trước khi có bảng `announcements` (nội dung thanh thông báo nằm trong `content_areas` khóa `ANNOUNCEMENT_BAR`) được chuyển một lần tự động thành dòng `announcements` đầu tiên khi bảng còn trống.
 
 Quy tắc chính:
 - **Promotion**: `discountType`, `discountValue`, `maxDiscountValue`, `minOrderValue`, `startDate/endDate`; `status` tự chuyển `UPCOMING → RUNNING → ENDED` theo thời gian, `PAUSED` do admin.
@@ -1190,11 +1219,12 @@ Mọi chuyển trạng thái ghi `statusHistory` (`changedBy` null nếu hệ th
 | POST | `/admin/customers/:id/lock` | AD-05 | `{ "reason" }` bắt buộc. Lý do được trả về khi khách đăng nhập (`ACCOUNT_LOCKED_BY_ADMIN` kèm `lockInfo.reason`), không có thông báo riêng |
 | POST | `/admin/customers/:id/unlock` | AD-05 | Mở khóa |
 | GET | `/admin/admins` | AD-10 | Danh sách tài khoản admin |
-| POST | `/admin/admins` | AD-11 | Tạo admin `{ email, fullName, roleName }` |
+| POST | `/admin/admins` | AD-11 | Tạo admin `{ email, fullName, roleName, password, phoneNumber? }`, Super Admin đặt mật khẩu tạm |
 | PATCH | `/admin/admins/:id` | AD-12 | Sửa thông tin |
 | POST | `/admin/admins/:id/deactivate` | AD-12 | Vô hiệu hóa (`LOCKED`) |
 | POST | `/admin/admins/:id/activate` | AD-12 | Kích hoạt lại |
-| POST | `/admin/admins/:id/resend-invite` | AD-11 | Gửi lại liên kết đặt mật khẩu (tài khoản chưa đặt mật khẩu, đang hoạt động) |
+| POST | `/admin/admins/:id/reset-password` | AD-11 | Đặt lại mật khẩu tạm `{ password }` (không dùng cho chính mình) |
+| POST | `/admin/admins/:id/resend-invite` | AD-11 | Gửi lại liên kết đặt mật khẩu (chỉ còn cho tài khoản cũ chưa từng đặt mật khẩu, đang hoạt động) |
 | PATCH | `/admin/admins/:id/role` | AD-13 | Đổi vai trò (đúng một vai trò) |
 | GET | `/admin/roles` | AD-14 | Danh sách vai trò (chỉ đọc, ma trận cố định) |
 | GET | `/admin/audit-logs` | AD-10, NF-A04 | Nhật ký (`?userId=&action=&targetType=&from=&to=`) |
@@ -1202,7 +1232,8 @@ Mọi chuyển trạng thái ghi `statusHistory` (`changedBy` null nếu hệ th
 | PUT | `/admin/system-configs/:key` | AD-15 | Sửa một khóa `{ "value" }` |
 
 Quy tắc:
-- `POST /admin/admins`: gửi email có liên kết đặt mật khẩu (`otps` `ADMIN_SET_PASSWORD`, hạn 24–48 giờ) **hoặc** cấp mật khẩu tạm (`mustChangePassword = true`). Không có API nào trả mật khẩu của người khác.
+- `POST /admin/admins`: Super Admin nhập mật khẩu tạm (12–72 ký tự) khi tạo, server lưu `passwordHash` và đặt `mustChangePassword = true`. Không gửi email, không trả mật khẩu trong response (chỉ trả `{ admin }`); mật khẩu tạm được gửi cho người nhận qua kênh an toàn ngoài hệ thống. `resend-invite` chỉ còn áp dụng cho tài khoản cũ tạo trước thay đổi này (chưa từng có `passwordHash`).
+- `POST /admin/admins/:id/reset-password` `{ password }`: Super Admin đặt lại mật khẩu tạm cho Admin khác khi họ quên mật khẩu; thu hồi toàn bộ phiên của người đó và đặt lại `mustChangePassword = true`. Không áp dụng cho chính mình (`409 SELF_ACTION_FORBIDDEN`, dùng `/auth/change-password` để tự đổi).
 - Không được tự khóa, tự hạ vai trò chính mình (`SELF_ACTION_FORBIDDEN`), không vô hiệu hóa/hạ vai trò Super Admin cuối cùng (`LAST_SUPER_ADMIN`).
 - Khóa khách: `status = LOCKED`, điền `lockInfo`, chặn đăng nhập và đặt đơn mới; đơn đã `HANDED_OVER` trở đi vẫn hoàn tất; đơn chưa bàn giao do admin quyết định (nghi gian lận thì hủy qua `/admin/orders/:id/cancel`, còn lại vẫn giao).
 - `PUT /admin/system-configs/:key`: validate kiểu giá trị theo khóa (số ngày, phút, tỷ lệ 0–1, bảng phí 4 cấp...), ghi audit log giá trị trước/sau. Khóa đầy đủ xem phần cuối tài liệu database.
@@ -1306,6 +1337,8 @@ Không trả tài khoản ngân hàng nhận tiền (chỉ có trong response `P
 
 Response `201`: `{ "data": { "url": "https://.../x.jpg", "format": "JPG", "size": 123456 } }`. Ảnh tìm kiếm (`/search/image`) **không** đi qua endpoint này và không được lưu lâu dài.
 
+Các `purpose` công khai (ảnh/model sản phẩm, banner, bài viết, collection, nguồn cảm hứng, content block, minh chứng bảo hành/đổi trả) lưu trên **Supabase Storage** (bucket công khai, xem Architecture 5.5); `url` trả về là URL Supabase đầy đủ, không còn dạng `/uploads/...`. Riêng `REFUND_PROOF` vẫn lưu cục bộ ở `private-uploads/refund-proofs/` qua route riêng (mục 11), không public.
+
 ---
 
 ## 13. Realtime (Socket.IO)
@@ -1377,13 +1410,33 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 ### Bổ sung triển khai 2026-11-01 (Admin cấp cao)
 
 - `GET /admin/dashboard/overview?range=today|7d|30d|month` (mặc định `30d`). Ngoài các trường ở 11b.5 trả thêm: `revenue.selected`, `revenue.selectedChangePercent` (so với kỳ liền trước cùng độ dài, `null` khi kỳ trước bằng 0), `revenue.byMonth[] = { month, year, revenue }` (T1 → tháng hiện tại), `ordersToday { count, changePercent }`, `averageOrderValueChangePercent`, `cancelRateChangePoints`, `returnRateChangePoints`, `overdueConfirmation { thresholdHours, count, items[] }`, `recentOrders[]` (8 đơn mới nhất), `recentAdminActivity[]` (5 dòng nhật ký mới nhất). Doanh thu tính trên đơn không ở `PENDING_PAYMENT`/`CANCELLED`, theo `createdAt`, giờ `Asia/Ho_Chi_Minh`.
-- `GET /admin/admins?q=&roleName=&status=&page=&limit=`: mỗi phần tử có `pendingInvite` (chưa đặt mật khẩu), `lockInfo`; response có thêm `summary { byRole{ROLE: {active, locked}}, pendingInvites }`.
-- `POST /admin/admins` `{ email, fullName, roleName, phoneNumber? }` → `201 { admin, inviteExpiresAt }`. Chỉ hỗ trợ cách gửi liên kết đặt mật khẩu (hạn 48 giờ, lưu `otps` `ADMIN_SET_PASSWORD`, `codeHash` = SHA-256 của token). Email trùng trả `409 EMAIL_EXISTS`.
-- `POST /admin/auth/set-password` `{ token, password }` (P, kiểm `Origin`, giới hạn 10 lần/15 phút/IP): mật khẩu 12–72 ký tự, token dùng một lần. Sai/hết hạn trả `400 INVITE_INVALID`. Liên kết dạng `${ADMIN_WEB_URL}/dat-mat-khau?token=...`.
+- `GET /admin/admins?q=&roleName=&status=&page=&limit=`: mỗi phần tử có `pendingInvite` (chưa đặt mật khẩu — chỉ còn với tài khoản cũ), `lockInfo`; response có thêm `summary { byRole{ROLE: {active, locked}}, pendingInvites }`.
+- `POST /admin/auth/set-password` `{ token, password }` (P, kiểm `Origin`, giới hạn 10 lần/15 phút/IP): mật khẩu 12–72 ký tự, token dùng một lần. Sai/hết hạn trả `400 INVITE_INVALID`. Liên kết dạng `${ADMIN_WEB_URL}/dat-mat-khau?token=...`. Chỉ còn dùng cho tài khoản cũ qua `resend-invite`; tài khoản tạo mới không còn đi qua luồng này (xem bản cập nhật 2026-11-10 dưới).
 - `PATCH /admin/admins/:id` chỉ sửa `fullName`, `phoneNumber` (email là tên đăng nhập). Đổi vai trò và vô hiệu hóa thu hồi mọi phiên của người bị tác động. `POST /admin/admins/:id/deactivate` nhận `{ reason? }`.
 - `GET /admin/roles` → `{ roles[] { name, description, dashboard, activeAdminCount }, matrix[] { key, label, access{ROLE: FULL|VIEW|NONE} } }`.
 - `GET /admin/audit-logs` trả `actor { id, fullName, roleName }`; `from`/`to` là ngày `YYYY-MM-DD` giờ VN, `to` tính hết ngày.
 - `GET /admin/system-configs` → mảng nhóm `{ key, label, items[] { key, label, description, fields[] { path, label, type, unit? }, value, isDefault, updatedAt, updatedByName } }`; khóa chưa lưu trả giá trị mặc định. `PUT /admin/system-configs/:key` `{ value }` kiểm tra theo khóa, khóa lạ trả `404`, sai kiểu trả `400 VALIDATION_ERROR` với `details[].field = value.<path>`.
+
+### Bổ sung triển khai 2026-11-10
+
+- `POST /admin/admins` đổi body thành `{ email, fullName, roleName, password, phoneNumber? }` và response thành `201 { admin }` (bỏ `inviteExpiresAt`). Super Admin tự đặt mật khẩu tạm (12–72 ký tự) cho tài khoản mới ngay lúc tạo, không còn gửi email liên kết; tài khoản tạo mới luôn có `mustChangePassword = true`. Email trùng vẫn trả `409 EMAIL_EXISTS`.
+- `POST /admin/admins/:id/reset-password` `{ password }` (mới): Super Admin đặt lại mật khẩu tạm cho Admin khác (ví dụ khi họ quên mật khẩu). Thu hồi toàn bộ phiên của người đó, đặt lại bộ đếm đăng nhập sai và `mustChangePassword = true`. Không áp dụng cho chính người gọi (`409 SELF_ACTION_FORBIDDEN`). Ghi `audit_logs` hành động `ADMIN_PASSWORD_RESET` (không ghi mật khẩu).
+- Middleware `requireAuth`: sửa lỗi so khớp đường dẫn miễn trừ `mustChangePassword` — route `auth` được mount dưới `/admin/auth` hoặc `/auth` nên `req.path` bên trong router chỉ còn `/change-password`; nay so khớp bằng `req.originalUrl` để middleware luôn nhận diện đúng request đang đổi mật khẩu và không khóa nhầm chính request đó.
+- admin-web: route mới `/doi-mat-khau` (guard chuyển hướng tự động khi `user.mustChangePassword = true`, chặn truy cập trang khác tới khi đổi xong) gọi `POST /auth/change-password` với `{ newPassword }`, sau đó buộc đăng nhập lại. Trang quản lý Admin có nút "Đặt lại mật khẩu" gọi endpoint trên; màn tạo Admin yêu cầu nhập và xác nhận mật khẩu tạm.
+- customer-web (View your Room, FR-23): ô tìm kiếm trong panel sản phẩm nay tìm trên toàn catalog qua `GET /products?q=&limit=24` (debounce 300 ms) thay vì chỉ lọc trong các nhóm đồ còn thiếu của phòng; không có endpoint mới. `CartStore.ensureLoaded()` không gọi API giỏ hàng khi khách chưa đăng nhập (trước đó gọi và nhận `401` không cần thiết).
+
+### Bổ sung triển khai 2026-11-09 (lưu file)
+
+- Ảnh/model 3D sản phẩm, banner, bài viết, ảnh collection/nguồn cảm hứng, content block và minh chứng bảo hành/đổi trả chuyển từ `uploads/<folder>/<uuid>.ext` cục bộ sang **Supabase Storage** (bucket công khai, mặc định `images`). `POST /uploads` và các endpoint upload riêng của marketing-admin (mục 11.1) trả `url` là URL Supabase đầy đủ (`https://<project>.supabase.co/storage/v1/object/public/<bucket>/<folder>/<uuid>.<ext>`), không còn dạng `/uploads/...`. Upload lỗi trả `502 UPLOAD_FAILED` (mã mới). Kiểm MIME bằng magic bytes và đặt tên ngẫu nhiên UUID không đổi.
+- `REFUND_PROOF` (mục 11, `proofImage`) **không** di chuyển, vẫn lưu cục bộ ở `private-uploads/refund-proofs/` vì là chứng từ nội bộ không công khai.
+- Chi tiết kiến trúc và biến môi trường (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`) xem Architecture mục 5.5.
+
+### Bổ sung triển khai 2026-11-08 (marketing: lịch đăng, thông báo, ưu đãi khách mới)
+
+- Thêm `publishAt` (Banner: `startDate` có sẵn) cho Banner, Collection, Nguồn cảm hứng và Thông báo để lên lịch đăng; trang khách chỉ hiển thị mục đã tới giờ. Xem mục 6, 11.1 và 11.1b.
+- Thêm bộ API lịch đăng `/admin/marketing/schedule*` (MA-11) và quản lý thanh thông báo `/admin/marketing/announcements*` + `GET /content/announcements` (MA-12). Xem mục 11.1, 11.1b.
+- Thêm ưu đãi 10% khách mới (FR-46): `/users/me/welcome-offer*` (mục 7.4).
+- Banner admin thu hẹp giao diện quản trị còn loại Slider trang chủ (`HOME_SLIDER`); xóa hẳn màn hình chỉnh nội dung trang chủ/landing page (component `landing.component.ts`); gỡ "Báo cáo Marketing" và liên kết "Bài viết" khỏi menu Marketing Admin (route và API vẫn còn, không bị xóa, chỉ không còn lối vào từ menu). Xem MA-05, MA-06, MA-09 ở Requirements.
 
 ### Bổ sung triển khai 2026-10-23
 
@@ -1399,6 +1452,9 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 
 | Phiên bản | Ngày | Nội dung |
 | :-- | :-- | :-- |
+| 1.13 | 2026-11-10 | Admin cấp cao: tạo tài khoản Admin bằng mật khẩu tạm (bỏ liên kết đặt mật khẩu), thêm `reset-password`; View your Room: tìm trên toàn catalog (chi tiết phía trên) |
+| 1.12 | 2026-11-09 | Ảnh/model/evidence công khai chuyển sang Supabase Storage, `url` trả về là URL Supabase đầy đủ; mã lỗi `UPLOAD_FAILED` (xem Architecture 5.5) |
+| 1.11 | 2026-11-08 | Marketing (MA-11, MA-12): lịch đăng (`/admin/marketing/schedule`), thanh thông báo nhiều mục luân phiên (`/admin/marketing/announcements`, `/content/announcements`), `publishAt` cho banner/collection/nguồn cảm hứng, ưu đãi 10% khách mới (FR-46, `/users/me/welcome-offer*`); banner admin thu hẹp còn Slider trang chủ, gỡ màn hình nội dung trang chủ/landing page và báo cáo Marketing khỏi menu (API vẫn còn) |
 | 1.10 | 2026-11-01 | Admin cấp cao: dashboard tổng quan theo kỳ, quản lý Admin (thêm `resend-invite`, `set-password`), ma trận quyền, nhật ký, cấu hình hệ thống (chi tiết phía trên); mã lỗi `INVITE_INVALID` |
 | 1.6 | 2026-10-23 | Triển khai tìm kiếm/lọc, collection hotspot, auth CUSTOMER, upload minh chứng, bảo hành và đổi trả; bổ sung tra cứu phiếu, contact/timeline, hủy yêu cầu, session MongoDB và adapter tìm ảnh (chi tiết phía trên) |
 | 1.0 | 2026-10-17 | Bản đầu từ FR và thiết kế MongoDB |
@@ -1455,7 +1511,8 @@ Những chỗ này contract đã đề xuất cách xử lý, cần nhóm đồn
 | FR-43 | `/warranty-cards`, `/warranty-requests*` |
 | FR-44 | `/chat/*` + socket |
 | FR-45 | `/orders` (`invoiceInfo`), `/checkout/preview` (`lastInvoiceInfo`), `/orders/:id/invoice` |
+| FR-46 | `/users/me/welcome-offer*` (mục 7.4) |
 | PA-01…PA-10 | Mục 10 |
-| MA-01…MA-10 | Mục 11.1 |
+| MA-01…MA-12 | Mục 11.1, 11.1b |
 | OA-01…OA-16 | Mục 11.2 – 11.4 |
 | AD-01…AD-15 | Mục 11.5 – 11.6 |

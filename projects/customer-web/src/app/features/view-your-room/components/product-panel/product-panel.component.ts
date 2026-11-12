@@ -17,12 +17,16 @@ export class ProductPanelComponent {
   /** Kết quả gợi ý từ server, `missing` là các nhóm đồ còn thiếu trong loại phòng đang chọn. */
   readonly suggestions = input<RoomSuggestions | null>(null);
   readonly failed = input(false);
+  /** Kết quả tìm toàn catalog theo từ khóa; `null` khi chưa có từ khóa. */
+  readonly searchResults = input<ProductListItem[] | null>(null);
 
   readonly addProduct = output<ProductListItem>();
+  readonly search = output<string>();
 
   protected readonly query = signal('');
   protected readonly selectedCategoryId = signal<string | null>(null);
   protected readonly format = formatVnd;
+  protected readonly isSearching = computed(() => this.query().trim().length > 0);
 
   protected readonly groups = computed(() => this.suggestions()?.missing ?? []);
 
@@ -38,14 +42,15 @@ export class ProductPanelComponent {
 
   /** Gộp các nhóm còn thiếu thành một danh sách, mỗi sản phẩm chỉ hiện một lần. */
   protected readonly visibleProducts = computed(() => {
+    // Có từ khóa thì kết quả lấy từ toàn catalog, không giới hạn theo nhóm còn thiếu.
+    if (this.isSearching()) return this.searchResults() ?? [];
+
     const active = this.activeCategoryId();
-    const term = this.query().trim().toLowerCase();
     const groups = active ? this.groups().filter((g) => g.category.id === active) : this.groups();
 
     const unique = new Map<string, ProductListItem>();
     for (const group of groups) {
       for (const product of group.products) {
-        if (term && !product.name.toLowerCase().includes(term)) continue;
         if (!unique.has(product.id)) unique.set(product.id, product);
       }
     }
@@ -53,7 +58,9 @@ export class ProductPanelComponent {
   });
 
   protected setQuery(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
+    const value = (event.target as HTMLInputElement).value;
+    this.query.set(value);
+    this.search.emit(value);
   }
 
   protected selectCategory(categoryId: string | null): void {

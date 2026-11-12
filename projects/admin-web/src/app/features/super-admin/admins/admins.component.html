@@ -233,6 +233,9 @@
             <button type="button" class="cv-btn" [disabled]="saving()" (click)="resendInvite()">Gửi lại liên kết</button>
           }
           @if (a.id !== meId()) {
+            @if (!a.pendingInvite) {
+              <button type="button" class="cv-btn" [disabled]="saving()" (click)="openReset()">Đặt lại mật khẩu</button>
+            }
             @if (a.status === 'ACTIVE') {
               <button type="button" class="cv-btn danger" [disabled]="saving()" (click)="deactivate()">Vô hiệu hóa</button>
             } @else {
@@ -271,7 +274,7 @@
     <section class="cv-aside-block">
       <h2 class="cv-label">Quy tắc</h2>
       <ul class="rules">
-        <li>Admin mới nhận liên kết đặt mật khẩu qua email, hạn 48 giờ. Không ai xem được mật khẩu của người khác.</li>
+        <li>Mật khẩu tạm do Super Admin đặt. Admin phải đổi ngay khi đăng nhập lần đầu hoặc sau khi được đặt lại.</li>
         <li>Vô hiệu hóa không xóa tài khoản, nhật ký thao tác vẫn được giữ.</li>
         <li>Luôn còn ít nhất một Admin cấp cao đang hoạt động.</li>
       </ul>
@@ -279,10 +282,38 @@
   </aside>
 </div>
 
+<dialog #resetDialog class="cv-dialog" aria-labelledby="reset-title" (close)="resetError.set(null)">
+  <form [formGroup]="resetForm" (ngSubmit)="submitReset()">
+    <h2 id="reset-title">Đặt lại mật khẩu tạm</h2>
+    <p>Mật khẩu mới sẽ thay mật khẩu cũ. Admin này bị đăng xuất khỏi mọi thiết bị và phải đổi mật khẩu khi đăng nhập lần sau.</p>
+    @if (resetError()) {
+      <div class="cv-alert" role="alert">{{ resetError() }}</div>
+    }
+    <div class="cv-field">
+      <label for="reset-password">Mật khẩu tạm mới</label>
+      <input id="reset-password" class="cv-input" type="password" formControlName="password" autocomplete="new-password" />
+      @if (resetForm.controls.password.touched && resetForm.controls.password.invalid) {
+        <span class="cv-error-text">Mật khẩu từ 12 đến 72 ký tự.</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="reset-password-confirm">Nhập lại mật khẩu tạm</label>
+      <input id="reset-password-confirm" class="cv-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+      @if (resetForm.controls.confirmPassword.touched && resetForm.controls.confirmPassword.invalid) {
+        <span class="cv-error-text">Nhập lại mật khẩu để xác nhận.</span>
+      }
+    </div>
+    <div class="actions">
+      <button type="button" class="cv-btn" (click)="closeReset()">Hủy</button>
+      <button type="submit" class="cv-btn primary" [disabled]="resetting()">Đặt lại mật khẩu</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog #createDialog class="cv-dialog" aria-labelledby="create-title" (close)="createError.set(null)">
   <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
     <h2 id="create-title">Thêm tài khoản Admin</h2>
-    <p>Hệ thống gửi email chứa liên kết đặt mật khẩu (hạn 48 giờ) cho người được thêm.</p>
+    <p>Bạn đặt mật khẩu tạm cho tài khoản mới. Người này sẽ phải đổi mật khẩu ngay khi đăng nhập lần đầu.</p>
     @if (createError()) {
       <div class="cv-alert" role="alert">{{ createError() }}</div>
     }
@@ -316,9 +347,23 @@
       </select>
       <span class="cv-hint">Mỗi tài khoản có đúng một vai trò.</span>
     </div>
+    <div class="cv-field">
+      <label for="new-password">Mật khẩu tạm</label>
+      <input id="new-password" class="cv-input" type="password" formControlName="password" autocomplete="new-password" />
+      @if (createForm.controls.password.touched && createForm.controls.password.invalid) {
+        <span class="cv-error-text">Mật khẩu từ 12 đến 72 ký tự.</span>
+      }
+    </div>
+    <div class="cv-field">
+      <label for="new-password-confirm">Nhập lại mật khẩu tạm</label>
+      <input id="new-password-confirm" class="cv-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+      @if (createForm.controls.confirmPassword.touched && createForm.controls.confirmPassword.invalid) {
+        <span class="cv-error-text">Nhập lại mật khẩu để xác nhận.</span>
+      }
+    </div>
     <div class="actions">
       <button type="button" class="cv-btn" (click)="closeCreate()">Hủy</button>
-      <button type="submit" class="cv-btn primary" [disabled]="creating()">Tạo và gửi liên kết</button>
+      <button type="submit" class="cv-btn primary" [disabled]="creating()">Tạo tài khoản</button>
     </div>
   </form>
 </dialog>

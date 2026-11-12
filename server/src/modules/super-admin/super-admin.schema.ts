@@ -28,6 +28,18 @@ export const createAdminSchema = z.object({
   fullName,
   roleName: adminRole,
   phoneNumber: phone.optional(),
+  /** Mật khẩu tạm do Admin cấp cao đặt; Admin mới phải đổi ở lần đăng nhập đầu. */
+  password: z
+    .string()
+    .min(ADMIN_MIN_PASSWORD_LENGTH, `Mật khẩu cần ít nhất ${ADMIN_MIN_PASSWORD_LENGTH} ký tự`)
+    .max(72, 'Mật khẩu tối đa 72 ký tự'),
+});
+
+export const resetAdminPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(ADMIN_MIN_PASSWORD_LENGTH, `Mật khẩu cần ít nhất ${ADMIN_MIN_PASSWORD_LENGTH} ký tự`)
+    .max(72, 'Mật khẩu tối đa 72 ký tự'),
 });
 
 export const updateAdminSchema = z

@@ -45,9 +45,9 @@ export class SuperAdminApiService {
     return this.http.get<AdminListResponse>(`${API}/admins`, { params: toParams(query) });
   }
 
-  createAdmin(body: CreateAdminBody): Observable<{ admin: AdminAccount; inviteExpiresAt: string }> {
+  createAdmin(body: CreateAdminBody): Observable<{ admin: AdminAccount }> {
     return this.http
-      .post<ApiResponse<{ admin: AdminAccount; inviteExpiresAt: string }>>(`${API}/admins`, body)
+      .post<ApiResponse<{ admin: AdminAccount }>>(`${API}/admins`, body)
       .pipe(map((res) => res.data));
   }
 
@@ -69,6 +69,12 @@ export class SuperAdminApiService {
 
   activate(id: string): Observable<AdminAccount> {
     return this.http.post<ApiResponse<AdminAccount>>(`${API}/admins/${id}/activate`, {}).pipe(map((res) => res.data));
+  }
+
+  resetAdminPassword(id: string, password: string): Observable<AdminAccount> {
+    return this.http
+      .post<ApiResponse<AdminAccount>>(`${API}/admins/${id}/reset-password`, { password })
+      .pipe(map((res) => res.data));
   }
 
   resendInvite(id: string): Observable<{ inviteExpiresAt: string }> {

@@ -89,7 +89,9 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   if (user.status === UserStatus.ANONYMIZED) {
     throw new AppError('UNAUTHORIZED', 401, 'Tài khoản đã bị xóa');
   }
-  if (user.security.mustChangePassword && !req.path.endsWith('/auth/change-password')) {
+  // Trong router mount ở /auth, req.path chỉ còn '/change-password', nên so khớp với URL gốc.
+  const requestPath = (req.originalUrl ?? req.url).split('?')[0] ?? '';
+  if (user.security.mustChangePassword && !requestPath.endsWith('/auth/change-password')) {
     throw new AppError('MUST_CHANGE_PASSWORD', 403, 'Bạn phải đổi mật khẩu trước khi tiếp tục');
   }
 

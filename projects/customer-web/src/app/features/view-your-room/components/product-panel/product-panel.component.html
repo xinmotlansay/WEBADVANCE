@@ -15,29 +15,37 @@
     </svg>
   </label>
 
-  <div class="chips">
-    <button
-      type="button"
-      class="chip"
-      [class.chip--active]="activeCategoryId() === null"
-      (click)="selectCategory(null)"
-    >
-      Tất cả
-    </button>
-    @for (chip of chips(); track chip.id) {
+  @if (!isSearching()) {
+    <div class="chips">
       <button
         type="button"
         class="chip"
-        [class.chip--active]="activeCategoryId() === chip.id"
-        (click)="selectCategory(chip.id)"
+        [class.chip--active]="activeCategoryId() === null"
+        (click)="selectCategory(null)"
       >
-        {{ chip.name }}
+        Tất cả
       </button>
-    }
-  </div>
+      @for (chip of chips(); track chip.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.chip--active]="activeCategoryId() === chip.id"
+          (click)="selectCategory(chip.id)"
+        >
+          {{ chip.name }}
+        </button>
+      }
+    </div>
+  }
 
   <div class="panel__scroll">
-    @if (failed()) {
+    @if (isSearching()) {
+      @if (!searchResults()) {
+        <p class="panel__state">Đang tìm sản phẩm...</p>
+      } @else if (visibleProducts().length === 0) {
+        <p class="panel__state">Không tìm thấy sản phẩm nào khớp "{{ query().trim() }}".</p>
+      }
+    } @else if (failed()) {
       <p class="panel__state">Không tải được sản phẩm, thử lại sau.</p>
     } @else if (!suggestions()) {
       <p class="panel__state">Đang tải sản phẩm...</p>
@@ -45,7 +53,9 @@
       <p class="panel__state">Phòng đã đủ các nhóm đồ thường có.</p>
     } @else if (visibleProducts().length === 0) {
       <p class="panel__state">Không có sản phẩm phù hợp.</p>
-    } @else {
+    }
+
+    @if (visibleProducts().length > 0) {
       <ul class="list">
         @for (product of visibleProducts(); track product.id) {
           <li class="item">

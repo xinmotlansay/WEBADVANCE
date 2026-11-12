@@ -158,6 +158,8 @@
       <app-product-panel
         [suggestions]="suggestions()"
         [failed]="suggestionsFailed()"
+        [searchResults]="searchResults()"
+        (search)="onSearch($event)"
         (addProduct)="addProduct($event)"
       />
     </div>

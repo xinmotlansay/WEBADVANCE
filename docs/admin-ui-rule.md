@@ -193,7 +193,7 @@ Cao 8–10px, bo 3px, track #E3EAF2, phần tô navy; đoạn nhấn dùng #D9F2
 - Thành phần của một tổng (tỷ lệ trạng thái, khách mới/quay lại): thanh xếp chồng một hàng + chú giải có số.
 - Bộ lọc thời gian (Hôm nay, 7 ngày, 30 ngày, Tháng) là nhóm nút nhỏ 11px; lựa chọn đang chọn nền navy, chữ trắng; đổi kỳ thì số hero và mức thay đổi cập nhật cùng lúc.
 - Mỗi con số phải biết thuộc kỳ nào: ghi "30 ngày gần nhất", "hôm nay"... ngay dưới nhãn.
-- Báo cáo Marketing chỉ dùng số liệu tổng hợp, không hiển thị thông tin cá nhân của khách (MA-09).
+- Báo cáo Marketing chỉ dùng số liệu tổng hợp, không hiển thị thông tin cá nhân của khách (MA-09). Hiện không có mục trong menu quản trị, chỉ còn API.
 - Biểu đồ thật nên dùng Recharts hoặc Chart.js, cấu hình đúng màu từ token chứ không dùng bộ màu mặc định của thư viện.
 
 ## 8. Phân quyền hiển thị theo vai trò
@@ -204,7 +204,7 @@ Mỗi tài khoản Admin chỉ có **một** vai trò và menu chỉ liệt kê 
 | --- | --- | --- |
 | Admin cấp cao | Tổng quan | Toàn bộ: Sản phẩm & tồn kho, Danh mục, Kiểm duyệt đánh giá, Đơn hàng, Thanh toán & vận chuyển, Đổi trả & bảo hành, Chat CSKH, Khách hàng (có khóa/mở), Khuyến mãi & voucher, Banner & nội dung, Collection & cảm hứng, Báo cáo, Quản lý Admin, Nhật ký & cấu hình |
 | Product Admin | Sản phẩm | Sản phẩm, Thêm sản phẩm, Danh mục & gợi ý phòng, Tồn kho, Cấp độ vận chuyển, Kiểm duyệt đánh giá |
-| Marketing Admin | Marketing | Khuyến mãi & mã giảm giá, Banner, Nội dung & bài viết, Collection, Nguồn cảm hứng, Báo cáo Marketing (chỉ xem, tổng hợp) |
+| Marketing Admin | Marketing | Khuyến mãi, Mã giảm giá, Banner (chỉ Slider trang chủ), Lịch đăng, Thanh thông báo, Collection, Nguồn cảm hứng. "Nội dung & bài viết" và "Báo cáo Marketing" đã gỡ khỏi menu (API vẫn còn, không có màn hình) |
 | Order Admin | Đơn hàng | Đơn hàng, Thanh toán & đối soát, Vận chuyển & lịch giao, Giao thất bại, Đổi trả, Bảo hành, Chat CSKH, Khách hàng (chỉ xem), Báo cáo đơn hàng |
 
 **Quy tắc:**

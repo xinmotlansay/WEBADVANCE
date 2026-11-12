@@ -38,6 +38,7 @@ export class AdminsComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly createDialog = viewChild<ElementRef<HTMLDialogElement>>('createDialog');
+  private readonly resetDialog = viewChild<ElementRef<HTMLDialogElement>>('resetDialog');
   private readonly confirmDialog = viewChild<ElementRef<HTMLDialogElement>>('confirmDialog');
   private readonly popupRef = viewChild<ElementRef<HTMLElement>>('popup');
 
@@ -70,11 +71,20 @@ export class AdminsComponent {
   private confirmRun: ((reason: string) => void) | null = null;
   readonly confirmReason = signal('');
 
+  readonly resetForm = this.fb.group({
+    password: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(72)]],
+    confirmPassword: ['', [Validators.required]],
+  });
+  readonly resetting = signal(false);
+  readonly resetError = signal<string | null>(null);
+
   readonly createForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     phoneNumber: ['', [Validators.pattern(PHONE_PATTERN)]],
     roleName: [RoleName.ORDER_ADMIN as RoleName, Validators.required],
+    password: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(72)]],
+    confirmPassword: ['', [Validators.required]],
   });
 
   readonly editForm = this.fb.group({
@@ -177,16 +187,26 @@ export class AdminsComponent {
       this.createForm.markAllAsTouched();
       return;
     }
-    const { email, fullName, phoneNumber, roleName } = this.createForm.getRawValue();
+    const { email, fullName, phoneNumber, roleName, password, confirmPassword } = this.createForm.getRawValue();
+    if (password !== confirmPassword) {
+      this.createError.set('Mật khẩu xác nhận không khớp.');
+      return;
+    }
     this.creating.set(true);
     this.createError.set(null);
     this.api
-      .createAdmin({ email: email.trim().toLowerCase(), fullName: fullName.trim(), roleName, ...(phoneNumber ? { phoneNumber } : {}) })
+      .createAdmin({
+        email: email.trim().toLowerCase(),
+        fullName: fullName.trim(),
+        roleName,
+        password,
+        ...(phoneNumber ? { phoneNumber } : {}),
+      })
       .pipe(finalize(() => this.creating.set(false)))
       .subscribe({
         next: (res) => {
           this.closeCreate();
-          this.flash(`Đã tạo tài khoản ${res.admin.email}. Liên kết đặt mật khẩu có hạn đến ${fmt.formatDateTime(res.inviteExpiresAt)}.`);
+          this.flash(`Đã tạo tài khoản ${res.admin.email}. Gửi mật khẩu tạm cho người này qua kênh an toàn; họ sẽ phải đổi khi đăng nhập lần đầu.`);
           this.retry();
         },
         error: (err: unknown) => {
@@ -273,6 +293,44 @@ export class AdminsComponent {
   activate(): void {
     const admin = this.open();
     if (admin) this.runAction(this.api.activate(admin.id), 'Đã kích hoạt lại tài khoản.');
+  }
+
+  openReset(): void {
+    this.resetForm.reset();
+    this.resetError.set(null);
+    this.resetDialog()?.nativeElement.showModal();
+  }
+
+  closeReset(): void {
+    this.resetDialog()?.nativeElement.close();
+  }
+
+  submitReset(): void {
+    const admin = this.open();
+    if (!admin) return;
+    if (this.resetForm.invalid) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
+    const { password, confirmPassword } = this.resetForm.getRawValue();
+    if (password !== confirmPassword) {
+      this.resetError.set('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+    this.resetting.set(true);
+    this.resetError.set(null);
+    this.api
+      .resetAdminPassword(admin.id, password)
+      .pipe(finalize(() => this.resetting.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.closeReset();
+          this.open.set(updated);
+          this.flash(`Đã đặt lại mật khẩu tạm cho ${admin.fullName}. Gửi mật khẩu qua kênh an toàn; họ sẽ phải đổi khi đăng nhập.`);
+          this.retry();
+        },
+        error: (err: unknown) => this.resetError.set(parseApiError(err).message),
+      });
   }
 
   resendInvite(): void {

@@ -26,6 +26,15 @@ export const routes: Routes = [
       import('./features/auth/set-password/set-password.component').then((m) => m.SetPasswordComponent),
   },
   {
+    // Admin đăng nhập bằng mật khẩu tạm phải đổi mật khẩu trước khi vào các trang khác.
+    path: 'doi-mat-khau',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/auth/force-change-password/force-change-password.component').then(
+        (m) => m.ForceChangePasswordComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

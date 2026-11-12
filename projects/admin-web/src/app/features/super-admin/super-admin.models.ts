@@ -111,6 +111,7 @@ export interface CreateAdminBody {
   fullName: string;
   roleName: RoleName;
   phoneNumber?: string;
+  password: string;
 }
 
 export type AccessLevel = 'FULL' | 'VIEW' | 'NONE';

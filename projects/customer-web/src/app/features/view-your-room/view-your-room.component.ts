@@ -15,7 +15,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogApiService, type ProductListItem } from 'shared';
-import { firstValueFrom } from 'rxjs';
+import { Subject, catchError, debounceTime, firstValueFrom, map, of, switchMap } from 'rxjs';
 import { ConfirmService } from '../../services/ui/confirm.service';
 import { VariantPickerService } from '../../services/cart/variant-picker.service';
 import { AuthService } from '../../services/auth/auth.service';
@@ -99,6 +99,10 @@ export class ViewYourRoomComponent implements AfterViewInit {
 
   protected readonly suggestions = signal<RoomSuggestions | null>(null);
   protected readonly suggestionsFailed = signal(false);
+
+  /** Từ khóa tìm sản phẩm trên toàn catalog; `null` khi ô tìm kiếm đang trống. */
+  protected readonly searchResults = signal<ProductListItem[] | null>(null);
+  private readonly searchTerms = new Subject<string>();
   protected readonly roomTypes = signal<RoomTypeOption[]>([]);
   protected readonly roomTypeId = signal<string | null>(null);
   protected readonly roomSlug = computed(
@@ -117,6 +121,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngAfterViewInit(): void {
+    this.refreshSearch();
     // Vòng lặp render chạy ngoài Angular zone để không kích hoạt change detection mỗi khung hình.
     this.scene = this.zone.runOutsideAngular(
       () =>
@@ -548,6 +553,28 @@ export class ViewYourRoomComponent implements AfterViewInit {
     this.dirty.set(true);
     this.canUndo.set(this.past.length > 0);
     this.canRedo.set(this.future.length > 0);
+  }
+
+  protected onSearch(term: string): void {
+    this.searchTerms.next(term);
+  }
+
+  private refreshSearch(): void {
+    this.searchTerms
+      .pipe(
+        debounceTime(300),
+        map((term) => term.trim()),
+        switchMap((term) =>
+          term
+            ? this.catalog.getProducts({ q: term, limit: 24 }).pipe(
+                map((r) => r.items),
+                catchError(() => of<ProductListItem[]>([])),
+              )
+            : of(null),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((items) => this.searchResults.set(items));
   }
 
   private refreshSuggestions(): void {

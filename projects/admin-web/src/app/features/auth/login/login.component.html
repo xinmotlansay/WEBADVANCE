@@ -34,6 +34,9 @@
           Phiên làm việc đã hết hạn do không thao tác trong 30 phút. Đăng nhập lại để tiếp tục.
         </div>
       }
+      @if (reason() === 'password-changed' && !errorMessage()) {
+        <div class="notice" role="status">Đã đổi mật khẩu. Đăng nhập lại bằng mật khẩu mới.</div>
+      }
 
       <div class="field">
         <label for="identifier">Email</label>

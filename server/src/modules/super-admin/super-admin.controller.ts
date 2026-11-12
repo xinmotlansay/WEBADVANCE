@@ -23,7 +23,7 @@ export const listAdminsHandler: RequestHandler = async (_req, res) => {
 
 export const createAdminHandler: RequestHandler = async (req, res) => {
   const result = await accounts.createAdmin(req, req.body as accounts.CreateAdminInput);
-  res.status(201).json({ success: true, data: result, message: 'Đã tạo tài khoản và gửi liên kết đặt mật khẩu' });
+  res.status(201).json({ success: true, data: result, message: 'Đã tạo tài khoản Admin' });
 };
 
 export const updateAdminHandler: RequestHandler = async (req, res) => {
@@ -44,6 +44,10 @@ export const activateHandler: RequestHandler = async (req, res) => {
 
 export const resendInviteHandler: RequestHandler = async (req, res) => {
   sendData(res, await accounts.resendInvite(req, id(req.params)));
+};
+
+export const resetAdminPasswordHandler: RequestHandler = async (req, res) => {
+  sendData(res, await accounts.resetAdminPassword(req, id(req.params), (req.body as { password: string }).password));
 };
 
 export const listRolesHandler: RequestHandler = async (_req, res) => {
