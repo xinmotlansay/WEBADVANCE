@@ -49,6 +49,12 @@
 @keyframes topbar-fade {
   from { opacity: 0; transform: translateY(4px); }
 }
+@keyframes topbar-marquee {
+  0%,
+  12% { transform: translateX(0); }
+  88%,
+  100% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+}
 @media (prefers-reduced-motion: reduce) {
   .topbar__item { animation: none; }
 }
@@ -77,6 +83,8 @@
 }
 .topbar__support { position: absolute; left: var(--page-gutter); font-size: var(--font-size-sm); }
 .nav .nav__link--support { display: none; }
+.nav .nav__link--wishlist { display: none; }
+.nav .nav__link--toggle { display: none; }
 @media (max-width: 1180px) { .topbar__support { display: none; } .nav .nav__link--support { display: inline-flex; } }
 
 .header {
@@ -388,6 +396,9 @@
 .burger {
   display: none;
 }
+.icon-btn--search {
+  display: none;
+}
 
 /* Màn hình hẹp: thu ô tìm kiếm và khoảng cách để không đè lên logo ở giữa */
 @media (min-width: 1700px) {
@@ -452,6 +463,22 @@
     box-shadow: none;
     padding: 4px 0 0 12px;
   }
+  /* Menu thu gọn: bấm "Sản phẩm" / "Các phòng" mới xổ danh sách bên dưới (không điều hướng ngay). */
+  .nav .nav__item--dropdown .dropdown {
+    display: none;
+  }
+  .nav .nav__item--dropdown.nav__item--open .dropdown {
+    display: block;
+  }
+  .nav .nav__link--desktop {
+    display: none;
+  }
+  .nav .nav__link--toggle {
+    display: inline-flex;
+  }
+  .nav__item--open .nav__link app-icon {
+    transform: rotate(180deg);
+  }
   .logo {
     font-size: 40px;
   }
@@ -462,31 +489,117 @@
     justify-content: space-between;
     gap: var(--space-sm);
   }
+  /* Thông báo dài: giữ một dòng và chạy từ phải sang trái; ngắn thì đứng yên. */
   .topbar__promo {
-    max-width: 70%;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    container-type: inline-size;
+    white-space: nowrap;
     text-align: left;
     font-size: var(--font-size-xs);
+    line-height: 1.25;
+  }
+  .topbar__item {
+    animation:
+      topbar-fade 0.5s ease,
+      topbar-marquee 12s linear 0.5s infinite alternate;
   }
   .topbar__account {
     position: static;
-    max-width: 30%;
+    flex: 0 0 auto;
+    max-width: 55%;
+    font-size: var(--font-size-xs);
+  }
+  .topbar__account a:first-child {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: var(--font-size-xs);
   }
   .header__inner {
     --search-w: 0px;
     --tools-gap: 0px;
     --logo-w: 150px;
   }
-  .search {
+  /* Một hàng: logo bên trái, toàn bộ icon (tìm kiếm, yêu thích, tài khoản, giỏ, menu) bên phải.
+     Bấm icon tìm kiếm thì ô tìm kiếm thay thế hàng này ở đầu trang. */
+  .header__inner {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: 'logo icons burger';
+    align-items: center;
+    gap: 0 4px;
+    min-height: 0;
+    padding-block: 8px;
+    padding-inline: var(--page-gutter) calc(var(--page-gutter) - 8px);
+  }
+  .logo {
+    grid-area: logo;
+    position: static;
+    justify-self: start;
+    width: auto;
+    font-size: 30px;
+    text-align: left;
+    transform: none;
+  }
+  .tools {
+    display: contents;
+  }
+  .icons {
+    grid-area: icons;
+    gap: 0;
+    width: auto;
+    margin-left: 0;
+  }
+  .icon-btn,
+  .burger {
+    width: 36px;
+    height: 44px;
+    place-items: center;
+  }
+  /* Yêu thích chuyển vào menu để các icon gần nhau hơn. */
+  .icon-btn--wishlist {
     display: none;
   }
+  .nav .nav__link--wishlist {
+    display: inline-flex;
+  }
+  .icon-btn--search {
+    display: grid;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+  }
+  .icon-btn app-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .burger {
+    grid-area: burger;
+    justify-self: end;
+    align-content: center;
+    padding: 0;
+  }
+  .burger span {
+    width: 20px;
+  }
+  .search {
+    grid-area: 1 / 1 / 2 / -1;
+    display: none;
+    height: 44px;
+  }
+  /* Mở tìm kiếm: ô tìm kiếm chiếm cả hàng đầu trang, ẩn logo và các icon. */
   :host(.search-open) .search {
     display: flex;
   }
-  .logo {
-    font-size: 32px;
+  :host(.search-open) .logo,
+  :host(.search-open) .icons,
+  :host(.search-open) .burger {
+    display: none;
+  }
+  .search input::placeholder {
+    font-size: var(--font-size-sm);
   }
 }
 /* Ẩn nút xóa (x xanh) mặc định của trình duyệt; đã có nút đóng riêng. */
@@ -494,4 +607,10 @@
 .search input::-webkit-search-decoration {
   display: none;
   appearance: none;
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .topbar__item {
+    animation: none;
+  }
 }

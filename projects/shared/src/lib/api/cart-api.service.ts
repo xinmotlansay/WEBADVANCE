@@ -6,6 +6,7 @@ import type {
   AddCartItemRequest,
   ApplyVoucherRequest,
   Cart,
+  GuestCartLine,
   UpdateCartItemRequest,
   VoucherCheckResult,
 } from '../models/cart.model';
@@ -19,6 +20,20 @@ export class CartApiService {
 
   get(): Observable<Cart> {
     return this.http.get<ApiResponse<Cart>>(API_BASE).pipe(map((r) => r.data));
+  }
+
+  /** Công khai: tính giá giỏ lưu trong trình duyệt của khách chưa đăng nhập. */
+  previewGuest(items: GuestCartLine[]): Observable<Cart> {
+    return this.http
+      .post<ApiResponse<Cart>>(`${API_BASE}/guest/preview`, { items })
+      .pipe(map((r) => r.data));
+  }
+
+  /** Sau khi đăng nhập: gộp giỏ trình duyệt vào giỏ tài khoản. */
+  mergeGuest(items: GuestCartLine[]): Observable<Cart> {
+    return this.http
+      .post<ApiResponse<Cart>>(`${API_BASE}/merge`, { items })
+      .pipe(map((r) => r.data));
   }
 
   addItem(body: AddCartItemRequest): Observable<Cart> {

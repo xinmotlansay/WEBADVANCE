@@ -24,6 +24,7 @@ import { VoucherModel } from '../vouchers/voucher.model.js';
 import { CartModel, type CartItem } from './cart.model.js';
 import type {
   AddCartItemBody,
+  GuestCartLine,
   ApplyVoucherBody,
   CartSelectionBody,
   UpdateCartItemBody,
@@ -201,7 +202,7 @@ async function getOrCreateCart(userId: Types.ObjectId) {
  * Dựng response `GET /cart` (API Design 7.2). Dòng vừa trở nên ngừng bán, hết hàng hoặc vượt tồn
  * thì tự bỏ chọn và lưu lại.
  */
-async function buildView(cart: CartDocument | null): Promise<CartView> {
+async function buildView(cart: CartDocument | null, persist = true): Promise<CartView> {
   const items = cart?.items ?? [];
   const [config, contexts] = await Promise.all([
     getCheckoutConfig(),
@@ -213,7 +214,9 @@ async function buildView(cart: CartDocument | null): Promise<CartView> {
   const rows = items.flatMap((item) => {
     const ctx = contexts.get(item.variantId.toString());
     if (!ctx?.variant.shippingTier) return [];
-    return [{ item, ctx, warnings: lineWarnings(ctx, item.quantity, item.priceAtAdd) }];
+    // priceAtAdd = 0 chỉ có ở giỏ khách chưa đăng nhập: coi như chưa đổi giá.
+    const priceAtAdd = item.priceAtAdd > 0 ? item.priceAtAdd : ctx.finalPrice;
+    return [{ item, ctx, warnings: lineWarnings(ctx, item.quantity, priceAtAdd), priceAtAdd }];
   });
 
   let unselected = false;
@@ -223,7 +226,7 @@ async function buildView(cart: CartDocument | null): Promise<CartView> {
       unselected = true;
     }
   }
-  if (unselected && cart) await cart.save();
+  if (unselected && cart && persist) await cart.save();
 
   const { shipping, payment } = config;
   const priced = priceLines(
@@ -236,7 +239,7 @@ async function buildView(cart: CartDocument | null): Promise<CartView> {
     .map((r) => ({ ctx: r.ctx, input: toPricingInput(r.ctx, r.item) }));
   const voucherRef = cart?.appliedVoucherId ? { voucherId: cart.appliedVoucherId } : null;
   const { priced: selectedPriced, evaluation } =
-    cart && voucherRef
+    cart && voucherRef && persist
       ? await priceWithVoucher({
           userId: cart.userId,
           ref: voucherRef,
@@ -255,7 +258,7 @@ async function buildView(cart: CartDocument | null): Promise<CartView> {
 
   return {
     id: cart?._id.toString() ?? null,
-    items: rows.map(({ item, ctx, warnings }, i): CartItemView => {
+    items: rows.map(({ item, ctx, warnings, priceAtAdd }, i): CartItemView => {
       const line = priced.items[i]!;
       const { variant } = ctx;
       return {
@@ -266,7 +269,7 @@ async function buildView(cart: CartDocument | null): Promise<CartView> {
         hasInstallation: item.hasInstallation,
         note: item.note ?? null,
         ...lineDisplay(ctx),
-        priceAtAdd: item.priceAtAdd,
+        priceAtAdd,
         currentPrice: ctx.finalPrice,
         pricing: line.pricing,
         shippingTier: line.shippingTier,
@@ -488,5 +491,67 @@ export async function removeVoucher(userId: Types.ObjectId): Promise<CartView> {
     cart.appliedVoucherId = null;
     await cart.save();
   }
+  return buildView(cart);
+}
+
+/**
+ * Giỏ của khách chưa đăng nhập nằm ở trình duyệt. Server chỉ tính giá, tồn kho và cảnh báo cho các dòng
+ * đó (không lưu gì, không voucher). `id` của dòng chính là `variantId` vì mỗi biến thể chỉ một dòng.
+ */
+export async function previewGuestCart(lines: GuestCartLine[]): Promise<CartView> {
+  const cart = new CartModel({
+    userId: new Types.ObjectId(),
+    items: lines.map((line) => ({
+      _id: new Types.ObjectId(line.variantId),
+      variantId: new Types.ObjectId(line.variantId),
+      quantity: line.quantity,
+      isSelected: line.isSelected,
+      priceAtAdd: 0,
+      hasInstallation: line.hasInstallation,
+      note: line.note,
+    })),
+  });
+  const view = await buildView(cart as CartDocument, false);
+  return { ...view, id: null, items: view.items.map((i) => ({ ...i, id: i.variantId })) };
+}
+
+/**
+ * Sau khi đăng nhập: gộp giỏ trình duyệt vào giỏ tài khoản. Dòng ngừng bán/hết hàng bị bỏ qua, số lượng
+ * vượt tồn bị cắt về phần còn lại, nên việc gộp không bao giờ làm đăng nhập thất bại.
+ */
+export async function mergeGuestCart(
+  userId: Types.ObjectId,
+  lines: GuestCartLine[],
+): Promise<CartView> {
+  const contexts = await loadLineContexts(lines.map((l) => new Types.ObjectId(l.variantId)));
+  const cart = await getOrCreateCart(userId);
+  for (const line of lines) {
+    const ctx = contexts.get(line.variantId);
+    if (!ctx || ctx.unavailable) continue;
+    const variantId = new Types.ObjectId(line.variantId);
+    const existing = cart.items.find((i) => i.variantId.equals(variantId));
+    const inCart = existing?.quantity ?? 0;
+    const quantity = Math.min(line.quantity, ctx.variant.stockQuantity - inCart);
+    if (quantity <= 0) continue;
+    const hasInstallation = resolveInstallation(
+      ctx.variant.installationService,
+      line.hasInstallation,
+    );
+    if (existing) {
+      existing.quantity = inCart + quantity;
+      existing.priceAtAdd = ctx.finalPrice;
+      existing.hasInstallation = hasInstallation;
+    } else {
+      cart.items.push({
+        variantId,
+        quantity,
+        isSelected: line.isSelected,
+        priceAtAdd: ctx.finalPrice,
+        hasInstallation,
+        note: line.note,
+      });
+    }
+  }
+  await cart.save();
   return buildView(cart);
 }

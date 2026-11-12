@@ -13,10 +13,16 @@ export const OTP_RESEND_INTERVAL_SECONDS = 60;
 export const OTP_MAX_SENDS_PER_HOUR = 5;
 export const MAX_LOCK_DURATION_SECONDS = 15 * 60;
 
+/** Ký tự đặc biệt: dấu câu/ký hiệu ASCII (! @ # $ ...). Dấu cách, chữ có dấu, emoji không tính. */
+const SPECIAL_CHAR = /[!-\/:-@[-`{-~]/;
+
 /** Mật khẩu khách hàng: tối thiểu 8 ký tự, có chữ, số và ký tự đặc biệt (FR-01). */
 export function isStrongPassword(password: string): boolean {
   return (
-    password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password)
+    password.length >= 8 &&
+    /[A-Za-z]/.test(password) &&
+    /\d/.test(password) &&
+    SPECIAL_CHAR.test(password)
   );
 }
 

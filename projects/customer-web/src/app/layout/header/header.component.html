@@ -42,10 +42,18 @@
     </button>
 
     <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Danh mục chính">
-      <div class="nav__item nav__item--dropdown">
-        <a class="nav__link" routerLink="/products" (click)="closeMenu()">
+      <div class="nav__item nav__item--dropdown" [class.nav__item--open]="openGroup() === 'products'">
+        <a class="nav__link nav__link--desktop" routerLink="/products" (click)="closeMenu()">
           Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
         </a>
+        <button
+          type="button"
+          class="nav__link nav__link--toggle"
+          [attr.aria-expanded]="openGroup() === 'products'"
+          (click)="toggleGroup('products')"
+        >
+          Sản phẩm <app-icon name="lucide:chevron-down" [size]="14" />
+        </button>
         <ul class="dropdown">
           <li><a routerLink="/products" (click)="closeMenu()">Tất cả sản phẩm</a></li>
           @for (category of productCategories(); track category.id) {
@@ -61,8 +69,13 @@
         </ul>
       </div>
 
-      <div class="nav__item nav__item--dropdown">
-        <button type="button" class="nav__link">
+      <div class="nav__item nav__item--dropdown" [class.nav__item--open]="openGroup() === 'rooms'">
+        <button
+          type="button"
+          class="nav__link"
+          [attr.aria-expanded]="openGroup() === 'rooms'"
+          (click)="toggleGroup('rooms')"
+        >
           Các phòng <app-icon name="lucide:chevron-down" [size]="14" />
         </button>
         <ul class="dropdown">
@@ -85,6 +98,9 @@
       </a>
       <a class="nav__link nav__link--support" routerLink="/support" (click)="closeMenu()"
         >Đổi trả &amp; Bảo hành</a
+      >
+      <a class="nav__link nav__link--wishlist" routerLink="/wishlist" (click)="closeMenu()"
+        >Sản phẩm yêu thích</a
       >
     </nav>
 
@@ -163,7 +179,15 @@
       </form>
 
       <div class="icons">
-        <a class="icon-btn" routerLink="/wishlist" aria-label="Yêu thích">
+        <button
+          type="button"
+          class="icon-btn icon-btn--search"
+          aria-label="Tìm kiếm"
+          (click)="search.openSearch()"
+        >
+          <app-icon name="lucide:search" [size]="22" />
+        </button>
+        <a class="icon-btn icon-btn--wishlist" routerLink="/wishlist" aria-label="Yêu thích">
           <app-icon name="lucide:heart" [size]="22" />
         </a>
         <a class="icon-btn" routerLink="/account" aria-label="Tài khoản">

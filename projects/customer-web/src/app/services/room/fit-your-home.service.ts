@@ -22,6 +22,7 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
+import type { WalkwayProfile as AccountProfile } from '../account/account-api.service';
 import { RecentlyViewedService } from '../ui/recently-viewed.service';
 import { WalkwayProfileService } from './walkway-profile.service';
 
@@ -66,6 +67,23 @@ export class FitYourHomeService {
   readonly passages = signal<WalkwayPassage[]>(
     this.profiles.loadDraft() ?? this.profiles.loadProfile()?.passages ?? [],
   );
+  /** Các hồ sơ nhà trong tài khoản và hồ sơ đang chọn (`null`: hồ sơ mới chưa lưu). */
+  readonly accountProfiles = signal<AccountProfile[]>([]);
+  readonly selectedProfileId = signal<string | null>(null);
+  readonly loggedIn = computed(() => this.profiles.loggedIn);
+
+  private readonly initRemote = (() => {
+    const hasDraft = !!this.profiles.loadDraft();
+    this.profiles.listRemote().subscribe({
+      next: (list) => {
+        this.accountProfiles.set(list);
+        const main = list.find((p) => p.isDefault) ?? list[0] ?? null;
+        this.selectedProfileId.set(main?.id ?? null);
+        if (main && !hasDraft && this.passages().length === 0) this.setPassages(main.passages as WalkwayPassage[]);
+      },
+      error: () => undefined,
+    });
+  })();
   readonly includeCaution = signal(false);
   readonly searchTerm = signal('');
   readonly history = this.viewed.items;
@@ -148,8 +166,32 @@ export class FitYourHomeService {
     this.setPassages(this.passages().filter((_, i) => i !== index));
   }
 
-  saveProfile(): void {
-    this.profiles.saveProfile({ name: 'Hồ sơ của tôi', passages: this.passages() });
+  /** Chọn một hồ sơ nhà trong tài khoản để dùng, hoặc `null` để nhập hồ sơ mới. */
+  selectProfile(id: string | null): void {
+    this.selectedProfileId.set(id);
+    const profile = this.accountProfiles().find((p) => p.id === id);
+    this.setPassages(profile ? ([...profile.passages] as WalkwayPassage[]) : []);
+  }
+
+  /** `true` nếu đã lưu vào tài khoản, `false` nếu chỉ lưu ở trình duyệt (chưa đăng nhập). */
+  saveProfile(): Observable<boolean> {
+    if (!this.profiles.loggedIn) {
+      this.profiles.saveProfile({ name: 'Hồ sơ của tôi', passages: this.passages() });
+      return of(false);
+    }
+    const list = this.accountProfiles();
+    const existing = list.find((p) => p.id === this.selectedProfileId()) ?? null;
+    return this.profiles
+      .saveRemote(existing, this.passages(), `Hồ sơ nhà ${list.length + 1}`, list.length === 0)
+      .pipe(
+        tap((saved) => {
+          this.accountProfiles.set(
+            existing ? list.map((p) => (p.id === saved.id ? saved : p)) : [...list, saved],
+          );
+          this.selectedProfileId.set(saved.id);
+        }),
+        map(() => true),
+      );
   }
 
   private setPassages(passages: WalkwayPassage[]): void {

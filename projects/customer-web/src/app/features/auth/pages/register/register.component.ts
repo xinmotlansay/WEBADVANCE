@@ -20,11 +20,11 @@ type Step = 'form' | 'otp';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^(0|\+84)\d{9}$/;
 
-/** Khớp quy tắc của server (isStrongPassword): có chữ cái, chữ số và ký tự đặc biệt. */
+/** Khớp quy tắc của server (isStrongPassword): có chữ cái, chữ số và ký tự đặc biệt (dấu cách không tính). */
 function strongPasswordValidator(control: AbstractControl): ValidationErrors | null {
   const value = String(control.value ?? '');
   if (!value) return null;
-  const strong = /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+  const strong = /[A-Za-z]/.test(value) && /\d/.test(value) && /[!-\/:-@[-`{-~]/.test(value);
   return strong ? null : { weakPassword: true };
 }
 

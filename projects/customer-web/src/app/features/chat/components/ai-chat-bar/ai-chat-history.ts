@@ -1,6 +1,6 @@
 import type { ChatAiProductSuggestion } from 'shared';
 
-/** Tin nhắn được lưu lại trong localStorage (không lưu id vì id chỉ dùng để render). */
+/** Tin nhắn của khách được lưu trong sessionStorage (chỉ trong phiên trình duyệt hiện tại) (không lưu id vì id chỉ dùng để render). */
 export interface StoredChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -52,6 +52,39 @@ export function writeChatSessions(
   }
 }
 
+/** Số câu hỏi tối đa của khách chưa đăng nhập trong một phiên trình duyệt. */
+export const GUEST_MAX_ASKS = 5;
+const GUEST_ASKS_KEY = 'caraveso.ai.guestAsks.v1';
+
+export function readGuestAsks(storage: Storage | null = safeStorage()): number {
+  try {
+    return Math.max(0, Number(storage?.getItem(GUEST_ASKS_KEY)) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+export function writeGuestAsks(count: number, storage: Storage | null = safeStorage()): void {
+  try {
+    storage?.setItem(GUEST_ASKS_KEY, String(count));
+  } catch {
+    // Bỏ qua: bộ đếm vẫn chạy trong bộ nhớ của trang.
+  }
+}
+
+/** Xoá lịch sử chat và bộ đếm của khách (khi đăng nhập/đăng xuất), kể cả dữ liệu cũ trong localStorage. */
+export function clearChatSessions(): void {
+  for (const getStorage of [() => sessionStorage, () => localStorage]) {
+    try {
+      const storage = getStorage();
+      storage.removeItem(STORAGE_KEY);
+      storage.removeItem(GUEST_ASKS_KEY);
+    } catch {
+      // Trình duyệt chặn storage: không có gì để xoá.
+    }
+  }
+}
+
 /** Rút gọn tiêu đề phiên từ câu hỏi đầu tiên của khách. */
 export function sessionTitle(text: string, maxLength = 52): string {
   const clean = text.replace(/\s+/g, ' ').trim();
@@ -60,7 +93,7 @@ export function sessionTitle(text: string, maxLength = 52): string {
 
 function safeStorage(): Storage | null {
   try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
   } catch {
     return null;
   }

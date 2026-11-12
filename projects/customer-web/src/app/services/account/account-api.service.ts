@@ -204,6 +204,14 @@ export interface WalkwayProfile {
   passages: WalkwayPassage[];
 }
 
+/** Phiên chat AI lưu theo tài khoản; cùng dạng với phiên lưu ở trình duyệt. */
+export interface AiChatSessionDto {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: { role: 'user' | 'assistant'; content: string; products?: unknown[] }[];
+}
+
 export type WalkwayProfileInput = Omit<WalkwayProfile, 'id'>;
 
 /** Các API dữ liệu cá nhân của khách đăng nhập (API Design mục 2–3). */
@@ -359,5 +367,16 @@ export class AccountApiService {
   }
   deleteWalkwayProfile(id: string): Observable<unknown> {
     return this.send('delete', `/users/me/walkway-profiles/${id}`);
+  }
+
+  aiChatSessions(): Observable<AiChatSessionDto[]> {
+    return this.get('/users/me/ai-chat-sessions');
+  }
+  saveAiChatSession(session: AiChatSessionDto): Observable<AiChatSessionDto> {
+    const { id, ...body } = session;
+    return this.send('put', `/users/me/ai-chat-sessions/${id}`, body);
+  }
+  deleteAiChatSession(id: string): Observable<unknown> {
+    return this.send('delete', `/users/me/ai-chat-sessions/${id}`);
   }
 }

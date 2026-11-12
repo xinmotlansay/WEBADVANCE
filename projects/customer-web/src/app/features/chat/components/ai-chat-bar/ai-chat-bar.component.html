@@ -9,7 +9,7 @@
         #input
         rows="1"
         maxlength="2000"
-        placeholder="Nhập mô tả đơn giản về sản phẩm (VD: bàn ăn 4 ghế, phù hợp với phòng 50m2,...)"
+        [placeholder]="placeholder"
         [value]="draft()"
         [readOnly]="loading()"
         (input)="onInput($event)"
@@ -93,9 +93,8 @@
                       @if (message.products!.length > INITIAL_PRODUCTS && !expanded().has(message.id)) {
                         <button type="button" (click)="expand(message.id)">Xem thêm {{ message.products!.length - INITIAL_PRODUCTS }} sản phẩm</button>
                       }
-                      @if (questionBefore(message.id); as q) {
-                        <a routerLink="/products" [queryParams]="{ q }" (click)="close()">Xem tất cả sản phẩm phù hợp</a>
-                      }
+                      <!-- Mở đúng các sản phẩm AI đã gợi ý; không dùng câu hỏi làm từ khóa vì "dưới 30 triệu" không khớp tên sản phẩm nào. -->
+                      <a routerLink="/products" [queryParams]="{ ids: productIds(message.products!) }" (click)="close()">Xem tất cả sản phẩm phù hợp</a>
                     </div>
                   }
                 </div>
@@ -116,6 +115,13 @@
             </div>
           }
         </div>
+
+        @if (guestLimitReached()) {
+          <div class="panel__login" role="status">
+            <span>Bạn đã dùng hết {{ GUEST_MAX_ASKS }} câu hỏi miễn phí trong phiên này. Đăng nhập để tiếp tục trò chuyện và lưu lại lịch sử.</span>
+            <a routerLink="/auth/login" (click)="close()">Đăng nhập</a>
+          </div>
+        }
 
         @if (error()) {
           <div class="panel__error" role="alert">

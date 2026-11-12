@@ -9,6 +9,8 @@ import {
   OrderStatus,
   PaymentMethod,
   ShipmentStatus,
+  TransactionType,
+  CARAVESO_CARRIER,
 } from '../../lib/shared-enums.js';
 import type {
   LateCompensationRequest,
@@ -29,6 +31,7 @@ import { issueWarrantyCards } from '../warranty/warranty-issue.js';
 import { paidAmountOf } from '../payments/payment.rules.js';
 import { findOrderRefunds, requestRefund } from '../payments/refund.service.js';
 import { ShipmentModel } from './shipment.model.js';
+import { PaymentTransactionModel } from '../payments/payment.model.js';
 import {
   LateCompensationRequestModel,
   type LateCompensationRequestDoc,
@@ -169,6 +172,60 @@ async function markShipmentStatus(
     },
     { upsert: true },
   );
+}
+
+/** Mã vận đơn tự sinh khi bàn giao: tiền tố hãng + yyMMdd + 4 ký tự ngẫu nhiên. */
+function generateTrackingCode(carrier: string): string {
+  const prefix = carrier.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'VD';
+  const d = new Date();
+  const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, '0');
+  return `${prefix}${ymd}${rand}`;
+}
+
+/** Bàn giao: giữ hãng/mã đã có, thiếu thì gán hãng mặc định và sinh mã vận đơn. */
+async function markHandedOver(orderId: Types.ObjectId): Promise<void> {
+  const current = await ShipmentModel.findOne({ orderId }).lean();
+  const carrier = current?.carrier || CARAVESO_CARRIER;
+  const trackingCode = current?.trackingCode || generateTrackingCode(carrier);
+  await markShipmentStatus(orderId, ShipmentStatus.HANDED_OVER, { carrier, trackingCode });
+}
+
+/**
+ * Đơn COD: ghi giao dịch thu COD ngay khi bàn giao (chờ thu), đến khi giao xong thì chuyển sang
+ * đã thu. Mỗi đơn chỉ có một giao dịch COD.
+ */
+async function recordCodCollection(
+  order: OrderDocument,
+  actor: ActorContext,
+  completed: boolean,
+): Promise<void> {
+  if (order.payment.method !== PaymentMethod.COD) return;
+  const existing = await PaymentTransactionModel.findOne({
+    orderId: order._id,
+    type: TransactionType.COD_COLLECTION,
+  });
+  if (existing) {
+    if (completed && existing.status !== RefundStatus.COMPLETED) {
+      existing.status = RefundStatus.COMPLETED;
+      existing.note = 'Đã thu tiền COD khi giao hàng thành công';
+      existing.transactionAt = new Date();
+      await existing.save();
+    }
+    return;
+  }
+  const amount = order.totalAmount - paidAmountOf(order);
+  if (amount <= 0) return;
+  await PaymentTransactionModel.create({
+    orderId: order._id,
+    type: TransactionType.COD_COLLECTION,
+    amount,
+    recordSource: 'AUTO',
+    status: completed ? RefundStatus.COMPLETED : RefundStatus.PENDING,
+    note: completed ? 'Đã thu tiền COD khi giao hàng thành công' : 'Đã bàn giao vận chuyển, chờ thu COD',
+    handledById: actor.userId,
+    transactionAt: new Date(),
+  });
 }
 
 async function toListItem(order: OrderDocument): Promise<OrderListItem> {
@@ -317,7 +374,8 @@ export async function updateOrderStatus(
   }
 
   if (input.status === OrderStatus.HANDED_OVER) {
-    await markShipmentStatus(order._id, ShipmentStatus.HANDED_OVER);
+    await markHandedOver(order._id);
+    await recordCodCollection(order, actor, false);
   }
 
   if (input.status === OrderStatus.SHIPPING && order.status !== OrderStatus.DELIVERY_FAILED) {
@@ -333,6 +391,7 @@ export async function updateOrderStatus(
       actualDeliveryDate: new Date(),
     });
     if (order.payment.method === PaymentMethod.COD) {
+      await recordCodCollection(order, actor, true);
       order.payment.status = OrderPaymentStatus.PAID;
       order.payment.paidAt = order.payment.paidAt ?? new Date();
     }
@@ -433,7 +492,8 @@ export async function updateShipment(
     assertTransition(toSharedOrderStatus(order.status), OrderStatus.HANDED_OVER);
     appendHistory(order, OrderStatus.HANDED_OVER, actor.userId, 'Bàn giao cho vận chuyển');
     await order.save();
-    await markShipmentStatus(order._id, ShipmentStatus.HANDED_OVER);
+    await markHandedOver(order._id);
+    await recordCodCollection(order, actor, false);
   }
 
   await writeAuditLog({

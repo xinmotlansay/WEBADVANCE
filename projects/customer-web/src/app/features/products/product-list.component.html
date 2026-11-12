@@ -23,7 +23,9 @@
       <span>{{
         imageSearch()
           ? 'Sản phẩm có hình ảnh tương tự'
-          : heading()
+          : pickedByIds() && !term()
+            ? 'Sản phẩm trợ lý AI gợi ý'
+            : heading()
             ? heading()
             : term()
             ? 'Kết quả cho “' + term() + '”'

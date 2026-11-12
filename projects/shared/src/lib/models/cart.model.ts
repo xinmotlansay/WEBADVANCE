@@ -116,3 +116,12 @@ export interface UpdateCartItemRequest {
   hasInstallation?: boolean;
   note?: string;
 }
+
+/** Một dòng trong giỏ của khách chưa đăng nhập, lưu ở trình duyệt. */
+export interface GuestCartLine {
+  variantId: string;
+  quantity: number;
+  hasInstallation: boolean;
+  isSelected: boolean;
+  note?: string;
+}

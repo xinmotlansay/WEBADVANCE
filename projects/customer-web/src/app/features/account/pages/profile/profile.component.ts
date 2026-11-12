@@ -131,7 +131,7 @@ export class ProfileComponent {
     if ((hasPassword && !this.currentPassword) || !this.newPassword || !this.confirmPassword) {
       return this.showNotice('Vui lòng nhập đầy đủ thông tin mật khẩu.', true);
     }
-    if (this.newPassword.length < 8 || !/[A-Za-z]/.test(this.newPassword) || !/\d/.test(this.newPassword) || !/[^A-Za-z\d]/.test(this.newPassword)) {
+    if (this.newPassword.length < 8 || !/[A-Za-z]/.test(this.newPassword) || !/\d/.test(this.newPassword) || !/[!-\/:-@[-`{-~]/.test(this.newPassword)) {
       return this.showNotice('Mật khẩu mới cần tối thiểu 8 ký tự, gồm chữ, số và ký tự đặc biệt.', true);
     }
     if (this.newPassword !== this.confirmPassword) {

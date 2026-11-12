@@ -83,6 +83,7 @@ export class ProductListComponent {
   private readonly api = inject(CatalogApiService);
   private readonly imageResults = inject(ImageSearchResultsService);
   protected readonly search = inject(SearchUiService);
+  protected readonly pickedByIds = computed(() => !!this.params().get('ids'));
   protected readonly imageSearch = computed(() => this.params().has('image'));
   protected readonly imagePreview = computed(() => this.imageResults.preview(this.params().get('image') ?? ''));
   protected readonly retry = new Subject<number>();
@@ -114,22 +115,24 @@ export class ProductListComponent {
           q: p.get('q') ?? undefined,
           image: p.get('image'),
           categoryIds: p.get('categoryIds') ?? '',
+          ids: p.get('ids') ?? '',
         })),
         distinctUntilChanged(
-          (a, b) => a.q === b.q && a.image === b.image && a.categoryIds === b.categoryIds,
+          (a, b) =>
+            a.q === b.q && a.image === b.image && a.categoryIds === b.categoryIds && a.ids === b.ids,
         ),
       ),
       toObservable(
         computed(() => ({ promo: this.onlyPromotion(), collection: this.collection() })),
       ),
     ]).pipe(
-      switchMap(([{ q, image, categoryIds }, lock]) => {
+      switchMap(([{ q, image, categoryIds, ids }, lock]) => {
         const saved = image ? this.imageResults.get(image) : undefined;
         if (saved && !saved.length) return of(null);
         return this.api
           .getFacets({
             q,
-            ids: saved?.map((item) => item.id),
+            ids: saved?.map((item) => item.id) ?? (ids ? ids.split(',') : undefined),
             categoryIds: categoryIds ? categoryIds.split(',') : undefined,
             collection: lock.collection,
             hasPromotion: lock.promo || undefined,
@@ -423,7 +426,8 @@ export class ProductListComponent {
         this.api
           .getProducts({
             q: p.get('q') ?? undefined,
-            ids: saved?.map((item) => item.id),
+            // `ids`: danh sách sản phẩm cụ thể, ví dụ các gợi ý của trợ lý AI.
+            ids: saved?.map((item) => item.id) ?? p.get('ids')?.split(',').filter(Boolean),
             categoryIds: p.get('categoryIds')?.split(','),
             color: p.get('color')?.split(','),
             material: p.get('material')?.split(','),

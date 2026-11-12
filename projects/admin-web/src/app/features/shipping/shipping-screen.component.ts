@@ -57,9 +57,9 @@ function startOfDay(time: number): number {
 
 /** Số nhỏ = cần xử lý sớm hơn. Mỗi công đoạn trước "Đã giao" còn một thao tác chờ Admin. */
 const ACTION_PRIORITY: Partial<Record<OrderStatus, number>> & Record<string, number> = {
-  [OrderStatus.CONFIRMED]: 0,
-  [OrderStatus.HANDED_OVER]: 1,
-  [OrderStatus.SHIPPING]: 2,
+  [OrderStatus.HANDED_OVER]: 0,
+  [OrderStatus.SHIPPING]: 1,
+  [OrderStatus.CONFIRMED]: 2,
   [OrderStatus.DELIVERED]: 3,
 };
 
@@ -440,9 +440,13 @@ export class ShippingScreenComponent {
         (order.shipment?.trackingCode ?? '').toLowerCase().includes(keyword)
       );
     });
-    // Đơn cần xử lý lên trên (chờ bàn giao → đã bàn giao → đang giao), đơn đã giao xuống cuối; sort ổn định
-    // nên trong cùng nhóm vẫn giữ thứ tự mới nhất trước.
-    return [...matched].sort((a, b) => ACTION_PRIORITY[a.status] - ACTION_PRIORITY[b.status]);
+    // Đơn vừa bàn giao lên đầu (đã bàn giao → đang giao → chờ bàn giao), đơn đã giao xuống cuối;
+    // trong cùng nhóm, đơn cập nhật gần nhất lên trước.
+    return [...matched].sort(
+      (a, b) =>
+        ACTION_PRIORITY[a.status] - ACTION_PRIORITY[b.status] ||
+        Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+    );
   });
 
   readonly stageCounts = computed(() => {

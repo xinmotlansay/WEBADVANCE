@@ -109,6 +109,41 @@
         <div class="walkway">
           <h2 class="walkway__title">Hồ sơ lối đi</h2>
 
+          @if (fit.loggedIn()) {
+            <!-- Chọn hồ sơ nhà đã lưu trong tài khoản; cùng kiểu chip với chọn biến thể -->
+            <div class="profiles" role="radiogroup" aria-label="Chọn hồ sơ nhà">
+              @for (profile of fit.accountProfiles(); track profile.id) {
+                <button
+                  type="button"
+                  class="chip chip--sm"
+                  role="radio"
+                  [class.chip--active]="profile.id === fit.selectedProfileId()"
+                  [attr.aria-checked]="profile.id === fit.selectedProfileId()"
+                  (click)="chooseProfile(profile.id)"
+                >
+                  {{ profile.name }}
+                </button>
+              }
+              <button
+                type="button"
+                class="chip chip--sm chip--dashed"
+                role="radio"
+                [class.chip--active]="fit.selectedProfileId() === null"
+                [attr.aria-checked]="fit.selectedProfileId() === null"
+                (click)="chooseProfile(null)"
+              >
+                + Hồ sơ mới
+              </button>
+            </div>
+            @if (selectedProfile(); as profile) {
+              <p class="muted profile-note">
+                {{ profile.isDefault ? 'Hồ sơ mặc định' : 'Hồ sơ nhà' }}@if (profile.address) {
+                  · {{ profile.address }}
+                }
+              </p>
+            }
+          }
+
           @for (p of fit.passages(); track $index; let i = $index) {
             <div class="passage" [class.passage--editing]="editing() === i">
               <button type="button" class="passage__body" (click)="editing.set(i)">

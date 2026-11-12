@@ -8,33 +8,45 @@
     <form class="home-profile-form" (ngSubmit)="saveProfile()">
       <h2>{{ editingId() ? 'Chỉnh sửa hồ sơ nhà' : 'Thêm hồ sơ nhà' }}</h2>
       <div class="home-fields">
-        <label class="wide-field">Tên hồ sơ<input [(ngModel)]="form.name" name="name" placeholder="Ví dụ: Nhà riêng" /></label>
+        <label class="wide-field">Tên hồ sơ<input [(ngModel)]="form.name" name="name" maxlength="60" placeholder="Ví dụ: Nhà riêng" /></label>
         <label class="wide-field">Địa chỉ<input [(ngModel)]="form.address" name="address" placeholder="Địa chỉ giao hàng" /></label>
-        <fieldset><legend>Cửa ra vào (cm)</legend><label>Rộng<input type="number" min="0" [(ngModel)]="form.doorWidth" name="doorWidth" /></label><label>Cao<input type="number" min="0" [(ngModel)]="form.doorHeight" name="doorHeight" /></label></fieldset>
-        <label>Chiều rộng hành lang (cm)<input type="number" min="0" [(ngModel)]="form.hallwayWidth" name="hallwayWidth" /></label>
-        <label class="default-checkbox"><input type="checkbox" [(ngModel)]="form.hasElevator" name="hasElevator" /> Nhà có thang máy</label>
-        @if (form.hasElevator) {
-          <fieldset><legend>Thang máy (cm)</legend><label>Rộng<input type="number" min="0" [(ngModel)]="form.elevatorWidth" name="elevatorWidth" /></label><label>Sâu<input type="number" min="0" [(ngModel)]="form.elevatorDepth" name="elevatorDepth" /></label></fieldset>
-          <label>Tải trọng thang máy (kg)<input type="number" min="0" [(ngModel)]="form.elevatorLoad" name="elevatorLoad" /></label>
+      </div>
+
+      <div class="passage-section">
+        <h3>Lối đi vào nhà</h3>
+        <p class="passage-hint">Thêm từng điểm hàng hoá phải đi qua (cửa, hành lang, thang máy, cầu thang), đơn vị cm.</p>
+        @for (p of passages(); track $index; let i = $index) {
+          <div class="passage" [class.passage--editing]="editingPassageIndex() === i">
+            <button type="button" class="passage__body" (click)="editingPassageIndex.set(i)">
+              <app-icon [name]="typeIcons[p.type]" [size]="18" />
+              <span><strong>{{ i + 1 }}. {{ p.label || typeNames[p.type] }}</strong><small>{{ describePassage($any(p)) }}</small></span>
+            </button>
+            <button type="button" class="passage__remove" [attr.aria-label]="'Xoá điểm ' + (i + 1)" (click)="removePassage(i)"><app-icon name="lucide:x" [size]="16" /></button>
+          </div>
+        }
+        @if (editingPassageIndex() === null) {
+          @if (passages().length < 10) {
+            <button type="button" class="link-button add-passage" (click)="editingPassageIndex.set(-1)">+ Thêm điểm lối đi</button>
+          }
+        } @else {
+          <app-passage-form [passage]="$any(editingPassage())" (save)="savePassage($event)" (cancel)="editingPassageIndex.set(null)" />
         }
       </div>
+
       <label class="default-checkbox"><input type="checkbox" [(ngModel)]="form.isDefault" name="isDefault" /> Đặt làm hồ sơ mặc định</label>
-      <div class="form-actions"><button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button><button class="link-button" type="button" (click)="formOpen.set(false)">Hủy</button></div>
+      <div class="form-actions"><button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button><button class="link-button" type="button" (click)="closeForm()">Hủy</button></div>
     </form>
   }
 
   <div class="home-profile-list">
     @for (profile of profiles(); track profile.id) {
       <article class="home-profile-card">
-        <div class="home-card-heading"><div><span class="home-icon">⌂</span><div><h2>{{ profile.name }}</h2><p>{{ profile.address }}</p></div></div>@if (profile.isDefault) { <span class="default-badge">Mặc định</span> }</div>
-        <div class="home-measurements">
-          <div><span>Cửa ra vào</span><strong>{{ passage(profile, 'DOOR')?.width }} × {{ passage(profile, 'DOOR')?.height }} cm</strong></div>
-          <div><span>Hành lang</span><strong>{{ passage(profile, 'HALLWAY')?.width }} cm</strong></div>
-          @if (passage(profile, 'ELEVATOR'); as elevator) {
-            <div><span>Thang máy</span><strong>{{ elevator.cabinWidth }} × {{ elevator.cabinLength }} cm</strong></div>
-            <div><span>Tải trọng</span><strong>{{ elevator.loadCapacityKg }} kg</strong></div>
+        <div class="home-card-heading"><div><span class="home-icon"><app-account-icon name="house" [size]="18" /></span><div><h2>{{ profile.name }}</h2><p>{{ profile.address }}</p></div></div>@if (profile.isDefault) { <span class="default-badge">Mặc định</span> }</div>
+        <ul class="home-passages">
+          @for (p of profile.passages; track $index) {
+            <li><app-icon [name]="typeIcons[p.type]" [size]="16" /><strong>{{ p.label || typeNames[p.type] }}</strong><span>{{ describePassage($any(p)) }}</span></li>
           }
-        </div>
+        </ul>
         <div class="home-card-actions">
           @if (!profile.isDefault) { <button class="link-button" type="button" (click)="setDefault(profile)">Đặt mặc định</button> }
           <button class="link-button" type="button" (click)="editProfile(profile)">Chỉnh sửa</button>
@@ -42,7 +54,9 @@
         </div>
       </article>
     } @empty {
-      <div class="empty-state"><span>⌂</span><h2>Chưa có hồ sơ nhà</h2><p>Thêm kích thước lối vào để được tư vấn sản phẩm.</p><button class="primary-button" type="button" (click)="openNewProfile()">Thêm hồ sơ nhà</button></div>
+      @if (!formOpen()) {
+      <div class="empty-state"><span><app-account-icon name="house" [size]="32" /></span><h2>Chưa có hồ sơ nhà</h2><p>Thêm kích thước lối vào để được tư vấn sản phẩm.</p><button class="primary-button" type="button" (click)="openNewProfile()">Thêm hồ sơ nhà</button></div>
+      }
     }
   </div>
 </section>

@@ -2,11 +2,13 @@ import { Router, type Response } from 'express';
 import type { Types } from 'mongoose';
 import { requireUser } from '../../middlewares/auth.middleware.js';
 import { validateBody } from '../../middlewares/validate.middleware.js';
+import { AppError } from '../../utils/app-error.js';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { toObjectId } from '../../utils/object-id.js';
 import { sendData } from '../../utils/response.js';
 import { listMyReviews } from '../reviews/review.service.js';
 import {
+  aiChatSessionSchema,
   changeContactSchema,
   claimWelcomeOfferSchema,
   confirmWelcomeOfferSchema,
@@ -15,6 +17,7 @@ import {
   updateProfileSchema,
   walkwayProfileSchema,
   wishlistAddSchema,
+  type AiChatSessionInput,
   type ChangeContactBody,
   type UpdateProfileBody,
   type WalkwayProfileBody,
@@ -37,6 +40,11 @@ import {
   updateWalkwayProfile,
   type UserVoucherView,
 } from './account.service.js';
+import {
+  deleteAiChatSession,
+  listAiChatSessions,
+  saveAiChatSession,
+} from './ai-chat-session.service.js';
 import { claimWelcomeOffer, confirmWelcomeOffer, getWelcomeOfferStatus } from './welcome-offer.service.js';
 
 /** Hồ sơ và dữ liệu cá nhân của khách đăng nhập, mount tại `/users/me` (API Design mục 2, 3). */
@@ -206,5 +214,34 @@ accountRoutes.post(
   validateBody(claimWelcomeOfferSchema),
   asyncHandler(async (_req, res) => {
     sendData(res, await claimWelcomeOffer(userId(res), res.locals['body'] as ClaimWelcomeOfferBody));
+  }),
+);
+
+/** Lịch sử chat AI đi theo tài khoản (tối đa 20 phiên gần nhất). */
+accountRoutes.get(
+  '/ai-chat-sessions',
+  asyncHandler(async (_req, res) => {
+    sendData(res, await listAiChatSessions(userId(res)));
+  }),
+);
+
+accountRoutes.put(
+  '/ai-chat-sessions/:sessionId',
+  validateBody(aiChatSessionSchema),
+  asyncHandler(async (req, res) => {
+    const sessionId = String(req.params['sessionId']);
+    if (!/^[\w-]{1,64}$/.test(sessionId)) throw new AppError('VALIDATION_ERROR', 400, 'Mã phiên chat không hợp lệ');
+    sendData(
+      res,
+      await saveAiChatSession(userId(res), sessionId, res.locals['body'] as AiChatSessionInput),
+    );
+  }),
+);
+
+accountRoutes.delete(
+  '/ai-chat-sessions/:sessionId',
+  asyncHandler(async (req, res) => {
+    await deleteAiChatSession(userId(res), String(req.params['sessionId']));
+    sendData(res, { deleted: true });
   }),
 );

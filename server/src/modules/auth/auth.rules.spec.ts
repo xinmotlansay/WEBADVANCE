@@ -23,6 +23,11 @@ describe('isStrongPassword', () => {
     expect(isStrongPassword('12345678@')).toBe(false);
   });
 
+  it('không coi dấu cách là ký tự đặc biệt', () => {
+    expect(isStrongPassword('abc 1234 xyz')).toBe(false);
+    expect(isStrongPassword('abc 1234 xyz!')).toBe(true);
+  });
+
   it('từ chối mật khẩu không có ký tự đặc biệt', () => {
     expect(isStrongPassword('Abc12345')).toBe(false);
   });

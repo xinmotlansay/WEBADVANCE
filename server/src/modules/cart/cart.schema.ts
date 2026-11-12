@@ -37,6 +37,26 @@ export const applyVoucherSchema = z
     message: 'Gửi mã giảm giá hoặc voucher trong ví',
   });
 
+const guestLine = z.object({
+  variantId: objectId,
+  quantity,
+  hasInstallation: z.boolean().default(false),
+  isSelected: z.boolean().default(true),
+  note: note.optional(),
+});
+
+/** Giỏ khách chưa đăng nhập (lưu ở trình duyệt) gửi lên để tính giá hoặc gộp vào tài khoản. */
+export const guestCartSchema = z.object({
+  items: z
+    .array(guestLine)
+    .max(50)
+    .refine((items) => new Set(items.map((i) => i.variantId)).size === items.length, {
+      message: 'Mỗi biến thể chỉ một dòng',
+    }),
+});
+
+export type GuestCartLine = z.infer<typeof guestLine>;
+export type GuestCartBody = z.infer<typeof guestCartSchema>;
 export type AddCartItemBody = z.infer<typeof addCartItemSchema>;
 export type ApplyVoucherBody = z.infer<typeof applyVoucherSchema>;
 export type UpdateCartItemBody = z.infer<typeof updateCartItemSchema>;

@@ -287,3 +287,8 @@ button:disabled { opacity: .5; cursor: default; }
 /* Tỉ lệ theo quy định upload của admin: 1200×300 desktop, 750×400 mobile. */
 .category-banner img { display: block; width: 100%; aspect-ratio: 4 / 1; object-fit: cover; }
 @media (max-width: 767px) { .category-banner img { aspect-ratio: 15 / 8; } }
+
+/* Mobile: header có thêm hàng ô tìm kiếm gọn một hàng nên thấp hơn. */
+@media (max-width: 760px) {
+  :root { --header-offset: 96px; }
+}

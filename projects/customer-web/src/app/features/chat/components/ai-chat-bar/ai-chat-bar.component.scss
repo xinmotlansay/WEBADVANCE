@@ -590,11 +590,30 @@
   }
 
   .composer {
-    padding-left: 16px;
+    gap: 4px;
+    min-height: 48px;
+    padding: 6px 6px 6px 18px;
   }
 
   .composer textarea {
-    font-size: 12.5px;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 6px 0;
+    text-overflow: ellipsis;
+
+    &::placeholder {
+      font-size: 14px;
+    }
+  }
+
+  .composer__toggle {
+    min-height: 32px;
+    padding: 0 8px;
+  }
+
+  .composer__send {
+    width: 34px;
+    height: 34px;
   }
 }
 
@@ -645,4 +664,28 @@
       display: none;
     }
   }
+}
+
+.panel__login {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 16px 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line, #e5e5e5);
+  border-radius: 10px;
+  background: #f4f6f8;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.panel__login a {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--navy, #16304f);
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
 }

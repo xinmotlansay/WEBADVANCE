@@ -188,5 +188,13 @@ export class HeaderComponent {
 
   protected closeMenu(): void {
     this.menuOpen.set(false);
+    this.openGroup.set(null);
+  }
+
+  /** Menu dạng nút (màn hình hẹp): nhóm đang xổ ra, bấm lại để thu gọn. */
+  protected readonly openGroup = signal<'products' | 'rooms' | null>(null);
+
+  protected toggleGroup(group: 'products' | 'rooms'): void {
+    this.openGroup.update((current) => (current === group ? null : group));
   }
 }

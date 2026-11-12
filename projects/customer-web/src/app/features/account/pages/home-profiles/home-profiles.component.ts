@@ -1,5 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import type { WalkwayPassage as SharedPassage } from 'shared';
+import { AccountIconComponent } from '../../account-icon.component';
+import { PassageFormComponent } from '../../../fit-your-home/components/passage-form/passage-form.component';
+import { PASSAGE_TYPE_NAMES, TYPE_ICONS, describePassage } from '../../../fit-your-home/fit-labels';
+import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 import { apiErrorMessage } from '../../../../core/api-error';
 import { ConfirmService } from '../../../../services/ui/confirm.service';
 import {
@@ -13,19 +18,13 @@ import { ToastService } from '../../../../services/ui/toast.service';
 interface ProfileForm {
   name: string;
   address: string;
-  doorWidth: number;
-  doorHeight: number;
-  hallwayWidth: number;
-  hasElevator: boolean;
-  elevatorWidth: number;
-  elevatorDepth: number;
-  elevatorLoad: number;
   isDefault: boolean;
+  passages: WalkwayPassage[];
 }
 
 @Component({
   selector: 'app-home-profiles',
-  imports: [FormsModule],
+  imports: [FormsModule, AccountIconComponent, IconComponent, PassageFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-profiles.component.html',
   styleUrl: './home-profiles.component.css',
@@ -42,79 +41,89 @@ export class HomeProfilesComponent {
   protected readonly notice = signal<{ text: string; error: boolean } | null>(null);
   protected form: ProfileForm = this.emptyProfile();
 
+  /** Các điểm lối đi của hồ sơ đang soạn; giống hồ sơ lối đi ở trang Fit Your Home. */
+  protected readonly passages = signal<WalkwayPassage[]>([]);
+  /** `null`: form điểm đóng, `-1`: thêm mới, `>= 0`: đang sửa điểm thứ i. */
+  protected readonly editingPassageIndex = signal<number | null>(null);
+  protected readonly editingPassage = computed(() => {
+    const index = this.editingPassageIndex();
+    return index !== null && index >= 0 ? (this.passages()[index] ?? null) : null;
+  });
+
+  protected readonly typeNames = PASSAGE_TYPE_NAMES;
+  protected readonly typeIcons = TYPE_ICONS;
+  protected readonly describePassage = describePassage;
+
   constructor() {
     this.load();
   }
 
   private emptyProfile(): ProfileForm {
-    return {
-      name: '', address: '', doorWidth: 90, doorHeight: 210, hallwayWidth: 100,
-      hasElevator: false, elevatorWidth: 140, elevatorDepth: 140, elevatorLoad: 450, isDefault: false,
-    };
+    return { name: '', address: '', isDefault: false, passages: [] };
   }
 
   protected openNewProfile(): void {
     this.editingId.set('');
     this.form = this.emptyProfile();
+    this.passages.set([]);
+    this.editingPassageIndex.set(-1);
     this.formOpen.set(true);
-  }
-
-  protected passage(profile: WalkwayProfile, type: WalkwayPassage['type']): WalkwayPassage | undefined {
-    return profile.passages.find((passage) => passage.type === type);
   }
 
   protected editProfile(profile: WalkwayProfile): void {
     this.editingId.set(profile.id);
-    const door = this.passage(profile, 'DOOR');
-    const hallway = this.passage(profile, 'HALLWAY');
-    const elevator = this.passage(profile, 'ELEVATOR');
     this.form = {
       name: profile.name,
       address: profile.address,
-      doorWidth: door?.width ?? 90,
-      doorHeight: door?.height ?? 210,
-      hallwayWidth: hallway?.width ?? 100,
-      hasElevator: !!elevator,
-      elevatorWidth: elevator?.cabinWidth ?? 140,
-      elevatorDepth: elevator?.cabinLength ?? 140,
-      elevatorLoad: elevator?.loadCapacityKg ?? 450,
       isDefault: profile.isDefault,
+      passages: [],
     };
+    this.passages.set(profile.passages.map((passage) => ({ ...passage })));
+    this.editingPassageIndex.set(null);
     this.formOpen.set(true);
+  }
+
+  protected closeForm(): void {
+    this.formOpen.set(false);
+    this.editingPassageIndex.set(null);
+  }
+
+  protected savePassage(passage: SharedPassage): void {
+    const index = this.editingPassageIndex();
+    this.passages.update((list) =>
+      index !== null && index >= 0
+        ? list.map((item, i) => (i === index ? passage : item))
+        : [...list, passage],
+    );
+    this.editingPassageIndex.set(null);
+  }
+
+  protected removePassage(index: number): void {
+    this.passages.update((list) => list.filter((_, i) => i !== index));
+    this.editingPassageIndex.set(null);
   }
 
   protected saveProfile(): void {
     const form = this.form;
     if (!form.name.trim()) return this.showNotice('Vui lòng nhập tên hồ sơ.', true);
-    const sizes = [form.doorWidth, form.doorHeight, form.hallwayWidth];
-    if (form.hasElevator) sizes.push(form.elevatorWidth, form.elevatorDepth);
-    if (sizes.some((size) => !(size >= 20 && size <= 1000))) {
-      return this.showNotice('Kích thước cần từ 20 đến 1000 cm.', true);
+    if (this.editingPassageIndex() !== null) {
+      return this.showNotice('Hãy lưu hoặc huỷ điểm lối đi đang nhập trước khi lưu hồ sơ.', true);
+    }
+    if (this.passages().length === 0) {
+      return this.showNotice('Thêm ít nhất một điểm lối đi.', true);
     }
     const body: WalkwayProfileInput = {
       name: form.name.trim(),
       address: form.address.trim(),
       isDefault: form.isDefault,
-      passages: [
-        { type: 'DOOR', label: 'Cửa chính', width: form.doorWidth, height: form.doorHeight },
-        { type: 'HALLWAY', label: 'Hành lang', width: form.hallwayWidth },
-        ...(form.hasElevator
-          ? [{
-              type: 'ELEVATOR' as const,
-              label: 'Thang máy',
-              cabinWidth: form.elevatorWidth,
-              cabinLength: form.elevatorDepth,
-              loadCapacityKg: form.elevatorLoad,
-            }]
-          : []),
-      ],
+      passages: this.passages(),
     };
     const id = this.editingId();
     this.saving.set(true);
     (id ? this.api.updateWalkwayProfile(id, body) : this.api.createWalkwayProfile(body)).subscribe({
       next: () => {
         this.saving.set(false);
-        this.formOpen.set(false);
+        this.closeForm();
         this.showNotice('Hồ sơ nhà đã được lưu.');
         this.load();
       },

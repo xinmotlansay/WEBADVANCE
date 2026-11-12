@@ -181,7 +181,8 @@ export async function updateCollection(actorId: string, id: string, input: Updat
   // Đang hiển thị thì không được làm rỗng.
   if (existing.status === 'VISIBLE') checkPublishable({ images: set.images.length, products: set.products.length });
   const res = await CollectionModel.updateOne(
-    { _id: existing._id, version: existing.version ?? 0 },
+    // Bản ghi cũ có thể chưa có trường `version` (lean() không áp default) → coi như 0.
+    { _id: existing._id, ...((existing.version ?? 0) === 0 ? { $or: [{ version: 0 }, { version: { $exists: false } }] } : { version: existing.version }) },
     { $set: set, $inc: { version: 1 } },
   );
   if (!res.matchedCount) throw conflict();

@@ -57,6 +57,23 @@ export const walkwayProfileSchema = z.object({
     .max(10),
 });
 
+/** Một phiên chat AI của khách; `products` là các thẻ gợi ý, server chỉ lưu lại. */
+export const aiChatSessionSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  updatedAt: z.number().int().positive(),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(8000),
+        products: z.array(z.record(z.string(), z.unknown())).max(20).optional(),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+export type AiChatSessionInput = z.infer<typeof aiChatSessionSchema>;
 export type ChangeContactBody = z.infer<typeof changeContactSchema>;
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;
 export type WalkwayProfileBody = z.infer<typeof walkwayProfileSchema>;

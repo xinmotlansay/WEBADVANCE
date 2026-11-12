@@ -9,16 +9,20 @@ import {
   addCartItemSchema,
   applyVoucherSchema,
   cartSelectionSchema,
+  guestCartSchema,
   updateCartItemSchema,
   type AddCartItemBody,
   type ApplyVoucherBody,
   type CartSelectionBody,
+  type GuestCartBody,
   type UpdateCartItemBody,
 } from './cart.schema.js';
 import {
   addItem,
   applyVoucher,
   getCart,
+  mergeGuestCart,
+  previewGuestCart,
   removeItem,
   removeVoucher,
   setSelection,
@@ -26,6 +30,15 @@ import {
 } from './cart.service.js';
 
 export const cartRoutes = Router();
+
+// Công khai: tính giá giỏ lưu trong trình duyệt của khách chưa đăng nhập (không lưu gì).
+cartRoutes.post(
+  '/guest/preview',
+  validateBody(guestCartSchema),
+  asyncHandler(async (_req, res) => {
+    sendData(res, await previewGuestCart((res.locals['body'] as GuestCartBody).items));
+  }),
+);
 
 cartRoutes.use(requireUser);
 
@@ -35,6 +48,14 @@ cartRoutes.get(
   '/',
   asyncHandler(async (_req, res) => {
     sendData(res, await getCart(userId(res)));
+  }),
+);
+
+cartRoutes.post(
+  '/merge',
+  validateBody(guestCartSchema),
+  asyncHandler(async (_req, res) => {
+    sendData(res, await mergeGuestCart(userId(res), (res.locals['body'] as GuestCartBody).items));
   }),
 );
 

@@ -75,3 +75,10 @@
     right: -8px;
   }
 }
+
+/* Màn hình cảm ứng: vuốt ngang để cuộn, nút mũi tên không đè lên ảnh/tên sản phẩm. */
+@media (max-width: 640px) and (hover: none) {
+  .arrow {
+    display: none;
+  }
+}

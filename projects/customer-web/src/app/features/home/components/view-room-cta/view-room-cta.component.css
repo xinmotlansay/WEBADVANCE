@@ -58,7 +58,42 @@
 }
 
 @media (max-width: 760px) {
+  .cta {
+    padding-block: 32px 40px;
+  }
+  .cta__title {
+    margin-bottom: 20px;
+    font-size: var(--font-size-h3);
+  }
   .cta__body {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  /* Ảnh minh họa lên trước, chữ và nút bên dưới, căn giữa cho gọn. */
+  .cta__art {
+    order: -1;
+    max-width: 280px;
+    height: auto;
+    max-height: 200px;
+  }
+  .cta__text {
+    text-align: center;
+  }
+  .cta__text h3 {
+    font-size: var(--font-size-h4);
+  }
+  .cta__text .lead {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .cta__text .hint {
+    display: none;
+  }
+  .cta__btn {
+    display: block;
+    margin-top: 20px;
+    padding: 14px 24px;
+    text-align: center;
   }
 }

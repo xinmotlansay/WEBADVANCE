@@ -1,5 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { type Observable, of } from 'rxjs';
 import type { WalkwayPassage, WalkwayProfile } from 'shared';
+import { AccountApiService, type WalkwayProfile as AccountProfile } from '../account/account-api.service';
+import { AuthService } from '../auth/auth.service';
 import { readLocal, writeLocal } from '../../core/storage/local-store';
 
 const PROFILE_KEY = 'caraveso.walkwayProfile';
@@ -11,6 +14,41 @@ const DRAFT_KEY = 'caraveso.walkwayDraft';
  */
 @Injectable({ providedIn: 'root' })
 export class WalkwayProfileService {
+  private readonly auth = inject(AuthService);
+  private readonly account = inject(AccountApiService);
+
+  get loggedIn(): boolean {
+    return this.auth.isAuthenticated();
+  }
+
+  /** Danh sách hồ sơ nhà trong tài khoản (rỗng nếu chưa đăng nhập). */
+  listRemote(): Observable<AccountProfile[]> {
+    return this.loggedIn ? this.account.walkwayProfiles() : of([]);
+  }
+
+  /** Cập nhật hồ sơ đã chọn, hoặc tạo hồ sơ mới nếu `id` rỗng. */
+  saveRemote(
+    existing: AccountProfile | null,
+    passages: WalkwayPassage[],
+    newName: string,
+    makeDefault: boolean,
+  ): Observable<AccountProfile> {
+    const passagesBody = passages as AccountProfile['passages'];
+    return existing
+      ? this.account.updateWalkwayProfile(existing.id, {
+          name: existing.name,
+          address: existing.address,
+          isDefault: existing.isDefault,
+          passages: passagesBody,
+        })
+      : this.account.createWalkwayProfile({
+          name: newName,
+          address: '',
+          isDefault: makeDefault,
+          passages: passagesBody,
+        });
+  }
+
   loadProfile(): WalkwayProfile | null {
     return readLocal<WalkwayProfile | null>(PROFILE_KEY, null);
   }

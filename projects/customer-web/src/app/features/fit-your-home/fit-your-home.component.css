@@ -217,10 +217,17 @@
   gap: 12px;
 }
 .walkway__title {
-  margin-bottom: 8px;
-  color: var(--color-muted);
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-regular);
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  color: var(--color-black);
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* Gạch chân ngắn cùng kiểu với tiêu đề FIT YOUR HOME */
+  background: linear-gradient(var(--color-primary), var(--color-primary)) left bottom / 32px 2px
+    no-repeat;
 }
 
 .passage {
@@ -600,4 +607,20 @@ tbody tr:last-child td {
     width: 3px;
     height: 14px;
   }
+}
+
+.profiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip--dashed:not(.chip--active) {
+  background: none;
+  outline: 1px dashed var(--color-gray);
+  outline-offset: -1px;
+  color: var(--color-muted);
+}
+.profile-note {
+  margin: -4px 0 0;
+  font-size: var(--font-size-xs);
 }

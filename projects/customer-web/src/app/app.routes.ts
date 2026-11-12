@@ -2,7 +2,11 @@ import { Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from './services/auth/auth.service';
+import { CartStore } from './services/cart/cart.store';
 import { authGuard } from './core/guards/auth.guard';
+
+// Đợi giỏ trình duyệt gộp vào tài khoản xong rồi mới vào thanh toán.
+const cartMergedGuard = () => inject(CartStore).settled().then(() => true);
 
 const wishlistEntryGuard = () =>
   inject(AuthService).isAuthenticated() ? inject(Router).createUrlTree(['/account/wishlist']) : true;
@@ -67,6 +71,8 @@ export const routes: Routes = [
   },
   {
     path: 'checkout',
+    // Giỏ hàng lưu ở trình duyệt cho khách; chỉ thanh toán mới bắt đăng nhập (quay lại đúng trang sau đó).
+    canActivate: [authGuard, cartMergedGuard],
     loadChildren: () =>
       import('./features/checkout/checkout.routes').then((m) => m.CHECKOUT_ROUTES),
   },

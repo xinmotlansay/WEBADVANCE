@@ -8,10 +8,13 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { AccountApiService, type AiChatSessionDto } from '../../../../services/account/account-api.service';
+import { AuthService } from '../../../../services/auth/auth.service';
 import type {
   ApiResponse,
   ChatAiAskRequest,
@@ -24,6 +27,10 @@ import { IconComponent } from '../../../../shared/ui/icons/icon.component';
 import { AiProductCardComponent } from '../ai-product-card/ai-product-card.component';
 import {
   MAX_STORED_SESSIONS,
+  GUEST_MAX_ASKS,
+  clearChatSessions,
+  readGuestAsks,
+  writeGuestAsks,
   readChatSessions,
   sessionTitle,
   writeChatSessions,
@@ -71,12 +78,19 @@ export class AiChatBarComponent {
   private readonly http = inject(HttpClient);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly ui = inject(ChatUiService);
+  private readonly auth = inject(AuthService);
+  private readonly accountApi = inject(AccountApiService);
 
   protected readonly messages = signal<AiMessage[]>([
     { id: GREETING_ID, role: 'assistant', content: GREETING },
   ]);
   protected readonly suggestions = signal<string[]>(DEFAULT_SUGGESTIONS);
   protected readonly draft = signal('');
+  /** Màn hình hẹp: dùng gợi ý ngắn để chữ không bị ép/xuống dòng trong ô nhập. */
+  protected readonly placeholder =
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+      ? 'Mô tả sản phẩm bạn cần…'
+      : 'Nhập mô tả đơn giản về sản phẩm (VD: bàn ăn 4 ghế, phù hợp với phòng 50m2,...)';
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -86,6 +100,13 @@ export class AiChatBarComponent {
   protected readonly lastFailed = signal<FailedRequest | null>(null);
   /** Đã gửi câu hỏi trong lần mở này: chỉ khi đó mới hiện khung kết quả bên trên thanh nhập. */
   private readonly started = signal(false);
+
+  /** Số câu khách chưa đăng nhập đã hỏi trong phiên trình duyệt này. */
+  private readonly guestAsks = signal(readGuestAsks());
+  protected readonly guestLimitReached = computed(
+    () => !this.auth.isAuthenticated() && this.guestAsks() >= GUEST_MAX_ASKS,
+  );
+  protected readonly GUEST_MAX_ASKS = GUEST_MAX_ASKS;
 
   protected readonly canSend = computed(() => this.draft().trim().length > 0 && !this.loading());
   protected readonly canRetry = computed(() => this.lastFailed() !== null && !this.loading());
@@ -102,12 +123,39 @@ export class AiChatBarComponent {
   private nextId = GREETING_ID + 1;
 
   constructor() {
-    const stored = readChatSessions();
-    this.sessions.set(stored);
-    const latest = stored[0];
-    if (latest) {
-      this.loadSession(latest);
+    // Dữ liệu chat cũ của khách từng nằm lâu dài trong localStorage: chỉ còn lưu theo phiên.
+    try {
+      localStorage.removeItem('caraveso.ai.sessions.v1');
+    } catch {
+      // Bỏ qua khi trình duyệt chặn localStorage.
     }
+
+    // Khách vãng lai: lịch sử trong phiên trình duyệt (sessionStorage). Đã đăng nhập: lịch sử nằm trên tài khoản (xem effect dưới).
+    if (!this.auth.isAuthenticated()) {
+      const stored = readChatSessions();
+      this.sessions.set(stored);
+      const latest = stored[0];
+      if (latest) this.loadSession(latest);
+    }
+
+    let wasSignedIn = false;
+    effect(() => {
+      const signedIn = this.auth.isAuthenticated();
+      if (signedIn && !wasSignedIn) {
+        // Hội thoại và bộ đếm của khách không chuyển sang tài khoản.
+        clearChatSessions();
+        this.guestAsks.set(0);
+        untracked(() => this.loadRemoteSessions());
+      } else if (!signedIn && wasSignedIn) {
+        // Đăng xuất hoặc hết phiên: không để lại hội thoại của tài khoản trên màn hình.
+        clearChatSessions();
+        this.guestAsks.set(0);
+        this.sessions.set([]);
+        untracked(() => this.startNewSession());
+        this.started.set(false);
+      }
+      wasSignedIn = signedIn;
+    });
 
     // Mỗi lần mở lại chỉ hiện thanh nhập; khung kết quả đợi đến khi khách gửi câu hỏi.
     effect(() => {
@@ -162,12 +210,8 @@ export class AiChatBarComponent {
     this.expanded.update((set) => new Set(set).add(id));
   }
 
-  /** Câu hỏi của khách ngay trước tin nhắn AI, dùng làm từ khóa khi mở trang sản phẩm. */
-  protected questionBefore(id: number): string {
-    const list = this.messages();
-    const index = list.findIndex((m) => m.id === id);
-    for (let i = index - 1; i >= 0; i--) if (list[i].role === 'user') return list[i].content;
-    return '';
+  protected productIds(products: ChatAiProductSuggestion[]): string {
+    return products.map((product) => product.id).join(',');
   }
 
   protected close(): void {
@@ -198,6 +242,19 @@ export class AiChatBarComponent {
   protected async send(override?: string): Promise<void> {
     const text = (override ?? this.draft()).trim();
     if (!text || this.loading()) return;
+
+    if (this.guestLimitReached()) {
+      // Hết 5 câu của khách: hiện lời mời đăng nhập, giữ nguyên nội dung đang gõ.
+      this.collapsed.set(false);
+      this.started.set(true);
+      this.historyOpen.set(false);
+      return;
+    }
+    if (!this.auth.isAuthenticated()) {
+      const count = this.guestAsks() + 1;
+      this.guestAsks.set(count);
+      writeGuestAsks(count);
+    }
 
     const history = this.messages()
       .filter((message) => message.id !== GREETING_ID)
@@ -268,7 +325,8 @@ export class AiChatBarComponent {
 
     const next = this.sessions().filter((session) => session.id !== id);
     this.sessions.set(next);
-    writeChatSessions(next);
+    if (this.auth.isAuthenticated()) this.accountApi.deleteAiChatSession(id).subscribe({ error: () => undefined });
+    else writeChatSessions(next);
 
     if (this.activeSessionId() === id) {
       this.startNewSession();
@@ -336,7 +394,7 @@ export class AiChatBarComponent {
     ]);
   }
 
-  /** Lưu phiên hiện tại vào localStorage (bỏ qua khi chưa có câu hỏi nào). */
+  /** Lưu phiên hiện tại (tài khoản hoặc sessionStorage) (bỏ qua khi chưa có câu hỏi nào). */
   private persist(): void {
     const history = this.messages()
       .filter((message) => message.id !== GREETING_ID)
@@ -359,7 +417,29 @@ export class AiChatBarComponent {
     );
 
     this.sessions.set(next);
-    writeChatSessions(next);
+    if (this.auth.isAuthenticated()) {
+      // Lưu lên tài khoản; lỗi mạng thì bỏ qua, phiên vẫn dùng được trong lần mở này.
+      this.accountApi
+        .saveAiChatSession(session as AiChatSessionDto)
+        .subscribe({ error: () => undefined });
+    } else {
+      writeChatSessions(next);
+    }
+  }
+
+  /** Tải lịch sử chat của tài khoản; chưa gửi câu nào thì mở luôn phiên gần nhất. */
+  private loadRemoteSessions(): void {
+    this.accountApi.aiChatSessions().subscribe({
+      next: (list) => {
+        const remote = list as StoredChatSession[];
+        this.sessions.set(remote);
+        if (this.started() || this.loading()) return;
+        if (remote[0]) this.loadSession(remote[0]);
+        else this.startNewSession();
+        this.started.set(false);
+      },
+      error: () => undefined,
+    });
   }
 
   private scrollToBottom(): void {

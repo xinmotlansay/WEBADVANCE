@@ -170,8 +170,26 @@ export class FitYourHomeComponent {
     if (this.editing() === index) this.editing.set(null);
   }
 
+  protected readonly selectedProfile = computed(
+    () => this.fit.accountProfiles().find((p) => p.id === this.fit.selectedProfileId()) ?? null,
+  );
+
+  protected chooseProfile(id: string | null): void {
+    this.fit.selectProfile(id);
+    this.editing.set(this.fit.passages().length === 0 ? -1 : null);
+    this.savedMessage.set('');
+  }
+
   protected saveProfile(): void {
-    this.fit.saveProfile();
-    this.savedMessage.set('Đã lưu hồ sơ lối đi trên trình duyệt này.');
+    this.savedMessage.set('');
+    this.fit.saveProfile().subscribe({
+      next: (toAccount) =>
+        this.savedMessage.set(
+          toAccount
+            ? 'Đã lưu vào Hồ sơ nhà trong tài khoản của bạn.'
+            : 'Đã lưu trên trình duyệt này. Đăng nhập để lưu vào tài khoản.',
+        ),
+      error: () => this.savedMessage.set('Không lưu được hồ sơ, vui lòng thử lại.'),
+    });
   }
 }

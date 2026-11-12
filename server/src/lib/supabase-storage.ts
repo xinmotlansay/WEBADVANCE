@@ -61,3 +61,39 @@ export async function deleteStoredFile(url: string): Promise<void> {
   const { error } = await storage().remove([objectPath]);
   if (error) throw new Error(`Xóa file Supabase lỗi: ${error.message}`);
 }
+
+/** Tiền tố URL công khai của bucket hệ thống; null nếu chưa cấu hình Supabase (dùng cho job dọn file). */
+export function storedUrlPrefix(): string | null {
+  return publicPrefix();
+}
+
+export interface StoredObject {
+  /** Đường dẫn trong bucket, ví dụ `banners/<uuid>.jpg`. */
+  path: string;
+  createdAt: Date | null;
+}
+
+/** Liệt kê mọi file trong bucket (đi qua các thư mục con, phân trang 100 mục mỗi lần). */
+export async function listStoredObjects(folder = ''): Promise<StoredObject[]> {
+  const result: StoredObject[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await storage().list(folder, { limit: pageSize, offset });
+    if (error) throw new Error(`Liệt kê file Supabase lỗi: ${error.message}`);
+    for (const item of data ?? []) {
+      const path = folder ? `${folder}/${item.name}` : item.name;
+      if (item.id === null) result.push(...(await listStoredObjects(path)));
+      else result.push({ path, createdAt: item.created_at ? new Date(item.created_at) : null });
+    }
+    if (!data || data.length < pageSize) break;
+  }
+  return result;
+}
+
+/** Xóa nhiều file theo đường dẫn trong bucket (đã gom lô, tối đa 100 file mỗi lần gọi). */
+export async function deleteStoredObjects(paths: string[]): Promise<void> {
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error } = await storage().remove(paths.slice(i, i + 100));
+    if (error) throw new Error(`Xóa file Supabase lỗi: ${error.message}`);
+  }
+}

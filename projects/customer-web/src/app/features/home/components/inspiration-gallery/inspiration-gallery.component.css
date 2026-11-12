@@ -22,3 +22,28 @@
 .more:hover {
   text-decoration: underline;
 }
+
+/* Mobile: chỉ hiện một ảnh mỗi lần, vuốt ngang để xem ảnh trước/sau. */
+@media (max-width: 760px) {
+  :host ::ng-deep app-inspiration-grid .gallery {
+    display: flex !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+    gap: 12px !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  :host ::ng-deep app-inspiration-grid .gallery::-webkit-scrollbar {
+    display: none;
+  }
+  :host ::ng-deep app-inspiration-grid .gallery > li {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  :host ::ng-deep app-inspiration-grid .card {
+    aspect-ratio: 4 / 5;
+  }
+}
