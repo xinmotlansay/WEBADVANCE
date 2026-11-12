@@ -24,6 +24,7 @@ import {
   toSharedOrderStatus,
   type OrderDocument,
 } from './order.model.js';
+import { issueInvoice } from '../invoices/invoice.service.js';
 import { issueWarrantyCards } from '../warranty/warranty-issue.js';
 import { paidAmountOf } from '../payments/payment.rules.js';
 import { findOrderRefunds, requestRefund } from '../payments/refund.service.js';
@@ -168,25 +169,6 @@ async function markShipmentStatus(
     },
     { upsert: true },
   );
-}
-
-async function ensureInvoice(order: OrderDocument): Promise<string> {
-  const existing = await InvoiceModel.findOne({ orderId: order._id });
-  if (existing) return existing.invoiceNumber;
-
-  const invoiceNumber = `HD-${order.orderCode.replace(/[^0-9A-Za-z]/g, '')}`;
-  await InvoiceModel.updateOne(
-    { orderId: order._id },
-    {
-      $setOnInsert: {
-        invoiceNumber,
-        issuedAt: new Date(),
-        totalAmount: order.totalAmount,
-      },
-    },
-    { upsert: true },
-  );
-  return invoiceNumber;
 }
 
 async function toListItem(order: OrderDocument): Promise<OrderListItem> {
@@ -360,7 +342,7 @@ export async function updateOrderStatus(
   await order.save();
 
   if (input.status === OrderStatus.DELIVERED) {
-    await ensureInvoice(order);
+    await issueInvoice(order);
     await issueWarrantyCards(order);
   }
 
@@ -479,7 +461,7 @@ export async function markDelivered(id: string, actor: ActorContext): Promise<Or
   }
   appendHistory(order, OrderStatus.DELIVERED, actor.userId, 'Ghi nhận giao thành công');
   await order.save();
-  await ensureInvoice(order);
+  await issueInvoice(order);
   await issueWarrantyCards(order);
 
   await writeAuditLog({

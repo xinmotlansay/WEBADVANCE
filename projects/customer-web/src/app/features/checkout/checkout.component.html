@@ -464,6 +464,100 @@
               }
             </ul>
 
+            <div class="voucher-block">
+              @if (p.voucher && !voucherEditing()) {
+                <div class="voucher__applied" [class.voucher__applied--invalid]="!p.voucher.valid">
+                  <div class="voucher__info">
+                    <strong>{{ p.voucher.code ?? 'Mã giảm giá' }}</strong>
+                    @if (!p.voucher.valid) {
+                      <span>{{ p.voucher.message }}</span>
+                    }
+                  </div>
+                  @if (p.voucher.valid) {
+                    <span class="voucher__discount">−{{ p.voucher.discount | vnd: 'VNĐ' }}</span>
+                  }
+                  <button
+                    type="button"
+                    class="voucher__change"
+                    [disabled]="voucherBusy()"
+                    (click)="voucherEditing.set(true)"
+                  >
+                    Đổi
+                  </button>
+                  <button
+                    type="button"
+                    class="voucher__remove"
+                    [disabled]="voucherBusy()"
+                    (click)="removeVoucher()"
+                  >
+                    Gỡ
+                  </button>
+                </div>
+              } @else {
+                <form class="voucher" (submit)="applyVoucher($event, codeBox)">
+                  <div class="voucher__search">
+                    <input
+                      #codeBox
+                      type="text"
+                      class="voucher__input"
+                      placeholder="Nhập mã hoặc chọn voucher trong ví"
+                      aria-label="Mã giảm giá"
+                      aria-autocomplete="list"
+                      autocomplete="off"
+                      [attr.aria-expanded]="voucherOpen()"
+                      [disabled]="voucherBusy()"
+                      (focus)="voucherOpen.set(true)"
+                      (blur)="voucherOpen.set(false)"
+                      (keydown.escape)="voucherOpen.set(false)"
+                      (input)="voucherQuery.set(codeBox.value)"
+                    />
+                    @if (voucherOpen()) {
+                      <ul class="voucher__list" role="listbox" aria-label="Voucher trong ví">
+                        @for (v of filteredWallet(); track v.id) {
+                          <li
+                            role="option"
+                            class="voucher__option"
+                            [attr.aria-selected]="isAppliedWallet(v)"
+                            [class.voucher__option--active]="isAppliedWallet(v)"
+                            (mousedown)="$event.preventDefault(); pickWallet(v)"
+                          >
+                            <span class="voucher__option-top">
+                              <strong>{{ v.code }}</strong>
+                              <span>{{ v.name }}</span>
+                            </span>
+                            <span class="voucher__option-cond">{{ walletCondition(v) }}</span>
+                          </li>
+                        } @empty {
+                          <li class="voucher__option voucher__option--empty">
+                            @if (walletVouchers().length) {
+                              Không có voucher trong ví khớp với mã đã nhập
+                            } @else {
+                              Ví chưa có voucher nào
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                  <button type="submit" class="voucher__apply" [disabled]="voucherBusy()">
+                    Áp dụng
+                  </button>
+                </form>
+                @if (voucherEditing()) {
+                  <button
+                    type="button"
+                    class="voucher__remove voucher__cancel"
+                    (click)="voucherEditing.set(false)"
+                  >
+                    Hủy
+                  </button>
+                }
+              }
+              @if (voucherNote(); as note) {
+                <p class="voucher__note" role="alert">{{ note }}</p>
+              }
+            </div>
+
             <dl class="rows">
               <div>
                 <dt>Tạm tính ({{ p.items.length }} mặt hàng)</dt>

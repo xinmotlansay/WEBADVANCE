@@ -109,3 +109,14 @@ u { text-underline-offset: 2px; }
 .refund-note[data-tone='active'] { background: #e8f1fb; color: #1d4f8a; }
 .refund-note[data-tone='done'] { background: #e9f6ee; color: #1f6b3d; }
 .detail-modal .refund-note { margin: 8px 0 0; }
+
+.invoice-box {
+  margin-bottom: 16px;
+}
+.invoice-box p {
+  margin: 4px 0;
+}
+.invoice-note {
+  color: #6b7280;
+  font-size: 13px;
+}

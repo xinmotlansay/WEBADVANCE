@@ -1287,7 +1287,7 @@ Khách xem tiến độ hoàn tiền ở `GET /orders/:id` (trường `refund: {
 
 `invoices` được tạo tự động khi đơn chuyển `DELIVERED` (một đơn một hóa đơn, `invoiceNumber` theo ký hiệu ở `system_configs`). Khách tải ở `GET /orders/:id/invoice` (`404` nếu chưa giao). Admin xem qua `GET /admin/orders/:id` (trường `invoice`). Không có endpoint xuất hoặc sửa hóa đơn thủ công: hóa đơn là hóa đơn điện tử phát hành tự động, chỉ sau khi giao thành công.
 
-Thông tin người mua lấy từ `orders.invoiceInfo` (FR-45): `NONE` ghi "Người mua không lấy hóa đơn", `PERSONAL`/`COMPANY` ghi tên, mã số thuế, địa chỉ. Thuế suất VAT lấy từ cấu hình (giá đã bao gồm VAT). Nếu `invoiceInfo.sendEmail = true`, sau khi tạo PDF job gửi email kèm file tới `invoiceInfo.email` qua Resend (thử lại theo BullMQ), ghi `invoices.emailedTo`, `emailSentAt`; gửi lỗi chỉ ghi log, khách vẫn tải ở `GET /orders/:id/invoice`. Đây là email giao dịch duy nhất gửi cho khách.
+Thông tin người mua lấy từ `orders.invoiceInfo` (FR-45): `NONE` ghi "Người mua không lấy hóa đơn", `PERSONAL`/`COMPANY` ghi tên, mã số thuế, địa chỉ. Thuế suất VAT lấy từ cấu hình (giá đã bao gồm VAT). Nếu `invoiceInfo.sendEmail = true`, khi phát hành đánh dấu `invoices.emailPending`; worker quét mỗi phút, tạo PDF và gửi kèm file tới `invoiceInfo.email` qua Brevo, ghi `invoices.emailedTo`, `emailSentAt`. Gửi lỗi tăng `emailAttempts`, ghi `emailLastError` và thử lại ở lần quét sau, tối đa 5 lần; khách vẫn tải ở `GET /orders/:id/invoice` (trả về file PDF, `Content-Disposition: attachment`). Chi tiết đơn (`GET /orders/:id`) có `invoice.emailStatus`: `NOT_REQUESTED`, `PENDING`, `SENT`, `FAILED`. Đây là email giao dịch duy nhất gửi cho khách.
 
 ### 11b.5. Dashboard – cấu trúc response
 

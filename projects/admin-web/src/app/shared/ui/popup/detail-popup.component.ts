@@ -16,7 +16,6 @@ import { IconComponent } from '../icon/icon.component';
   imports: [IconComponent],
   template: `
     @if (open()) {
-      <div class="cv-popup-backdrop" (click)="closed.emit()" aria-hidden="true"></div>
       <section
         #panel
         class="cv-popup"

@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   CartApiService,
   type AddCartItemRequest,
+  type ApplyVoucherRequest,
   type Cart,
   type UpdateCartItemRequest,
   type VoucherCheckResult,
@@ -66,8 +67,8 @@ export class CartStore {
    * FR-30: áp voucher bằng mã. Luôn trả kết quả kiểm tra; hợp lệ thì tải lại giỏ để có giảm giá mới
    * (không đổi `status` nên trang không nháy về khung chờ).
    */
-  async applyVoucher(code: string): Promise<VoucherCheckResult> {
-    const result = await firstValueFrom(this.api.applyVoucher({ code }));
+  async applyVoucher(body: ApplyVoucherRequest): Promise<VoucherCheckResult> {
+    const result = await firstValueFrom(this.api.applyVoucher(body));
     if (result.valid) this.cart.set(await firstValueFrom(this.api.get()));
     return result;
   }

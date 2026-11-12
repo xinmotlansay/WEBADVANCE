@@ -343,7 +343,7 @@ Giỏ hàng (4)
 - Cột phải dính khi cuộn (desktop); mobile thành thanh đáy "Tổng 30.680.000đ  [Thanh toán (2)]", bấm mở chi tiết.
 - Đổi biến thể: bấm "▾" mở popup 4.2 ở chế độ Cập nhật.
 - Trạng thái: **đang tải** (skeleton 3 dòng), **giỏ trống** (minh họa + Tiếp tục mua sắm), **dòng đang lưu** (mờ nhẹ), **lỗi** (toast + hoàn tác).
-- Khối voucher (ô nhập mã + chọn từ ví) nằm trên Tạm tính, ẩn đến khi làm voucher.
+- Khối voucher (ô nhập mã + chọn từ ví) nằm trên Tạm tính. Giỏ hàng: áp/gỡ lưu vào giỏ. Mua nhanh: mã giữ trong trang, gửi kèm `voucher` khi preview và đặt hàng.
 
 ### 4.4. Thanh toán `/checkout`
 
@@ -382,7 +382,7 @@ Phương thức thanh toán                     │                  (Đã bao g
 
 - Đã có địa chỉ: hiện danh sách để chọn + "Thêm địa chỉ mới" (mở form như trên, có "Chọn địa chỉ đã lưu" để quay lại).
 - Mọi chỉnh sửa gọi lại `preview` (debounce), thẻ tóm tắt mờ khi đang tính.
-- Phí giao hàng bằng 0 hiện "Miễn phí giao hàng". "Tổng giảm giá" = khuyến mãi + voucher, ẩn khi bằng 0. Ô mã giảm giá ẩn đến khi làm voucher (FR-30).
+- Phí giao hàng bằng 0 hiện "Miễn phí giao hàng". "Tổng giảm giá" = khuyến mãi + voucher, ẩn khi bằng 0. Khối mã giảm giá hiện có thể nhập, đổi, gỡ (FR-30).
 - Hẹn lịch: đơn chỉ có hàng cấp 1–2 thì ẩn, chỉ hiện ngày dự kiến. Bộ chọn ngày chỉ cho ngày trong khoảng cho phép, khóa Chủ nhật.
 - Hóa đơn: chọn Không cần thì ẩn form và ô email. Cá nhân hiện Họ tên, MST/CCCD (tùy chọn), Địa chỉ, có nút "Dùng địa chỉ giao hàng". Điền sẵn từ lần xuất hóa đơn gần nhất.
 - Thanh toán: đơn > 20tr khóa COD (kèm lý do); chọn chuyển khoản thì có thêm lựa chọn đặt cọc 30% (mặc định) hoặc trả toàn bộ, thẻ tóm tắt thêm dòng Trả ngay (QR) / Khi nhận hàng.

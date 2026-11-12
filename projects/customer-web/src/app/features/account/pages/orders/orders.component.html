@@ -119,6 +119,17 @@
             <p class="refund-note" [attr.data-tone]="refund.tone"><strong>{{ refund.label }}.</strong> {{ refund.text }}</p>
           }
 
+          @if (order.invoice; as invoice) {
+            <h4>Hóa đơn điện tử</h4>
+            <div class="invoice-box">
+              <p><strong>Số hóa đơn:</strong> {{ invoice.number }}</p>
+              <p class="invoice-note">{{ invoice.emailNote }}</p>
+              <button class="outline-button" type="button" [disabled]="downloadingInvoice()" (click)="downloadInvoice(order)">
+                {{ downloadingInvoice() ? 'Đang tải...' : 'Tải hóa đơn (PDF)' }}
+              </button>
+            </div>
+          }
+
           <h4>{{ order.trackingTitle }}</h4>
           <ol class="steps">
             @for (step of order.steps; track $index) {

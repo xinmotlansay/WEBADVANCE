@@ -102,7 +102,7 @@ export class CartComponent {
     this.voucherBusy.set(true);
     this.voucherNote.set(null);
     try {
-      const result = await this.store.applyVoucher(code);
+      const result = await this.store.applyVoucher({ code });
       if (result.valid) {
         input.value = '';
         this.toast.success(`Đã áp dụng mã ${result.code}`);

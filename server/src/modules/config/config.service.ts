@@ -18,8 +18,13 @@ export interface ShippingConfig {
   schedulableTiers: number[];
 }
 
+/** Thông tin bên bán in trên hóa đơn; chỉ dùng phía server, không trả ra `GET /config/public`. */
 export interface InvoiceConfig {
   vatRate: number;
+  sellerName: string;
+  sellerTaxCode: string;
+  sellerAddress: string;
+  symbol: string;
 }
 
 /** Tài khoản nhận tiền QR. Không trả ra `GET /config/public`. */
@@ -62,7 +67,13 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
     leadDays: { '1': 3, '2': 3, '3': 5, '4': 5 },
     schedulableTiers: [3, 4],
   },
-  invoice: { vatRate: 0.1 },
+  invoice: {
+    vatRate: 0.1,
+    sellerName: 'CaraVeso',
+    sellerTaxCode: '',
+    sellerAddress: '',
+    symbol: '1C26TCV',
+  },
   bankAccount: {
     bankId: 'VCB',
     bankName: 'Vietcombank',

@@ -28,7 +28,13 @@ export function parseSender(from: string): BrevoSender {
 }
 
 /** Gọi API gửi email giao dịch của Brevo. Không ném lỗi mạng, trả về `error` để hàm gọi tự xử lý. */
-async function sendBrevoEmail(payload: { to: string; subject: string; html: string }): Promise<SendResult> {
+async function sendBrevoEmail(payload: {
+  to: string;
+  subject: string;
+  html: string;
+  /** File đính kèm, nội dung base64. */
+  attachments?: { name: string; content: string }[];
+}): Promise<SendResult> {
   try {
     const response = await fetch(BREVO_SEND_URL, {
       method: 'POST',
@@ -42,6 +48,7 @@ async function sendBrevoEmail(payload: { to: string; subject: string; html: stri
         to: [{ email: payload.to }],
         subject: payload.subject,
         htmlContent: payload.html,
+        ...(payload.attachments?.length ? { attachment: payload.attachments } : {}),
       }),
       signal: AbortSignal.timeout(BREVO_TIMEOUT_MS),
     });
@@ -274,4 +281,60 @@ export async function sendWelcomeVoucherEmail(
   }
   logger.info({ to, emailId: response.messageId }, 'Đã gửi email mã khách mới');
   return true;
+}
+
+export interface InvoiceEmailInput {
+  to: string;
+  invoiceNumber: string;
+  orderCode: string;
+  fileName: string;
+  pdf: Buffer;
+}
+
+/**
+ * Gửi hóa đơn điện tử (PDF đính kèm) cho khách chọn nhận qua email lúc đặt hàng (FR-45).
+ * Ném lỗi khi gửi thất bại để job của worker thử lại ở lần quét sau.
+ * Dev không có BREVO_API_KEY thì ghi log, giống email OTP.
+ */
+export async function sendInvoiceEmail(input: InvoiceEmailInput): Promise<void> {
+  if (!config.brevoApiKey) {
+    if (config.isProduction) {
+      throw new AppError('EMAIL_NOT_CONFIGURED', 500, 'Hệ thống chưa cấu hình dịch vụ gửi email');
+    }
+    logger.warn(
+      { to: input.to, invoiceNumber: input.invoiceNumber, orderCode: input.orderCode },
+      'Email hóa đơn (dev, chưa cấu hình Brevo)',
+    );
+    return;
+  }
+
+  const response = await sendBrevoEmail({
+    to: input.to,
+    subject: `Hóa đơn điện tử ${input.invoiceNumber} từ CaraVeso`,
+    html: `
+      <div style="margin:0;padding:32px 16px;background:#f5f3ef;font-family:Arial,Helvetica,sans-serif">
+        <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
+          <h2 style="margin:0 0 16px;color:#0e2a47;font-size:22px">CaraVeso</h2>
+          <p style="margin:0 0 12px;color:#374151;font-size:15px">Xin chào,</p>
+          <p style="margin:0 0 12px;color:#374151;font-size:15px">
+            Hóa đơn điện tử cho đơn hàng <strong>${escapeHtml(input.orderCode)}</strong>
+            (số <strong>${escapeHtml(input.invoiceNumber)}</strong>) đã được gửi kèm email này dưới dạng file PDF.
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:13px">
+            Bạn cũng có thể tải lại hóa đơn trong mục Đơn hàng của tài khoản CaraVeso.
+          </p>
+        </div>
+        <p style="max-width:480px;margin:16px auto 0;color:#9ca3af;font-size:12px;text-align:center">
+          Email tự động từ CaraVeso, vui lòng không trả lời.
+        </p>
+      </div>
+    `,
+    attachments: [{ name: input.fileName, content: input.pdf.toString('base64') }],
+  });
+
+  if (response.error) {
+    logger.error({ err: response.error, to: input.to, invoiceNumber: input.invoiceNumber }, 'Brevo từ chối gửi email hóa đơn');
+    throw new AppError('EMAIL_SEND_FAILED', 502, 'Không gửi được email hóa đơn');
+  }
+  logger.info({ to: input.to, invoiceNumber: input.invoiceNumber, emailId: response.messageId }, 'Đã gửi hóa đơn qua email');
 }

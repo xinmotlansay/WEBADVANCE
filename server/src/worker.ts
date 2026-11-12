@@ -4,9 +4,11 @@
 import { connectDatabase } from './config/database.js';
 import { expireOverduePayments } from './modules/orders/order.service.js';
 import { sendDailyStockDigest } from './modules/admin/admin-inventory.service.js';
+import { sendPendingInvoiceEmails } from './modules/invoices/invoice.service.js';
 
 const EXPIRE_INTERVAL_MS = 60_000;
 const DIGEST_INTERVAL_MS = 10 * 60_000;
+const INVOICE_EMAIL_INTERVAL_MS = 60_000;
 /** Giờ gửi email tóm tắt tồn kho hằng ngày (giờ Việt Nam, PA-08). */
 const DIGEST_HOUR_VN = 8;
 
@@ -30,12 +32,24 @@ async function digestTick(): Promise<void> {
   }
 }
 
+/** Gửi hóa đơn cho khách chọn nhận qua email; lỗi gửi được thử lại ở các lần quét sau. */
+async function invoiceEmailTick(): Promise<void> {
+  try {
+    const count = await sendPendingInvoiceEmails();
+    if (count > 0) console.warn(`Đã gửi ${count} hóa đơn qua email`);
+  } catch (err) {
+    console.warn('Job gửi hóa đơn lỗi:', err);
+  }
+}
+
 async function start(): Promise<void> {
   await connectDatabase();
   await expireTick();
   await digestTick();
+  await invoiceEmailTick();
   setInterval(() => void expireTick(), EXPIRE_INTERVAL_MS);
   setInterval(() => void digestTick(), DIGEST_INTERVAL_MS);
+  setInterval(() => void invoiceEmailTick(), INVOICE_EMAIL_INTERVAL_MS);
   console.warn('Worker đang chạy');
 }
 

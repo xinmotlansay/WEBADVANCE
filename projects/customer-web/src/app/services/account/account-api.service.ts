@@ -91,6 +91,15 @@ export interface OrderItemActions {
 }
 
 /** `GET /orders/:id` (API Design 3.1), phần trang tài khoản dùng. */
+/** Hóa đơn điện tử của đơn đã giao; `null` khi đơn chưa giao. */
+export interface AccountInvoice {
+  invoiceNumber: string;
+  issuedAt: string;
+  emailStatus: 'NOT_REQUESTED' | 'PENDING' | 'SENT' | 'FAILED';
+  emailedTo: string | null;
+  emailSentAt: string | null;
+}
+
 export interface AccountOrder {
   id: string;
   orderCode: string;
@@ -122,6 +131,8 @@ export interface AccountOrder {
     completedAt: string | null;
   } | null;
   shipment: { actualDeliveryDate: string | null } | null;
+  invoice: AccountInvoice | null;
+  invoiceInfo?: { type: string; sendEmail: boolean; email?: string };
   statusHistory: { fromStatus: string | null; toStatus: string; note: string | null; changedAt: string }[];
   cancellation: { reason?: string; cancelledAt: string } | null;
   allowedActions: { canCancel: boolean; canReschedule: boolean };
@@ -316,6 +327,11 @@ export class AccountApiService {
     return this.http
       .post<ApiResponse<{ url: string }>>(`${API}/uploads`, form)
       .pipe(map((r) => r.data.url));
+  }
+
+  /** Tải file PDF hóa đơn của đơn đã giao. */
+  downloadInvoice(orderId: string): Observable<Blob> {
+    return this.http.get(`${API}/orders/${orderId}/invoice`, { responseType: 'blob' });
   }
 
   vouchers(): Observable<AccountVoucher[]> {

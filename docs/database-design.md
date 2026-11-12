@@ -530,6 +530,11 @@ Collection: `invoices` (trước đây: `HOADON`). Chỉ có hóa đơn điện 
 | 5 | totalAmount | Number | Y | Tổng tiền hóa đơn |
 | 6 | fileUrl | String | | Đường dẫn file hóa đơn điện tử |
 | 7 | emailedTo | String | | Email đã gửi hóa đơn (bản sao `orders.invoiceInfo.email` khi `sendEmail = true`) |
+| 8 | emailSentAt | Date | | Thời điểm gửi email thành công |
+| 9 | emailPending | Boolean | Y | Đang chờ worker gửi email (đơn chọn `sendEmail`) |
+| 10 | emailAttempts | Number | Y | Số lần thử gửi email; tối đa 5 |
+| 11 | emailLastError | String | | Lỗi lần gửi gần nhất |
+| 12 | seller | Object | Y | Bản chụp bên bán (tên, MST, địa chỉ, ký hiệu, thuế suất) lúc phát hành |
 | 8 | emailSentAt | Date | | Thời điểm gửi email thành công. Null nếu không gửi hoặc gửi lỗi |
 
 ---

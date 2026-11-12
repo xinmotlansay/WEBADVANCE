@@ -290,6 +290,15 @@ export interface InvoiceDoc {
   issuedAt: Date;
   totalAmount: number;
   fileUrl?: string | null;
+  /** Bản chụp bên bán và thuế suất lúc phát hành, để hóa đơn in lại không đổi khi cấu hình đổi sau này. */
+  seller: { name: string; taxCode: string; address: string; symbol: string; vatRate: number };
+  /** Đơn khách chọn nhận hóa đơn qua email: đang chờ gửi (job của worker quét). */
+  emailPending: boolean;
+  emailAttempts: number;
+  emailLastError?: string | null;
+  /** Email đã gửi (bản sao `orders.invoiceInfo.email`) và thời điểm gửi thành công. */
+  emailedTo?: string | null;
+  emailSentAt?: Date | null;
 }
 
 const invoiceSchema = new Schema<InvoiceDoc>(
@@ -299,6 +308,18 @@ const invoiceSchema = new Schema<InvoiceDoc>(
     issuedAt: { type: Date, required: true },
     totalAmount: { type: Number, required: true, min: 0 },
     fileUrl: { type: String, default: null },
+    seller: {
+      name: { type: String, default: '' },
+      taxCode: { type: String, default: '' },
+      address: { type: String, default: '' },
+      symbol: { type: String, default: '' },
+      vatRate: { type: Number, default: 0 },
+    },
+    emailPending: { type: Boolean, default: false, index: true },
+    emailAttempts: { type: Number, default: 0 },
+    emailLastError: { type: String, default: null },
+    emailedTo: { type: String, default: null },
+    emailSentAt: { type: Date, default: null },
   },
   { timestamps: true, collection: 'invoices' },
 );

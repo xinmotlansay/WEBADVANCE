@@ -10,6 +10,8 @@ export const ACCOUNT_ROUTES: Routes = [
       { path: 'profile', title: 'Tài khoản của tôi | CaraVeso', loadComponent: () => import('./pages/profile/profile.component').then((m) => m.ProfileComponent) },
       { path: 'after-sales', title: 'Dịch vụ hậu mãi | CaraVeso', loadComponent: () => import('./pages/after-sales/after-sales.component').then((m) => m.AfterSalesComponent) },
       { path: 'orders', title: 'Đơn hàng | CaraVeso', loadComponent: () => import('./pages/orders/orders.component').then((m) => m.OrdersComponent) },
+      // Cùng trang danh sách, nhưng tự mở sẵn đơn có id trên URL (dùng sau khi đặt hàng).
+      { path: 'orders/:orderId', title: 'Đơn hàng | CaraVeso', loadComponent: () => import('./pages/orders/orders.component').then((m) => m.OrdersComponent) },
       { path: 'addresses', title: 'Danh sách địa chỉ | CaraVeso', loadComponent: () => import('./pages/addresses/addresses.component').then((m) => m.AddressesComponent) },
       { path: 'wishlist', title: 'Danh sách yêu thích | CaraVeso', loadComponent: () => import('./pages/wishlist/wishlist.component').then((m) => m.WishlistComponent) },
       { path: 'reviews', title: 'Đánh giá | CaraVeso', loadComponent: () => import('./pages/reviews/reviews.component').then((m) => m.ReviewsComponent) },

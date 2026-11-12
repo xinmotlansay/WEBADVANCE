@@ -536,3 +536,165 @@ div.method {
     color: var(--color-primary);
   }
 }
+
+/* Voucher: nhập mã, đổi, gỡ ngay trong tóm tắt đơn (cùng kiểu với trang giỏ). */
+.voucher-block {
+  margin-top: 24px;
+}
+.voucher {
+  display: flex;
+}
+.voucher__input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-gray);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  font: inherit;
+  font-size: var(--font-size-h5);
+}
+.voucher__input::placeholder {
+  color: var(--color-muted);
+}
+.voucher__input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.voucher__apply {
+  padding: 0 18px;
+  border: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--color-gray-light);
+  font: inherit;
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-semibold);
+}
+.voucher__apply:hover:not(:disabled) {
+  background: var(--color-gray);
+}
+.voucher__apply:disabled,
+.voucher__input:disabled,
+.voucher__change:disabled,
+.voucher__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.voucher__note {
+  margin: 8px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+.voucher__applied {
+  --voucher-color: var(--color-success);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.voucher__applied--invalid {
+  --voucher-color: var(--color-accent);
+}
+.voucher__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+.voucher__info strong {
+  font-size: var(--font-size-h5);
+  letter-spacing: 0.02em;
+  color: var(--voucher-color);
+}
+.voucher__info span {
+  color: var(--voucher-color);
+}
+.voucher__discount {
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-semibold);
+  color: var(--voucher-color);
+  white-space: nowrap;
+}
+.voucher__change,
+.voucher__remove {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-decoration: underline;
+}
+.voucher__change:hover:not(:disabled),
+.voucher__remove:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+.voucher__cancel {
+  display: block;
+  margin-top: 8px;
+}
+
+/* Ô tìm voucher ví: dropdown mở dưới ô nhập khi focus, lọc theo chữ đang gõ. */
+.voucher__search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.voucher__search .voucher__input {
+  width: 100%;
+}
+.voucher__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--color-gray);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.voucher__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.voucher__option:hover {
+  background: var(--color-gray-light);
+}
+.voucher__option--active {
+  box-shadow: inset 3px 0 0 var(--color-success);
+}
+.voucher__option--empty {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  cursor: default;
+}
+.voucher__option--empty:hover {
+  background: none;
+}
+.voucher__option-top {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: var(--font-size-sm);
+}
+.voucher__option-top strong {
+  font-size: var(--font-size-h5);
+  letter-spacing: 0.02em;
+}
+.voucher__option-cond {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}

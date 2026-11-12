@@ -17,6 +17,7 @@ import {
   type Address,
   type CheckoutItem,
   type CheckoutPreview,
+  type ApplyVoucherRequest,
   type CheckoutRequest,
   type DeliverySlot,
   type PublicConfig,
@@ -34,6 +35,7 @@ import {
 } from 'rxjs';
 import { clearBuyNow, readBuyNow, saveBuyNow, type BuyNowItem } from '../../core/cart/buy-now';
 import { CartStore } from '../../services/cart/cart.store';
+import { AccountApiService, type AccountVoucher } from '../../services/account/account-api.service';
 import { toApiError } from '../../core/http/api-error';
 import { ToastService } from '../../services/ui/toast.service';
 import { CompactHeaderComponent } from '../../layout/compact-header/compact-header.component';
@@ -79,6 +81,7 @@ export class CheckoutComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
+  private readonly accountApi = inject(AccountApiService);
 
   protected readonly source =
     inject(ActivatedRoute).snapshot.queryParamMap.get('source') === 'buy-now' ? 'BUY_NOW' : 'CART';
@@ -149,6 +152,23 @@ export class CheckoutComponent {
   });
   private invoicePrefilled = false;
 
+  // Mục 2b: voucher. Giỏ hàng lưu vào giỏ (dùng chung với trang giỏ); mua nhanh giữ mã trong trang.
+  protected readonly buyNowVoucher = signal<ApplyVoucherRequest | null>(null);
+  protected readonly voucherBusy = signal(false);
+  protected readonly voucherNote = signal<string | null>(null);
+  protected readonly voucherEditing = signal(false);
+  /** Voucher trong ví còn dùng được (chưa dùng, chưa hết hạn), nạp lúc vào trang. */
+  protected readonly walletVouchers = signal<AccountVoucher[]>([]);
+  /** Dropdown tìm voucher ví: mở khi focus ô nhập, lọc theo chữ đang gõ. */
+  protected readonly voucherOpen = signal(false);
+  protected readonly voucherQuery = signal('');
+  protected readonly filteredWallet = computed(() => {
+    const q = this.voucherQuery().trim().toLowerCase();
+    const list = this.walletVouchers();
+    if (!q) return list;
+    return list.filter((v) => v.code.toLowerCase().includes(q) || v.name.toLowerCase().includes(q));
+  });
+
   // Mục 5: thanh toán.
   protected readonly payment = signal<PaymentOption | null>(null);
 
@@ -173,8 +193,10 @@ export class CheckoutComponent {
           ? { scheduledDate: date, scheduledSlot: this.scheduleSlot() }
           : null,
     };
-    if (this.source === 'BUY_NOW') return { ...base, items: this.buyNowItems() };
-    // Mỗi lần giỏ đổi (sửa dòng ở mục 2) thì tính lại.
+    if (this.source === 'BUY_NOW') {
+      return { ...base, items: this.buyNowItems(), voucher: this.buyNowVoucher() };
+    }
+    // Mỗi lần giỏ đổi (sửa dòng ở mục 2, áp/gỡ voucher) thì tính lại.
     return this.store.cart() ? base : null;
   });
 
@@ -229,6 +251,7 @@ export class CheckoutComponent {
     }
     if (this.source === 'CART') this.store.load();
     this.loadAddresses();
+    this.loadWalletVouchers();
 
     toObservable(this.request)
       .pipe(
@@ -265,6 +288,18 @@ export class CheckoutComponent {
         this.addingAddress.set(true);
         this.toast.error(toApiError(err).message);
       },
+    });
+  }
+
+  private loadWalletVouchers(): void {
+    this.accountApi.vouchers().subscribe({
+      next: (list) => {
+        const now = Date.now();
+        this.walletVouchers.set(
+          list.filter((v) => v.status === 'UNUSED' && new Date(v.expiresAt).getTime() > now),
+        );
+      },
+      error: () => this.walletVouchers.set([]),
     });
   }
 
@@ -360,6 +395,91 @@ export class CheckoutComponent {
     province: string;
   }): string {
     return [a.addressLine, a.ward, a.district, a.province].filter(Boolean).join(', ');
+  }
+
+  // ---- Mục 2b: voucher (nhập mã hoặc chọn từ ví; thêm, đổi, gỡ tại thanh toán) ----
+
+  /** Giỏ: lưu vào giỏ như trang giỏ. Mua nhanh: giữ trong trang, preview kiểm tra và báo lý do nếu sai. */
+  protected async applyVoucher(event: Event, input: HTMLInputElement): Promise<void> {
+    event.preventDefault();
+    const code = input.value.trim();
+    if (!code) {
+      this.voucherNote.set('Nhập mã giảm giá');
+      return;
+    }
+    this.voucherOpen.set(false);
+    await this.chooseVoucher({ code }, () => {
+      input.value = '';
+      this.voucherQuery.set('');
+    });
+  }
+
+  /** Chọn một voucher trong ví. */
+  protected async applyWalletVoucher(voucher: AccountVoucher): Promise<void> {
+    await this.chooseVoucher({ userVoucherId: voucher.id });
+  }
+
+  /** Chọn từ dropdown: đóng danh sách và xóa chữ đang tìm. */
+  protected pickWallet(voucher: AccountVoucher): void {
+    this.voucherOpen.set(false);
+    this.voucherQuery.set('');
+    void this.applyWalletVoucher(voucher);
+  }
+
+  /** Dòng mô tả ngắn: mức giảm, đơn tối thiểu, hạn dùng. */
+  protected walletCondition(v: AccountVoucher): string {
+    const value =
+      v.discountType === 'PERCENT'
+        ? `Giảm ${v.discountValue}%${v.maxDiscountValue ? ` (tối đa ${v.maxDiscountValue.toLocaleString('vi-VN')} VNĐ)` : ''}`
+        : `Giảm ${v.discountValue.toLocaleString('vi-VN')} VNĐ`;
+    const min = v.minOrderValue ? `, đơn từ ${v.minOrderValue.toLocaleString('vi-VN')} VNĐ` : '';
+    const expiry = `HSD ${new Date(v.expiresAt).toLocaleDateString('vi-VN')}`;
+    return `${value}${min} · ${expiry}`;
+  }
+
+  protected isAppliedWallet(voucher: AccountVoucher): boolean {
+    return this.preview()?.voucher?.code === voucher.code;
+  }
+
+  private async chooseVoucher(body: ApplyVoucherRequest, onDone?: () => void): Promise<void> {
+    this.voucherBusy.set(true);
+    this.voucherNote.set(null);
+    try {
+      if (this.source === 'CART') {
+        // Giỏ chỉ giữ một voucher: mã cũ được gỡ trước khi áp mã mới.
+        const hadOld = !!this.store.cart()?.appliedVoucher;
+        if (hadOld) await this.store.removeVoucher();
+        const result = await this.store.applyVoucher(body);
+        if (!result.valid) {
+          const note = result.message ?? 'Không áp dụng được mã giảm giá';
+          this.voucherNote.set(hadOld ? `${note}. Mã cũ đã được gỡ.` : note);
+          return;
+        }
+        this.toast.success(`Đã áp dụng mã ${result.code}`);
+      } else {
+        this.buyNowVoucher.set(body);
+      }
+      onDone?.();
+      this.voucherEditing.set(false);
+    } catch (err) {
+      this.voucherNote.set(toApiError(err).message);
+    } finally {
+      this.voucherBusy.set(false);
+    }
+  }
+
+  protected async removeVoucher(): Promise<void> {
+    this.voucherBusy.set(true);
+    this.voucherNote.set(null);
+    try {
+      if (this.source === 'CART') await this.store.removeVoucher();
+      else this.buyNowVoucher.set(null);
+      this.voucherEditing.set(false);
+    } catch (err) {
+      this.toast.error(toApiError(err).message);
+    } finally {
+      this.voucherBusy.set(false);
+    }
   }
 
   // ---- Sản phẩm và lắp đặt (sửa số lượng thì quay lại giỏ) ----

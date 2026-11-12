@@ -41,6 +41,8 @@ export interface DeliverySchedule {
 export interface CheckoutRequest {
   source: CheckoutSource;
   items?: BuyNowLine[] | null;
+  /** Mua nhanh: voucher nhập ngay tại thanh toán. Giỏ hàng bỏ trống thì server dùng voucher đang gắn trong giỏ. */
+  voucher?: { code?: string | null; userVoucherId?: string | null } | null;
   addressId?: string | null;
   newAddress?: (Omit<CreateAddressRequest, 'isDefault'> & { saveAddress?: boolean }) | null;
   delivery?: DeliverySchedule | null;

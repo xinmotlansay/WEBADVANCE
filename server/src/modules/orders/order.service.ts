@@ -26,7 +26,8 @@ import { VariantModel } from '../products/variant.model.js';
 import { formatDimensions } from '../cart/cart.service.js';
 import { notifyStockLevelsInBackground } from '../admin/admin-inventory.service.js';
 import { consumeVoucher, refundVoucherUsage } from '../vouchers/voucher.service.js';
-import { OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
+import { MAX_EMAIL_ATTEMPTS } from '../invoices/invoice.service.js';
+import { InvoiceModel, OrderModel, type OrderDoc, type OrderStatus } from './order.model.js';
 import { RefundSource } from '../../lib/shared-enums.js';
 import { paidAmountOf } from '../payments/payment.rules.js';
 import { findOrderRefunds, requestRefund } from '../payments/refund.service.js';
@@ -770,13 +771,25 @@ export async function rescheduleDelivery(
 }
 
 /** API Design 3.1 (rút gọn): chi tiết đơn cho trang thành công; FR-10 bổ sung `items[].actions`. */
+/** Trạng thái email hóa đơn cho khách: chưa yêu cầu, đang chờ gửi, đã gửi, hoặc gửi lỗi hết số lần thử. */
+function invoiceEmailStatus(invoice: {
+  emailPending: boolean;
+  emailAttempts: number;
+  emailedTo?: string | null;
+}): 'NOT_REQUESTED' | 'PENDING' | 'SENT' | 'FAILED' {
+  if (invoice.emailedTo) return 'SENT';
+  if (!invoice.emailPending) return 'NOT_REQUESTED';
+  return invoice.emailAttempts < MAX_EMAIL_ATTEMPTS ? 'PENDING' : 'FAILED';
+}
+
 export async function getOrderDetail(userId: Types.ObjectId, orderId: Types.ObjectId) {
   const order = await findOwnOrder(userId, orderId);
-  const [shipment, { shipping }, actions, refunds] = await Promise.all([
+  const [shipment, { shipping }, actions, refunds, invoice] = await Promise.all([
     ShipmentModel.findOne({ orderId }).lean(),
     getCheckoutConfig(),
     getItemActions(order),
     findOrderRefunds([orderId]),
+    InvoiceModel.findOne({ orderId }).lean(),
   ]);
   const refund = refunds.get(orderId.toString());
   const open = CUSTOMER_CANCELLABLE.includes(order.status);
@@ -836,6 +849,16 @@ export async function getOrderDetail(userId: Types.ObjectId, orderId: Types.Obje
       actualDeliveryDate: day(shipment.actualDeliveryDate),
     },
     invoiceInfo: order.invoiceInfo,
+    /** Hóa đơn điện tử, phát hành khi đơn giao thành công. `null` khi chưa giao. */
+    invoice: invoice
+      ? {
+          invoiceNumber: invoice.invoiceNumber,
+          issuedAt: invoice.issuedAt.toISOString(),
+          emailStatus: invoiceEmailStatus(invoice),
+          emailedTo: invoice.emailedTo ?? null,
+          emailSentAt: invoice.emailSentAt?.toISOString() ?? null,
+        }
+      : null,
     cancellation: order.cancellation?.cancelledAt ? order.cancellation : null,
     statusHistory: order.statusHistory.map((change) => ({
       fromStatus: change.fromStatus ?? null,

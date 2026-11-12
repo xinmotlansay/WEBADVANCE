@@ -41,7 +41,7 @@ configRoutes.get(
       store: mergeStore(byKey.get('store') as Partial<typeof DEFAULT_STORE_INFO> | undefined),
       payment: checkout.payment,
       shipping: checkout.shipping,
-      invoice: checkout.invoice,
+      invoice: { vatRate: checkout.invoice.vatRate },
       labels: { newDays: Number(byKey.get('labels.newDays') ?? 30) },
       policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 7), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 10) },
       limits: { maxImageSizeMb: 5 },

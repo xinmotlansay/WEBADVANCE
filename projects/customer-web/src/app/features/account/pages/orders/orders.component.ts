@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../../../core/api-error';
-import { AccountApiService, type AccountOrder } from '../../../../services/account/account-api.service';
+import { AccountApiService, type AccountInvoice, type AccountOrder } from '../../../../services/account/account-api.service';
 import { AccountIconComponent, type IconName } from '../../account-icon.component';
 import { ToastService } from '../../../../services/ui/toast.service';
 
@@ -36,6 +36,8 @@ interface OrderView {
   paymentText: string;
   /** Trạng thái hoàn tiền của đơn đã hủy (chỉ khi đã thanh toán). */
   refund: RefundView | null;
+  /** Hóa đơn điện tử của đơn đã giao, kèm dòng ghi chú về email hóa đơn. */
+  invoice: { number: string; emailNote: string } | null;
   fees: { label: string; amount: number; discount?: boolean }[];
   items: { name: string; details: string; quantity: number; unitPrice: number; total: number; image: string }[];
   steps: TrackingStep[];
@@ -115,6 +117,7 @@ export class OrdersComponent {
   protected readonly loading = signal(true);
   protected readonly loadError = signal('');
   protected readonly cancelling = signal(false);
+  protected readonly downloadingInvoice = signal(false);
   protected readonly expandedOrder = signal('');
   protected readonly detailOrder = signal<OrderView | null>(null);
   protected readonly cancellingOrder = signal('');
@@ -127,6 +130,8 @@ export class OrdersComponent {
     'Thời gian giao hàng quá lâu',
     'Đổi ý, không muốn mua nữa',
   ];
+
+  private readonly focusOrderId = inject(ActivatedRoute).snapshot.paramMap.get('orderId') ?? '';
 
   constructor() {
     this.loadOrders();
@@ -170,6 +175,9 @@ export class OrdersComponent {
     this.api.orders().subscribe({
       next: (orders) => {
         this.orders.set(orders.map((order) => this.toOrderView(order)));
+        if (this.focusOrderId && orders.some((order) => order.id === this.focusOrderId)) {
+          this.expandedOrder.set(this.focusOrderId);
+        }
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -205,6 +213,41 @@ export class OrdersComponent {
     };
   }
 
+  /** Tải PDF hóa đơn qua API có đăng nhập, rồi lưu thành file trên máy khách. */
+  protected downloadInvoice(order: OrderView): void {
+    if (!order.invoice) return;
+    const number = order.invoice.number;
+    this.downloadingInvoice.set(true);
+    this.api.downloadInvoice(order.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `HoaDon-${number}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+        this.downloadingInvoice.set(false);
+      },
+      error: () => {
+        this.downloadingInvoice.set(false);
+        this.toast.error('Không tải được hóa đơn, vui lòng thử lại sau.');
+      },
+    });
+  }
+
+  private invoiceView(order: AccountOrder): OrderView['invoice'] {
+    const invoice = order.invoice;
+    if (!invoice) return null;
+    const email = order.invoiceInfo?.email ?? invoice.emailedTo ?? '';
+    const emailNote: Record<AccountInvoice['emailStatus'], string> = {
+      SENT: `Đã gửi qua email tới ${invoice.emailedTo}.`,
+      PENDING: `Đang gửi qua email tới ${email}.`,
+      FAILED: `Chưa gửi được email tới ${email}. Bạn vẫn có thể tải hóa đơn bên dưới.`,
+      NOT_REQUESTED: 'Hóa đơn không gửi qua email. Bạn có thể tải file PDF bên dưới.',
+    };
+    return { number: invoice.invoiceNumber, emailNote: emailNote[invoice.emailStatus] };
+  }
+
   private toOrderView(order: AccountOrder): OrderView {
     const view = STATUS_VIEW[order.status] ?? { label: order.status, icon: 'clock' as IconName };
     const lastChange = order.statusHistory.at(-1)?.changedAt ?? order.createdAt;
@@ -218,6 +261,7 @@ export class OrdersComponent {
       filter: STATUS_GROUP[order.status]?.filter ?? 'PENDING',
       paymentText: `${METHOD_LABEL[order.payment.method] ?? order.payment.method} · ${PAYMENT_STATUS_LABEL[order.payment.status] ?? order.payment.status}`,
       refund: this.toRefundView(order),
+      invoice: this.invoiceView(order),
       fees: [
         { label: 'Tạm tính', amount: order.subtotal ?? 0 },
         { label: 'Khuyến mãi', amount: order.promotionDiscount ?? 0, discount: true },

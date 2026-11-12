@@ -25,6 +25,7 @@ import {
   rescheduleDelivery,
 } from './order.service.js';
 import { listOrders } from './order-history.js';
+import { getCustomerInvoicePdf } from '../invoices/invoice.service.js';
 import { createReview } from '../reviews/review.service.js';
 import type { OrderStatus } from './order.model.js';
 
@@ -84,6 +85,20 @@ orderRoutes.get(
   '/:orderId',
   asyncHandler(async (req, res) => {
     sendData(res, await getOrderDetail(userId(res), toObjectId(String(req.params['orderId']))));
+  }),
+);
+
+orderRoutes.get(
+  '/:orderId/invoice',
+  asyncHandler(async (req, res) => {
+    const { fileName, pdf } = await getCustomerInvoicePdf(
+      userId(res),
+      toObjectId(String(req.params['orderId'])),
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
   }),
 );
 
