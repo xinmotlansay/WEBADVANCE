@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
@@ -8,6 +9,7 @@ import { ConfirmService } from '../../../../services/ui/confirm.service';
 import { AccountApiService, type AccountAddress, type AddressInput } from '../../../../services/account/account-api.service';
 import { AccountIconComponent } from '../../account-icon.component';
 import { ToastService } from '../../../../services/ui/toast.service';
+import { AddressMapPickerComponent, type MapPickResult } from '../../../../shared/ui/address-map-picker/address-map-picker.component';
 
 /** `public/data/vn-units.json`: 34 tỉnh/thành và phường/xã sau sáp nhập 2025, không còn cấp huyện. */
 interface VnUnits {
@@ -16,7 +18,7 @@ interface VnUnits {
 
 @Component({
   selector: 'app-addresses',
-  imports: [FormsModule, AccountIconComponent],
+  imports: [FormsModule, AccountIconComponent, AddressMapPickerComponent, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './addresses.component.html',
   styleUrl: './addresses.component.css',
@@ -37,7 +39,6 @@ export class AddressesComponent {
   protected readonly provinceKnown = computed(() =>
     !!this.units()?.provinces.some((p) => p.name === this.provinceText()),
   );
-
   protected readonly addresses = signal<AccountAddress[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -46,7 +47,8 @@ export class AddressesComponent {
   protected readonly formOpen = signal(false);
   protected readonly editingAddressId = signal('');
   protected readonly editingDefault = signal(false);
-  protected form: Required<AddressInput> = this.emptyAddress();
+  protected readonly mapOpen = signal(false);
+  protected form: (Required<Omit<AddressInput, 'latitude' | 'longitude'>> & { latitude: number | null; longitude: number | null }) = this.emptyAddress();
 
   constructor() {
     this.loadAddresses();
@@ -64,6 +66,8 @@ export class AddressesComponent {
           district: '',
           province: address.province,
           isDefault: address.isDefault,
+          latitude: address.latitude ?? null,
+          longitude: address.longitude ?? null,
         }
       : { ...this.emptyAddress(), isDefault: this.addresses().length === 0 };
     this.provinceText.set(this.form.province);
@@ -83,11 +87,34 @@ export class AddressesComponent {
     this.editingAddressId.set('');
   }
 
+  protected openMap(): void {
+    this.mapOpen.set(true);
+  }
+
+  protected onMapPicked(result: MapPickResult): void {
+    this.mapOpen.set(false);
+    this.form.latitude = result.latitude;
+    this.form.longitude = result.longitude;
+    if (result.addressLine) this.form.addressLine = result.addressLine;
+    if (result.province) {
+      this.form.province = result.province;
+      this.provinceText.set(result.province);
+      if (result.ward && this.wards().includes(result.ward)) this.form.ward = result.ward;
+      else if (result.ward) this.form.ward = result.ward; // may be adjusted by user if not in list
+    }
+    if (result.ward && !result.province && this.wards().includes(result.ward)) this.form.ward = result.ward;
+    if (result.ward && result.province && this.wards().includes(result.ward)) this.form.ward = result.ward;
+    this.notice.set(null);
+  }
+
   protected saveAddress(): void {
     if (this.saving()) return;
     const required = [this.form.recipientName, this.form.recipientPhone, this.form.addressLine, this.form.ward, this.form.province];
     if (required.some((value) => !value.trim())) {
       return this.showNotice('Vui lòng nhập đầy đủ các trường bắt buộc (*).', true);
+    }
+    if (typeof this.form.latitude !== 'number' || typeof this.form.longitude !== 'number') {
+      return this.showNotice('Vui lòng chọn vị trí trên bản đồ (kinh độ/vĩ độ bắt buộc).', true);
     }
     const provinces = this.units()?.provinces ?? [];
     if (provinces.length) {
@@ -108,6 +135,8 @@ export class AddressesComponent {
       province: this.form.province.trim(),
       ward: this.form.ward.trim(),
       district: undefined,
+      latitude: this.form.latitude,
+      longitude: this.form.longitude,
     };
     const id = this.editingAddressId();
     this.saving.set(true);
@@ -179,7 +208,17 @@ export class AddressesComponent {
     this.toast.success(text);
   }
 
-  private emptyAddress(): Required<AddressInput> {
-    return { recipientName: '', recipientPhone: '', addressLine: '', ward: '', district: '', province: '', isDefault: false };
+  private emptyAddress(): Required<Omit<AddressInput, 'latitude' | 'longitude'>> & { latitude: number | null; longitude: number | null } {
+    return {
+      recipientName: '',
+      recipientPhone: '',
+      addressLine: '',
+      ward: '',
+      district: '',
+      province: '',
+      isDefault: false,
+      latitude: null,
+      longitude: null,
+    };
   }
 }

@@ -34,9 +34,15 @@ export interface AccountAddress {
   district: string | null;
   province: string;
   isDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-export type AddressInput = Omit<AccountAddress, 'id' | 'district'> & { district?: string };
+export type AddressInput = Omit<AccountAddress, 'id' | 'district' | 'latitude' | 'longitude'> & {
+  district?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
 
 /** Ưu đãi 10% khách mới (mã NEW11). */
 export interface WelcomeOfferStatus {
@@ -57,8 +63,9 @@ export interface WelcomeOfferClaim {
   phoneNumber?: string;
   addressLine: string;
   ward: string;
-  district?: string;
   province: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface WelcomeOfferResult {

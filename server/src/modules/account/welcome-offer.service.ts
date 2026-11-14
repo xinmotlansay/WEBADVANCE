@@ -128,9 +128,10 @@ export async function claimWelcomeOffer(
     recipientPhone: phone,
     addressLine: body.addressLine,
     ward: body.ward,
-    district: body.district,
     province: body.province,
     isDefault: false,
+    latitude: body.latitude,
+    longitude: body.longitude,
   });
 
   let emailSent = false;

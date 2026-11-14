@@ -8,11 +8,15 @@ export interface Address {
   district: string | null;
   province: string;
   isDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-export type CreateAddressRequest = Omit<Address, 'id' | 'district' | 'isDefault'> & {
+export type CreateAddressRequest = Omit<Address, 'id' | 'district' | 'isDefault' | 'latitude' | 'longitude'> & {
   district?: string;
   isDefault?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
-export type UpdateAddressRequest = Partial<CreateAddressRequest>;
+export type UpdateAddressRequest = Partial<Omit<Address, 'id'>>;

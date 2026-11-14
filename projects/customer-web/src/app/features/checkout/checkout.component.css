@@ -698,3 +698,19 @@ div.method {
   font-size: var(--font-size-sm);
   color: var(--color-muted);
 }
+
+.map-field__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.map-field__ok {
+  color: #15803d;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+.map-field__warn {
+  color: #b45309;
+  font-size: var(--font-size-sm);
+}

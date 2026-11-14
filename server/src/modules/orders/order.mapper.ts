@@ -108,6 +108,8 @@ export function toOrderDetail(
       ward: order.shippingAddress.ward,
       district: order.shippingAddress.district ?? '',
       province: order.shippingAddress.province,
+      latitude: order.shippingAddress.latitude ?? null,
+      longitude: order.shippingAddress.longitude ?? null,
     },
     items: order.items.map(toItem),
     totals: {

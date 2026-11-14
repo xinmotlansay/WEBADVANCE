@@ -62,6 +62,8 @@ export interface ShippingAddress {
   ward: string;
   district?: string;
   province: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface OrderItem {
@@ -180,6 +182,8 @@ const orderSchema = new Schema<OrderDoc>(
       ward: { type: String, required: true },
       district: String,
       province: { type: String, required: true },
+      latitude: { type: Number, min: -90, max: 90, default: null },
+      longitude: { type: Number, min: -180, max: 180, default: null },
     },
     subtotal: { type: Number, required: true },
     promotionDiscount: { type: Number, required: true, default: 0 },

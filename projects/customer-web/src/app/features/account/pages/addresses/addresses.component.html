@@ -38,6 +38,20 @@
         <div class="address-fields">
           <label>Họ tên người nhận *<input [(ngModel)]="form.recipientName" name="recipientName" required maxlength="120" autocomplete="name" /></label>
           <label>Số điện thoại *<input [(ngModel)]="form.recipientPhone" name="recipientPhone" required maxlength="12" inputmode="tel" autocomplete="tel" placeholder="0xxxxxxxxx" /></label>
+
+          <div class="wide map-picker-block">
+            <div class="map-picker-block__head">
+              <span>Vị trí trên bản đồ (bắt buộc) *</span>
+              <button type="button" class="link-button" (click)="openMap()">Chọn trên bản đồ / GPS</button>
+            </div>
+            @if (form.latitude != null && form.longitude != null) {
+              <p class="map-picker-block__coords">Đã ghim: {{ form.latitude | number:'1.5-6' }}, {{ form.longitude | number:'1.5-6' }}</p>
+            } @else {
+              <p class="map-picker-block__coords map-picker-block__coords--warn">Chưa chọn vị trí. Vui lòng chọn trên bản đồ để lưu tọa độ giao hàng.</p>
+            }
+            <p class="map-picker-block__hint">Bạn có thể dùng vị trí hiện tại (GPS) hoặc tìm kiếm/ghim trên bản đồ. Địa chỉ chữ có thể chỉnh lại nếu cần, nhưng kinh độ/vĩ độ là bắt buộc.</p>
+          </div>
+
           @if (units()?.provinces?.length) {
             <!-- Ô chọn thay cho ô gõ + gợi ý: không phụ thuộc bộ gõ tiếng Việt và luôn khớp danh sách tỉnh/phường. -->
             <label>Tỉnh / thành phố *
@@ -77,6 +91,16 @@
           <button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu địa chỉ' }}</button>
         </div>
       </form>
+
+      @if (mapOpen()) {
+        <app-address-map-picker
+          [initialLat]="form.latitude"
+          [initialLng]="form.longitude"
+          [units]="units()"
+          (confirm)="onMapPicked($event)"
+          (cancel)="mapOpen.set(false)"
+        />
+      }
     }
   }
 </section>

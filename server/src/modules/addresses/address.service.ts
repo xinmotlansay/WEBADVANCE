@@ -12,6 +12,8 @@ export interface AddressView {
   district: string | null;
   province: string;
   isDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const toView = (a: AddressDoc): AddressView => ({
@@ -23,6 +25,8 @@ const toView = (a: AddressDoc): AddressView => ({
   district: a.district || null,
   province: a.province,
   isDefault: a.isDefault,
+  latitude: a.latitude ?? null,
+  longitude: a.longitude ?? null,
 });
 
 /** Mặc định đứng đầu, còn lại mới nhất trước. */

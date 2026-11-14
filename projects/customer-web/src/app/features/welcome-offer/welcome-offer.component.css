@@ -50,6 +50,13 @@ form { display: grid; gap: 18px; }
 .terms { margin: 14px 0 0 !important; color: #6b6b6b; font-size: 12px !important; text-align: center; }
 .api-error { padding: 10px 12px; border-radius: 6px; background: color-mix(in srgb, var(--color-accent) 10%, #fff); color: var(--color-accent); font-size: 13px; }
 
+.map-field { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.map-ok { color: #15803d; font-size: 13px; }
+.map-warn { color: var(--color-accent); font-size: 13px; }
+.field-error { grid-column: 2; margin-top: 6px; color: var(--color-accent); font-size: 12px; }
+.muted { grid-column: 2; margin-top: 6px; color: #8a8a8a; font-size: 12px; }
+.req { color: var(--color-accent); font-weight: 600; }
+
 @media (max-width: 760px) {
   .field-row, .field-row--wide { grid-template-columns: 1fr; gap: 8px; }
   .gender-label { margin-left: 0; margin-top: 8px; }

@@ -10,6 +10,8 @@ export interface AddressDoc {
   district?: string;
   province: string;
   isDefault: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const addressSchema = new Schema<AddressDoc>(
@@ -22,6 +24,8 @@ const addressSchema = new Schema<AddressDoc>(
     district: { type: String, trim: true },
     province: { type: String, required: true, trim: true },
     isDefault: { type: Boolean, required: true, default: false },
+    latitude: { type: Number, min: -90, max: 90, default: null },
+    longitude: { type: Number, min: -180, max: 180, default: null },
   },
   { timestamps: true },
 );

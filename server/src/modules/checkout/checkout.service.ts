@@ -136,7 +136,7 @@ async function resolveAddress(
 ): Promise<CheckoutPreview['address']> {
   if (body.newAddress && !body.addressId) {
     const { saveAddress: _, ...address } = body.newAddress;
-    return { id: null, ...address };
+    return { id: null, ...address, latitude: address.latitude ?? null, longitude: address.longitude ?? null };
   }
   const doc = await AddressModel.findOne(
     body.addressId ? { _id: body.addressId, userId } : { userId, isDefault: true },
@@ -150,6 +150,8 @@ async function resolveAddress(
     ward: doc.ward,
     district: doc.district,
     province: doc.province,
+    latitude: doc.latitude ?? null,
+    longitude: doc.longitude ?? null,
   };
 }
 

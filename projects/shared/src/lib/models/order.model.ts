@@ -107,6 +107,8 @@ export interface ShippingAddress {
   ward: string;
   district?: string | null;
   province: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface CheckoutPreview {

@@ -79,23 +79,62 @@
 
         <section class="block">
           <h2>Địa chỉ nhận hàng</h2>
+
+          <div class="field-row field-row--wide">
+            <span class="field-label">Vị trí trên bản đồ: <b class="req">*</b></span>
+            <div class="map-field">
+              <button type="button" class="outline-button" (click)="openMap()">Chọn vị trí / GPS</button>
+              @if (form.controls.latitude.value != null && form.controls.longitude.value != null) {
+                <span class="map-ok">Đã ghim tọa độ</span>
+              } @else {
+                <span class="map-warn">Chưa có tọa độ (bắt buộc)</span>
+              }
+            </div>
+            @if (invalid('latitude') || invalid('longitude')) {
+              <small class="field-error">Vui lòng chọn vị trí để lấy kinh độ/vĩ độ</small>
+            }
+            <small class="muted">Dùng vị trí hiện tại (GPS), tìm địa chỉ hoặc nhập toạ độ. Sau đó chỉnh lại Phường/Xã nếu cần.</small>
+          </div>
+
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-province">Tỉnh/Thành phố:</label>
+            <div class="input-box" [class.invalid]="invalid('province')">
+              <select id="wo-province" formControlName="province" autocomplete="address-level1" (change)="changeProvince()">
+                <option value="" disabled>{{ units() ? 'Chọn Tỉnh/Thành phố' : 'Đang tải...' }}</option>
+                @for (province of units()?.provinces; track province.name) {
+                  <option [value]="province.name">{{ province.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row field-row--wide">
+            <label class="field-label" for="wo-ward">Phường/Xã:</label>
+            <div class="input-box" [class.invalid]="invalid('ward')">
+              <select id="wo-ward" formControlName="ward" autocomplete="address-level2">
+                <option value="" disabled>{{ wards().length ? 'Chọn Phường/Xã' : 'Chọn Tỉnh/Thành phố trước' }}</option>
+                @for (ward of wards(); track ward) {
+                  <option [value]="ward">{{ ward }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
           <div class="field-row field-row--wide">
             <label class="field-label" for="wo-address">Số nhà, đường:</label>
             <div class="input-box" [class.invalid]="invalid('addressLine')"><input id="wo-address" formControlName="addressLine" autocomplete="street-address" /></div>
           </div>
-          <div class="field-row field-row--wide">
-            <label class="field-label" for="wo-ward">Phường/Xã:</label>
-            <div class="input-box" [class.invalid]="invalid('ward')"><input id="wo-ward" formControlName="ward" /></div>
-          </div>
-          <div class="field-row field-row--wide">
-            <label class="field-label" for="wo-district">Quận/Huyện:</label>
-            <div class="input-box"><input id="wo-district" formControlName="district" /></div>
-          </div>
-          <div class="field-row field-row--wide">
-            <label class="field-label" for="wo-province">Tỉnh/Thành phố:</label>
-            <div class="input-box" [class.invalid]="invalid('province')"><input id="wo-province" formControlName="province" autocomplete="address-level1" /></div>
-          </div>
         </section>
+
+        @if (mapOpen()) {
+          <app-address-map-picker
+            [initialLat]="form.controls.latitude.value"
+            [initialLng]="form.controls.longitude.value"
+            [units]="units()"
+            (confirm)="onMapPicked($event)"
+            (cancel)="mapOpen.set(false)"
+          />
+        }
 
         <section class="block block--last">
           <button class="primary-button" type="submit" [disabled]="loading() || form.invalid">{{ loading() ? 'Đang gửi...' : 'Nhận mã giảm giá' }}</button>

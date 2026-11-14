@@ -22,6 +22,7 @@ import {
   type DeliverySlot,
   type PublicConfig,
 } from 'shared';
+import { AddressMapPickerComponent, type MapPickResult } from '../../shared/ui/address-map-picker/address-map-picker.component';
 import {
   catchError,
   debounceTime,
@@ -68,7 +69,7 @@ interface VnUnits {
 /** Trang thanh toán (FR-31 → FR-39, FR-45; spec mục 3.2, 4.4). */
 @Component({
   selector: 'app-checkout',
-  imports: [ReactiveFormsModule, CompactHeaderComponent, IconComponent, VndPipe],
+  imports: [ReactiveFormsModule, CompactHeaderComponent, IconComponent, VndPipe, AddressMapPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.css',
@@ -100,13 +101,16 @@ export class CheckoutComponent {
   protected readonly addressId = signal<string | null>(null);
   protected readonly addingAddress = signal(false);
   protected readonly savingAddress = signal(false);
-  protected readonly addressForm = inject(FormBuilder).nonNullable.group({
+  protected readonly mapOpen = signal(false);
+  protected readonly addressForm = inject(FormBuilder).group({
     recipientName: ['', [Validators.required, Validators.maxLength(100)]],
     recipientPhone: ['', [Validators.required, Validators.pattern(PHONE)]],
     addressLine: ['', [Validators.required, Validators.maxLength(200)]],
     ward: ['', [Validators.required, Validators.maxLength(100)]],
     province: ['', [Validators.required, Validators.maxLength(100)]],
     isDefault: [false],
+    latitude: [null as number | null, [Validators.required]],
+    longitude: [null as number | null, [Validators.required]],
   });
   protected readonly addressSubmitted = signal(false);
   private readonly addressValid = toSignal(
@@ -354,7 +358,7 @@ export class CheckoutComponent {
   }
 
   protected startAddingAddress(): void {
-    this.addressForm.reset();
+    this.addressForm.reset({ isDefault: false, latitude: null, longitude: null });
     this.addressSubmitted.set(false);
     this.addingAddress.set(true);
   }
@@ -363,17 +367,56 @@ export class CheckoutComponent {
     this.addressForm.controls.ward.setValue('');
   }
 
+  protected openMap(): void {
+    this.mapOpen.set(true);
+  }
+
+  protected onMapPicked(result: MapPickResult): void {
+    this.mapOpen.set(false);
+    this.addressForm.patchValue({
+      latitude: result.latitude,
+      longitude: result.longitude,
+      addressLine: result.addressLine || this.addressForm.controls.addressLine.value || '',
+    });
+    if (result.province) {
+      this.addressForm.controls.province.setValue(result.province);
+      this.addressForm.controls.ward.setValue('');
+      // if ward matches after province set, wards() recomputes; set ward if present in list
+      if (result.ward && this.wards().includes(result.ward)) {
+        this.addressForm.controls.ward.setValue(result.ward);
+      } else if (result.ward) {
+        this.addressForm.controls.ward.setValue(result.ward);
+      }
+    } else if (result.ward) {
+      this.addressForm.controls.ward.setValue(result.ward);
+    }
+    this.addressForm.markAsDirty();
+    this.addressForm.updateValueAndValidity();
+  }
+
   /** Lưu địa chỉ đang nhập vào sổ (spec mục 6, quyết định 13) và chọn nó; lỗi thì trả về false. */
   private async saveAddress(): Promise<boolean> {
     this.savingAddress.set(true);
     try {
-      const created = await firstValueFrom(this.addressApi.create(this.addressForm.getRawValue()));
+      const raw = this.addressForm.getRawValue();
+      const created = await firstValueFrom(
+        this.addressApi.create({
+          recipientName: raw.recipientName || '',
+          recipientPhone: raw.recipientPhone || '',
+          addressLine: raw.addressLine || '',
+          ward: raw.ward || '',
+          province: raw.province || '',
+          isDefault: !!raw.isDefault,
+          latitude: raw.latitude as number,
+          longitude: raw.longitude as number,
+        }),
+      );
       // Địa chỉ đầu tiên server tự đặt mặc định; tải lại để đúng thứ tự.
       const list = await firstValueFrom(this.addressApi.list());
       this.addresses.set(list);
       this.addressId.set(created.id);
       this.addingAddress.set(false);
-      this.addressForm.reset();
+      this.addressForm.reset({ isDefault: false, latitude: null, longitude: null });
       this.addressSubmitted.set(false);
       return true;
     } catch (err) {

@@ -17,6 +17,8 @@ export interface OrderAddress {
   ward: string;
   district: string;
   province: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface OrderItem {

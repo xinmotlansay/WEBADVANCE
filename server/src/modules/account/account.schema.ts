@@ -93,8 +93,10 @@ export const claimWelcomeOfferSchema = z.object({
     .optional(),
   addressLine: z.string().trim().min(1, 'Nhập địa chỉ').max(200),
   ward: z.string().trim().min(1, 'Nhập phường/xã').max(100),
-  district: z.string().trim().min(1, 'Nhập quận/huyện').max(100),
   province: z.string().trim().min(1, 'Nhập tỉnh/thành phố').max(100),
+  /** Toạ độ bắt buộc để giao hàng/định vị (chọn qua bản đồ hoặc GPS). */
+  latitude: z.coerce.number().min(-90, 'Vĩ độ không hợp lệ').max(90, 'Vĩ độ không hợp lệ'),
+  longitude: z.coerce.number().min(-180, 'Kinh độ không hợp lệ').max(180, 'Kinh độ không hợp lệ'),
 });
 
 export const confirmWelcomeOfferSchema = z.object({ token: z.string().min(10).max(2000) });

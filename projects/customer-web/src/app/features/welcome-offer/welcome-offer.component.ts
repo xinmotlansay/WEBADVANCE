@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of, startWith } from 'rxjs';
 import { parseApiError } from '../../core/auth/auth-error';
 import {
   AccountApiService,
@@ -9,8 +11,19 @@ import {
   type WelcomeOfferStatus,
 } from '../../services/account/account-api.service';
 import { AuthService } from '../../services/auth/auth.service';
+import {
+  AddressMapPickerComponent,
+  type MapPickResult,
+} from '../../shared/ui/address-map-picker/address-map-picker.component';
 
 const REGISTER_LINK = { returnUrl: '/welcome-offer' };
+
+/** `public/data/vn-units.json`: 34 tỉnh/thành và phường/xã sau sáp nhập 2025, không còn cấp huyện. */
+interface VnUnits {
+  provinces: { name: string; wards: string[] }[];
+}
+
+const PHONE = /^(0|\+84)\d{9}$/;
 
 /**
  * Trang "Ưu đãi 10% cho khách hàng mới". Khách chưa có tài khoản bấm đăng ký rồi quay lại đây;
@@ -18,7 +31,7 @@ const REGISTER_LINK = { returnUrl: '/welcome-offer' };
  */
 @Component({
   selector: 'app-welcome-offer',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, AddressMapPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './welcome-offer.component.html',
   styleUrl: './welcome-offer.component.css',
@@ -27,6 +40,7 @@ export class WelcomeOfferComponent {
   private readonly auth = inject(AuthService);
   private readonly api = inject(AccountApiService);
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly http = inject(HttpClient);
 
   protected readonly registerQuery = REGISTER_LINK;
   protected readonly isAuthenticated = this.auth.isAuthenticated;
@@ -35,6 +49,8 @@ export class WelcomeOfferComponent {
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly mapOpen = signal(false);
+  protected readonly units = signal<VnUnits | null>(null);
 
   protected readonly form = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(2)]],
@@ -44,13 +60,24 @@ export class WelcomeOfferComponent {
     phoneNumber: [''],
     addressLine: ['', [Validators.required]],
     ward: ['', [Validators.required]],
-    district: ['', [Validators.required]],
     province: ['', [Validators.required]],
+    latitude: [null as number | null, [Validators.required]],
+    longitude: [null as number | null, [Validators.required]],
   });
+
+  private readonly provinceValue = toSignal(
+    this.form.controls.province.valueChanges.pipe(startWith('')),
+    { initialValue: '' },
+  );
+  protected readonly wards = computed(
+    () => this.units()?.provinces.find((p) => p.name === this.provinceValue())?.wards ?? [],
+  );
 
   private loadedFor: string | null = null;
 
   constructor() {
+    this.loadUnits();
+
     // Đăng nhập xong (kể cả vừa đăng ký rồi quay lại) thì tải trạng thái ưu đãi và mở popup.
     effect(() => {
       const user = this.auth.user();
@@ -71,6 +98,41 @@ export class WelcomeOfferComponent {
     });
   }
 
+  private loadUnits(): void {
+    this.http
+      .get<VnUnits>('/data/vn-units.json')
+      .pipe(
+        catchError(() => of<VnUnits>({ provinces: [] })),
+        takeUntilDestroyed(),
+      )
+      .subscribe((data) => this.units.set(data));
+  }
+
+  protected openMap(): void {
+    this.mapOpen.set(true);
+  }
+
+  protected onMapPicked(result: MapPickResult): void {
+    this.mapOpen.set(false);
+    this.form.patchValue({
+      latitude: result.latitude,
+      longitude: result.longitude,
+      addressLine: result.addressLine || this.form.controls.addressLine.value || '',
+    });
+    if (result.province) {
+      this.form.controls.province.setValue(result.province);
+      this.form.controls.ward.setValue(result.ward || '');
+    } else if (result.ward) {
+      this.form.controls.ward.setValue(result.ward);
+    }
+    this.form.markAsDirty();
+    this.form.updateValueAndValidity();
+  }
+
+  protected changeProvince(): void {
+    this.form.controls.ward.setValue('');
+  }
+
   protected submit(): void {
     this.errorMessage.set(null);
     const status = this.status();
@@ -83,7 +145,7 @@ export class WelcomeOfferComponent {
       this.errorMessage.set('Nhập email hợp lệ để nhận mã giảm giá.');
       return;
     }
-    if (status && !status.phoneNumber && !/^(0|\+84)\d{9}$/.test(phone)) {
+    if (status && !status.phoneNumber && !PHONE.test(phone)) {
       this.form.controls.phoneNumber.markAsTouched();
       this.errorMessage.set('Nhập số điện thoại hợp lệ (ví dụ: 0901234567).');
       return;
@@ -103,8 +165,9 @@ export class WelcomeOfferComponent {
         ...(status && !status.phoneNumber ? { phoneNumber: phone } : {}),
         addressLine: raw.addressLine.trim(),
         ward: raw.ward.trim(),
-        district: raw.district.trim(),
         province: raw.province.trim(),
+        latitude: raw.latitude as number,
+        longitude: raw.longitude as number,
       })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
@@ -120,7 +183,7 @@ export class WelcomeOfferComponent {
     // Tài khoản chưa có email / số điện thoại thì bắt buộc nhập.
     const { email, phoneNumber } = this.form.controls;
     if (!status.email) email.setValidators([Validators.required, Validators.email]);
-    if (!status.phoneNumber) phoneNumber.setValidators([Validators.required, Validators.pattern(/^(0|\+84)\d{9}$/)]);
+    if (!status.phoneNumber) phoneNumber.setValidators([Validators.required, Validators.pattern(PHONE)]);
     email.updateValueAndValidity();
     phoneNumber.updateValueAndValidity();
     this.form.patchValue({

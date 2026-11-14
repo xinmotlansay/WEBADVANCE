@@ -18,6 +18,22 @@
 
             @if (addingAddress()) {
               <form class="form" [formGroup]="addressForm" novalidate (ngSubmit)="place()">
+                <div class="field map-field">
+                  <span>Vị trí giao hàng trên bản đồ <b class="req">*</b></span>
+                  <div class="map-field__row">
+                    <button type="button" class="btn btn--ghost" (click)="openMap()">Chọn trên bản đồ / GPS</button>
+                    @if (addressForm.controls.latitude.value != null && addressForm.controls.longitude.value != null) {
+                      <span class="map-field__ok">Đã ghim tọa độ</span>
+                    } @else {
+                      <span class="map-field__warn">Chưa có tọa độ (bắt buộc)</span>
+                    }
+                  </div>
+                  @if (submitted() && (addressForm.controls.latitude.invalid || addressForm.controls.longitude.invalid)) {
+                    <small class="error">Vui lòng chọn vị trí trên bản đồ để lấy kinh độ/vĩ độ</small>
+                  }
+                  <small class="muted">Có thể dùng vị trí hiện tại hoặc ghim trên bản đồ. Địa chỉ chữ sẽ được gợi ý và bạn có thể chỉnh lại nếu cần.</small>
+                </div>
+
                 <label class="field">
                   <span>Họ và Tên <b class="req">*</b></span>
                   <input
@@ -103,6 +119,15 @@
                   </button>
                 }
               </form>
+              @if (mapOpen()) {
+                <app-address-map-picker
+                  [initialLat]="addressForm.controls.latitude.value"
+                  [initialLng]="addressForm.controls.longitude.value"
+                  [units]="units()"
+                  (confirm)="onMapPicked($event)"
+                  (cancel)="mapOpen.set(false)"
+                />
+              }
             } @else {
               <div class="options" role="radiogroup" aria-label="Chọn địa chỉ giao hàng">
                 @for (a of addresses(); track a.id) {

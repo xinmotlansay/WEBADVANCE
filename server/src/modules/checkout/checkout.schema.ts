@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createAddressSchema } from '../addresses/address.schema.js';
+import { addressInputSchema, refineCoords } from '../addresses/address.schema.js';
 
 const objectId = z.string().regex(/^[0-9a-f]{24}$/i, 'Mã không hợp lệ');
 const text = (max: number) => z.string().trim().min(1, 'Không được để trống').max(max);
@@ -27,9 +27,10 @@ const checkoutBase = z.object({
   items: z.array(buyNowLine).max(50).nullish(),
   voucher: voucherChoice.nullish(),
   addressId: objectId.nullish(),
-  newAddress: createAddressSchema
+  newAddress: addressInputSchema
     .omit({ isDefault: true })
     .extend({ saveAddress: z.boolean().default(false) })
+    .superRefine(refineCoords)
     .nullish(),
   delivery: z
     .object({
