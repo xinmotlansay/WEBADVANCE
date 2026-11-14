@@ -1,111 +1,62 @@
-import { applicationDefault, cert, getApps, initializeApp, type App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { OAuth2Client } from 'google-auth-library';
 import { AppError } from '../lib/app-error.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../config/index.js';
 
 export interface GoogleProfile {
-  /** ID người dùng Google (ổn định, không phụ thuộc project Firebase). */
+  /** Google account ID, stable across OAuth client changes. */
   googleId: string;
   email: string;
   fullName: string;
   avatar: string;
 }
 
-interface FirebaseContext {
-  app: App;
-  /** Có service account thì mới kiểm tra được token đã bị thu hồi (checkRevoked). */
-  canCheckRevoked: boolean;
-}
-
-function buildContext(): FirebaseContext {
-  const existing = getApps()[0];
-  if (existing) {
-    return { app: existing, canCheckRevoked: hasServiceAccount() };
-  }
-
-  const projectId = config.firebaseProjectId;
-  const clientEmail = config.firebaseClientEmail;
-  const privateKey = config.firebasePrivateKey?.replace(/\\n/g, '\n');
-
-  if (projectId && clientEmail && privateKey) {
-    return {
-      app: initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId }),
-      canCheckRevoked: true,
-    };
-  }
-
-  if (config.googleApplicationCredentials) {
-    return {
-      app: initializeApp({ credential: applicationDefault(), ...(projectId ? { projectId } : {}) }),
-      canCheckRevoked: true,
-    };
-  }
-
-  // Chỉ có projectId vẫn verify được ID token: Firebase Admin tải public key từ Google.
-  // Khi dùng cách này thì không gọi được API quản trị (vd: kiểm tra token bị thu hồi).
-  if (projectId) {
-    return { app: initializeApp({ projectId }), canCheckRevoked: false };
-  }
-
-  throw new AppError(
-    'GOOGLE_LOGIN_NOT_CONFIGURED',
-    500,
-    'Hệ thống chưa cấu hình đăng nhập bằng Google',
-  );
-}
-
-function hasServiceAccount(): boolean {
-  return Boolean(
-    config.firebaseClientEmail &&
-      config.firebasePrivateKey &&
-      config.firebaseProjectId,
-  ) || Boolean(config.googleApplicationCredentials);
-}
+const googleOAuthClient = new OAuth2Client();
 
 /**
- * Xác minh ID token do Firebase Auth (provider Google) cấp ở phía trình duyệt.
- * Kiểm tra: chữ ký hợp lệ, còn hạn, đúng project, và thực sự đến từ provider Google.
+ * Xác minh ID token do Google Identity Services cấp ở phía trình duyệt.
+ * Kiểm tra chữ ký, thời hạn và audience theo Google OAuth Client ID đã cấu hình.
  */
-export async function verifyFirebaseIdToken(idToken: string): Promise<GoogleProfile> {
+export async function verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
+  if (!config.googleClientId) {
+    throw new AppError(
+      'GOOGLE_LOGIN_NOT_CONFIGURED',
+      500,
+      'Hệ thống chưa cấu hình Google OAuth Client ID',
+    );
+  }
+
   try {
-    const { app, canCheckRevoked } = buildContext();
-    const decoded = await getAuth(app).verifyIdToken(idToken, canCheckRevoked);
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken,
+      audience: config.googleClientId,
+    });
+    const decoded = ticket.getPayload();
 
-    if (decoded.firebase?.sign_in_provider !== 'google.com') {
-      throw new AppError(
-        'GOOGLE_INVALID_TOKEN',
-        401,
-        'Mã xác thực Google không hợp lệ, vui lòng thử lại',
-      );
-    }
-
-    if (!decoded.email) {
+    if (!decoded?.sub || !decoded.email) {
       throw new AppError(
         'GOOGLE_EMAIL_MISSING',
         401,
-        'Tài khoản Google không cung cấp email, vui lòng dùng cách đăng nhập khác',
+        'Tài khoản Google không cung cấp thông tin email hợp lệ',
       );
     }
 
-    if (decoded.email_verified === false) {
+    if (decoded.email_verified !== true) {
       throw new AppError('GOOGLE_EMAIL_NOT_VERIFIED', 401, 'Email Google chưa được xác minh');
     }
 
-    const googleId = decoded.firebase?.identities?.['google.com']?.[0] ?? decoded.uid;
-
     return {
-      googleId,
+      googleId: decoded.sub,
       email: decoded.email.toLowerCase(),
       fullName: (decoded.name || decoded.email.split('@')[0] || 'Khách hàng').trim(),
-      avatar: decoded.picture ?? '',
+      avatar: decoded.picture || '',
     };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
 
-    logger.warn({ err: error }, 'Xác minh Firebase ID token thất bại');
+    logger.warn({ err: error }, 'Xác minh Google ID token thất bại');
     throw new AppError(
       'GOOGLE_INVALID_TOKEN',
       401,

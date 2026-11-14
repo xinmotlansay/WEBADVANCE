@@ -1,78 +1,113 @@
 import { Injectable } from '@angular/core';
-import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import {
-  GoogleAuthProvider,
-  getAuth,
-  signInWithPopup,
-  type Auth,
-  type UserCredential,
-} from 'firebase/auth';
-import { firebaseConfig } from '../../core/auth/firebase.config';
+import { googleOAuthConfig } from '../../core/auth/google-oauth.config';
 
-/** Lỗi hiển thị được cho người dùng (message đã là tiếng Việt). */
 export class GoogleAuthError extends Error {}
 
-const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
-  'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập Google.',
-  'auth/cancelled-popup-request': 'Đã có một cửa sổ đăng nhập Google đang mở.',
-  'auth/popup-blocked':
-    'Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng cho phép popup rồi thử lại.',
-  'auth/unauthorized-domain':
-    'Tên miền này chưa được cấp phép trong Firebase. Vui lòng thêm localhost vào Authorized domains.',
-  'auth/operation-not-allowed':
-    'Đăng nhập Google chưa được bật trong Firebase. Vui lòng bật provider Google.',
-  'auth/network-request-failed': 'Không kết nối được tới Google, vui lòng kiểm tra mạng.',
-  'auth/account-exists-with-different-credential':
-    'Email này đã được dùng với cách đăng nhập khác.',
-};
+interface GoogleCredentialResponse {
+  credential?: string;
+}
+
+interface GoogleIdentityApi {
+  initialize(options: {
+    client_id: string;
+    callback: (response: GoogleCredentialResponse) => void;
+  }): void;
+  renderButton(
+    parent: HTMLElement,
+    options: {
+      theme: 'outline';
+      size: 'large';
+      text: 'signin_with' | 'signup_with';
+      shape: 'rectangular';
+      logo_alignment: 'left';
+      width: number;
+      locale: 'vi';
+    },
+  ): void;
+}
+
+interface GoogleNamespace {
+  accounts: {
+    id: GoogleIdentityApi;
+  };
+}
+
+type WindowWithGoogle = Window & { google?: GoogleNamespace };
+
+const GOOGLE_IDENTITY_SCRIPT = 'https://accounts.google.com/gsi/client';
+
+function getGoogleIdentityApi(): GoogleIdentityApi | null {
+  return (window as WindowWithGoogle).google?.accounts?.id ?? null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
-  private app: FirebaseApp | null = null;
-  private auth: Auth | null = null;
+  private scriptPromise: Promise<GoogleIdentityApi> | null = null;
 
-  readonly isConfigured = Boolean(
-    firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.appId,
-  );
-
-  /** Mở popup đăng nhập Google và trả về Firebase ID token để backend xác minh. */
-  async signIn(): Promise<string> {
-    const credential = await this.openPopup();
-    return credential.user.getIdToken();
-  }
-
-  private async openPopup(): Promise<UserCredential> {
-    if (!this.isConfigured) {
-      throw new GoogleAuthError(
-        'Chưa cấu hình Firebase cho trang khách hàng. Vui lòng điền firebase.config.ts.',
-      );
+  async renderButton(
+    container: HTMLElement,
+    label: string,
+    onCredential: (idToken: string) => void,
+    onError: (message: string) => void,
+  ): Promise<void> {
+    if (!googleOAuthConfig.clientId) {
+      throw new GoogleAuthError('Chưa cấu hình Google OAuth Client ID cho trang khách hàng.');
     }
 
-    try {
-      return await signInWithPopup(this.getAuth(), new GoogleAuthProvider());
-    } catch (error) {
-      throw new GoogleAuthError(this.toMessage(error));
-    }
+    const google = await this.loadGoogleIdentityApi();
+    google.initialize({
+      client_id: googleOAuthConfig.clientId,
+      callback: (response) => {
+        if (!response.credential) {
+          onError('Google không trả về mã xác thực, vui lòng thử lại.');
+          return;
+        }
+        onCredential(response.credential);
+      },
+    });
+
+    const availableWidth = Math.round(container.getBoundingClientRect().width);
+    google.renderButton(container, {
+      theme: 'outline',
+      size: 'large',
+      text: label.includes('Đăng ký') ? 'signup_with' : 'signin_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: Math.min(Math.max(availableWidth, 120), 400),
+      locale: 'vi',
+    });
   }
 
-  private getAuth(): Auth {
-    if (this.auth) {
-      return this.auth;
+  private loadGoogleIdentityApi(): Promise<GoogleIdentityApi> {
+    const existing = getGoogleIdentityApi();
+    if (existing) {
+      return Promise.resolve(existing);
+    }
+    if (this.scriptPromise) {
+      return this.scriptPromise;
     }
 
-    this.app = getApps()[0] ?? initializeApp(firebaseConfig);
-    this.auth = getAuth(this.app);
-    return this.auth;
-  }
+    this.scriptPromise = new Promise<GoogleIdentityApi>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = GOOGLE_IDENTITY_SCRIPT;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        const google = getGoogleIdentityApi();
+        if (!google) {
+          this.scriptPromise = null;
+          reject(new GoogleAuthError('Không tải được dịch vụ đăng nhập Google, vui lòng thử lại.'));
+          return;
+        }
+        resolve(google);
+      };
+      script.onerror = () => {
+        this.scriptPromise = null;
+        reject(new GoogleAuthError('Không kết nối được tới Google, vui lòng kiểm tra mạng.'));
+      };
+      document.head.appendChild(script);
+    });
 
-  private toMessage(error: unknown): string {
-    const code =
-      typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code: unknown }).code)
-        : '';
-    return FIREBASE_ERROR_MESSAGES[code] ?? 'Đăng nhập Google thất bại, vui lòng thử lại.';
+    return this.scriptPromise;
   }
 }

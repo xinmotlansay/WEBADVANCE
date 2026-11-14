@@ -5,7 +5,7 @@ import { AppError } from '../../lib/app-error.js';
 import { logger } from '../../lib/logger.js';
 import { AuthSource, OtpChannel, OtpPurpose, UserStatus } from '../../lib/shared-enums.js';
 import { config } from '../../config/index.js';
-import { verifyFirebaseIdToken, type GoogleProfile } from '../../integrations/google.js';
+import { verifyGoogleIdToken, type GoogleProfile } from '../../integrations/google.js';
 import { ensureCustomerRole, mapUser, type AuthResult, type AuthUserSource } from './auth.service.js';
 import { UserModel, type IRole, type IUser } from './auth.model.js';
 import { consumeVerifiedOtp, sendOtp } from './otp.service.js';
@@ -89,7 +89,7 @@ async function startSession(
  * - Email đã có tài khoản nhưng chưa liên kết: trả 409 kèm linkToken để xác minh quyền sở hữu.
  */
 export async function loginWithGoogle(idToken: string, res: Response): Promise<AuthResult> {
-  const profile = await verifyFirebaseIdToken(idToken);
+  const profile = await verifyGoogleIdToken(idToken);
 
   const linked = await UserModel.findOne({ googleId: profile.googleId }).populate<{ roleId: IRole }>(
     'roleId',

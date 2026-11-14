@@ -1,10 +1,13 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnDestroy,
   Output,
+  ViewChild,
   inject,
   signal,
 } from '@angular/core';
@@ -34,9 +37,10 @@ interface LinkState {
   templateUrl: './google-auth.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GoogleAuthComponent implements OnDestroy {
+export class GoogleAuthComponent implements AfterViewInit, OnDestroy {
   @Input() label = 'Đăng nhập bằng Google';
   @Output() readonly authenticated = new EventEmitter<void>();
+  @ViewChild('googleButton', { static: true }) private googleButton!: ElementRef<HTMLDivElement>;
 
   private readonly auth = inject(AuthService);
   private readonly googleAuth = inject(GoogleAuthService);
@@ -58,31 +62,19 @@ export class GoogleAuthComponent implements OnDestroy {
 
   private linkTimer: ReturnType<typeof setInterval> | null = null;
 
-  signIn(): void {
-    if (this.loading() || this.linkState()) {
-      return;
-    }
-
-    this.errorMessage.set(null);
-    this.loading.set(true);
-
-    this.googleAuth
-      .signIn()
-      .then((idToken) => {
-        this.auth
-          .loginWithGoogle({ idToken })
-          .pipe(finalize(() => this.loading.set(false)))
-          .subscribe({
-            next: () => this.authenticated.emit(),
-            error: (error: unknown) => this.handleGoogleError(error),
-          });
-      })
+  ngAfterViewInit(): void {
+    void this.googleAuth
+      .renderButton(
+        this.googleButton.nativeElement,
+        this.label,
+        this.handleGoogleCredential,
+        this.handleGoogleCredentialError,
+      )
       .catch((error: unknown) => {
-        this.loading.set(false);
         this.errorMessage.set(
           error instanceof GoogleAuthError
             ? error.message
-            : 'Đăng nhập Google thất bại, vui lòng thử lại.',
+            : 'Không tải được nút đăng nhập Google, vui lòng thử lại.',
         );
       });
   }
@@ -181,6 +173,26 @@ export class GoogleAuthComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.stopLinkCountdown();
   }
+
+  private readonly handleGoogleCredential = (idToken: string): void => {
+    if (this.loading() || this.linkState()) {
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.loading.set(true);
+    this.auth
+      .loginWithGoogle({ idToken })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: () => this.authenticated.emit(),
+        error: (error: unknown) => this.handleGoogleError(error),
+      });
+  };
+
+  private readonly handleGoogleCredentialError = (message: string): void => {
+    this.errorMessage.set(message);
+  };
 
   private handleGoogleError(error: unknown): void {
     const parsed = parseApiError(error);

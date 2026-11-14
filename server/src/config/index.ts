@@ -21,7 +21,7 @@ export const config = {
   chatAiRateLimit: Number(process.env['CHAT_AI_RATE_LIMIT'] ?? 20),
   chatAiRateWindowSeconds: Number(process.env['CHAT_AI_RATE_WINDOW_SECONDS'] ?? 60),
   chatHistoryLimit: Number(process.env['CHAT_HISTORY_LIMIT'] ?? 20),
-  googleClientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
+  googleClientId: (process.env['GOOGLE_CLIENT_ID'] ?? '').trim(),
   bankWebhookSecret: process.env['BANK_WEBHOOK_SECRET'] ?? '',
   isProduction: process.env['NODE_ENV'] === 'production',
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
@@ -40,10 +40,6 @@ export const config = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
-  firebaseProjectId: process.env['FIREBASE_PROJECT_ID'],
-  firebaseClientEmail: process.env['FIREBASE_CLIENT_EMAIL'],
-  firebasePrivateKey: process.env['FIREBASE_PRIVATE_KEY'],
-  googleApplicationCredentials: process.env['GOOGLE_APPLICATION_CREDENTIALS'],
   accessTokenTtl: '15m' as const,
   customerRefreshTtlSeconds: 7 * 24 * 60 * 60,
   adminRefreshTtlSeconds: 30 * 60,
