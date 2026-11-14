@@ -5,6 +5,18 @@
 >
   @if (ui.aiOpen()) {
     <form class="composer" [class.composer--active]="showPanel()" (submit)="onSubmit($event)">
+      <button
+        class="composer__menu"
+        type="button"
+        (click)="toggleHistory()"
+        [class.composer__menu--active]="historyOpen()"
+        [attr.aria-expanded]="historyOpen()"
+        aria-label="Danh sách cuộc trò chuyện"
+        title="Danh sách cuộc trò chuyện"
+      >
+        <app-icon name="lucide:menu" [size]="20" />
+      </button>
+
       <textarea
         #input
         rows="1"
@@ -57,18 +69,6 @@
           </div>
 
           <div class="panel__actions">
-            <button
-              class="panel__icon"
-              type="button"
-              (click)="toggleHistory()"
-              [class.panel__icon--active]="historyOpen()"
-              aria-label="Lịch sử phiên chat"
-              title="Lịch sử phiên chat"
-              [attr.aria-expanded]="historyOpen()"
-            >
-              <app-icon name="lucide:history" [size]="17" />
-            </button>
-
             <button class="panel__icon" type="button" (click)="close()" aria-label="Đóng trợ lý AI">
               <app-icon name="lucide:x" [size]="17" />
             </button>
@@ -136,6 +136,10 @@
           </div>
         }
 
+        @if (!loading() && followUpQuestion()) {
+          <p class="followup">{{ followUpQuestion() }}</p>
+        }
+
         @if (!loading() && suggestions().length > 0) {
           <div class="suggestions" aria-label="Câu hỏi gợi ý">
             @for (prompt of suggestions(); track prompt) {
@@ -145,55 +149,107 @@
         }
 
         @if (historyOpen()) {
-          <div class="history" role="dialog" aria-label="Lịch sử phiên chat">
-            <header class="history__head">
-              <strong>Lịch sử trò chuyện</strong>
+          <div class="drawer-backdrop" (click)="closeHistory()" aria-hidden="true"></div>
 
-              <button class="history__new" type="button" (click)="startNewSession()">
-                <app-icon name="lucide:plus" [size]="14" />
-                <span>Cuộc trò chuyện mới</span>
+          <aside class="drawer" role="dialog" aria-label="Danh sách cuộc trò chuyện">
+            <header class="drawer__head">
+              <strong>Cuộc trò chuyện</strong>
+              <button
+                class="drawer__close"
+                type="button"
+                (click)="closeHistory()"
+                aria-label="Đóng danh sách cuộc trò chuyện"
+              >
+                <app-icon name="lucide:x" [size]="16" />
               </button>
             </header>
 
+            <button class="drawer__new" type="button" (click)="startNewSession()">
+              <app-icon name="lucide:plus" [size]="15" />
+              <span>Cuộc trò chuyện mới</span>
+            </button>
+
             @if (sessions().length === 0) {
-              <p class="history__empty">
-                Chưa có phiên chat nào. Hội thoại chỉ lưu tạm trên trình duyệt này.
+              <p class="drawer__empty">
+                Chưa có cuộc trò chuyện nào. Hội thoại của bạn được lưu để mở lại sau.
               </p>
             } @else {
-              <ul class="history__list">
-                @for (session of sessions(); track session.id) {
-                  <li>
-                    <div
-                      class="history__item"
-                      [class.history__item--active]="session.id === activeSessionId()"
-                    >
-                      <button
-                        class="history__open"
-                        type="button"
-                        (click)="selectSession(session.id)"
-                      >
-                        <span class="history__title">{{ session.title }}</span>
-                        <span class="history__meta">
-                          {{ session.messages.length }} tin nhắn ·
-                          {{ relativeTime(session.updatedAt) }}
-                        </span>
-                      </button>
+              <div class="drawer__list">
+                @for (group of sessionGroups(); track group.label) {
+                  <p class="drawer__group">{{ group.label }}</p>
 
-                      <button
-                        class="history__delete"
-                        type="button"
-                        (click)="removeSession(session.id, $event)"
-                        aria-label="Xoá phiên chat"
-                        title="Xoá phiên chat"
+                  <ul>
+                    @for (session of group.items; track session.id) {
+                      <li
+                        class="drawer__item"
+                        [class.drawer__item--active]="session.id === activeSessionId()"
                       >
-                        <app-icon name="lucide:trash-2" [size]="15" />
-                      </button>
-                    </div>
-                  </li>
+                        @if (renamingId() === session.id) {
+                          <input
+                            #renameInput
+                            class="drawer__rename"
+                            type="text"
+                            maxlength="120"
+                            [value]="renameDraft()"
+                            (input)="onRenameInput($event)"
+                            (keydown.enter)="saveRename(session.id, $event)"
+                            (keydown.escape)="cancelRename()"
+                            (blur)="saveRename(session.id)"
+                            aria-label="Tên cuộc trò chuyện"
+                          />
+                        } @else {
+                          <button
+                            class="drawer__open"
+                            type="button"
+                            (click)="selectSession(session.id)"
+                          >
+                            <span class="drawer__title">{{ session.title }}</span>
+                            <span class="drawer__meta">
+                              {{ session.messageCount }} tin nhắn ·
+                              {{ relativeTime(session.updatedAt) }}
+                            </span>
+                          </button>
+
+                          <div class="drawer__actions">
+                            <button
+                              class="drawer__icon"
+                              type="button"
+                              (click)="startRename(session, $event)"
+                              aria-label="Đổi tên cuộc trò chuyện"
+                              title="Đổi tên"
+                            >
+                              <app-icon name="lucide:pencil" [size]="14" />
+                            </button>
+
+                            @if (deleteConfirmId() === session.id) {
+                              <button
+                                class="drawer__icon drawer__icon--confirm"
+                                type="button"
+                                (click)="confirmDelete(session.id, $event)"
+                                aria-label="Xác nhận xoá cuộc trò chuyện"
+                              >
+                                Xoá?
+                              </button>
+                            } @else {
+                              <button
+                                class="drawer__icon drawer__icon--danger"
+                                type="button"
+                                (click)="requestDelete(session.id, $event)"
+                                aria-label="Xoá cuộc trò chuyện"
+                                title="Xoá"
+                              >
+                                <app-icon name="lucide:trash-2" [size]="14" />
+                              </button>
+                            }
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
                 }
-              </ul>
+              </div>
             }
-          </div>
+          </aside>
         }
       </section>
     }

@@ -4,6 +4,12 @@ import { hitRateCounter } from '../../lib/rate-counter.js';
 import { ChatMode, ChatSenderType, ChatSessionStatus } from '../../lib/shared-enums.js';
 import { generateChatAnswer } from '../../integrations/gemini.js';
 import {
+  appendAiMessages,
+  ensureAiConversation,
+  loadAiHistory,
+} from './ai-conversation.service.js';
+import type { AiOwner } from './chat-ai-owner.js';
+import {
   getChatCatalogSafe,
   getPublicChatCatalog,
   type ChatCatalog,
@@ -32,7 +38,7 @@ const POLICIES: Record<string, string> = {
   voucher:
     'Mỗi đơn áp dụng tối đa 1 voucher. Voucher công khai, voucher trong ví và voucher gán riêng có điều kiện khác nhau, hiển thị ở bước thanh toán.',
   workingHours:
-    'CaraVeso làm việc 8:00-17:30 thứ 2 đến thứ 7. Hotline 1900 080906, email caravesodesign@com.vn. Ngoài giờ, khách để lại tin nhắn và được trả lời vào ngày làm việc kế tiếp.',
+    'CaraVeso làm việc 8:00-17:30 thứ 2 đến thứ 7. Hotline 1900 080906, email caravesodesign@caraveso.com.vn. Ngoài giờ, khách để lại tin nhắn và được trả lời vào ngày làm việc kế tiếp.',
 };
 
 /** Gợi ý câu hỏi tiếp theo cho khung chat AI công khai (không lưu DB). */
@@ -200,21 +206,32 @@ export interface PublicAiAnswer {
   suggestions: string[];
   products: ReturnType<typeof selectCatalogSuggestionProducts>;
   provider: 'gemini';
+  conversationId: string;
+  followUp: { question: string; options: string[] } | null;
 }
 
 /**
  * Trả lời AI cho khung chat công khai trên trang chủ.
- * Không tạo phiên, không ghi tin nhắn vào MongoDB; lịch sử do client gửi lên.
+ * Hội thoại được lưu trên server theo tài khoản hoặc mã khách vãng lai (cookie).
  */
 export async function askPublicAi(
   message: string,
   history: HistoryItem[],
+  owner: AiOwner,
+  conversationId?: string,
 ): Promise<PublicAiAnswer> {
   let catalog: ChatCatalog = { products: [], showrooms: [], collections: [] };
 
+  const conversation = await ensureAiConversation(owner, conversationId);
+  // Phiên đã có tin nhắn thì dựng ngữ cảnh từ DB để khách không sửa được lịch sử gửi lên.
+  const aiHistory =
+    conversation.messageCount > 0
+      ? await loadAiHistory(owner, conversation.conversationId, config.chatHistoryLimit)
+      : history;
+
   const answer = await generateChatAnswer({
     message,
-    history,
+    history: aiHistory,
     loadContext: async (query) => {
       catalog = await getPublicChatCatalog();
       const relevantProducts = findCatalogPriceProducts(query, catalog);
@@ -226,10 +243,19 @@ export async function askPublicAi(
     },
   });
 
+  const products = selectCatalogSuggestionProducts(catalog, answer.productSlugs);
+
+  await appendAiMessages(owner, conversation.conversationId, [
+    { role: 'user', content: message },
+    { role: 'assistant', content: answer.text, products, model: answer.model },
+  ]);
+
   return {
     reply: answer.text,
-    suggestions: PUBLIC_SUGGESTIONS,
-    products: selectCatalogSuggestionProducts(catalog, answer.productSlugs),
+    suggestions: answer.followUp?.options.length ? answer.followUp.options : PUBLIC_SUGGESTIONS,
+    products,
     provider: 'gemini',
+    conversationId: conversation.conversationId,
+    followUp: answer.followUp,
   };
 }

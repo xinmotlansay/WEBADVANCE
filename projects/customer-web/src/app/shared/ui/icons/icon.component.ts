@@ -18,6 +18,8 @@ export type IconName =
   | 'lucide:check'
   | 'lucide:minus'
   | 'lucide:plus'
+  | 'lucide:menu'
+  | 'lucide:pencil'
   | 'lucide:trash-2'
   | 'lucide:hand-coins'
   | 'lucide:qr-code'

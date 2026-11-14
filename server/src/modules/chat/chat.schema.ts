@@ -32,6 +32,10 @@ export const chatAiAskSchema = z.object({
     .trim()
     .min(1, 'Vui lòng nhập câu hỏi')
     .max(2000, 'Câu hỏi tối đa 2000 ký tự'),
+  conversationId: z
+    .string()
+    .regex(/^[\w-]{1,64}$/, 'Mã phiên chat không hợp lệ')
+    .optional(),
   history: z
     .array(
       z.object({
@@ -41,6 +45,14 @@ export const chatAiAskSchema = z.object({
     )
     .max(10)
     .default([]),
+});
+
+export const chatAiConversationParamsSchema = z.object({
+  id: z.string().regex(/^[\w-]{1,64}$/, 'Mã phiên chat không hợp lệ'),
+});
+
+export const chatAiConversationRenameSchema = z.object({
+  title: z.string().trim().min(1, 'Tên phiên chat không được để trống').max(120),
 });
 
 export const chatAdminSessionListQuerySchema = z.object({

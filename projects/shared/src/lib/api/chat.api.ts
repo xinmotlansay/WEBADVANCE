@@ -81,6 +81,8 @@ export interface ChatAiHistoryItem {
 export interface ChatAiAskRequest {
   message: string;
   history?: ChatAiHistoryItem[];
+  /** Phiên AI đang mở; bỏ trống để tạo phiên mới (server trả về trong response). */
+  conversationId?: string;
 }
 
 /** Thẻ sản phẩm AI gợi ý kèm đầy đủ thuộc tính để hiển thị trong khung chat. */
@@ -102,11 +104,43 @@ export interface ChatAiProductSuggestion {
   hasPromotion: boolean;
 }
 
+/** Câu hỏi trắc nghiệm AI gợi ý khi mô tả của khách còn quá sơ sài. */
+export interface ChatAiFollowUp {
+  question: string;
+  options: string[];
+}
+
 export interface ChatAiAskResponse {
   reply: string;
   suggestions: string[];
   products: ChatAiProductSuggestion[];
   provider: 'gemini';
+  /** Phiên hội thoại server đã lưu; dùng lại ở các câu hỏi tiếp theo. */
+  conversationId: string;
+  /** Câu hỏi làm rõ (kèm lựa chọn) hoặc null nếu đã đủ thông tin. */
+  followUp: ChatAiFollowUp | null;
+}
+
+/** Một phiên hội thoại AI đã lưu trên server. */
+export interface ChatAiConversationSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface ChatAiConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  products?: ChatAiProductSuggestion[];
+  createdAt: string;
+}
+
+export interface ChatAiConversationView {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messages: ChatAiConversationMessage[];
 }
 
 export interface ChatSendMessageResponse {
