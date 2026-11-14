@@ -22,9 +22,11 @@ const code = (fn: () => void) => {
 };
 const img = (width: number, height: number, bytes = 100_000) => ({ width, height, bytes });
 
-test('ảnh: AC3 1000×400 cho Slider bị từ chối; 1920×700 qua; sai tỉ lệ > 5% bị từ chối', () => {
+test('ảnh: AC3 1000×400 cho Slider bị từ chối; 1920×1000 qua; sai tỉ lệ > 5% bị từ chối', () => {
   assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1000, 400))), 'E-MKT-012-02');
-  assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1920, 700))), null);
+  assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1920, 1000))), null);
+  assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1920, 700))), 'E-MKT-012-02'); // tỉ lệ 2.74 không còn được chấp nhận
+  assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1920, 800))), 'E-MKT-012-02'); // đủ lớn nhưng tỉ lệ lệch
   assert.equal(code(() => checkImage('desktop', 'HOME_SLIDER', img(1920, 900))), 'E-MKT-012-02'); // đủ lớn nhưng tỉ lệ lệch
   assert.equal(code(() => checkImage('desktop', 'POPUP', img(600, 600, 3 * 1024 * 1024))), 'E-MKT-012-02'); // > 2 MB
   assert.equal(code(() => checkImage('mobile', 'HOME_MIDDLE', img(750, 400, 2 * 1024 * 1024))), 'E-MKT-012-02'); // > 1 MB

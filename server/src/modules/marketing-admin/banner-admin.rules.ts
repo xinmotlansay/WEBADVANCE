@@ -25,7 +25,7 @@ interface PositionRule {
 }
 
 export const POSITION_RULES: Record<BannerPosition, PositionRule> = {
-  HOME_SLIDER: { label: 'Slider trang chủ', max: 8, desktop: { w: 1440, h: 525 }, mobile: { w: 750, h: 750 }, ratio: 1920 / 700, recommended: '1920 × 700' },
+  HOME_SLIDER: { label: 'Slider trang chủ', max: 8, desktop: { w: 1440, h: 750 }, mobile: { w: 750, h: 750 }, ratio: 1920 / 1000, recommended: '1920 × 1000' },
   HOME_MIDDLE: { label: 'Banner giữa trang chủ', max: 3, desktop: { w: 1200, h: 400 }, mobile: { w: 750, h: 400 }, ratio: 3, recommended: '1200 × 400' },
   CATEGORY: { label: 'Banner trang danh mục', max: null, desktop: { w: 1200, h: 300 }, mobile: { w: 750, h: 400 }, ratio: 4, recommended: '1200 × 300' },
   POPUP: { label: 'Popup', max: 1, desktop: { w: 600, h: 600 }, mobile: { w: 750, h: 750 }, ratio: 1, recommended: '600 × 600' },

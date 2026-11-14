@@ -11,7 +11,7 @@ export const POSITION_LABEL: Record<BannerPosition, string> = {
   POPUP: 'Popup',
 };
 export const RECOMMENDED: Record<BannerPosition, string> = {
-  HOME_SLIDER: '1920 × 700 (tối thiểu 1440 × 525)',
+  HOME_SLIDER: '1920 × 1000 (tối thiểu 1440 × 750)',
   HOME_MIDDLE: '1200 × 400',
   CATEGORY: '1200 × 300',
   POPUP: '600 × 600',
