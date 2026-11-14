@@ -4,6 +4,8 @@ export interface StoreInfo {
   hotline: string;
   email: string;
   address: string;
+  /** Link Google Maps của trụ sở; để trống thì giao diện tự tạo link tìm kiếm từ địa chỉ. */
+  mapUrl?: string;
   establishedDate: string;
   copyright: string;
   social: { facebook: string; youtube: string; tiktok: string; instagram: string };
@@ -37,4 +39,6 @@ export interface PublicConfig {
   shipping: ShippingConfig;
   invoice: { vatRate: number };
   labels: { newDays: number };
+  /** Tích hợp bản đồ phía client (địa chỉ nhận hàng). */
+  maps?: { googleMapsApiKey: string | null };
 }

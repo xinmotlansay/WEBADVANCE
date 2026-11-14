@@ -34,6 +34,13 @@ a:hover {
   line-height: 1.6;
 }
 
+.company__map {
+  color: inherit;
+}
+.company__map:hover {
+  text-decoration: underline;
+}
+
 .brand {
   display: flex;
   flex-direction: column;

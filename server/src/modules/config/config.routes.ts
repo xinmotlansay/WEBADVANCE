@@ -10,6 +10,7 @@ export const DEFAULT_STORE_INFO = {
   hotline: '',
   email: '',
   address: '',
+  mapUrl: '',
   establishedDate: '',
   copyright: '',
   social: { facebook: '', youtube: '', tiktok: '', instagram: '' },
@@ -32,10 +33,26 @@ configRoutes.get(
   '/public',
   asyncHandler(async (_req, res) => {
     const [configs, checkout] = await Promise.all([
-      SystemConfigModel.find({ _id: { $in: ['store', 'labels.newDays', 'policy.returnDays', 'policy.refundDaysMin', 'policy.refundDaysMax'] } }).lean(),
+      SystemConfigModel.find({
+        _id: {
+          $in: [
+            'store',
+            'labels.newDays',
+            'policy.returnDays',
+            'policy.refundDaysMin',
+            'policy.refundDaysMax',
+            'maps.googleMapsApiKey',
+          ],
+        },
+      }).lean(),
       getCheckoutConfig(),
     ]);
     const byKey = new Map(configs.map((c) => [c._id, c.value]));
+    const googleMapsApiKey =
+      process.env['GOOGLE_MAPS_API_KEY']?.trim() ||
+      (typeof byKey.get('maps.googleMapsApiKey') === 'string'
+        ? String(byKey.get('maps.googleMapsApiKey')).trim()
+        : '');
 
     sendData(res, {
       store: mergeStore(byKey.get('store') as Partial<typeof DEFAULT_STORE_INFO> | undefined),
@@ -43,8 +60,13 @@ configRoutes.get(
       shipping: checkout.shipping,
       invoice: { vatRate: checkout.invoice.vatRate },
       labels: { newDays: Number(byKey.get('labels.newDays') ?? 30) },
-      policy: { returnDays: Number(byKey.get('policy.returnDays') ?? 7), refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 7), refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 10) },
+      policy: {
+        returnDays: Number(byKey.get('policy.returnDays') ?? 7),
+        refundDaysMin: Number(byKey.get('policy.refundDaysMin') ?? 7),
+        refundDaysMax: Number(byKey.get('policy.refundDaysMax') ?? 10),
+      },
       limits: { maxImageSizeMb: 5 },
+      maps: { googleMapsApiKey: googleMapsApiKey || null },
     });
   }),
 );

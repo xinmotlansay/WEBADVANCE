@@ -890,6 +890,8 @@ async function seedConfigs(): Promise<void> {
         establishedDate: '2006-03-11',
         address:
           'CaraVeso Design Center, Tầng 15, Tòa nhà The Crescent Office, 101 Tôn Dật Tiên, Khu đô thị Phú Mỹ Hưng, Phường Tân Phú, Quận 7, Thành phố Hồ Chí Minh, Việt Nam.',
+        mapUrl:
+          'https://www.google.com/maps/dir/?api=1&destination=Crescent+Mall%2C+101+%C4%90.+T%C3%B4n+D%E1%BA%ADt+Ti%C3%AAn%2C+Ph%C3%BA+M%E1%BB%B9+H%C6%B0ng%2C+T%C3%A2n+M%E1%BB%B9%2C+H%E1%BB%93+Ch%C3%AD+Minh%2C+Vietnam&destination_place_id=0xb6c098e537ce0abe',
         workingHours: { start: '08:00', end: '17:00', days: [1, 2, 3, 4, 5, 6] },
       },
       description: 'Thông tin cửa hàng',

@@ -73,4 +73,11 @@ export class FooterComponent {
     const pad = (n: number): string => String(n).padStart(2, '0');
     return `${pad(date.getUTCDate())} - ${pad(date.getUTCMonth() + 1)} - ${date.getUTCFullYear()}`;
   }
+
+  /** Link bản đồ: ưu tiên link cấu hình trong Admin, chưa có thì tạo link tìm kiếm từ địa chỉ. */
+  protected mapsUrl(info: { address: string; mapUrl?: string }): string {
+    const configured = info.mapUrl?.trim();
+    if (configured) return configured;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address)}`;
+  }
 }

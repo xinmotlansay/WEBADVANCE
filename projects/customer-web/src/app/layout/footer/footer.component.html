@@ -28,14 +28,23 @@
         @if (info.establishedDate) {
           <p>Ngày hoạt động: {{ formatDate(info.establishedDate) }}</p>
         }
-        @if (info.address) {
-          <p><strong>Trụ sở chính:</strong><br />{{ info.address }}</p>
-        }
         @if (info.hotline) {
           <p><strong>Hotline:</strong> {{ info.hotline }}</p>
         }
         @if (info.email) {
           <p><strong>Email:</strong> {{ info.email }}</p>
+        }
+        @if (info.address) {
+          <p>
+            <strong>Trụ sở chính:</strong><br />
+            <a
+              class="company__map"
+              [href]="mapsUrl(info)"
+              target="_blank"
+              rel="noopener"
+              [attr.aria-label]="'Xem chỉ đường tới ' + info.address"
+            >{{ info.address }}</a>
+          </p>
         }
       }
     </section>
