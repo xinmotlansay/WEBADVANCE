@@ -236,7 +236,7 @@ Mỗi tài khoản Admin chỉ có **một** vai trò và menu chỉ liệt kê 
 **Đăng nhập và phiên:**
 
 - Chỉ có email + mật khẩu (tối thiểu 12 ký tự), không đăng ký, không 2FA (NF-A02).
-- Sai mật khẩu 3 lần liên tiếp: khóa 1 phút và hiện đếm ngược thời gian còn lại; tiếp tục sai thì thời gian khóa tăng dần.
+- Sai mật khẩu 5 lần liên tiếp: khóa 1 phút và hiện đếm ngược thời gian còn lại; tiếp tục sai thì thời gian khóa tăng dần.
 - Phiên hết hạn sau 30 phút không thao tác. Hiện nhắc trước khoảng 2 phút; hết hạn thì về trang đăng nhập và quay lại đúng trang đang làm sau khi đăng nhập.
 
 **Nội dung chữ:**

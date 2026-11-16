@@ -8,7 +8,7 @@ import {
   input,
   viewChild,
 } from '@angular/core';
-import type { Banner } from 'shared';
+import { focusPosition, mobileFocusOf, type Banner } from 'shared';
 import { shouldShowPopup } from '../../../../core/marketing/banner-rules';
 import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { readLocal, writeLocal } from '../../../../core/storage/local-store';
@@ -42,7 +42,12 @@ function shownThisSession(id: string): boolean {
             @if (b.mobileImageUrl) {
               <source media="(max-width: 767px)" [srcset]="b.mobileImageUrl" />
             }
-            <img [src]="b.imageUrl" [alt]="b.title" />
+            <img
+              [src]="b.imageUrl"
+              [style.--focus-d]="focusPosition(b.imageFocus)"
+              [style.--focus-m]="focusPosition(mobileFocusOf(b))"
+              [alt]="b.title"
+            />
           </picture>
         </a>
       </dialog>
@@ -65,6 +70,10 @@ function shownThisSession(id: string): boolean {
       max-height: 80vh;
       aspect-ratio: 1;
       object-fit: cover;
+      object-position: var(--focus-d, 50% 50%);
+    }
+    @media (max-width: 767px) {
+      .popup img { object-position: var(--focus-m, 50% 50%); }
     }
     .popup__close {
       position: absolute;
@@ -83,6 +92,8 @@ function shownThisSession(id: string): boolean {
   `,
 })
 export class PopupBannerComponent {
+  protected readonly focusPosition = focusPosition;
+  protected readonly mobileFocusOf = mobileFocusOf;
   readonly banners = input.required<Banner[]>();
   protected readonly tracker = inject(BannerTrackerService);
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');

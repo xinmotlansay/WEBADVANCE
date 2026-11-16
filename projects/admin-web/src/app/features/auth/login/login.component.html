@@ -84,7 +84,7 @@
 
       @if (lockSeconds() > 0) {
         <div class="alert" role="alert">
-          Sai mật khẩu 3 lần liên tiếp. Thử lại sau <strong>{{ lockLabel() }}</strong>.
+          Sai mật khẩu 5 lần liên tiếp. Thử lại sau <strong>{{ lockLabel() }}</strong>.
         </div>
       } @else if (errorMessage()) {
         <div class="alert" role="alert">{{ errorMessage() }}</div>

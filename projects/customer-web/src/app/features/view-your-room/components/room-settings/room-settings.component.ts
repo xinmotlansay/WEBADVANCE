@@ -74,6 +74,19 @@ export class RoomSettingsComponent {
     this.roomChange.emit({ ...this.room(), [key]: value });
   }
 
+  /** Gõ số trực tiếp: kẹp vào giới hạn rồi làm tròn theo bước của thanh trượt. */
+  protected commitDimension(key: 'length' | 'width' | 'height', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const { min, max, step } = ROOM_LIMITS[key];
+    const raw = Number(input.value);
+    const value = Number.isFinite(raw) ? raw : this.room()[key];
+    const snapped = Math.round(value / step) * step;
+    const next = Math.min(max, Math.max(min, snapped));
+    input.value = String(next);
+    this.manualPreset.set(CUSTOM);
+    this.roomChange.emit({ ...this.room(), [key]: next });
+  }
+
   protected setWallColor(color: WallColor): void {
     this.roomChange.emit({ ...this.room(), wallColor: color });
   }

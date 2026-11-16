@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { ApiResponse } from 'shared';
+import type { ApiResponse, ImageFocus } from 'shared';
 import { map, Observable } from 'rxjs';
 
 const BASE = '/api/v1/admin/marketing/banners';
@@ -16,6 +16,8 @@ export interface BannerRow {
   content: string;
   imageUrl: string;
   mobileImageUrl: string | null;
+  imageFocus: ImageFocus | null;
+  mobileImageFocus: ImageFocus | null;
   linkUrl: string;
   ctaLabel: string | null;
   openInNewTab: boolean;
@@ -50,6 +52,8 @@ export interface BannerBody {
   content?: string;
   imageUrl?: string;
   mobileImageUrl?: string | null;
+  imageFocus?: ImageFocus | null;
+  mobileImageFocus?: ImageFocus | null;
   ctaLabel?: string | null;
   linkUrl?: string | null;
   openInNewTab?: boolean;

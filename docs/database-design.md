@@ -715,6 +715,7 @@ Collection: `product_collections` (trước đây: `COLLECTION`, kèm `HINH_ANH_
 | 16 | images[].description | String | | Mô tả ảnh |
 | 17 | images[].isThumbnail | Boolean | Y | Default: false. Dùng làm ảnh đại diện |
 | 18 | images[].displayOrder | Number | Y | Thứ tự hiển thị trong carousel |
+| 18a | images[].focus | Object `{ x, y }` | | Vùng hiển thị của ảnh chính theo % (0–100); trống = căn giữa |
 | 19 | images[].hotspots | Array\<Object\> | | Điểm hotspot trên ảnh |
 | 20 | images[].hotspots[].productId | ObjectId (ref: products) | Y | Sản phẩm gắn tại hotspot |
 | 21 | images[].hotspots[].x | Number | Y | Tọa độ ngang theo tỷ lệ ảnh (0–1) |
@@ -901,6 +902,7 @@ Collection: `showrooms` (mới). Điểm bán hàng của CaraVeso trên cả n�
 ### Bổ sung triển khai 2026-11-08 (marketing: lịch đăng, thông báo, ưu đãi khách mới)
 
 - `product_collections`, `inspirations` thêm field `publishAt` (Thực thể 27, 28).
+- Vùng hiển thị ảnh (`{ x, y }` theo % 0–100, trống = căn giữa, dùng làm `object-position`): `banners.imageFocus`, `banners.mobileImageFocus`, `product_collections.images[].focus` (ảnh chính), `inspirations.focus` (khung 2:3).
 - Collection mới `announcements` (Thực thể 30b) thay cho khóa `ANNOUNCEMENT_BAR` trong `content_areas`; dữ liệu cũ được chuyển một lần khi collection mới còn trống.
 - Không có field mới cho ưu đãi 10% khách mới: voucher tạo qua cơ chế `vouchers`/`user_vouchers` hiện có (mã `NEW11`, `customerGroup = NEW_CUSTOMER`, nguồn `GIFTED`), hồ sơ khách dùng field có sẵn ở `users.profile`/`addresses`.
 

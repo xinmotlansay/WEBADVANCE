@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core';
-import type { Banner } from 'shared';
+import { focusPosition, mobileFocusOf, type Banner } from 'shared';
 import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { LinkDirective } from '../../../../shared/ui/link/link.directive';
 
@@ -23,7 +23,13 @@ import { LinkDirective } from '../../../../shared/ui/link/link.directive';
               @if (banner.mobileImageUrl) {
                 <source media="(max-width: 767px)" [srcset]="banner.mobileImageUrl" />
               }
-              <img [src]="banner.imageUrl" [alt]="banner.title" loading="lazy" />
+              <img
+                [src]="banner.imageUrl"
+                [style.--focus-d]="focusPosition(banner.imageFocus)"
+                [style.--focus-m]="focusPosition(mobileFocusOf(banner))"
+                [alt]="banner.title"
+                loading="lazy"
+              />
             </picture>
             @if (banner.ctaLabel) {
               <span class="mid__cta">{{ banner.ctaLabel }}</span>
@@ -53,6 +59,10 @@ import { LinkDirective } from '../../../../shared/ui/link/link.directive';
       width: 100%;
       aspect-ratio: 15 / 8;
       object-fit: cover;
+      object-position: var(--focus-d, 50% 50%);
+    }
+    @media (max-width: 767px) {
+      .mid__item img { object-position: var(--focus-m, 50% 50%); }
     }
     .mid__cta {
       position: absolute;
@@ -74,6 +84,8 @@ import { LinkDirective } from '../../../../shared/ui/link/link.directive';
   `,
 })
 export class MiddleBannersComponent {
+  protected readonly focusPosition = focusPosition;
+  protected readonly mobileFocusOf = mobileFocusOf;
   readonly banners = input.required<Banner[]>();
   protected readonly tracker = inject(BannerTrackerService);
 

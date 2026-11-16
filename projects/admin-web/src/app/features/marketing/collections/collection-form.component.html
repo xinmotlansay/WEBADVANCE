@@ -70,7 +70,7 @@
       <fieldset class="imgs">
           <legend>Ảnh chính</legend>
           <p class="cv-hint">
-            1 ảnh, khung 16:7. Hiện ở slider trang chủ và làm ảnh bìa trang collection; điểm sản phẩm của trang chủ lấy từ ảnh này. Ảnh chính không xuất hiện lại trong ảnh phụ.
+            1 ảnh ngang (không cần đúng tỉ lệ). Kéo ảnh bên dưới để chọn phần hiển thị trong khung 16:7. Hiện ở slider trang chủ và làm ảnh bìa trang collection; điểm sản phẩm của trang chủ lấy từ ảnh này. Ảnh chính không xuất hiện lại trong ảnh phụ.
           </p>
           @if (mainIndex() >= 0) {
             <ng-container *ngTemplateOutlet="card; context: { i: mainIndex(), main: true }" />
@@ -85,7 +85,7 @@
         <fieldset class="imgs">
           <legend>Ảnh phụ ({{ subIndexes().length }}/{{ MAX_SUB }})</legend>
           <p class="cv-hint">
-            Tối đa {{ MAX_SUB }} ảnh, khung 2:3, hiện ở lưới bên dưới trang collection. JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.
+            Tối đa {{ MAX_SUB }} ảnh dọc, khung 2:3, hiện ở lưới bên dưới trang collection. Kéo ảnh để chọn phần hiển thị. JPG, PNG, WEBP · tối đa 5 MB · cạnh ngắn tối thiểu 800 px.
           </p>
           @for (i of subIndexes(); track i; let first = $first, last = $last) {
             <ng-container *ngTemplateOutlet="card; context: { i: i, main: false, first: first, last: last }" />
@@ -101,8 +101,14 @@
         <ng-template #card let-i="i" let-main="main" let-first="first" let-last="last">
           @let img = images()[i]!;
           <div class="img cv-card" [class.img--main]="main">
+            <app-focus-picker
+              [src]="img.url"
+              [ratio]="main ? 16 / 7 : 2 / 3"
+              [alt]="img.title || (main ? 'Ảnh chính' : 'Ảnh phụ')"
+              [focus]="img.focus ?? null"
+              (focusChange)="patchImage(i, { focus: $event })"
+            />
             <div class="img__row">
-              <img class="img__thumb" [src]="img.url" alt="" />
               <div class="img__fields">
                 <div class="cv-field">
                   <label [for]="'it-' + i">Tiêu đề ảnh</label>

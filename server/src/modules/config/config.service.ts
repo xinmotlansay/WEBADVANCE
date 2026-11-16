@@ -1,3 +1,4 @@
+import { config } from '../../config/index.js';
 import { SystemConfigModel } from './system-config.model.js';
 
 export interface PaymentConfig {
@@ -97,6 +98,21 @@ export async function getCheckoutConfig(): Promise<CheckoutConfig> {
     payment: { ...d.payment, ...byKey.get(KEYS.payment) },
     shipping: { ...d.shipping, ...byKey.get(KEYS.shipping) },
     invoice: { ...d.invoice, ...byKey.get(KEYS.invoice) },
-    bankAccount: { ...d.bankAccount, ...byKey.get(KEYS.bankAccount) },
+    bankAccount: {
+      ...d.bankAccount,
+      ...byKey.get(KEYS.bankAccount),
+      ...envBankAccountOverride(),
+    },
   };
+}
+
+/** BANK_* trong .env ghi đè `payment.bankAccount` trong DB, từng trường nếu có giá trị. */
+function envBankAccountOverride(): Partial<BankAccountConfig> {
+  const b = config.bankAccount;
+  const out: Partial<BankAccountConfig> = {};
+  if (b.bankId) out.bankId = b.bankId;
+  if (b.bankName) out.bankName = b.bankName;
+  if (b.accountNumber) out.accountNumber = b.accountNumber;
+  if (b.accountHolder) out.accountHolder = b.accountHolder;
+  return out;
 }

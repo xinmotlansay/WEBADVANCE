@@ -40,6 +40,8 @@ bannerRoutes.get(
         content: b.content ?? '',
         imageUrl: b.imageUrl,
         mobileImageUrl: b.mobileImageUrl ?? '',
+        imageFocus: b.imageFocus ?? null,
+        mobileImageFocus: b.mobileImageFocus ?? null,
         linkUrl: b.linkUrl ?? '',
         ctaLabel: b.ctaLabel ?? '',
         openInNewTab: b.openInNewTab ?? false,

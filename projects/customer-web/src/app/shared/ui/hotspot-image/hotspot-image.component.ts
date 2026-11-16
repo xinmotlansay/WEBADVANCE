@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, input, model, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CollectionImage, ProductListItem } from 'shared';
+import { CollectionImage, ProductListItem, focusPosition } from 'shared';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
 import { VariantPickerService } from '../../../services/cart/variant-picker.service';
@@ -23,6 +23,7 @@ export class HotspotImageComponent {
   readonly imageHeight = model(0);
   /** Tỉ lệ khung ép cho ảnh (vd. '3 / 4'); bỏ trống thì giữ tỉ lệ gốc. */
   readonly ratio = input<string | null>(null);
+  protected readonly focusPosition = focusPosition;
   protected readonly imageWidth = signal(0);
   protected readonly natural = signal({ w: 0, h: 0 });
   private readonly sceneImage = viewChild<ElementRef<HTMLImageElement>>('sceneImage');
@@ -47,14 +48,15 @@ export class HotspotImageComponent {
     this.natural.set({ w: image.naturalWidth, h: image.naturalHeight });
   }
 
-  /** Vị trí điểm theo px; khi ảnh bị cắt (object-fit: cover) thì quy đổi theo phần ảnh còn hiển thị. */
+  /** Vị trí điểm theo px; khi ảnh bị cắt (object-fit: cover) thì quy đổi theo phần ảnh còn hiển thị (theo vùng admin chọn). */
   protected pos(hotspot: { x: number; y: number }): { left: number; top: number } {
     const { w, h } = this.natural(), width = this.imageWidth(), height = this.imageHeight();
     if (!this.ratio() || !w || !h || !width || !height) return { left: hotspot.x * width, top: hotspot.y * height };
     const scale = Math.max(width / w, height / h);
+    const focus = this.image().focus ?? { x: 50, y: 50 };
     return {
-      left: hotspot.x * w * scale + (width - w * scale) / 2,
-      top: hotspot.y * h * scale + (height - h * scale) / 2,
+      left: hotspot.x * w * scale + ((width - w * scale) * focus.x) / 100,
+      top: hotspot.y * h * scale + ((height - h * scale) * focus.y) / 100,
     };
   }
 

@@ -62,10 +62,22 @@ const img = (over: Partial<ImageInput> = {}): ImageInput => ({
   ...over,
 });
 
-test('ảnh upload: ≤ 3 MB, cạnh ngắn ≥ 800 (E-MKT-020-04)', () => {
-  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 800, bytes: 1_000_000 })), null);
-  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 799, bytes: 1_000_000 })), 'E-MKT-020-04');
-  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 900, bytes: 3 * 1024 * 1024 + 1 })), 'E-MKT-020-04');
+test('ảnh upload: ≤ 5 MB, cạnh ngắn ≥ 800 (E-MKT-020-04)', () => {
+  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 800, bytes: 1_000_000 }, 'landscape')), null);
+  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 799, bytes: 1_000_000 }, 'landscape')), 'E-MKT-020-04');
+  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 900, bytes: 5 * 1024 * 1024 + 1 }, 'landscape')), 'E-MKT-020-04');
+});
+
+test('ảnh chính: chỉ cần ngang, ảnh dọc bị từ chối', () => {
+  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 900, bytes: 1_000_000 }, 'landscape')), null);
+  assert.equal(code(() => checkCollectionImage({ width: 1000, height: 1000, bytes: 1_000_000 }, 'landscape')), null);
+  assert.equal(code(() => checkCollectionImage({ width: 900, height: 1600, bytes: 1_000_000 }, 'landscape')), 'E-MKT-020-04');
+});
+
+test('ảnh phụ / cảm hứng: chỉ cần dọc, không ép đúng 2:3', () => {
+  assert.equal(code(() => checkCollectionImage({ width: 800, height: 1200, bytes: 1_000_000 }, 'portrait')), null);
+  assert.equal(code(() => checkCollectionImage({ width: 800, height: 1000, bytes: 1_000_000 }, 'portrait')), null);
+  assert.equal(code(() => checkCollectionImage({ width: 1600, height: 900, bytes: 1_000_000 }, 'portrait')), 'E-MKT-020-04');
 });
 
 test('schema ảnh: x,y ∈ [0,1]; url nội bộ /uploads/ hoặc https; tối đa 10 ảnh, 8 hotspot/ảnh', () => {

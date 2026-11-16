@@ -17,7 +17,7 @@ inspirationRoutes.get(
     const inspirations = await InspirationModel.find(liveNow()).sort({ displayOrder: 1, _id: 1 }).lean();
     sendData(
       res,
-      inspirations.map((i) => ({ id: i._id.toString(), imageUrl: i.imageUrl })),
+      inspirations.map((i) => ({ id: i._id.toString(), imageUrl: i.imageUrl, focus: i.focus ?? null })),
     );
   }),
 );
@@ -44,6 +44,7 @@ inspirationRoutes.get(
     sendData(res, {
       id: inspiration._id.toString(),
       imageUrl: inspiration.imageUrl,
+      focus: inspiration.focus ?? null,
       products: items,
     });
   }),

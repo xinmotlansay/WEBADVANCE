@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { focusPosition, type ImageFocus } from 'shared';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { PromotionApi, type ProductOption } from '../../../services/marketing/promotion.service';
 import { ProductPickerComponent } from '../shared/product-picker.component';
+import { FocusPickerComponent } from '../../../shared/ui/focus-picker/focus-picker.component';
 import { money } from '../vouchers/voucher-format';
 import {
   InspirationApi,
@@ -17,7 +19,7 @@ import {
 /** MA-08: tạo/sửa ảnh cảm hứng: 1 ảnh + 1–12 sản phẩm có thứ tự, xem trước popup khách. */
 @Component({
   selector: 'app-inspiration-form',
-  imports: [RouterLink, ProductPickerComponent],
+  imports: [RouterLink, ProductPickerComponent, FocusPickerComponent],
   template: `
     <main class="cv-main">
       <a class="cv-back" routerLink="/marketing/nguon-cam-hung"><span aria-hidden="true">←</span> Nguồn cảm hứng</a>
@@ -35,22 +37,42 @@ import {
           <div class="layout">
           <div class="cv-field slot">
             <span class="label" id="i-img-label">Ảnh không gian</span>
-            <label class="frame" [class.frame--empty]="!imageUrl()" [class.frame--off]="uploading()">
-              <input
-                class="file"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                aria-labelledby="i-img-label"
-                aria-describedby="i-img-hint"
-                [disabled]="uploading()"
-                (change)="upload($event)"
+            @if (imageUrl()) {
+              <app-focus-picker
+                class="pick"
+                [src]="imageUrl()"
+                [ratio]="2 / 3"
+                alt="Ảnh cảm hứng đang chọn"
+                [focus]="focus()"
+                (focusChange)="focus.set($event)"
               />
-              @if (imageUrl()) {
-                <img [src]="imageUrl()" alt="Ảnh cảm hứng đang chọn" />
-              }
-              <span class="frame__cta">{{ uploading() ? 'Đang tải ảnh…' : imageUrl() ? 'Đổi ảnh' : '+ Chọn ảnh' }}</span>
-            </label>
-            <span class="cv-hint" id="i-img-hint">Ảnh dọc tỉ lệ 2:3 · JPG, PNG, WEBP · tối đa 3 MB · cạnh ngắn tối thiểu 800 px.</span>
+              <label class="change">
+                <input
+                  class="file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-labelledby="i-img-label"
+                  aria-describedby="i-img-hint"
+                  [disabled]="uploading()"
+                  (change)="upload($event)"
+                />
+                <span>{{ uploading() ? 'Đang tải ảnh…' : 'Đổi ảnh' }}</span>
+              </label>
+            } @else {
+              <label class="frame frame--empty" [class.frame--off]="uploading()">
+                <input
+                  class="file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-labelledby="i-img-label"
+                  aria-describedby="i-img-hint"
+                  [disabled]="uploading()"
+                  (change)="upload($event)"
+                />
+                <span class="frame__cta">{{ uploading() ? 'Đang tải ảnh…' : '+ Chọn ảnh' }}</span>
+              </label>
+            }
+            <span class="cv-hint" id="i-img-hint">Ảnh dọc · JPG, PNG, WEBP · tối đa 5 MB · cạnh ngắn tối thiểu 800 px. Kéo ảnh để chọn phần hiển thị trong khung 2:3.</span>
           </div>
 
           <div class="main">
@@ -72,7 +94,7 @@ import {
               <h2 id="i-preview">Xem trước popup</h2>
               <div class="preview__backdrop" aria-hidden="true">
                 <div class="preview__panel">
-                  <img class="preview__photo" [src]="imageUrl()" alt="" />
+                  <img class="preview__photo" [src]="imageUrl()" [style.object-position]="focusPosition(focus())" alt="" />
                   <div class="preview__info">
                     <h3>MUA SẮM THEO NGUỒN CẢM HỨNG</h3>
                     <ul class="preview__products">
@@ -139,6 +161,8 @@ import {
     @media (hover: none) { .frame:not(.frame--empty) .frame__cta { opacity: 1; } }
     .frame:has(.file:focus-visible) { outline: 2px solid var(--cv-navy); outline-offset: 2px; }
     .frame--off { opacity: 0.6; cursor: not-allowed; }
+    .change { position: relative; display: inline-flex; margin-top: 8px; padding: 6px 12px; border: 1px solid var(--cv-border-strong); border-radius: var(--cv-radius); font-size: 14px; font-weight: 600; cursor: pointer; }
+    .change:has(.file:focus-visible) { outline: 2px solid var(--cv-navy); outline-offset: 2px; }
     .file { position: absolute; inset: 0; opacity: 0; cursor: inherit; }
     .preview h2 { margin: 0 0 8px; font-size: 15px; }
     .preview__backdrop { display: grid; place-items: center; padding: 20px; border-radius: var(--cv-radius-lg); background: rgb(0 0 0 / 0.55); }
@@ -181,6 +205,9 @@ export class InspirationFormComponent {
   protected readonly money = money;
 
   protected readonly imageUrl = signal('');
+  /** Vùng hiển thị khung 2:3 đã kéo chọn; null = căn giữa. */
+  protected readonly focus = signal<ImageFocus | null>(null);
+  protected readonly focusPosition = focusPosition;
   protected readonly productIds = signal<string[]>([]);
   protected readonly names = signal(new Map<string, ProductOption>());
   protected readonly uploading = signal(false);
@@ -202,6 +229,7 @@ export class InspirationFormComponent {
     try {
       const r = (this.loaded = await firstValueFrom(this.api.get(id)));
       this.imageUrl.set(r.imageUrl);
+      this.focus.set(r.focus ?? null);
       this.productIds.set(r.productIds);
       void this.productsChanged(r.productIds);
       this.initial = JSON.stringify(this.body());
@@ -213,7 +241,7 @@ export class InspirationFormComponent {
   }
 
   private body(): InspirationBody {
-    return { imageUrl: this.imageUrl(), productIds: this.productIds() };
+    return { imageUrl: this.imageUrl(), focus: this.focus(), productIds: this.productIds() };
   }
 
   private dirty(): boolean {
@@ -259,6 +287,7 @@ export class InspirationFormComponent {
     this.uploading.set(true);
     try {
       this.imageUrl.set((await firstValueFrom(this.api.uploadImage(file))).url);
+      this.focus.set(null);
     } catch (e) {
       this.error.set(parseApiError(e).message || 'Tải ảnh không thành công. Vui lòng thử lại.');
     } finally {

@@ -15,6 +15,7 @@ import {
   type CollectionImage,
 } from '../../../services/marketing/collection.service';
 import { HotspotEditorComponent } from './hotspot-editor.component';
+import { FocusPickerComponent } from '../../../shared/ui/focus-picker/focus-picker.component';
 
 export const MAX_IMAGES = 4;
 export const MAX_SUB = MAX_IMAGES - 1;
@@ -22,7 +23,7 @@ export const MAX_SUB = MAX_IMAGES - 1;
 /** MA-07: tạo và sửa collection: thông tin, sản phẩm; khi sửa thêm ảnh + hotspot. */
 @Component({
   selector: 'app-collection-form',
-  imports: [FormsModule, NgTemplateOutlet, RouterLink, ProductPickerComponent, HotspotEditorComponent],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, ProductPickerComponent, HotspotEditorComponent, FocusPickerComponent],
   templateUrl: './collection-form.component.html',
   styleUrl: './collection-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -143,7 +144,7 @@ export class CollectionFormComponent {
     this.uploading.set(true);
     try {
       for (const file of files.slice(0, room)) {
-        const { url } = await firstValueFrom(this.api.uploadImage(file));
+        const { url } = await firstValueFrom(this.api.uploadImage(file, role));
         const image = { url, title: '', description: '', isThumbnail: role === 'main', hotspots: [] };
         // Ảnh chính luôn đứng đầu danh sách.
         this.images.update((list) => (role === 'main' ? [image, ...list] : [...list, image]));

@@ -10,6 +10,14 @@ export const POSITION_LABEL: Record<BannerPosition, string> = {
   CATEGORY: 'Banner trang danh mục',
   POPUP: 'Popup',
 };
+/** Tỉ lệ khung hiển thị (rộng / cao) để admin kéo chọn vùng ảnh; khớp khung ở trang khách. */
+export const FRAME_RATIO: Record<BannerPosition, { desktop: number; mobile: number }> = {
+  HOME_SLIDER: { desktop: 1920 / 1000, mobile: 1 },
+  HOME_MIDDLE: { desktop: 3, mobile: 750 / 400 },
+  CATEGORY: { desktop: 4, mobile: 750 / 400 },
+  POPUP: { desktop: 1, mobile: 1 },
+};
+
 export const RECOMMENDED: Record<BannerPosition, string> = {
   HOME_SLIDER: '1920 × 1000 (tối thiểu 1440 × 750)',
   HOME_MIDDLE: '1200 × 400',

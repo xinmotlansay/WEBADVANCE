@@ -175,7 +175,7 @@ Mô hình phân lớp: `route → middleware → controller → service → mode
 ### 5.2. Thanh toán QR và webhook (mô phỏng)
 
 - Mỗi đơn QR có `payment.transferContent` duy nhất và `payment.dueAt` = lúc tạo + 15 phút.
-- Hệ thống có **bộ mô phỏng ngân hàng** (script hoặc trang dev của admin) gọi `POST /webhooks/bank-transfer` với cùng định dạng payload của nhà cung cấp thật, để sau này thay bằng SePay, Casso hay PayOS mà không đổi logic.
+- Hệ thống có **bộ mô phỏng ngân hàng** (script hoặc trang dev của admin) gọi `POST /webhooks/bank-transfer` với cùng định dạng payload của nhà cung cấp thật, để thay bằng nhà cung cấp thật mà không đổi logic. SePay đã có endpoint riêng `POST /webhooks/sepay` (xác thực bằng `SEPAY_API_KEY`), đổi payload về cùng sự kiện nội bộ.
 - Webhook xác thực bằng secret trong header, luôn trả `200`, xử lý **một lần** theo `bankTransactionCode` (unique index).
 - Giao dịch khớp: ghi `payment_transactions`, chuyển đơn sang `PENDING_CONFIRMATION`, đẩy socket `order:payment-updated`. Giao dịch lệch (sai nội dung, thiếu/thừa tiền, sau hạn): lưu để Order Admin đối soát (OA-08) và tạo thông báo `RECONCILIATION`.
 
@@ -314,7 +314,7 @@ sequenceDiagram
 | Demo local | MongoDB Atlas (cần internet), chạy theo bảng "Cách chạy" ở mục 3 |
 | Demo online (khi hoàn thiện) | Backend (API, Socket.IO, worker BullMQ) lên **Render** (một web service, một worker), Redis dùng dịch vụ Redis của Render hoặc Upstash — Vercel chỉ chạy serverless/edge nên không phù hợp cho Socket.IO/BullMQ. Frontend tĩnh (`customer-web` + `admin-web`) build và host trên **Vercel**, `rewrites` chuyển `/api`, `/uploads`, `/socket.io` sang backend Render (xem `vercel.json`, chi tiết dưới) |
 
-Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`, `BREVO_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`. Khi frontend và backend không cùng origin (Vercel + Render) cần cấu hình CORS cho domain Vercel ở backend; dev dùng proxy nên không cần.
+Biến môi trường chính (liệt kê trong `.env.example`): `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`, `BREVO_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `BANK_WEBHOOK_SECRET`, `SEPAY_API_KEY`, `BANK_ID`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`. Khi frontend và backend không cùng origin (Vercel + Render) cần cấu hình CORS cho domain Vercel ở backend; dev dùng proxy nên không cần.
 
 Lưu ý khi deploy online: ảnh/model/evidence công khai đã bền vững trên Supabase Storage, không mất khi redeploy (mục 5.5). Thư mục `private-uploads/refund-proofs/` trên Render vẫn **mất khi redeploy** vì chưa chuyển sang dịch vụ ngoài; cần gắn ổ đĩa lưu trữ hoặc chuyển nốt sang Supabase (bucket riêng tư) trước khi demo online dài hạn.
 

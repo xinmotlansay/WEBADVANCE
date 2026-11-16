@@ -249,9 +249,18 @@ async function loadEntries(q: ProductListQuery): Promise<ListEntry[]> {
   });
 }
 
+/** Đổi `categorySlug` thành ID danh mục đang hiển thị; slug không tồn tại thì không khớp sản phẩm nào. */
+async function withCategorySlug(q: ProductListQuery): Promise<ProductListQuery> {
+  if (!q.categorySlug) return q;
+  const category = await CategoryModel.findOne({ slug: q.categorySlug, status: 'VISIBLE' }, { _id: 1 }).lean();
+  const id = category ? String(category._id) : '0'.repeat(24);
+  return { ...q, categoryIds: [...(q.categoryIds ?? []), id] };
+}
+
 export async function listProducts(
-  q: ProductListQuery,
+  input: ProductListQuery,
 ): Promise<{ items: ProductListItem[]; total: number }> {
+  const q = await withCategorySlug(input);
   const entries = await loadEntries(q);
   const filtered = entries.filter((e) => matchesList(e.item, e.variants, q));
 
@@ -452,7 +461,8 @@ function countValues(values: string[]): { value: string; count: number }[] {
  * khuyến mãi cố định, danh mục đang chọn). Không áp giá, màu... người dùng đang chọn để thanh giá
  * không co lại khi kéo. Riêng danh sách danh mục bỏ qua danh mục đang chọn để vẫn đổi ý được.
  */
-export async function getProductFacets(q: ProductListQuery): Promise<ProductFacets> {
+export async function getProductFacets(input: ProductListQuery): Promise<ProductFacets> {
+  const q = await withCategorySlug(input);
   const context: ProductListQuery = {
     sort: 'newest',
     page: 1,

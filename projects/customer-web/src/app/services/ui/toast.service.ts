@@ -3,7 +3,8 @@ import { Injectable, signal } from '@angular/core';
 export interface Toast {
   id: number;
   message: string;
-  kind: 'success' | 'error';
+  kind: 'success' | 'error' | 'info';
+  durationMs: number;
 }
 
 const DURATION_MS = 3000;
@@ -22,6 +23,10 @@ export class ToastService {
     this.show(message, 'success', durationMs);
   }
 
+  info(message: string, durationMs = DURATION_MS): void {
+    this.show(message, 'info', durationMs);
+  }
+
   error(message: string): void {
     this.show(message, 'error');
   }
@@ -36,7 +41,7 @@ export class ToastService {
   private show(message: string, kind: Toast['kind'], durationMs = DURATION_MS): void {
     clearTimeout(this.timer);
     this.leaving.set(false);
-    this.current.set({ id: ++this.nextId, message, kind });
+    this.current.set({ id: ++this.nextId, message, kind, durationMs });
     this.timer = setTimeout(() => this.dismiss(), durationMs - LEAVE_MS);
   }
 

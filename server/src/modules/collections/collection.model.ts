@@ -14,6 +14,8 @@ export interface CollectionImage {
   description?: string;
   isThumbnail: boolean;
   displayOrder: number;
+  /** Vùng hiển thị (% x/y) của ảnh chính; trống = căn giữa. */
+  focus?: { x: number; y: number } | null;
   hotspots: CollectionHotspot[];
 }
 
@@ -47,6 +49,7 @@ const imageSchema = new Schema<CollectionImage>({
   description: String,
   isThumbnail: { type: Boolean, required: true, default: false },
   displayOrder: { type: Number, required: true },
+  focus: { x: Number, y: Number },
   hotspots: [hotspotSchema],
 });
 

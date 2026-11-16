@@ -17,6 +17,9 @@ export interface BannerDoc {
   code?: string;
   position: BannerPosition;
   mobileImageUrl?: string;
+  /** Vùng hiển thị (% x/y) của ảnh desktop và mobile; trống = căn giữa. */
+  imageFocus?: { x: number; y: number } | null;
+  mobileImageFocus?: { x: number; y: number } | null;
   ctaLabel?: string;
   openInNewTab?: boolean;
   /** Bắt buộc khi vị trí CATEGORY. */
@@ -55,6 +58,8 @@ const bannerSchema = new Schema<BannerDoc>(
       default: 'HOME_SLIDER',
     },
     mobileImageUrl: String,
+    imageFocus: { x: Number, y: Number },
+    mobileImageFocus: { x: Number, y: Number },
     ctaLabel: String,
     openInNewTab: Boolean,
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'categories' }],

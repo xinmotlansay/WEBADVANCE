@@ -1,5 +1,5 @@
 import { Router, raw } from 'express';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware.js';
 import { AppError } from '../../utils/app-error.js';
 import { asyncHandler } from '../../utils/async-handler.js';
@@ -39,14 +39,19 @@ collectionAdminRoutes.get(
 );
 
 // Đường dẫn cố định đứng trước `/:id`.
+/** `main` = ảnh chính (ảnh ngang); `sub` = ảnh phụ (khung 2:3). Mặc định là `sub` để kiểm tra chặt. */
+const collectionImageQuery = z.object({ role: z.enum(['main', 'sub']).default('sub') });
+
 collectionAdminRoutes.post(
   '/images',
-  raw({ type: 'multipart/form-data', limit: '4mb' }),
+  validateQuery(collectionImageQuery),
+  raw({ type: 'multipart/form-data', limit: '6mb' }),
   asyncHandler(async (req, res) => {
+    const q = res.locals['query'] as z.infer<typeof collectionImageQuery>;
     const file = (await readMultipart(req)).get('file');
     if (!(file instanceof File)) throw new AppError('E-MKT-020-04', 400, 'Vui lòng chọn ảnh để tải lên.');
     res.status(201);
-    sendData(res, await uploadAdminImage(new Uint8Array(await file.arrayBuffer())));
+    sendData(res, await uploadAdminImage(new Uint8Array(await file.arrayBuffer()), 'collections', q.role === 'main' ? 'landscape' : 'portrait'));
   }),
 );
 

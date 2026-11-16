@@ -7,13 +7,15 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import type { ImageFocus } from 'shared';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { parseApiError } from '../../../core/auth/auth-error';
 import { VoucherApi, type CategoryOption } from '../../../services/marketing/voucher.service';
 import { BannerApi, type BannerBody, type BannerPosition, type BannerRow } from '../../../services/marketing/banner.service';
 import { PublishDialogComponent, type PublishChoice } from '../shared/publish-dialog.component';
-import { FREQUENCY_LABEL, POSITION_LABEL, POSITION_ORDER, RECOMMENDED } from './banner-format';
+import { FocusPickerComponent } from '../../../shared/ui/focus-picker/focus-picker.component';
+import { FREQUENCY_LABEL, FRAME_RATIO, POSITION_LABEL, POSITION_ORDER, RECOMMENDED } from './banner-format';
 
 const toLocal = (iso: string): string => {
   const d = new Date(iso);
@@ -24,7 +26,7 @@ const toLocal = (iso: string): string => {
 /** FR-MKT_AD-012/013: tạo và sửa banner. Vị trí chỉ chọn lúc tạo. */
 @Component({
   selector: 'app-banner-form',
-  imports: [FormsModule, RouterLink, PublishDialogComponent],
+  imports: [FormsModule, RouterLink, PublishDialogComponent, FocusPickerComponent],
   templateUrl: './banner-form.component.html',
   styleUrl: './banner-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +40,7 @@ export class BannerFormComponent {
   protected readonly POSITIONS = POSITION_ORDER;
   protected readonly POSITION_LABEL = POSITION_LABEL;
   protected readonly RECOMMENDED = RECOMMENDED;
+  protected readonly FRAME_RATIO = FRAME_RATIO;
   protected readonly FREQUENCIES = Object.entries(FREQUENCY_LABEL);
 
   protected position: BannerPosition = 'HOME_SLIDER';
@@ -45,6 +48,9 @@ export class BannerFormComponent {
   protected content = '';
   protected imageUrl = '';
   protected mobileImageUrl = '';
+  /** Vùng hiển thị đã kéo chọn; null = căn giữa. */
+  protected imageFocus: ImageFocus | null = null;
+  protected mobileImageFocus: ImageFocus | null = null;
   protected ctaLabel = '';
   protected linkUrl = '';
   protected openInNewTab: boolean | null = null;
@@ -95,6 +101,8 @@ export class BannerFormComponent {
       this.content = b.content;
       this.imageUrl = b.imageUrl;
       this.mobileImageUrl = b.mobileImageUrl ?? '';
+      this.imageFocus = b.imageFocus ?? null;
+      this.mobileImageFocus = b.mobileImageFocus ?? null;
       this.ctaLabel = b.ctaLabel ?? '';
       this.linkUrl = b.linkUrl;
       this.openInNewTab = b.openInNewTab;
@@ -120,8 +128,14 @@ export class BannerFormComponent {
     this.uploading.set(kind);
     try {
       const r = await firstValueFrom(this.api.upload(file, this.position, kind));
-      if (kind === 'desktop') this.imageUrl = r.url;
-      else this.mobileImageUrl = r.url;
+      // Ảnh mới: đưa vùng hiển thị về giữa, admin kéo lại nếu cần.
+      if (kind === 'desktop') {
+        this.imageUrl = r.url;
+        this.imageFocus = null;
+      } else {
+        this.mobileImageUrl = r.url;
+        this.mobileImageFocus = null;
+      }
     } catch (e) {
       const msg = parseApiError(e).message;
       this.uploadError.update((u) => ({ ...u, [kind]: msg || 'Tải ảnh không thành công. Vui lòng thử lại.' }));
@@ -179,6 +193,8 @@ export class BannerFormComponent {
           content: this.content.trim() || undefined,
           imageUrl: this.imageUrl,
           mobileImageUrl: this.mobileImageUrl || null,
+          imageFocus: this.imageFocus,
+          mobileImageFocus: this.mobileImageUrl ? this.mobileImageFocus : null,
           ctaLabel: this.ctaLabel.trim() || null,
           linkUrl: this.linkUrl.trim() || null,
           openInNewTab: this.openInNewTab ?? undefined,

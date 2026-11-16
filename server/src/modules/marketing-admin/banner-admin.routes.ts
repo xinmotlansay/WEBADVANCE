@@ -47,7 +47,7 @@ const imageQuery = z.object({ position: z.enum(POSITIONS), kind: z.enum(['deskto
 bannerAdminRoutes.post(
   '/images',
   validateQuery(imageQuery),
-  raw({ type: 'multipart/form-data', limit: '3mb' }),
+  raw({ type: 'multipart/form-data', limit: '6mb' }),
   asyncHandler(async (req, res) => {
     const q = res.locals['query'] as z.infer<typeof imageQuery>;
     const file = (await readMultipart(req)).get('file');

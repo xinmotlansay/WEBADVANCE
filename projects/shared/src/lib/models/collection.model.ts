@@ -1,3 +1,4 @@
+import type { ImageFocus } from './image-focus';
 import type { ProductListItem } from './product.model';
 
 export interface CollectionSummary {
@@ -26,6 +27,8 @@ export interface CollectionImage {
   url: string;
   title: string;
   description: string;
+  /** Vùng hiển thị (ảnh chính); null = căn giữa. */
+  focus?: ImageFocus | null;
   hotspots: CollectionHotspot[];
 }
 

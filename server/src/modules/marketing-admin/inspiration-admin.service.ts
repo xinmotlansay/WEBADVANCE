@@ -31,6 +31,7 @@ const toRow = (i: Doc, inactive: Set<string>) => {
   return {
     id: String(i._id),
     imageUrl: i.imageUrl,
+    focus: i.focus ?? null,
     productIds,
     productCount: productIds.length,
     inactiveProductIds: productIds.filter((id) => inactive.has(id)),
@@ -73,6 +74,7 @@ async function values(input: InspirationInput, existing: Doc | null) {
   }
   return {
     imageUrl: input.imageUrl,
+    focus: input.focus ?? null,
     products: ids.map((id, n) => ({ productId: new Types.ObjectId(id), displayOrder: n + 1 })),
   };
 }

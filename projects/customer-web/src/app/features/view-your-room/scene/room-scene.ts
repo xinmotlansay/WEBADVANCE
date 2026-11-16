@@ -16,6 +16,8 @@ export interface RoomSceneCallbacks {
   onItemChange(uid: string, patch: { x: number; z: number; y?: number; rotationY?: number }): void;
   onSelect(uid: string | null): void;
   onZoomChange(percent: number): void;
+  /** Vị trí (px, trong khung canvas) phía trên đỉnh sản phẩm đang chọn; `null` khi không có hoặc ngoài khung nhìn. */
+  onAnchorChange(anchor: { x: number; y: number } | null): void;
 }
 
 /** Đơn vị trong scene là mét, dữ liệu phòng và sản phẩm là cm. */
@@ -166,6 +168,9 @@ export class RoomScene {
   /** Người dùng đã tự xoay hoặc zoom thì không tự căn lại camera khi khung đổi kích thước. */
   private userMoved = false;
   private lastZoomPercent = -1;
+  private lastAnchor: { x: number; y: number } | null = null;
+  private readonly anchorBox = new THREE.Box3();
+  private readonly anchorPoint = new THREE.Vector3();
   private selectedUid: string | null = null;
   private selectionBox: THREE.BoxHelper | null = null;
   private drag: DragState | null = null;
@@ -485,7 +490,30 @@ export class RoomScene {
     this.controls.update();
     this.selectionBox?.update();
     this.renderer.render(this.scene, this.camera);
+    this.updateAnchor();
   };
+
+  /** Chiếu điểm giữa đỉnh sản phẩm đang chọn ra toạ độ màn hình để thanh công cụ bám theo. */
+  private updateAnchor(): void {
+    const obj = this.selectedUid ? this.objects.get(this.selectedUid) : undefined;
+    let next: { x: number; y: number } | null = null;
+    if (obj) {
+      this.anchorBox.setFromObject(obj.root);
+      this.anchorPoint
+        .set((this.anchorBox.min.x + this.anchorBox.max.x) / 2, this.anchorBox.max.y, (this.anchorBox.min.z + this.anchorBox.max.z) / 2)
+        .project(this.camera);
+      if (this.anchorPoint.z < 1) {
+        next = {
+          x: Math.round(((this.anchorPoint.x + 1) / 2) * this.host.clientWidth),
+          y: Math.round(((1 - this.anchorPoint.y) / 2) * this.host.clientHeight),
+        };
+      }
+    }
+    const prev = this.lastAnchor;
+    if (prev?.x === next?.x && prev?.y === next?.y) return;
+    this.lastAnchor = next;
+    this.callbacks.onAnchorChange(next);
+  }
 
   private readonly emitZoom = (): void => {
     const distance = this.camera.position.distanceTo(this.controls.target);

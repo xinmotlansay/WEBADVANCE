@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { loginQueryParams } from '../../core/auth/login-redirect';
 import { SearchUiService } from '../../services/search/search-ui.service';
 import { AuthService } from '../../services/auth/auth.service';
 import { ChatUiService } from '../../services/chat/chat-ui.service';
@@ -40,7 +41,7 @@ export class FloatingActionsComponent {
   /** Chat CSKH: bắt buộc đăng nhập mới mở được khung chat. */
   protected openSupport(): void {
     if (!this.auth.isAuthenticated()) {
-      void this.router.navigate(['/auth/login']);
+      void this.router.navigate(['/auth/login'], { queryParams: loginQueryParams(this.router.url) });
       return;
     }
     this.chatUi.toggleSupport();

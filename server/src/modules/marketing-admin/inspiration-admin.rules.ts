@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AppError } from '../../utils/app-error.js';
 import { imageUrl } from './collection-admin.rules.js';
+import { imageFocusSchema } from './image-focus.js';
 
 /** Quy tắc MA-08 (Nguồn cảm hứng). Ảnh dùng chung giới hạn với Collection. */
 
@@ -8,6 +9,8 @@ export const MAX_INSPIRATION_PRODUCTS = 12;
 
 const fields = {
   imageUrl,
+  /** Vùng hiển thị khung 2:3 do admin kéo chọn; null = căn giữa. */
+  focus: imageFocusSchema,
   /** Bản nháp (Ẩn) được phép rỗng; muốn Hiện phải có ≥ 1. */
   productIds: z
     .array(z.string())

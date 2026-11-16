@@ -137,6 +137,40 @@ button {
   cursor: pointer;
 }
 
+/* Phản hồi khi bấm: nút thu nhẹ và tối đi, kèm vòng sáng khi chạm trên màn hình cảm ứng. */
+button,
+[role='button'],
+a.btn,
+a.button,
+.btn {
+  -webkit-tap-highlight-color: rgb(0 0 0 / 0.08);
+  touch-action: manipulation;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+button:active:not(:disabled),
+[role='button']:active,
+a.btn:active,
+a.button:active,
+.btn:active:not(:disabled) {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled),
+  [role='button']:active,
+  a.btn:active,
+  a.button:active,
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 ul {
   margin: 0;
   padding: 0;

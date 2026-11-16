@@ -3,9 +3,13 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { numberFromDetails, parseApiError } from '../../../../core/auth/auth-error';
+import { loginNoticeFor } from '../../../../core/auth/login-redirect';
 import { AuthService } from '../../../../services/auth/auth.service';
+import { ToastService } from '../../../../services/ui/toast.service';
 import { AuthLayoutComponent } from '../../components/auth-layout/auth-layout.component';
 import { GoogleAuthComponent } from '../../components/google-auth/google-auth.component';
+
+const NOTICE_DURATION_MS = 4000;
 
 @Component({
   selector: 'app-login',
@@ -19,11 +23,15 @@ export class LoginComponent implements OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
 
   readonly form = this.formBuilder.group({
     identifier: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required]],
   });
+
+  /** Thông báo lý do chuyển tới đây (vd. cần đăng nhập để thực hiện thao tác). */
+  readonly notice = loginNoticeFor(this.route.snapshot.queryParamMap.get('reason'));
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -31,6 +39,18 @@ export class LoginComponent implements OnDestroy {
   readonly lockRemaining = signal(0);
 
   private countdownTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    if (this.notice) {
+      this.toast.info(this.notice, NOTICE_DURATION_MS);
+      // Bỏ `reason` khỏi URL để tải lại trang không hiện lại thông báo.
+      void this.router.navigate([], {
+        queryParams: { reason: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+  }
 
   get identifier() {
     return this.form.controls.identifier;

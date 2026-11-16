@@ -23,6 +23,15 @@ export const config = {
   chatHistoryLimit: Number(process.env['CHAT_HISTORY_LIMIT'] ?? 20),
   googleClientId: (process.env['GOOGLE_CLIENT_ID'] ?? '').trim(),
   bankWebhookSecret: process.env['BANK_WEBHOOK_SECRET'] ?? '',
+  /** Tài khoản nhận tiền QR. Trường trống thì giữ giá trị trong DB (`payment.bankAccount`). */
+  bankAccount: {
+    bankId: (process.env['BANK_ID'] ?? '').trim(),
+    bankName: (process.env['BANK_NAME'] ?? '').trim(),
+    accountNumber: (process.env['BANK_ACCOUNT_NUMBER'] ?? '').replace(/\s+/g, ''),
+    accountHolder: (process.env['BANK_ACCOUNT_HOLDER'] ?? '').trim(),
+  },
+  /** API Key SePay: SePay gửi lên header `Authorization: Apikey <key>`. Trống = từ chối webhook SePay. */
+  sepayApiKey: (process.env['SEPAY_API_KEY'] ?? '').trim(),
   isProduction: process.env['NODE_ENV'] === 'production',
   /** Khách chưa gửi token: request được coi là của user này (chỉ ngoài production). */
   devUserId: process.env['DEV_USER_ID'] || '000000000000000000000001',

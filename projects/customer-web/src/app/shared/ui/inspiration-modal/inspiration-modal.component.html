@@ -16,7 +16,7 @@
       </button>
     }
 
-    <img class="photo" [src]="current().imageUrl" alt="Không gian nội thất gợi cảm hứng" />
+    <img class="photo" [src]="current().imageUrl" [style.object-position]="focusPosition(current().focus)" alt="Không gian nội thất gợi cảm hứng" />
 
     @if (items().length > 1) {
       <button type="button" class="arrow arrow--next" aria-label="Ảnh sau" (click)="step(1)">
@@ -35,8 +35,19 @@
                 <a [routerLink]="['/products', product.slug]" (click)="closed.emit()">
                   <img [src]="product.thumbnail" [alt]="product.name" />
                   <span class="products__name">{{ product.name }}</span>
-                  <span class="products__price">{{ product.priceFrom | vnd }}</span>
                 </a>
+                <div class="products__foot">
+                  <span class="products__price">{{ product.priceFrom | vnd }}</span>
+                  <button
+                    type="button"
+                    class="products__cart"
+                    aria-label="Thêm vào giỏ hàng"
+                    [disabled]="product.stockStatus === 'OUT_OF_STOCK'"
+                    (click)="addToCart(product)"
+                  >
+                    <app-icon name="lucide:shopping-cart" [size]="18" />
+                  </button>
+                </div>
               </li>
             }
           </ul>

@@ -16,6 +16,8 @@
           class="hero__img"
           [class.hero__img--active]="i === index()"
           [src]="banner.imageUrl"
+          [style.--focus-d]="focusPosition(banner.imageFocus)"
+          [style.--focus-m]="focusPosition(mobileFocusOf(banner))"
           [alt]="banner.title"
           [attr.loading]="i === 0 ? 'eager' : 'lazy'"
           [attr.aria-hidden]="i !== index()"

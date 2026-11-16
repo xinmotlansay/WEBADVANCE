@@ -8,7 +8,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import type { Banner } from 'shared';
+import { focusPosition, mobileFocusOf, type Banner } from 'shared';
 import { LinkDirective } from '../../../../shared/ui/link/link.directive';
 import { BannerTrackerService } from '../../../../services/ui/banner-tracker.service';
 import { IconComponent } from '../../../../shared/ui/icons/icon.component';
@@ -23,6 +23,8 @@ const AUTOPLAY_MS = 6000;
   styleUrl: './hero-banner.component.css',
 })
 export class HeroBannerComponent {
+  protected readonly focusPosition = focusPosition;
+  protected readonly mobileFocusOf = mobileFocusOf;
   readonly banners = input.required<Banner[]>();
 
   protected readonly index = signal(0);

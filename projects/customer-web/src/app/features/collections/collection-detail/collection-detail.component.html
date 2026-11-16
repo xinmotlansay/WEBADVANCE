@@ -11,7 +11,7 @@
 
   <section class="hero">
     @if (detail.images[0]; as cover) {
-      <img class="hero__img" [src]="cover.url" [alt]="detail.name" />
+      <img class="hero__img" [src]="cover.url" [alt]="detail.name" [style.object-position]="focusPosition(cover.focus)" />
     }
     <div class="hero__text">
       <h1>{{ detail.name }}</h1>

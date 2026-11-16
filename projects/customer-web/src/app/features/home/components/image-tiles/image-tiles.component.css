@@ -44,8 +44,20 @@ a:hover .tile__media img {
   font-size: var(--font-size-h5);
 }
 
+/* Danh mục: một hàng cuộn ngang; hiện 6 ô trên máy tính, 2,5 ô trên điện thoại để gợi ý lướt tiếp. */
 :host([data-variant='category']) .tiles {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 8px;
+}
+:host([data-variant='category']) .tiles > li {
+  flex: 0 0 calc((100% - 5 * var(--grid-gutter)) / 6);
+  min-width: 0;
+  scroll-snap-align: start;
 }
 :host([data-variant='category']) .tile__media {
   aspect-ratio: 4/3;
@@ -62,8 +74,13 @@ a:hover .tile__media img {
 }
 
 @media (max-width: 900px) {
-  :host([data-variant='category']) .tiles {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  :host([data-variant='category']) .tiles > li {
+    flex-basis: calc((100% - 2 * var(--grid-gutter)) / 3);
+  }
+}
+@media (max-width: 640px) {
+  :host([data-variant='category']) .tiles > li {
+    flex-basis: calc((100% - var(--grid-gutter)) / 2.5);
   }
 }
 @media (max-width: 640px) {

@@ -63,7 +63,11 @@
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.05);
 }
 
-.vyr__panel > * {
+.vyr__acc {
+  display: none;
+}
+
+.vyr__panel > *:not(.vyr__acc) {
   flex: 1;
   min-height: 0;
 }
@@ -108,25 +112,79 @@
 
 .vyr__selected {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 14px;
+  gap: 6px;
+  padding: 4px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.95);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-  font-size: 13px;
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 6px 18px rgb(11 48 86 / 0.18), 0 0 0 1px rgb(11 48 86 / 0.06);
+  /* Neo giữa-dưới của thanh vào đỉnh sản phẩm, chừa chỗ cho cái đuôi nối xuống vật. */
+  transform: translate(-50%, calc(-100% - 14px));
 }
 
-.vyr__selected-name {
-  max-width: 220px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-weight: var(--font-weight-medium);
+/* Đuôi nhỏ nối thanh công cụ với sản phẩm. */
+.vyr__selected::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: var(--color-primary);
+  opacity: 0.5;
+}
+
+.vyr__icon-btn {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--color-primary);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.vyr__icon-btn svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.vyr__icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgb(11 48 86 / 0.1);
+}
+
+.vyr__icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.vyr__icon-btn--danger {
+  color: #b3261e;
+}
+
+.vyr__icon-btn--danger:hover {
+  background: #b3261e;
+  color: var(--color-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vyr__icon-btn {
+    transition: none;
+  }
+
+  .vyr__icon-btn:hover {
+    transform: none;
+  }
 }
 
 .vyr__chip-btn {
@@ -494,13 +552,125 @@
     max-height: 560px;
   }
 
-  /* Trên màn hình nhỏ đưa khung 3D lên trước, cài đặt và danh sách sản phẩm xuống dưới. */
+  /* Trên màn hình nhỏ đưa khung 3D lên trước và giữ nó dính phía trên khi cuộn,
+     để vừa chỉnh cài đặt bên dưới vừa nhìn thấy căn phòng. */
   .vyr__stage {
     order: -1;
+    position: sticky;
+    z-index: 15;
+    align-self: start;
+    /* Tràn sát mép màn hình, không viền bo và bóng nặng nên đỡ cảm giác khung nhỏ trong khung. */
+    margin-inline: -16px;
+    border-radius: 0 0 20px 20px;
+    /* Dải màu nền quanh khung che nội dung đang cuộn phía sau, tạo khoảng cách với phần 3D. */
+    box-shadow:
+      0 -8px 0 #f6f6f6,
+      0 14px 0 #f6f6f6,
+      0 16px 22px rgb(0 0 0 / 0.1);
+  }
+
+  .vyr__stage {
+    top: 8px;
+  }
+
+  .vyr__grid {
+    gap: 28px;
+  }
+
+  /* Hai khối chỉnh phòng / thêm sản phẩm thu thành một hàng, bấm mới xổ nội dung. */
+  .vyr__panel {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .vyr__acc {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 20px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 16px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-black);
+    text-align: left;
+  }
+
+  .vyr__acc-icon {
+    width: 10px;
+    height: 10px;
+    margin-right: 4px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .vyr__panel--open .vyr__acc-icon {
+    transform: rotate(-135deg) translate(-3px, -3px);
+  }
+
+  .vyr__panel:not(.vyr__panel--open) > *:not(.vyr__acc) {
+    display: none;
+  }
+
+  .vyr__panel--open > *:not(.vyr__acc) {
+    padding: 4px 20px 20px;
   }
 
   .vyr__canvas {
-    min-height: 460px;
+    flex: 0 0 auto;
+    height: clamp(260px, 46dvh, 440px);
+    min-height: 0;
+  }
+
+  /* Nút lưu thu nhỏ lại để chừa chỗ cho phòng. */
+  .vyr__saves {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+
+  .vyr__save {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  .vyr__popover {
+    top: 52px;
+    right: 10px;
+  }
+
+  .vyr__toolbar {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 4px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-top: 0;
+  }
+
+  .vyr__toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tool {
+    flex: none;
+    white-space: nowrap;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .vyr__bar {
+    z-index: 25;
+  }
+
+  .vyr__grid {
+    padding-bottom: 96px;
   }
 }
 

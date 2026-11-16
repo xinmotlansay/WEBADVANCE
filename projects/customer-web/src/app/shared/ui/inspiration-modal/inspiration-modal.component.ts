@@ -13,10 +13,17 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { CatalogApiService, type InspirationDetail, type InspirationSummary } from 'shared';
+import {
+  CatalogApiService,
+  type InspirationDetail,
+  type InspirationSummary,
+  type ProductListItem,
+  focusPosition,
+} from 'shared';
 import { catchError, of, switchMap } from 'rxjs';
 import { VndPipe } from '../../pipes/vnd.pipe';
 import { IconComponent } from '../icons/icon.component';
+import { VariantPickerService } from '../../../services/cart/variant-picker.service';
 
 /**
  * Popup "Mua sắm theo nguồn cảm hứng": ảnh bên trái (chuyển qua lại), sản phẩm trong ảnh bên phải.
@@ -35,7 +42,9 @@ import { IconComponent } from '../icons/icon.component';
   },
 })
 export class InspirationModalComponent {
+  protected readonly focusPosition = focusPosition;
   private readonly api = inject(CatalogApiService);
+  private readonly picker = inject(VariantPickerService);
 
   readonly items = input.required<InspirationSummary[]>();
   readonly index = model.required<number>();
@@ -61,6 +70,11 @@ export class InspirationModalComponent {
     inject(DestroyRef).onDestroy(() => (document.body.style.overflow = previousOverflow));
 
     afterNextRender(() => this.closeButton().nativeElement.focus());
+  }
+
+  /** Mở popup chọn mẫu (nằm trên popup này) giống nút thêm giỏ ở thẻ sản phẩm. */
+  protected addToCart(product: ProductListItem): void {
+    this.picker.open({ mode: 'add', slug: product.slug });
   }
 
   protected step(direction: -1 | 1): void {

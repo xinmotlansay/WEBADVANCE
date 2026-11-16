@@ -16,7 +16,7 @@ Tài liệu gồm hai phần: **Phần A – User Functional Requirements** và 
 | Thời hạn đánh giá | 90 ngày kể từ ngày nhận hàng |
 | Hạn thanh toán QR | 15 phút kể từ lúc tạo đơn |
 | Bù trễ giao hàng | Giao trễ quá 2 ngày so với ngày dự kiến thì tặng voucher bù 100.000đ |
-| Khóa đăng nhập | Sai 3 lần liên tiếp khóa 1 phút; tiếp tục sai thì khóa tiếp với thời gian tăng dần |
+| Khóa đăng nhập | Sai 5 lần liên tiếp khóa 1 phút; tiếp tục sai thì khóa tiếp với thời gian tăng dần |
 | OTP | Hạn 5 phút, sai tối đa 5 lần, gửi lại cách nhau 60 giây, tối đa 5 lần mỗi giờ |
 | Mật khẩu | Khách: tối thiểu 8 ký tự gồm chữ, số và ký tự đặc biệt. Admin: tối thiểu 12 ký tự |
 | Ngày sinh | Chỉ được nhập tối đa 2 lần (tính cả lần đầu) |
@@ -67,7 +67,7 @@ Phí lắp đặt là phí cố định riêng theo từng sản phẩm/biến t
 | Mã | Tên chức năng | Mô tả |
 | :---: | :---- | :---- |
 | FR-01 | Đăng ký | Đăng ký bằng họ tên, ngày sinh, email hoặc số điện thoại, mật khẩu (tối thiểu 8 ký tự gồm chữ, số và ký tự đặc biệt) và đồng ý điều khoản dịch vụ. Email/số điện thoại phải xác thực bằng OTP trước khi kích hoạt tài khoản. Email và số điện thoại không được trùng với tài khoản đã có. Đăng ký nhanh bằng Google không cần OTP; việc bổ sung thông tin cá nhân sau đó là tùy chọn |
-| FR-02 | Đăng nhập | Đăng nhập bằng email hoặc số điện thoại và mật khẩu, hoặc bằng tài khoản Google. Sai mật khẩu 3 lần liên tiếp thì khóa đăng nhập 1 phút; tiếp tục sai thì khóa tiếp với thời gian tăng dần. Hệ thống hiển thị thời gian còn lại |
+| FR-02 | Đăng nhập | Đăng nhập bằng email hoặc số điện thoại và mật khẩu, hoặc bằng tài khoản Google. Sai mật khẩu 5 lần liên tiếp thì khóa đăng nhập 1 phút; tiếp tục sai thì khóa tiếp với thời gian tăng dần. Hệ thống hiển thị thời gian còn lại |
 | FR-03 | Đăng nhập Google trùng email đã có | Nếu email Google đã thuộc một tài khoản, hệ thống không tạo tài khoản mới mà yêu cầu xác minh quyền sở hữu (mật khẩu hoặc OTP email) rồi liên kết Google vào tài khoản đó |
 | FR-04 | Quên mật khẩu | Khôi phục mật khẩu bằng OTP gửi về đúng kênh đã đăng ký (email hoặc số điện thoại), sau đó đặt mật khẩu mới |
 | FR-05 | Đổi mật khẩu | Người dùng đã đăng nhập đổi mật khẩu bằng cách nhập mật khẩu cũ và mật khẩu mới |

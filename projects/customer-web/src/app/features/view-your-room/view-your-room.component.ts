@@ -19,6 +19,7 @@ import { Subject, catchError, debounceTime, firstValueFrom, map, of, switchMap }
 import { ConfirmService } from '../../services/ui/confirm.service';
 import { VariantPickerService } from '../../services/cart/variant-picker.service';
 import { AuthService } from '../../services/auth/auth.service';
+import { loginQueryParams } from '../../core/auth/login-redirect';
 import { ProductPanelComponent } from './components/product-panel/product-panel.component';
 import {
   RoomSettingsComponent,
@@ -70,10 +71,18 @@ export class ViewYourRoomComponent implements AfterViewInit {
   protected readonly selectedItem = computed(
     () => this.items().find((item) => item.uid === this.selectedUid()) ?? null,
   );
+  /** Vị trí thanh công cụ nổi phía trên sản phẩm đang chọn, theo px trong khung canvas. */
+  protected readonly anchor = signal<{ x: number; y: number } | null>(null);
   protected readonly total = computed(() =>
     this.items().reduce((sum, item) => sum + item.priceFrom, 0),
   );
   protected readonly listOpen = signal(false);
+  /** Trên màn hình nhỏ, phần chỉnh phòng và thêm sản phẩm chỉ xổ ra khi bấm; mở cái này thì đóng cái kia. */
+  protected readonly section = signal<'room' | 'products' | null>(null);
+
+  protected toggleSection(name: 'room' | 'products'): void {
+    this.section.update((current) => (current === name ? null : name));
+  }
   protected readonly layouts = signal<SavedLayout[]>([]);
   protected readonly layoutsLoading = signal(false);
   protected readonly panel = signal<'save' | 'layouts' | null>(null);
@@ -129,6 +138,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
           onItemChange: (uid, patch) => this.zone.run(() => this.updateItem(uid, patch)),
           onSelect: (uid) => this.zone.run(() => this.selectedUid.set(uid)),
           onZoomChange: (percent) => this.zone.run(() => this.zoomPercent.set(percent)),
+          onAnchorChange: (anchor) => this.zone.run(() => this.anchor.set(anchor)),
         }),
     );
     this.scene.setRoom(this.room());
@@ -281,7 +291,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   protected openSave(): void {
     if (!this.auth.isAuthenticated()) {
       this.saveDraft();
-      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      void this.router.navigate(['/auth/login'], { queryParams: loginQueryParams(this.router.url) });
       return;
     }
     if (this.items().length === 0) {
@@ -342,7 +352,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
   protected openLayouts(): void {
     if (!this.auth.isAuthenticated()) {
       this.saveDraft();
-      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      void this.router.navigate(['/auth/login'], { queryParams: loginQueryParams(this.router.url) });
       return;
     }
     if (this.panel() === 'layouts') {

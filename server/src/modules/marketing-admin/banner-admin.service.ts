@@ -55,6 +55,8 @@ const toRow = (b: BannerDoc & { createdAt?: Date }, broken: Set<string>, now: Da
     content: b.content ?? '',
     imageUrl: b.imageUrl,
     mobileImageUrl: b.mobileImageUrl ?? null,
+    imageFocus: b.imageFocus ?? null,
+    mobileImageFocus: b.mobileImageFocus ?? null,
     linkUrl: b.linkUrl ?? '',
     ctaLabel: b.ctaLabel ?? null,
     openInNewTab: b.openInNewTab ?? (b.linkUrl ? isExternalLink(b.linkUrl) : false),
@@ -147,6 +149,8 @@ export async function createBanner(actorId: string, input: CreateBannerInput, no
         content: input.content,
         imageUrl: input.imageUrl,
         mobileImageUrl: input.mobileImageUrl ?? undefined,
+        imageFocus: input.imageFocus ?? undefined,
+        mobileImageFocus: input.mobileImageFocus ?? undefined,
         ctaLabel: input.ctaLabel ?? undefined,
         linkUrl: input.linkUrl || undefined,
         openInNewTab: input.openInNewTab ?? (input.linkUrl ? isExternalLink(input.linkUrl) : false),
@@ -200,6 +204,9 @@ export async function updateBanner(actorId: string, id: string, patch: UpdateBan
   for (const k of ['title', 'content', 'imageUrl', 'mobileImageUrl', 'ctaLabel', 'openInNewTab', 'displayOrder', 'popupFrequency'] as const) {
     if (fields[k] !== undefined) set[k] = fields[k] ?? undefined;
   }
+  // Vùng hiển thị: null = về căn giữa (xóa khỏi bản ghi).
+  if (fields.imageFocus !== undefined) set['imageFocus'] = fields.imageFocus ?? null;
+  if (fields.mobileImageFocus !== undefined) set['mobileImageFocus'] = fields.mobileImageFocus ?? null;
   if (fields.linkUrl !== undefined) set['linkUrl'] = fields.linkUrl || undefined;
   if (fields.categoryIds !== undefined) set['categoryIds'] = fields.categoryIds;
   // Đổi ảnh khi đang hiển thị: số liệu trước/sau đổi ảnh tách thành hai giai đoạn (FR-013): lưu mốc.
@@ -259,6 +266,8 @@ export async function duplicateBanner(actorId: string, id: string, position: Ban
     content: b.content,
     imageUrl: b.imageUrl,
     mobileImageUrl: b.mobileImageUrl,
+    imageFocus: b.imageFocus,
+    mobileImageFocus: b.mobileImageFocus,
     ctaLabel: b.ctaLabel,
     linkUrl: b.linkUrl,
     openInNewTab: b.openInNewTab,

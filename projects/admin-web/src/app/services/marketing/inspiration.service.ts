@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { ApiResponse } from 'shared';
+import type { ApiResponse, ImageFocus } from 'shared';
 import { map, Observable } from 'rxjs';
 import type { CollectionStatus } from './collection.service';
 
@@ -12,6 +12,7 @@ export const MAX_INSPIRATION_PRODUCTS = 12;
 export interface InspirationRow {
   id: string;
   imageUrl: string;
+  focus: ImageFocus | null;
   productIds: string[];
   productCount: number;
   inactiveProductIds: string[];
@@ -24,6 +25,7 @@ export interface InspirationRow {
 
 export interface InspirationBody {
   imageUrl: string;
+  focus?: ImageFocus | null;
   productIds: string[];
   version?: number;
 }

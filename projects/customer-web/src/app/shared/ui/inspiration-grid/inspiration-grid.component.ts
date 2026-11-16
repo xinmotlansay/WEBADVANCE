@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
-import type { InspirationSummary } from 'shared';
+import { focusPosition, type InspirationSummary } from 'shared';
 import { InspirationModalComponent } from '../inspiration-modal/inspiration-modal.component';
 
 /** Lưới ảnh cảm hứng tỉ lệ 2:3; bấm vào một ảnh mở popup Shop by look. */
@@ -11,6 +11,7 @@ import { InspirationModalComponent } from '../inspiration-modal/inspiration-moda
   styleUrl: './inspiration-grid.component.css',
 })
 export class InspirationGridComponent {
+  protected readonly focusPosition = focusPosition;
   readonly items = input.required<InspirationSummary[]>();
 
   /** Vị trí ảnh đang mở trong popup, `null` khi đóng. */

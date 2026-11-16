@@ -41,12 +41,12 @@ inspirationAdminRoutes.get(
 // Đường dẫn cố định đứng trước `/:id`.
 inspirationAdminRoutes.post(
   '/images',
-  raw({ type: 'multipart/form-data', limit: '4mb' }),
+  raw({ type: 'multipart/form-data', limit: '6mb' }),
   asyncHandler(async (req, res) => {
     const file = (await readMultipart(req)).get('file');
     if (!(file instanceof File)) throw new AppError('E-MKT-020-04', 400, 'Vui lòng chọn ảnh để tải lên.');
     res.status(201);
-    sendData(res, await uploadAdminImage(new Uint8Array(await file.arrayBuffer()), 'inspirations'));
+    sendData(res, await uploadAdminImage(new Uint8Array(await file.arrayBuffer()), 'inspirations', 'portrait'));
   }),
 );
 

@@ -21,6 +21,11 @@
 .hero__img--active {
   opacity: 1;
 }
+/* Vùng hiển thị do admin chọn khi tải ảnh (mặc định căn giữa). */
+.hero__img { object-position: var(--focus-d, 50% 50%); }
+@media (max-width: 767px) {
+  .hero__img { object-position: var(--focus-m, 50% 50%); }
+}
 .hero__shade {
   position: absolute;
   inset: 0;

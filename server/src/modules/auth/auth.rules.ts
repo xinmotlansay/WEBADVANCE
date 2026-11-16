@@ -26,7 +26,7 @@ export function isStrongPassword(password: string): boolean {
   );
 }
 
-/** FR-02: sai 3 lần thì khóa 1 phút, các lần sau tăng dần, tối đa 15 phút. */
+/** FR-02: sai 5 lần thì khóa 1 phút, các lần khóa sau tăng dần, tối đa 15 phút. */
 export function computeLockDurationSeconds(lockCount: number): number {
   const seconds = OTP_RESEND_INTERVAL_SECONDS * 2 ** Math.max(lockCount - 1, 0);
   return Math.min(seconds, MAX_LOCK_DURATION_SECONDS);

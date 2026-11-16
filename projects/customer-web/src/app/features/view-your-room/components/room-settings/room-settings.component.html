@@ -45,7 +45,21 @@
     <label class="slider">
       <span class="slider__head">
         <span>Chiều dài</span>
-        <span class="slider__value">{{ room().length }} cm</span>
+        <span class="slider__value"
+          ><input
+            type="number"
+            inputmode="numeric"
+            class="slider__num"
+            [attr.aria-label]="'Nhập chiều dài (cm)'"
+            [min]="limits.length.min"
+            [max]="limits.length.max"
+            [value]="room().length"
+            (focus)="$any($event.target).select()"
+            (change)="commitDimension('length', $event)"
+            (keydown.enter)="$any($event.target).blur()"
+          />
+          cm</span
+        >
       </span>
       <input
         type="range"
@@ -61,7 +75,21 @@
     <label class="slider">
       <span class="slider__head">
         <span>Chiều rộng</span>
-        <span class="slider__value">{{ room().width }} cm</span>
+        <span class="slider__value"
+          ><input
+            type="number"
+            inputmode="numeric"
+            class="slider__num"
+            [attr.aria-label]="'Nhập chiều rộng (cm)'"
+            [min]="limits.width.min"
+            [max]="limits.width.max"
+            [value]="room().width"
+            (focus)="$any($event.target).select()"
+            (change)="commitDimension('width', $event)"
+            (keydown.enter)="$any($event.target).blur()"
+          />
+          cm</span
+        >
       </span>
       <input
         type="range"
@@ -77,7 +105,21 @@
     <label class="slider">
       <span class="slider__head">
         <span>Chiều cao</span>
-        <span class="slider__value">{{ room().height }} cm</span>
+        <span class="slider__value"
+          ><input
+            type="number"
+            inputmode="numeric"
+            class="slider__num"
+            [attr.aria-label]="'Nhập chiều cao (cm)'"
+            [min]="limits.height.min"
+            [max]="limits.height.max"
+            [value]="room().height"
+            (focus)="$any($event.target).select()"
+            (change)="commitDimension('height', $event)"
+            (keydown.enter)="$any($event.target).blur()"
+          />
+          cm</span
+        >
       </span>
       <input
         type="range"

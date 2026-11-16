@@ -579,15 +579,6 @@ tbody tr:last-child td {
   }
 }
 
-@media (max-width: 640px) {
-  .page {
-    padding-block: 20px 56px;
-  }
-  .product__img {
-    width: 56px;
-  }
-}
-
 @media (max-width: 520px) {
   .journey {
     flex-direction: column;
@@ -623,4 +614,61 @@ tbody tr:last-child td {
 .profile-note {
   margin: -4px 0 0;
   font-size: var(--font-size-xs);
+}
+
+/* Ô kết quả nổi: chỉ hiện trên màn hình nhỏ khi phần kết quả đang ngoài tầm nhìn. */
+.result-chip {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .result-chip {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100% - 32px);
+    padding: 10px 16px;
+    border: 1px solid var(--s);
+    border-radius: 999px;
+    background: var(--color-white);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+    transform: translate(-50%, 0);
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+    animation: chip-in 0.2s ease;
+  }
+  .result-chip:active:not(:disabled) {
+    transform: translate(-50%, 0) scale(0.96);
+  }
+  .result-chip__dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--s);
+  }
+  .result-chip__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .result-chip__go {
+    flex: none;
+    color: var(--color-primary);
+  }
+  .result-chip[data-status='PASS'] { --s: #2e7d32; }
+  .result-chip[data-status='CAUTION'] { --s: #ed8b00; }
+  .result-chip[data-status='FAIL'] { --s: #d32f2f; }
+}
+
+@keyframes chip-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-chip { animation: none; }
 }

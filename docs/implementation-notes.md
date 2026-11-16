@@ -52,7 +52,7 @@ Tất cả có prefix `/api/v1`.
 
 - Catalog: `GET /products`, `/products/:slug`, `/categories`, `/collections`, `/collections/:slug`, `/inspirations`, `/inspirations/:id`, `/config/public`.
 - Search: `GET /search/suggestions?q=`, `POST /search/image` multipart `image`.
-- Auth: `POST /auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me`. JWT 15 phút; cookie refresh HttpOnly/SameSite=Strict, Secure khi HTTPS; phiên MongoDB TTL tối đa 30 ngày; refresh quay vòng, logout thu hồi. Khóa tạm sau 3 lần sai, tăng thời gian khóa.
+- Auth: `POST /auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me`. JWT 15 phút; cookie refresh HttpOnly/SameSite=Strict, Secure khi HTTPS; phiên MongoDB TTL tối đa 30 ngày; refresh quay vòng, logout thu hồi. Khóa tạm sau 5 lần sai, tăng thời gian khóa.
 - Upload: `POST /uploads` multipart `file`, `purpose=WARRANTY_EVIDENCE|RETURN_EVIDENCE`. Kiểm magic bytes, ảnh ≤5 MB, video MP4/MOV ≤50 MB; tên UUID; chỉ chấp nhận minh chứng đúng chủ sở hữu và purpose.
 - Warranty: `GET /warranty-cards?q=`, `GET|POST /warranty-requests`, `GET /warranty-requests/:id`.
 - Returns: `GET /orders?status=DELIVERED&page=`, `/orders/:id`; `GET|POST /return-requests`, `GET /return-requests/:id`, `POST /return-requests/:id/cancel`.
@@ -235,3 +235,11 @@ Gộp giao diện từ nhánh `feature/account_management` nhưng dùng API củ
 - `projects/customer-web/src/app/services/cart/collection-wishlist.service.ts`
 - `server/src/modules/orders/order-history.ts`
 - `projects/customer-web/src/app/features/account/*`
+
+## Cập nhật 2026-11-16
+
+- **View your Room**: khi chọn một sản phẩm, thanh công cụ nổi (xoay 90° và xóa, dạng icon, có tooltip kèm phím tắt R và Delete) nằm ngay phía trên sản phẩm và bám theo khi kéo thả hoặc xoay camera. `RoomScene` chiếu điểm giữa đỉnh sản phẩm ra toạ độ màn hình mỗi khung hình và báo qua `onAnchorChange`; thanh ẩn khi bỏ chọn hoặc sản phẩm ra khỏi khung nhìn. File: `features/view-your-room/scene/room-scene.ts`, `view-your-room.component.*`.
+- **Thanh toán SePay**: thêm `POST /webhooks/sepay` (`server/src/modules/orders/sepay.ts`, `webhook.routes.ts`), xác thực `Authorization: Apikey <SEPAY_API_KEY>`. Tài khoản nhận tiền đọc từ `BANK_*` trong `.env`, ghi đè `payment.bankAccount` trong DB. Có test `sepay.test.ts`.
+- **Ảnh banner, Collection, Nguồn cảm hứng**: admin kéo chọn vùng hiển thị (`imageFocus`, `mobileImageFocus`, `images[].focus`, `focus`) bằng component `focus-picker`; khách dùng làm `object-position`. Banner `HOME_SLIDER`, `HOME_MIDDLE`, `CATEGORY` chỉ cần ảnh ngang; giới hạn dung lượng tăng lên 5 MB (desktop), 2 MB (mobile) và thông báo lỗi nêu số liệu thực tế.
+- **Danh mục**: `/danh-muc/:slug` chuyển tới `/products?categorySlug=<slug>`; API sản phẩm và facets nhận `categorySlug`. Slug sai rơi về trang chủ.
+- **Đăng nhập**: khóa tạm sau 5 lần sai (trước là 3). Chuyển tới đăng nhập kèm `reason` (cần đăng nhập, phiên hết hạn) hiện thông báo toast rồi bỏ tham số khỏi URL (`core/auth/login-redirect.ts`).

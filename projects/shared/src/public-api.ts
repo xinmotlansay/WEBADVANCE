@@ -70,6 +70,7 @@ export * from './lib/models/banner.model';
 export * from './lib/models/cart.model';
 export * from './lib/models/category.model';
 export * from './lib/models/collection.model';
+export * from './lib/models/image-focus';
 export * from './lib/models/content.model';
 export * from './lib/models/fit.model';
 export * from './lib/models/inspiration.model';

@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { z } from 'zod';
 import { AppError } from '../../utils/app-error.js';
+import { imageFocusSchema } from './image-focus.js';
 
 /** Quy tắc MA-07 (Collection). Hàm thuần để test không cần DB. */
 
@@ -8,7 +9,7 @@ export const MAX_PRODUCTS = 100;
 /** 1 ảnh chính + 3 ảnh phụ. */
 export const MAX_IMAGES = 4;
 export const MAX_HOTSPOTS = 8;
-export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MIN_IMAGE_SIDE = 800;
 
 const err = (code: string, message: string, status = 400) => new AppError(code, status, message);
@@ -33,6 +34,8 @@ const imageSchema = z.object({
   title: z.string().trim().max(120).default(''),
   description: z.string().trim().max(500).default(''),
   isThumbnail: z.boolean().default(false),
+  /** Vùng hiển thị của ảnh chính (ảnh ngang); ảnh phụ 2:3 không cần. */
+  focus: imageFocusSchema,
   hotspots: z.array(hotspotSchema).max(MAX_HOTSPOTS, `Mỗi ảnh tối đa ${MAX_HOTSPOTS} điểm sản phẩm.`).default([]),
 });
 export type ImageInput = z.infer<typeof imageSchema>;
@@ -73,9 +76,25 @@ export function checkDeletable(status: 'VISIBLE' | 'HIDDEN'): void {
 }
 
 /** E-MKT-020-04. */
-export function checkCollectionImage(img: { width: number; height: number; bytes: number }): void {
+/**
+ * `landscape` = ảnh chính: chỉ cần ngang, khách/admin kéo chọn vùng hiển thị.
+ * `portrait` = ảnh phụ và ảnh cảm hứng: chỉ cần dọc; admin kéo chọn vùng trong khung 2:3.
+ */
+export type CollectionImageShape = 'landscape' | 'portrait';
+
+export function checkCollectionImage(
+  img: { width: number; height: number; bytes: number },
+  shape: CollectionImageShape,
+): void {
+  const size = `${img.width} × ${img.height} px`;
   if (img.bytes > MAX_IMAGE_BYTES || Math.min(img.width, img.height) < MIN_IMAGE_SIDE) {
-    throw err('E-MKT-020-04', `Ảnh cần JPG, PNG hoặc WEBP, tối đa 3 MB, cạnh ngắn tối thiểu ${MIN_IMAGE_SIDE} px.`);
+    throw err('E-MKT-020-04', `Ảnh cần JPG, PNG hoặc WEBP, tối đa 5 MB, cạnh ngắn tối thiểu ${MIN_IMAGE_SIDE} px.`);
+  }
+  if (shape === 'landscape' && img.width < img.height) {
+    throw err('E-MKT-020-04', `Ảnh chính có kích thước ${size} đang dọc. Vui lòng dùng ảnh ngang (rộng hơn cao).`);
+  }
+  if (shape === 'portrait' && img.height < img.width) {
+    throw err('E-MKT-020-04', `Ảnh phụ có kích thước ${size} đang ngang. Vui lòng dùng ảnh dọc (cao hơn rộng); sau khi tải lên bạn kéo để chọn vùng hiển thị.`);
   }
 }
 

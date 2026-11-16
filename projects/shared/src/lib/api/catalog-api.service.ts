@@ -79,6 +79,7 @@ export class CatalogApiService {
     if (query.collection) params = params.set('collection', query.collection);
     if (query.ids?.length) params = params.set('ids', query.ids.join(','));
     if (query.categoryIds?.length) params = params.set('categoryIds', query.categoryIds.join(','));
+    if (query.categorySlug) params = params.set('categorySlug', query.categorySlug);
     if (query.badge) params = params.set('badge', query.badge);
     if (query.hasPromotion) params = params.set('hasPromotion', true);
     if (query.inStock) params = params.set('inStock', true);
@@ -107,13 +108,14 @@ export class CatalogApiService {
 
   /** Đặc tính của các sản phẩm trong ngữ cảnh tìm kiếm (không tính bộ lọc người dùng đang chọn). */
   getFacets(
-    query: Pick<ProductListQuery, 'q' | 'collection' | 'ids' | 'hasPromotion' | 'categoryIds'> = {},
+    query: Pick<ProductListQuery, 'q' | 'collection' | 'ids' | 'hasPromotion' | 'categoryIds' | 'categorySlug'> = {},
   ): Observable<ProductFacets> {
     let params = new HttpParams();
     if (query.q) params = params.set('q', query.q);
     if (query.collection) params = params.set('collection', query.collection);
     if (query.ids?.length) params = params.set('ids', query.ids.join(','));
     if (query.categoryIds?.length) params = params.set('categoryIds', query.categoryIds.join(','));
+    if (query.categorySlug) params = params.set('categorySlug', query.categorySlug);
     if (query.hasPromotion) params = params.set('hasPromotion', true);
     return this.http
       .get<ApiResponse<ProductFacets>>(`${API_BASE}/products/facets`, { params })

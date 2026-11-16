@@ -8,7 +8,7 @@ import { consumeVerifiedOtp } from './otp.service.js';
 import { issueSession, revokeAllSessions } from './token.service.js';
 
 const BCRYPT_ROUNDS = 12;
-const MAX_LOGIN_ATTEMPTS = 3;
+const MAX_LOGIN_ATTEMPTS = 5;
 
 export interface AuthUserDto {
   id: string;

@@ -6,6 +6,7 @@ import {
   ElementRef,
   viewChild,
   computed,
+  effect,
   input,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -115,18 +116,23 @@ export class ProductListComponent {
           q: p.get('q') ?? undefined,
           image: p.get('image'),
           categoryIds: p.get('categoryIds') ?? '',
+          categorySlug: p.get('categorySlug') ?? '',
           ids: p.get('ids') ?? '',
         })),
         distinctUntilChanged(
           (a, b) =>
-            a.q === b.q && a.image === b.image && a.categoryIds === b.categoryIds && a.ids === b.ids,
+            a.q === b.q &&
+            a.image === b.image &&
+            a.categoryIds === b.categoryIds &&
+            a.categorySlug === b.categorySlug &&
+            a.ids === b.ids,
         ),
       ),
       toObservable(
         computed(() => ({ promo: this.onlyPromotion(), collection: this.collection() })),
       ),
     ]).pipe(
-      switchMap(([{ q, image, categoryIds, ids }, lock]) => {
+      switchMap(([{ q, image, categoryIds, categorySlug, ids }, lock]) => {
         const saved = image ? this.imageResults.get(image) : undefined;
         if (saved && !saved.length) return of(null);
         return this.api
@@ -134,6 +140,7 @@ export class ProductListComponent {
             q,
             ids: saved?.map((item) => item.id) ?? (ids ? ids.split(',') : undefined),
             categoryIds: categoryIds ? categoryIds.split(',') : undefined,
+            categorySlug: categorySlug || undefined,
             collection: lock.collection,
             hasPromotion: lock.promo || undefined,
           })
@@ -196,9 +203,17 @@ export class ProductListComponent {
     ),
     { initialValue: [] },
   );
+  /** Danh mục đang lọc: từ `categoryIds`, hoặc đổi `categorySlug` sang ID theo danh sách danh mục đã tải. */
+  protected readonly activeCategoryIds = computed(() => {
+    const p = this.params();
+    const ids = (p.get('categoryIds') ?? '').split(',').filter(Boolean);
+    const slug = p.get('categorySlug');
+    const found = slug ? this.categories().find((c) => c.slug === slug) : undefined;
+    return found && !ids.includes(found.id) ? [...ids, found.id] : ids;
+  });
   /** Tên danh mục khi khách đang xem đúng một danh mục (từ trang chủ hoặc bộ lọc). */
   protected readonly categoryName = computed(() => {
-    const ids = (this.params().get('categoryIds') ?? '').split(',').filter(Boolean);
+    const ids = this.activeCategoryIds();
     if (ids.length !== 1) return '';
     return this.categories().find((c) => c.id === ids[0])?.name ?? '';
   });
@@ -327,6 +342,10 @@ export class ProductListComponent {
       previous = value;
       this.filterUpdates.next(immediate ? 0 : 300);
     });
+    // Ô chọn danh mục cần ID; khi URL chỉ có slug thì đồng bộ sau khi danh mục đã tải.
+    effect(() => {
+      this.form.controls.categoryIds.setValue(this.activeCategoryIds(), { emitEvent: false });
+    });
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((p) => {
       this.filterUpdates.next(-1);
       this.filterError.set('');
@@ -429,6 +448,7 @@ export class ProductListComponent {
             // `ids`: danh sách sản phẩm cụ thể, ví dụ các gợi ý của trợ lý AI.
             ids: saved?.map((item) => item.id) ?? p.get('ids')?.split(',').filter(Boolean),
             categoryIds: p.get('categoryIds')?.split(','),
+            categorySlug: p.get('categorySlug') || undefined,
             color: p.get('color')?.split(','),
             material: p.get('material')?.split(','),
             minPrice: p.has('minPrice') ? Number(p.get('minPrice')) : undefined,

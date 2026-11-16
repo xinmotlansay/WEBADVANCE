@@ -49,11 +49,14 @@
               </span>
               <span class="drop__text">
                 <strong>{{ uploading() === 'desktop' ? 'Đang tải ảnh…' : imageUrl ? 'Đổi ảnh desktop' : 'Chọn ảnh desktop' }}</strong>
-                <small>JPG, PNG, WEBP · tối đa 2 MB</small>
+                <small>JPG, PNG, WEBP · tối đa 5 MB</small>
               </span>
             </label>
             @if (uploadError().desktop) {
               <p class="cv-alert" role="alert">{{ uploadError().desktop }}</p>
+            }
+            @if (imageUrl && !lockedExpired) {
+              <app-focus-picker class="focus" [src]="imageUrl" [ratio]="FRAME_RATIO[position].desktop" [alt]="title || 'Ảnh desktop'" [(focus)]="imageFocus" />
             }
           </div>
           <div class="cv-field">
@@ -69,7 +72,7 @@
               </span>
               <span class="drop__text">
                 <strong>{{ uploading() === 'mobile' ? 'Đang tải ảnh…' : mobileImageUrl ? 'Đổi ảnh mobile' : 'Chọn ảnh mobile' }}</strong>
-                <small>JPG, PNG, WEBP · tối đa 1 MB</small>
+                <small>JPG, PNG, WEBP · tối đa 2 MB</small>
               </span>
             </label>
             @if (uploadError().mobile) {
@@ -79,6 +82,9 @@
               <button type="button" class="cv-link-btn rm" (click)="mobileImageUrl = ''" [disabled]="lockedExpired">Bỏ ảnh mobile</button>
             } @else {
               <span class="cv-hint">Bỏ trống thì mobile dùng ảnh desktop.</span>
+            }
+            @if (mobileImageUrl && !lockedExpired) {
+              <app-focus-picker class="focus" [src]="mobileImageUrl" [ratio]="FRAME_RATIO[position].mobile" alt="Ảnh mobile" [(focus)]="mobileImageFocus" />
             }
           </div>
         </div>

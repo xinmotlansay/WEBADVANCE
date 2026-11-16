@@ -1,5 +1,5 @@
 <div class="scene" (keydown.escape)="active.set(null)">
-  <img #sceneImage class="scene-image" [class.fixed]="ratio()" [style.aspect-ratio]="ratio()" (load)="loaded(sceneImage)" [src]="image().url" [alt]="image().title || 'Không gian nội thất'" />
+  <img #sceneImage class="scene-image" [class.fixed]="ratio()" [style.aspect-ratio]="ratio()" (load)="loaded(sceneImage)" [src]="image().url" [style.object-position]="focusPosition(image().focus)" [alt]="image().title || 'Không gian nội thất'" />
   @for (hotspot of image().hotspots; track $index; let i = $index) {
     <button #point type="button" class="point" [style.left.px]="pos(hotspot).left" [style.top.px]="pos(hotspot).top"
       [class.selected]="active() === key(i)" [attr.aria-label]="'Xem ' + hotspot.product.name"

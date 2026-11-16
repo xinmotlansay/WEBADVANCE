@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { FitStatus, WalkwayPassage } from 'shared';
@@ -33,6 +41,15 @@ export class FitYourHomeComponent {
   private readonly router = inject(Router);
   private readonly picker = inject(VariantPickerService);
   protected readonly fit = inject(FitYourHomeService);
+
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** `false` khi phần kết quả nằm ngoài khung nhìn, lúc đó hiện ô kết quả nổi để nhảy tới. */
+  protected readonly resultVisible = signal(true);
+
+  protected scrollToResult(): void {
+    document.getElementById('fit-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   protected readonly statusNames = STATUS_NAMES;
   protected readonly statusMessages = STATUS_MESSAGES;
@@ -94,6 +111,15 @@ export class FitYourHomeComponent {
   protected readonly savedMessage = signal('');
 
   constructor() {
+    afterNextRender(() => {
+      const target = document.getElementById('fit-result');
+      if (!target || typeof IntersectionObserver === 'undefined') return;
+      const observer = new IntersectionObserver(([entry]) =>
+        this.resultVisible.set(entry.isIntersecting),
+      );
+      observer.observe(target);
+      this.destroyRef.onDestroy(() => observer.disconnect());
+    });
     inject(ActivatedRoute)
       .queryParamMap.pipe(takeUntilDestroyed())
       .subscribe((params) => {

@@ -45,6 +45,7 @@ collectionRoutes.get(
             url: cover.url,
             title: cover.title ?? '',
             description: cover.description ?? '',
+            focus: cover.focus ?? null,
             hotspots: cover.hotspots.flatMap((h) => {
               const product = itemById.get(h.productId.toString());
               return product ? [{ slug: product.slug, product, x: h.x, y: h.y }] : [];
@@ -102,6 +103,7 @@ collectionRoutes.get(
         url: image.url,
         title: image.title ?? '',
         description: image.description ?? '',
+        focus: image.focus ?? null,
         hotspots: image.hotspots.flatMap((hotspot) => {
           const product = itemById.get(hotspot.productId.toString());
           return product ? [{ slug: product.slug, product, x: hotspot.x, y: hotspot.y }] : [];

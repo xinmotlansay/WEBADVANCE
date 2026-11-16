@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CatalogApiService, type ProductDetail, type ProductListItem, type ProductReviewPage, type StockStatus } from 'shared';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { saveBuyNow } from '../../core/cart/buy-now';
+import { loginQueryParams } from '../../core/auth/login-redirect';
 import { CartStore } from '../../services/cart/cart.store';
 import { apiErrorMessage } from '../../core/api-error';
 import { AuthService } from '../../services/auth/auth.service';
@@ -295,7 +296,7 @@ export class ProductDetailComponent {
 
   protected openReport(reviewId: string): void {
     if (!this.auth.isAuthenticated()) {
-      void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      void this.router.navigate(['/auth/login'], { queryParams: loginQueryParams(this.router.url) });
       return;
     }
     this.reportReason = '';

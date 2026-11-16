@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../../services/auth/auth.service';
+import { loginQueryParams } from '../auth/login-redirect';
 
 const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/otp/', '/auth/refresh', '/auth/forgot-password'];
 
@@ -34,7 +35,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         catchError((refreshError: unknown) => {
           auth.clearSession();
           void router.navigate(['/auth/login'], {
-            queryParams: { returnUrl: router.url },
+            queryParams: loginQueryParams(router.url, 'session-expired'),
           });
           return throwError(() => refreshError);
         }),

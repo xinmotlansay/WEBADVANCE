@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import type { ApiResponse } from 'shared';
+import type { ApiResponse, ImageFocus } from 'shared';
 import { map, Observable } from 'rxjs';
 
 const BASE = '/api/v1/admin/marketing/collections';
@@ -39,6 +39,8 @@ export interface CollectionImage {
   title: string;
   description: string;
   isThumbnail: boolean;
+  /** Vùng hiển thị của ảnh chính; null = căn giữa. */
+  focus?: ImageFocus | null;
   hotspots: Hotspot[];
 }
 
@@ -99,11 +101,12 @@ export class CollectionApi {
     return this.http.post(`${BASE}/reorder`, { ids });
   }
 
-  uploadImage(file: File): Observable<{ url: string; width: number; height: number }> {
+  /** `main` = ảnh ngang (chọn vùng hiển thị); `sub` = ảnh phụ khung 2:3. */
+  uploadImage(file: File, role: 'main' | 'sub'): Observable<{ url: string; width: number; height: number }> {
     const form = new FormData();
     form.append('file', file);
     return this.http
-      .post<ApiResponse<{ url: string; width: number; height: number }>>(`${BASE}/images`, form)
+      .post<ApiResponse<{ url: string; width: number; height: number }>>(`${BASE}/images`, form, { params: { role } })
       .pipe(map((r) => r.data));
   }
 }

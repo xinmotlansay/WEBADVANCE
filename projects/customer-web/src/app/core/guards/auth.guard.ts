@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
+import { loginQueryParams } from '../auth/login-redirect';
 
 export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
@@ -11,6 +12,6 @@ export const authGuard: CanActivateFn = (_route, state) => {
   }
 
   return router.createUrlTree(['/auth/login'], {
-    queryParams: { returnUrl: state.url },
+    queryParams: loginQueryParams(state.url),
   });
 };

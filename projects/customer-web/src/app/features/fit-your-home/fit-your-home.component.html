@@ -187,7 +187,7 @@
         </div>
 
         <!-- Cột phải: kết quả -->
-        <div class="result" aria-live="polite">
+        <div class="result" id="fit-result" aria-live="polite">
           @if (fit.result().data; as r) {
             @if (banner(); as b) {
               <div class="banner" [attr.data-status]="b.status">
@@ -341,3 +341,18 @@
     </div>
   </div>
 </section>
+
+@if (fit.result().data; as r) {
+  @if (!resultVisible()) {
+    <button
+      type="button"
+      class="result-chip"
+      [attr.data-status]="r.status"
+      (click)="scrollToResult()"
+    >
+      <span class="result-chip__dot" aria-hidden="true"></span>
+      <span class="result-chip__text">Kết quả: {{ statusNames[r.status] }}</span>
+      <span class="result-chip__go"><app-icon name="lucide:chevron-down" [size]="18" /></span>
+    </button>
+  }
+}

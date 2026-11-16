@@ -223,7 +223,7 @@ Sai mật khẩu `401 INVALID_CREDENTIALS` (kèm `remainingAttempts`). Khóa `42
 
 ### 1.7. `POST /admin/auth/login`
 
-Cùng body với `/auth/login` (`identifier` phải là email, `password` ≥ 12 ký tự, nếu không trả `400 VALIDATION_ERROR`). Chỉ chấp nhận tài khoản có role admin; tài khoản khách hoặc không tồn tại đều trả `401 INVALID_CREDENTIALS` giống nhau và không tính vào số lần sai. Sai 3 lần khóa theo cùng quy tắc `ACCOUNT_LOCKED` ở mục 1.4. Trả thêm `role`, `mustChangePassword`, `sessionIdleTimeoutSeconds: 1800`.
+Cùng body với `/auth/login` (`identifier` phải là email, `password` ≥ 12 ký tự, nếu không trả `400 VALIDATION_ERROR`). Chỉ chấp nhận tài khoản có role admin; tài khoản khách hoặc không tồn tại đều trả `401 INVALID_CREDENTIALS` giống nhau và không tính vào số lần sai. Sai 5 lần khóa theo cùng quy tắc `ACCOUNT_LOCKED` ở mục 1.4. Trả thêm `role`, `mustChangePassword`, `sessionIdleTimeoutSeconds: 1800`.
 
 Refresh token của admin nằm ở cookie riêng `adminRefreshToken` (path `/api/v1/admin/auth`), tách khỏi cookie khách để hai phiên trên cùng host không ghi đè nhau. Dev: `npm run seed:admin` tạo tài khoản test `admin@caraveso.vn`.
 
@@ -497,6 +497,7 @@ Response `200`:
 | :-- | :-- | :-- |
 | `q` | `sofa xám` | Từ khóa (FR-15) |
 | `categoryIds` | `id1,id2` | Loại SP, phòng, phong cách (OR trong cùng nhóm, AND giữa nhóm khác loại) |
+| `categorySlug` | `phong-ngu` | Slug danh mục đang hiển thị, dùng cho liên kết banner thay cho ID; slug không tồn tại thì không khớp sản phẩm nào. Dùng được cả ở `/products/facets` |
 | `minPrice`, `maxPrice` | `1000000` | Lọc theo giá bán sau khuyến mãi |
 | `color`, `material` | `Xám,Nâu` | CSV nhiều giá trị |
 | `minLength` `maxLength` `minWidth` `maxWidth` `minHeight` `maxHeight` | số cm | Kích thước tổng thể biến thể |
@@ -744,6 +745,7 @@ Voucher `NEW11` được tạo (nếu chưa có) ngay khi có khách xác nhận
 | POST | `/orders/:id/cancel` | U | FR-37 | Hủy đơn |
 | PATCH | `/orders/:id/delivery-schedule` | U | FR-36 | Đổi lịch hẹn giao |
 | POST | `/webhooks/bank-transfer` | Webhook | FR-38 | Ngân hàng/cổng thanh toán báo tiền về |
+| POST | `/webhooks/sepay` | Webhook | FR-38 | Webhook SePay, đổi sang cùng sự kiện chuyển khoản nội bộ |
 
 ### 8.1. Mô hình checkout (stateless)
 
@@ -859,6 +861,8 @@ Khi hết hạn: `expired = true`, `orderStatus = CANCELLED` (job hệ thống t
 ```json
 { "transactionCode": "FT26290xxxx", "amount": 14350000, "content": "CV261017-0001-K7Q2", "transactionAt": "2026-10-17T10:07:00.000Z" }
 ```
+
+**Webhook `POST /webhooks/sepay`**: SePay gửi header `Authorization: Apikey <SEPAY_API_KEY>` (so khớp hằng thời gian; chưa cấu hình `SEPAY_API_KEY` thì từ chối hết, sai trả `401`). Payload dùng các trường `id`, `transferType` (`in`/`out`), `transferAmount`, `content`, `description`, `transactionDate` (giờ Việt Nam `YYYY-MM-DD HH:mm:ss`), `accountNumber`. Chỉ tiền vào (`in`) được đổi thành sự kiện chuyển khoản với `transactionCode = SEPAY-<id>` rồi xử lý như bên dưới; tiền ra hoặc ngày không đọc được trả `200 { ignored: true }` để SePay không gửi lại. Tài khoản nhận tiền lấy từ `payment.bankAccount` trong DB; các biến `BANK_ID`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER` trong `.env`, nếu có giá trị, ghi đè từng trường tương ứng.
 
 Thuật toán (idempotent theo `bankTransactionCode`):
 
@@ -1049,7 +1053,7 @@ Quy tắc:
 | PATCH | `/admin/vouchers/:id/status` | MA-04 | Vô hiệu hóa/kích hoạt |
 | POST | `/admin/vouchers/:id/assign` | MA-04 | Gán riêng cho khách `{ "userIds": [] }` (tạo `user_vouchers` `GIFTED`) |
 | GET | `/admin/marketing/banners` | MA-05 | Danh sách. Giao diện quản trị hiện chỉ tạo/sửa `HOME_SLIDER`; backend vẫn chấp nhận `HOME_MIDDLE/CATEGORY/POPUP` nhưng không có màn hình |
-| POST | `/admin/marketing/banners` | MA-05 | Thêm (đăng ngay hoặc lên lịch qua `publishAt`, xem 11.1b) |
+| POST | `/admin/marketing/banners` | MA-05 | Thêm (đăng ngay hoặc lên lịch qua `publishAt`, xem 11.1b). Body nhận thêm `imageFocus`, `mobileImageFocus` (`{ x, y }` theo % 0–100 hoặc `null` = căn giữa) |
 | PUT | `/admin/marketing/banners/:id` | MA-05 | Sửa |
 | PATCH | `/admin/marketing/banners/:id/status` | MA-05 | Ẩn/hiện |
 | DELETE | `/admin/marketing/banners/:id` | MA-05 | Xóa |
@@ -1097,6 +1101,8 @@ Quy tắc chính:
 - **Promotion**: `discountType`, `discountValue`, `maxDiscountValue`, `minOrderValue`, `startDate/endDate`; `status` tự chuyển `UPCOMING → RUNNING → ENDED` theo thời gian, `PAUSED` do admin.
 - **Một sản phẩm một chương trình**: tại một thời điểm, mỗi sản phẩm chỉ thuộc tối đa một chương trình khuyến mãi (không tính voucher). Khi tạo, sửa hoặc kích hoạt lại (`PATCH .../status`), backend mở rộng `targets[].categoryId` thành danh sách sản phẩm rồi kiểm tra chồng lấn thời gian với các chương trình `UPCOMING`, `RUNNING`, `PAUSED` khác. Vi phạm trả `409 PROMOTION_CONFLICT`.
 - **Voucher body** (`POST /admin/vouchers`): `code` (unique, uppercase), `type`, `customerGroup`, `stackableWithPromotion`, `discountType/Value`, `maxDiscountValue`, `minOrderValue`, `scope[]`, `totalUsageLimit`, `perUserLimit`, `startDate/endDate`. `type = ASSIGNED` thì `customerGroup` bỏ qua, dùng `/assign`.
+- **Ảnh banner**: tối đa 5 MB (desktop) và 2 MB (mobile). `HOME_SLIDER`, `HOME_MIDDLE`, `CATEGORY` chỉ cần ảnh ngang đủ kích thước tối thiểu, admin kéo để chọn vùng hiển thị (`imageFocus`, dùng làm `object-position` ở trang khách); `POPUP` vẫn phải gần tỉ lệ 1:1 (sai lệch tối đa 5%). Lỗi nêu rõ kích thước hoặc dung lượng thực tế (`E-MKT-012-02`).
+- **Ảnh Collection**: `POST /admin/marketing/collections/images?role=main|sub` (mặc định `sub`, khung 2:3; `main` là ảnh ngang), giới hạn body 6 MB. `images[].focus` là vùng hiển thị của ảnh chính. **Nguồn cảm hứng** nhận thêm `focus` (khung 2:3) khi tạo/sửa.
 - **Collection** hotspot: `images[].hotspots[] = { productId, x, y }` với `x, y ∈ [0,1]`, tối đa 10 ảnh, 8 điểm/ảnh. Server giữ đúng một ảnh `isThumbnail` (không chọn → ảnh đầu) và tự thêm sản phẩm của hotspot vào cuối `products`. Slug trùng → `409 E-MKT-020-01`.
 - **Collection, Nguồn cảm hứng**: sửa với `version` cũ → `409 E-COM-05`. Sản phẩm mới chọn phải `ACTIVE`; sản phẩm đã có mà ngừng bán được giữ và gắn cờ `INACTIVE_PRODUCT`.
 - MA không xem được thông tin cá nhân khách ở báo cáo (PA/MA-10).

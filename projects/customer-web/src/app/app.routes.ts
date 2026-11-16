@@ -1,9 +1,33 @@
-import { Routes } from '@angular/router';
+import { Route, Routes, UrlSegment } from '@angular/router';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { catchError, map, of, shareReplay, type Observable } from 'rxjs';
+import { CatalogApiService, type Category } from 'shared';
 import { AuthService } from './services/auth/auth.service';
 import { CartStore } from './services/cart/cart.store';
 import { authGuard } from './core/guards/auth.guard';
+
+// Danh sách danh mục tải một lần cho cả phiên; tải lại trang sẽ lấy dữ liệu mới.
+let categoriesCache$: Observable<Category[]> | null = null;
+const loadCategories = (api: CatalogApiService): Observable<Category[]> => {
+  categoriesCache$ ??= api.getCategories().pipe(
+    map((items) => items.flatMap((c) => [c, ...(c.children ?? [])])),
+    shareReplay(1),
+  );
+  return categoriesCache$;
+};
+
+// Slug danh mục (kể cả danh mục con) phải tồn tại và đang hiển thị thì mới khớp.
+const categorySlugGuard = (_route: Route, segments: UrlSegment[]) => {
+  const slug = segments[1]?.path ?? '';
+  return loadCategories(inject(CatalogApiService)).pipe(
+    map((items) => items.some((c) => c.slug === slug)),
+    catchError(() => {
+      categoriesCache$ = null;
+      return of(false);
+    }),
+  );
+};
 
 // Đợi giỏ trình duyệt gộp vào tài khoản xong rồi mới vào thanh toán.
 const cartMergedGuard = () => inject(CartStore).settled().then(() => true);
@@ -101,6 +125,13 @@ export const routes: Routes = [
     path: 'news',
     data: { layout: 'solid' },
     loadChildren: () => import('./features/news/news.routes').then((m) => m.NEWS_ROUTES),
+  },
+  // `/danh-muc/<slug>` (ví dụ `/danh-muc/phong-ngu`) mở danh sách sản phẩm đã lọc theo danh mục.
+  // Slug sai không khớp và rơi về `**`.
+  {
+    path: 'danh-muc/:categorySlug',
+    canMatch: [categorySlugGuard],
+    redirectTo: ({ params }) => `/products?categorySlug=${encodeURIComponent(params['categorySlug'])}`,
   },
   // Các trang chưa làm (sản phẩm, tìm kiếm...) tạm đưa về trang chủ.
   { path: '**', redirectTo: '' },

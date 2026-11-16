@@ -16,6 +16,7 @@ import {
   normalizeImages,
   normalizeProductIds,
   withHotspotProducts,
+  type CollectionImageShape,
   type CreateCollectionInput,
   type UpdateCollectionInput,
 } from './collection-admin.rules.js';
@@ -105,6 +106,7 @@ export async function getCollection(id: string) {
       title: i.title ?? '',
       description: i.description ?? '',
       isThumbnail: i.isThumbnail,
+      focus: i.focus ?? null,
       hotspots: i.hotspots.map((h) => ({ productId: String(h.productId), x: h.x, y: h.y })),
     })),
   };
@@ -229,7 +231,8 @@ export async function reorderCollections(actorId: string, ids: string[]) {
 /** Tải ảnh collection/cảm hứng vào `uploads/<folder>`; trả URL + kích thước. Lỗi theo E-MKT-020-04. */
 export async function uploadAdminImage(
   bytes: Uint8Array,
-  folder: 'collections' | 'inspirations' = 'collections',
+  folder: 'collections' | 'inspirations',
+  shape: CollectionImageShape,
 ): Promise<{ url: string; width: number; height: number }> {
   const format = detectFile(bytes);
   if (format.video) throw new AppError('E-MKT-020-04', 400, 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.');
@@ -241,7 +244,7 @@ export async function uploadAdminImage(
   }
   const width = meta.width ?? 0;
   const height = meta.height ?? 0;
-  checkCollectionImage({ width, height, bytes: bytes.length });
+  checkCollectionImage({ width, height, bytes: bytes.length }, shape);
   const url = await uploadPublicFile(bytes, { folder, ext: format.ext, contentType: format.mime });
   return { url, width, height };
 }

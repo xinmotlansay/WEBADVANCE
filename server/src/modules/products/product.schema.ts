@@ -17,6 +17,8 @@ export const productListQuerySchema = z
     collection: z.string().trim().max(120).optional(),
     ids: objectIdCsv.optional(),
     categoryIds: objectIdCsv.optional(),
+    /** Slug danh mục, ví dụ `phong-ngu`; dùng cho liên kết banner thay vì ID. */
+    categorySlug: z.string().trim().max(120).optional(),
     badge: z.enum(['NEW', 'BEST_SELLER']).optional(),
     hasPromotion: z.stringbool().optional(),
     inStock: z.stringbool().optional(),

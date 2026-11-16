@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { CatalogApiService, type CollectionDetail } from 'shared';
+import { CatalogApiService, focusPosition, type CollectionDetail } from 'shared';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 import { IconComponent } from '../../../shared/ui/icons/icon.component';
 import { HotspotImageComponent } from '../../../shared/ui/hotspot-image/hotspot-image.component';
@@ -18,6 +18,7 @@ type CollectionState = CollectionDetail | null | undefined;
   styleUrl: './collection-detail.component.css',
 })
 export class CollectionDetailComponent {
+  protected readonly focusPosition = focusPosition;
   private readonly api = inject(CatalogApiService);
 
   /** Id sản phẩm đang mở thẻ hotspot, chỉ một thẻ mở tại một thời điểm. */

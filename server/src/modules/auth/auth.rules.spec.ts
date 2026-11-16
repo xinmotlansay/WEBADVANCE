@@ -34,7 +34,7 @@ describe('isStrongPassword', () => {
 });
 
 describe('computeLockDurationSeconds', () => {
-  it('khóa 60 giây ở lần sai thứ 3 đầu tiên', () => {
+  it('khóa 60 giây ở lần bị khóa đầu tiên (sau 5 lần sai)', () => {
     expect(computeLockDurationSeconds(1)).toBe(60);
   });
 

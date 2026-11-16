@@ -25,6 +25,7 @@ export interface ProductListQuery {
   collection?: string;
   ids?: string[];
   categoryIds?: string[];
+  categorySlug?: string;
   badge?: ProductBadge;
   hasPromotion?: boolean;
   inStock?: boolean;

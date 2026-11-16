@@ -3,6 +3,8 @@ import { Schema, model, type Types } from 'mongoose';
 export interface InspirationDoc {
   _id: Types.ObjectId;
   imageUrl: string;
+  /** Vùng hiển thị (% x/y) của ảnh khung 2:3; trống = căn giữa. */
+  focus?: { x: number; y: number } | null;
   status: 'VISIBLE' | 'HIDDEN';
   /** Hẹn giờ hiển thị (tính lúc đọc). Trống = hiển thị ngay. */
   publishAt?: Date | null;
@@ -16,6 +18,7 @@ export interface InspirationDoc {
 const inspirationSchema = new Schema<InspirationDoc>(
   {
     imageUrl: { type: String, required: true },
+    focus: { x: Number, y: Number },
     status: { type: String, required: true, enum: ['VISIBLE', 'HIDDEN'], default: 'VISIBLE' },
     publishAt: { type: Date, default: null },
     products: [

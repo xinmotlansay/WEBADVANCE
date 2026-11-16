@@ -3,6 +3,7 @@ import { isStoredImageUrl } from '../../lib/supabase-storage.js';
 import { AppError } from '../../utils/app-error.js';
 import type { BannerPosition } from '../banners/banner.model.js';
 import type { BannerStatus } from './effective-status.js';
+import { imageFocusSchema } from './image-focus.js';
 
 /** Ảnh banner: file cũ `/uploads/banners/...` hoặc file đã lưu trên Supabase Storage. */
 const isBannerImageUrl = (u: string): boolean =>
@@ -19,20 +20,25 @@ interface PositionRule {
   /** Kích thước tối thiểu ảnh desktop và ảnh mobile (px). */
   desktop: { w: number; h: number };
   mobile: { w: number; h: number };
-  /** Tỉ lệ khuyến nghị của ảnh desktop (rộng / cao); sai lệch tối đa 5%. */
+  /**
+   * Cách kiểm tra ảnh desktop: `landscape` = chỉ cần ảnh ngang (khách kéo chọn vùng hiển thị);
+   * `ratio` = phải gần tỉ lệ `ratio` (rộng / cao), sai lệch tối đa 5%.
+   */
+  fit: 'landscape' | 'ratio';
+  /** Tỉ lệ khung hiển thị của ảnh desktop (rộng / cao), dùng cho khung cắt ở admin. */
   ratio: number;
   recommended: string;
 }
 
 export const POSITION_RULES: Record<BannerPosition, PositionRule> = {
-  HOME_SLIDER: { label: 'Slider trang chủ', max: 8, desktop: { w: 1440, h: 750 }, mobile: { w: 750, h: 750 }, ratio: 1920 / 1000, recommended: '1920 × 1000' },
-  HOME_MIDDLE: { label: 'Banner giữa trang chủ', max: 3, desktop: { w: 1200, h: 400 }, mobile: { w: 750, h: 400 }, ratio: 3, recommended: '1200 × 400' },
-  CATEGORY: { label: 'Banner trang danh mục', max: null, desktop: { w: 1200, h: 300 }, mobile: { w: 750, h: 400 }, ratio: 4, recommended: '1200 × 300' },
-  POPUP: { label: 'Popup', max: 1, desktop: { w: 600, h: 600 }, mobile: { w: 750, h: 750 }, ratio: 1, recommended: '600 × 600' },
+  HOME_SLIDER: { label: 'Slider trang chủ', max: 8, desktop: { w: 1440, h: 750 }, mobile: { w: 750, h: 750 }, fit: 'landscape', ratio: 1920 / 1000, recommended: '1920 × 1000' },
+  HOME_MIDDLE: { label: 'Banner giữa trang chủ', max: 3, desktop: { w: 1200, h: 400 }, mobile: { w: 750, h: 400 }, fit: 'landscape', ratio: 3, recommended: '1200 × 400' },
+  CATEGORY: { label: 'Banner trang danh mục', max: null, desktop: { w: 1200, h: 300 }, mobile: { w: 750, h: 400 }, fit: 'landscape', ratio: 4, recommended: '1200 × 300' },
+  POPUP: { label: 'Popup', max: 1, desktop: { w: 600, h: 600 }, mobile: { w: 750, h: 750 }, fit: 'ratio', ratio: 1, recommended: '600 × 600' },
 };
 
-export const MAX_DESKTOP_BYTES = 2 * 1024 * 1024;
-export const MAX_MOBILE_BYTES = 1024 * 1024;
+export const MAX_DESKTOP_BYTES = 5 * 1024 * 1024;
+export const MAX_MOBILE_BYTES = 2 * 1024 * 1024;
 export const MAX_BULK = 20;
 const RATIO_TOLERANCE = 0.05;
 
@@ -47,12 +53,20 @@ export function checkImage(
   const rule = POSITION_RULES[position];
   const min = kind === 'desktop' ? rule.desktop : rule.mobile;
   const limit = kind === 'desktop' ? MAX_DESKTOP_BYTES : MAX_MOBILE_BYTES;
-  const base = `Ảnh ${kind === 'desktop' ? 'desktop' : 'mobile'} cho vị trí ${rule.label} cần định dạng JPG, PNG, WEBP, tối đa ${limit / 1024 / 1024} MB, tối thiểu ${min.w} × ${min.h} px`;
-  if (img.bytes > limit || img.width < min.w || img.height < min.h) {
-    throw err('E-MKT-012-02', `${base}.`);
+  const kindLabel = kind === 'desktop' ? 'desktop' : 'mobile';
+  const size = `${img.width} × ${img.height} px`;
+  if (img.bytes > limit) {
+    const mb = (img.bytes / 1024 / 1024).toFixed(1);
+    throw err('E-MKT-012-02', `Ảnh ${kindLabel} cho vị trí ${rule.label} nặng ${mb} MB, vượt giới hạn ${limit / 1024 / 1024} MB. Vui lòng nén ảnh hoặc chọn ảnh nhỏ hơn.`);
   }
-  if (kind === 'desktop' && Math.abs(img.width / img.height - rule.ratio) / rule.ratio > RATIO_TOLERANCE) {
-    throw err('E-MKT-012-02', `${base} và tỉ lệ gần ${rule.recommended} (sai lệch tối đa 5%).`);
+  if (img.width < min.w || img.height < min.h) {
+    throw err('E-MKT-012-02', `Ảnh ${kindLabel} cho vị trí ${rule.label} có kích thước ${size}, cần tối thiểu ${min.w} × ${min.h} px.`);
+  }
+  if (kind === 'desktop' && rule.fit === 'landscape' && img.width < img.height) {
+    throw err('E-MKT-012-02', `Ảnh ${kindLabel} cho vị trí ${rule.label} có kích thước ${size} đang dọc. Vui lòng dùng ảnh ngang (rộng hơn cao); sau khi tải lên bạn kéo để chọn vùng hiển thị.`);
+  }
+  if (kind === 'desktop' && rule.fit === 'ratio' && Math.abs(img.width / img.height - rule.ratio) / rule.ratio > RATIO_TOLERANCE) {
+    throw err('E-MKT-012-02', `Ảnh ${kindLabel} cho vị trí ${rule.label} có kích thước ${size} nhưng tỉ lệ không phù hợp. Vui lòng dùng ảnh gần tỉ lệ ${rule.recommended} (sai lệch tối đa 5%).`);
   }
 }
 
@@ -74,6 +88,8 @@ const fields = {
   content: z.string().trim().max(200).optional(),
   imageUrl: z.string().refine(isBannerImageUrl, 'Ảnh banner không hợp lệ.'),
   mobileImageUrl: z.string().refine(isBannerImageUrl, 'Ảnh banner không hợp lệ.').nullish(),
+  imageFocus: imageFocusSchema,
+  mobileImageFocus: imageFocusSchema,
   ctaLabel: z.string().trim().min(2).max(20).nullish(),
   linkUrl: z.string().trim().nullish(),
   openInNewTab: z.boolean().optional(),
