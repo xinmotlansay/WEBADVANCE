@@ -15,6 +15,21 @@
 
 ---
 
+## Live Demo
+
+Tên website: **CaraVeso** — website bán nội thất trực tuyến.
+
+| Trang | Đường dẫn | Dành cho |
+|-------|-----------|----------|
+| Web khách hàng | https://caraveso.vercel.app/ | Khách xem, mua hàng, thanh toán, theo dõi đơn |
+| Trang quản trị | https://caraveso-admin.vercel.app/ | Đội vận hành quản lý sản phẩm, đơn hàng, marketing, hệ thống |
+
+Backend API chạy trên Render và được hai trang trên gọi qua `/api`. Nếu máy chủ Render đang ở gói miễn phí thì có thể bị ngủ khi lâu không có người dùng, lần mở đầu tiên sẽ chậm hơn bình thường.
+
+Muốn chạy lại trên máy cá nhân, xem phần [Quick Start](#quick-start) bên dưới.
+
+---
+
 ## Overview
 
 CaraVeso là website thương mại điện tử bán nội thất, làm cho thị trường Việt Nam. Vì nội thất cồng kềnh, giá trị cao và khó chọn qua màn hình, ngoài các chức năng mua bán thông thường hệ thống còn có công cụ đặt thử sản phẩm vào phòng 3D, kiểm tra hàng có vận chuyển vào nhà được không, tìm sản phẩm bằng mô tả hoặc bằng ảnh, cùng một trang quản trị riêng cho đội vận hành.
@@ -125,39 +140,66 @@ npm install
 cp .env.example .env
 ```
 
-Chỉnh `.env` với thông tin của bạn:
+Mở `.env` và điền các giá trị. Mẫu đầy đủ (trùng với `.env.example`):
 
 ```env
-# Required
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your-secret-key
-COOKIE_SECRET=your-cookie-secret
+# ===== Bắt buộc để chạy được =====
 NODE_ENV=development
+PORT=3000
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/caraveso?retryWrites=true&w=majority
+JWT_SECRET=<chuoi-ngau-nhien-dai>
+COOKIE_SECRET=<chuoi-ngau-nhien-dai>
+ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4201
+ADMIN_WEB_URL=http://localhost:4201
 
-# Email OTP (Brevo)
-BREVO_API_KEY=your-brevo-key
-OTP_EMAIL_FROM=sender@your-domain.com
+# ===== Đăng nhập Google =====
+# Phải khớp với projects/customer-web/src/app/core/auth/google-oauth.config.ts
+GOOGLE_CLIENT_ID=
 
-# Social Login
-GOOGLE_CLIENT_ID=your-google-client-id
+# ===== Email OTP (Brevo) =====
+BREVO_API_KEY=
+OTP_EMAIL_FROM=CaraVeso <no-reply@your-verified-domain.com>
 
-# AI
-GEMINI_API_KEY=your-gemini-key
+# ===== Lưu ảnh (Supabase Storage) =====
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_STORAGE_BUCKET=images
 
-# Image Storage
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=xxx
-
-# Payments (QR chuyển khoản)
-SEPAY_API_KEY=your-sepay-key
+# ===== Thanh toán QR chuyển khoản =====
+BANK_WEBHOOK_SECRET=
+SEPAY_API_KEY=
 BANK_ID=MB
-BANK_ACCOUNT_NUMBER=xxx
-BANK_ACCOUNT_HOLDER=xxx
+BANK_NAME=
+BANK_ACCOUNT_NUMBER=
+BANK_ACCOUNT_HOLDER=
+
+# ===== AI: chat và tìm kiếm =====
+GEMINI_API_KEY=
+GEMINI_CHAT_MODEL=gemini-3.1-flash-lite
+GEMINI_CHAT_FALLBACK_MODEL=gemini-flash-lite-latest
+EMBEDDING_URL=
+EMBEDDING_MODEL=clip
+VECTOR_SEARCH_INDEX=product_image_vector
+
+# ===== Bản đồ chọn địa chỉ =====
+GOOGLE_MAPS_API_KEY=
 ```
 
-Chỉ `MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET` là bắt buộc để chạy được; các dịch vụ còn lại bật dần theo chức năng. Danh sách đầy đủ nằm trong `.env.example`.
+Cách hiểu nhanh các nhóm biến:
 
-> `GOOGLE_CLIENT_ID` phải khớp với `projects/customer-web/src/app/core/auth/google-oauth.config.ts`, và domain đang chạy web phải nằm trong Authorized JavaScript origins trên Google Cloud Console.
+| Nhóm | Nếu để trống thì |
+|------|------------------|
+| Bắt buộc (`MONGODB_URI`, `JWT_SECRET`, `COOKIE_SECRET`) | Server không chạy được |
+| `GOOGLE_CLIENT_ID` | Không đăng nhập bằng Google được |
+| `BREVO_API_KEY` | Không gửi được email OTP thật |
+| `SUPABASE_*` | Không upload được ảnh |
+| `GEMINI_API_KEY` | Chat AI báo chưa cấu hình |
+| `SEPAY_API_KEY`, `BANK_*` | Dùng `npm run bank:simulate` để giả lập tiền về |
+| `EMBEDDING_*` | Không tìm kiếm bằng ảnh được |
+
+> Khi dùng đăng nhập Google, domain đang chạy web phải nằm trong Authorized JavaScript origins của OAuth Client ID trên Google Cloud Console.
+
+> **Về bảo mật:** các khóa thật (mật khẩu MongoDB, JWT, Brevo, Supabase, Gemini, SePay) không được đưa lên GitHub nên `.env` không có trong repo (đã nằm trong `.gitignore`). Để kiểm tra nhanh, thầy/cô có thể dùng hai trang demo ở phần [Live Demo](#live-demo); nếu cần chạy cục bộ với dữ liệu thật, vui lòng liên hệ nhóm để được cấp file `.env`.
 
 ### 3. Seed dữ liệu (tùy chọn)
 
