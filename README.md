@@ -216,7 +216,7 @@ npm run seed:admin      # Tài khoản admin
 npm run dev:server
 
 # Terminal 2 — Customer frontend
-npm run start:customer -- --host 127.0.0.1
+npm run start:customer
 
 # Terminal 3 — Admin panel (optional)
 npm run start:admin
@@ -227,7 +227,7 @@ npm run dev:worker
 
 | Service | URL |
 |---------|-----|
-| Customer App | http://127.0.0.1:4200 |
+| Customer App | http://localhost:4200 |
 | Admin Panel | http://localhost:4201 |
 | API Server | http://localhost:3000 |
 
