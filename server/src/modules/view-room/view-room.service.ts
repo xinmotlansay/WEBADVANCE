@@ -55,6 +55,7 @@ export async function getRoomSuggestions(input: SuggestionInput): Promise<RoomSu
         status: 'ACTIVE',
         _id: { $nin: excludeIds },
         categoryIds: { $in: productCategoryIds },
+        'media.type': 'MODEL_3D',
       })
         .sort({ listedAt: -1 })
         .limit(SIMILAR_LIMIT)
@@ -68,13 +69,14 @@ export async function getRoomSuggestions(input: SuggestionInput): Promise<RoomSu
     status: 'VISIBLE',
   }).lean();
 
-  // Chỉ gợi ý sản phẩm vừa thuộc nhóm còn thiếu vừa thuộc đúng loại phòng đang chọn.
+  // Loại phòng chỉ quyết định các nhóm gợi ý; sản phẩm trong nhóm lấy từ mọi phòng, miễn có model 3D.
   const missing = await Promise.all(
     missingCategories.map(async (category) => {
       const docs = await ProductModel.find({
         status: 'ACTIVE',
         _id: { $nin: excludeIds },
-        categoryIds: { $all: [category._id, room._id] },
+        categoryIds: category._id,
+        'media.type': 'MODEL_3D',
       })
         .sort({ listedAt: -1 })
         .limit(MISSING_PER_GROUP)

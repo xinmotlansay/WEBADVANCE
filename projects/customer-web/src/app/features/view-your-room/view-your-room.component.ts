@@ -576,7 +576,7 @@ export class ViewYourRoomComponent implements AfterViewInit {
         map((term) => term.trim()),
         switchMap((term) =>
           term
-            ? this.catalog.getProducts({ q: term, limit: 24 }).pipe(
+            ? this.catalog.getProducts({ q: term, limit: 24, has3DModel: true }).pipe(
                 map((r) => r.items),
                 catchError(() => of<ProductListItem[]>([])),
               )

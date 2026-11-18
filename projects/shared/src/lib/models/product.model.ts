@@ -29,6 +29,7 @@ export interface ProductListQuery {
   badge?: ProductBadge;
   hasPromotion?: boolean;
   inStock?: boolean;
+  has3DModel?: boolean;
   minPrice?: number;
   maxPrice?: number;
   color?: string[];

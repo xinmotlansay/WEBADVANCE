@@ -83,6 +83,7 @@ export class CatalogApiService {
     if (query.badge) params = params.set('badge', query.badge);
     if (query.hasPromotion) params = params.set('hasPromotion', true);
     if (query.inStock) params = params.set('inStock', true);
+    if (query.has3DModel) params = params.set('has3DModel', true);
     if (query.minPrice !== undefined) params = params.set('minPrice', query.minPrice);
     if (query.maxPrice !== undefined) params = params.set('maxPrice', query.maxPrice);
     if (query.color?.length) params = params.set('color', query.color.join(','));

@@ -196,6 +196,7 @@ async function loadEntries(q: ProductListQuery): Promise<ListEntry[]> {
   if (q.collection)
     conditions.push({ _id: { $in: collection?.products.map((p) => p.productId) ?? [] } });
   if (q.ids) conditions.push({ _id: { $in: q.ids } });
+  if (q.has3DModel) conditions.push({ 'media.type': 'MODEL_3D' });
   let products = await ProductModel.find({
     status: 'ACTIVE',
     ...(conditions.length > 0 ? { $and: conditions } : {}),

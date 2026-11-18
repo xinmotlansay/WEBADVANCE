@@ -22,6 +22,8 @@ export const productListQuerySchema = z
     badge: z.enum(['NEW', 'BEST_SELLER']).optional(),
     hasPromotion: z.stringbool().optional(),
     inStock: z.stringbool().optional(),
+    /** Chỉ lấy sản phẩm có mô hình 3D (dùng cho View your Room). */
+    has3DModel: z.stringbool().optional(),
     minPrice: z.coerce.number().int().min(0).optional(),
     maxPrice: z.coerce.number().int().min(0).optional(),
     color: csv.optional(),
