@@ -33,6 +33,7 @@ Backend API chạy trên Render và được hai trang trên gọi qua `/api`. N
 | 1 | Super Admin | admin@caraveso.vn | caraveso-admin-2026 |
 | 2 | Admin Sản phẩm | product@caraveso.vn | caraveso-product-2026 |
 | 3 | Admin Marketing | marketing@caraveso.vn | caraveso-marketing-2026 |
+| 4 | Admin Đơn hàng | order@caraveso.vn | caraveso-order-2026 |
 
 Đăng nhập tại [Trang quản trị](https://caraveso-admin.vercel.app/). Đây là tài khoản demo dùng để xem giao diện và phân quyền; không dùng cho dữ liệu thật.
 
