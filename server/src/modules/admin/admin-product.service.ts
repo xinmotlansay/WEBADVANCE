@@ -129,8 +129,10 @@ export async function listProducts(query: AdminProductQuery) {
   if (query.stock) pipeline.push({ $match: { stockState: query.stock } });
   const sortField = { name: 'name', '-updatedAt': 'updatedAt', price: 'priceFrom', '-price': 'priceFrom', stock: 'totalStock' }[query.sort];
   const direction = query.sort.startsWith('-') ? -1 : 1;
+  // Sản phẩm không còn ACTIVE (ẩn, nháp, ngừng bán) luôn xếp sau sản phẩm đang bán, rồi mới theo cột đang sắp.
   pipeline.push(
-    { $sort: { [sortField]: direction, _id: 1 } },
+    { $addFields: { inactiveRank: { $cond: [{ $eq: ['$status', 'ACTIVE'] }, 0, 1] } } },
+    { $sort: { inactiveRank: 1, [sortField]: direction, _id: 1 } },
     {
       $facet: {
         rows: [{ $skip: (query.page - 1) * query.limit }, { $limit: query.limit }],

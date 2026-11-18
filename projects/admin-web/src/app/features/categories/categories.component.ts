@@ -51,8 +51,11 @@ export class CategoriesComponent {
         (!q || c.name.toLowerCase().includes(q) || c.slug.includes(q)),
     );
     const sort = this.sort();
+    // Danh mục đang hiển thị luôn lên trước danh mục ẩn, rồi mới theo tiêu chí đang sắp.
     return rows.sort((a, b) =>
-      sort === 'name'
+      a.status !== b.status
+        ? (a.status === 'VISIBLE' ? -1 : 1)
+        : sort === 'name'
         ? a.name.localeCompare(b.name, 'vi')
         : sort === '-products'
           ? b.productCount - a.productCount
