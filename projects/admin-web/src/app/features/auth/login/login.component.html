@@ -59,6 +59,7 @@
         <label for="password">Mật khẩu</label>
         <div class="password-row">
           <input
+            #passwordInput
             id="password"
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
@@ -69,7 +70,7 @@
           <button
             type="button"
             class="btn-secondary"
-            (click)="togglePassword()"
+            (click)="togglePassword(); $event.detail > 0 && passwordInput.focus()"
             [attr.aria-pressed]="showPassword()"
           >
             {{ showPassword() ? 'Ẩn' : 'Hiện' }}
