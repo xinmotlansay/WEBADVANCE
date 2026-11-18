@@ -1,4 +1,4 @@
-<h1 align="center">CaraVeso — Furniture E-commerce Platform</h1>
+<h1 align="center">CaraVeso - Furniture E-commerce Platform</h1>
 
 <p align="center">
   <strong>Nền tảng thương mại điện tử nội thất giúp khách tự tin chọn đồ cho đúng không gian của mình</strong>
