@@ -26,6 +26,16 @@ Tên website: **CaraVeso** — website bán nội thất trực tuyến.
 
 Backend API chạy trên Render và được hai trang trên gọi qua `/api`. Nếu máy chủ Render đang ở gói miễn phí thì có thể bị ngủ khi lâu không có người dùng, lần mở đầu tiên sẽ chậm hơn bình thường.
 
+### Tài khoản admin để xem thử
+
+| STT | Vai trò | Email đăng nhập | Mật khẩu |
+|-----|---------|-----------------|----------|
+| 1 | Super Admin | admin@caraveso.vn | caraveso-admin-2026 |
+| 2 | Admin Sản phẩm | product@caraveso.vn | caraveso-product-2026 |
+| 3 | Admin Marketing | marketing@caraveso.vn | caraveso-marketing-2026 |
+
+Đăng nhập tại [Trang quản trị](https://caraveso-admin.vercel.app/). Đây là tài khoản demo dùng để xem giao diện và phân quyền; không dùng cho dữ liệu thật.
+
 Muốn chạy lại trên máy cá nhân, xem phần [Quick Start](#quick-start) bên dưới.
 
 ---
